@@ -45,8 +45,10 @@
 */
 use std::collections::BTreeSet;
 use std::fmt;
+use std::fs::{self, File};
 use std::io;
 use std::io::prelude::*;
+use std::io::LineWriter;
 use std::path;
 use std::str;
 
@@ -56,21 +58,24 @@ use cargo::core::{Package, Resolve, Workspace};
 use cargo::ops;
 use cargo::util::Config;
 use cargo::CargoResult;
+use packageurl::PackageUrl;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
+use uuid::Uuid;
+use xml_writer::XmlWriter;
 
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
 enum Opts {
     #[structopt(
-    name = "bom",
+    name = "cyclonedx",
     raw(
     setting = "AppSettings::UnifiedHelpMessage",
     setting = "AppSettings::DeriveDisplayOrder",
     setting = "AppSettings::DontCollapseArgsInUsage"
     )
     )]
-    /// Display a Bill-of-Materials for Rust project
+    /// Creates a CycloneDX Software Bill-of-Materials (SBOM) for Rust project
     Bom(Args),
 }
 
@@ -135,55 +140,65 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
         top_level_dependencies(&members, package_ids)?
     };
 
-    let mut packages = BTreeSet::new();
+    //let p = &Package::new();
+
+
+    let file = File::create("bom.xml")?;
+    let mut file = LineWriter::new(file);
+    let mut xml = XmlWriter::new(file);
+    xml.dtd("UTF-8");
+    xml.begin_elem("bom");
+    xml.attr("serialNumber", Uuid::new_v4().to_urn().to_string().as_mut_str());
+    xml.attr("version", "1");
+    xml.attr("xmlns", "http://cyclonedx.org/schema/bom/1.1");
+    xml.begin_elem("components");
+
     for package in &dependencies {
-        let name = package.name().to_owned();
+        let name = package.name().to_owned().as_str().trim();
         let version = format!("{}", package.version());
+        xml.begin_elem("component");
+        xml.attr("type", "library");
+
+        xml.begin_elem("name");
+        xml.text(name);
+        xml.end_elem();
+
+        xml.begin_elem("version");
+        xml.text(version.as_str().trim());
+        xml.end_elem();
+
+        match &package.manifest().metadata().description {
+            Some(x) => {
+                xml.begin_elem("description");
+                xml.cdata(x.trim());
+                xml.end_elem();
+            },
+            None => { }
+        }
+
+        xml.begin_elem("scope");
+        xml.text("required");
+        xml.end_elem();
+
+        //TODO: Add hashes
+
+        //TODO: Add Licenses
         let licenses = format!("{}", package_licenses(package));
-        let license_files = package_license_files(package)?;
-        packages.insert((name, version, licenses, license_files));
+        println!("{}", licenses);
+
+        let mut purl = PackageUrl::new("cargo", name).with_version(version.as_str().trim()).to_string();
+        xml.begin_elem("purl");
+        xml.text(purl.as_mut_str());
+        xml.end_elem();
+
+        xml.end_elem(); // end component
     }
 
-    let stdout = io::stdout();
-    let mut out = stdout.lock();
-
-    {
-        let mut tw = tabwriter::TabWriter::new(&mut out);
-        writeln!(tw, "Name\t| Version\t| Licenses")?;
-        writeln!(tw, "----\t| -------\t| --------")?;
-        for (name, version, licenses, _) in &packages {
-            writeln!(tw, "{}\t| {}\t| {}", &name, &version, &licenses)?;
-        }
-
-        // TabWriter flush() makes the actual write to stdout.
-        tw.flush()?;
-    }
-
-    println!();
-
-    for (name, version, _, license_files) in packages {
-        if license_files.is_empty() {
-            continue;
-        }
-
-        println!("-----BEGIN {} {} LICENSES-----", name, version);
-
-        let mut buf = Vec::new();
-        let mut licenses_to_print = license_files.len();
-        for file in license_files {
-            let mut fs = std::fs::File::open(file)?;
-            fs.read_to_end(&mut buf)?;
-            out.write_all(&buf)?;
-            buf.clear();
-            if licenses_to_print > 1 {
-                out.write_all(b"\n-----NEXT LICENSE-----\n")?;
-                licenses_to_print -= 1;
-            }
-        }
-
-        println!("-----END {} {} LICENSES-----", name, version);
-        println!();
-    }
+    xml.end_elem(); // end components
+    xml.end_elem(); // end bom
+    xml.close();
+    xml.flush();
+    let actual = xml.into_inner();
 
     Ok(())
 }
@@ -264,7 +279,6 @@ static LICENCE_FILE_NAMES: &[&str] = &["LICENSE", "UNLICENSE"];
 
 fn package_license_files(package: &Package) -> io::Result<Vec<path::PathBuf>> {
     let mut result = Vec::new();
-
     if let Some(path) = package.manifest_path().parent() {
         for entry in path.read_dir()? {
             if let Ok(entry) = entry {
@@ -278,7 +292,6 @@ fn package_license_files(package: &Package) -> io::Result<Vec<path::PathBuf>> {
             }
         }
     }
-
     Ok(result)
 }
 
