@@ -18,3 +18,9 @@ travis-ci = { repository = "CycloneDX/cyclonedx-rust-cargo", branch = "master" }
 
 [profile.release]
 lto = true
+
+[dependencies]
+cargo = "0.35"
+failure = "0.1"
+structopt = "0.2"
+tabwriter = "1"
