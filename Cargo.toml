@@ -1,0 +1,20 @@
+[package]
+name = "cyclonedx-bom"
+version = "0.1.0"
+authors = [ "Steve Springett <steve.springett@owasp.org>" ]
+license = "Apache-2.0"
+edition = "2018"
+
+description = "CycloneDX Software Bill of Materials (SBOM) for Rust Crates"
+homepage = "https://cyclonedx.org/"
+repository = "https://github.com/CycloneDX/cyclonedx-rust-cargo"
+readme = "README.md"
+
+categories = ["command-line-utilities", "development-tools", "development-tools::cargo-plugins"]
+keywords = ["sbom", "bom", "bill-of-materials", "components", "dependencies"]
+
+[badges]
+travis-ci = { repository = "CycloneDX/cyclonedx-rust-cargo", branch = "master" }
+
+[profile.release]
+lto = true
