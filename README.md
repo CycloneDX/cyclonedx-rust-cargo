@@ -4,20 +4,24 @@
 [![Group Discussion](https://img.shields.io/badge/discussion-groups.io-blue.svg)](https://groups.io/g/CycloneDX)
 [![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&label=Follow)](https://twitter.com/CycloneDX_Spec)
 
-CycloneDX Rust (Cargo) Plugin
-=========
-
+# CycloneDX Rust (Cargo) Plugin
 The CycloneDX module for Rust (Cargo) creates a valid CycloneDX Softare Bill-of-Material (SBoM) containing an aggregate of all project dependencies. CycloneDX is a lightweight SBoM specification that is easily created, human and machine readable, and simple to parse. The resulting bom.xml can be used with tools such as [OWASP Dependency-Track](https://dependencytrack.org/) for the continuous analysis of components.
 
-Usage
--------------------
+## Usage
+(Currently in active development)
 
-(Currently in development)
+#### Installing
+```bash
+ // future
+```
+
+#### Example
+```bash
+cargo cyclonedx
+```
 
 
-License
--------------------
-
+## License
 Permission to modify and redistribute is granted under the terms of the Apache 2.0 license. See the [LICENSE] file for the full license.
 
 [License]: https://github.com/CycloneDX/cyclonedx-rust-cargo/blob/master/LICENSE
