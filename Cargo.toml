@@ -22,7 +22,7 @@ lto = true
 [dependencies]
 cargo = "0.35"
 failure = "0.1"
-structopt = "0.2"
+structopt = "0.3"
 uuid = { version = "0.7.4", features = ["serde", "v4"] }
 packageurl = "0.2.0"
 xml_writer = "0.4.0"
