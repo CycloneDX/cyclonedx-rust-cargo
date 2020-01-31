@@ -20,7 +20,7 @@ travis-ci = { repository = "CycloneDX/cyclonedx-rust-cargo", branch = "master" }
 lto = true
 
 [dependencies]
-cargo = "0.35"
+cargo = "0.42"
 failure = "0.1"
 structopt = "0.2"
 uuid = { version = "0.7.4", features = ["serde", "v4"] }
