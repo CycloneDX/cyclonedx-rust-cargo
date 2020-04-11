@@ -9,7 +9,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Install Rust Toolchain
+      run: |
+        rustup update
+        rustup component add clippy
+        rustup install beta
+        rustup install nightly
     - name: Build
       run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    - name: Execute stable tests
+      run: |
+        cargo test --verbose
+        cargo clippy
+    - name: Execute beta tests
+      run: cargo +beta test --verbose
+    - name: Execute nightly tests
+      run: cargo +nightly test --verbose
