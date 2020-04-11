@@ -59,6 +59,7 @@ use cargo::ops;
 use cargo::util::Config;
 use cargo::CargoResult;
 use packageurl::PackageUrl;
+use regex::Regex;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 use uuid::Uuid;
@@ -180,21 +181,90 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
         xml.text("required");
         xml.end_elem();
 
-        //TODO: Add hashes
+        //TODO: Add hashes. May require file components and manual calculation of all files
 
-        //TODO: Add Licenses
-        let licenses = format!("{}", package_licenses(package));
-        println!("{}", licenses);
+        //let licenses = format!("{}", package_licenses(package));
+        //println!("{}", licenses);
+        if package.manifest().metadata().license.is_some() {
+            match &package.manifest().metadata().license {
+                Some(x) => {
+                    xml.begin_elem("licenses");
+                    xml.begin_elem("license");
+                    xml.begin_elem("expression");
+                    xml.text(x.trim());
+                    xml.end_elem();
+                    xml.end_elem();
+                    xml.end_elem();
+                },
+                None => { }
+            }
+        }
 
         let mut purl = PackageUrl::new("cargo", name).with_version(version.as_str().trim()).to_string();
         xml.begin_elem("purl");
         xml.text(purl.as_mut_str());
         xml.end_elem();
 
+        if package.manifest().metadata().documentation.is_some()
+            | package.manifest().metadata().homepage.is_some()
+            | package.manifest().metadata().links.is_some()
+            | package.manifest().metadata().repository.is_some() {
+
+            let re = Regex::new(r"^([a-z0-9+.-]+):(?://(?:((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9A-F]{2})*)@)?((?:[a-z0-9-._~!$&'()*+,;=]|%[0-9A-F]{2})*)(?::(\d*))?(/(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9A-F]{2})*)?|(/?(?:[a-z0-9-._~!$&'()*+,;=:@]|%[0-9A-F]{2})+(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9A-F]{2})*)?)(?:\?((?:[a-z0-9-._~!$&'()*+,;=:/?@]|%[0-9A-F]{2})*))?(?:#((?:[a-z0-9-._~!$&'()*+,;=:/?@]|%[0-9A-F]{2})*))?$").unwrap();
+            xml.begin_elem("externalReferences");
+            match &package.manifest().metadata().documentation {
+                Some(x) => {
+                    if re.is_match(x) {
+                        xml.begin_elem("reference");
+                        xml.attr("type", "documentation");
+                        xml.text(x.trim());
+                        xml.end_elem();
+                    }
+                },
+                None => { }
+            }
+            match &package.manifest().metadata().homepage {
+                Some(x) => {
+                    if re.is_match(x) {
+                        xml.begin_elem("reference");
+                        xml.attr("type", "website");
+                        xml.text(x.trim());
+                        xml.end_elem();
+                    }
+                },
+                None => { }
+            }
+            match &package.manifest().metadata().links {
+                Some(x) => {
+                    if re.is_match(x) {
+                        xml.begin_elem("reference");
+                        xml.attr("type", "other");
+                        xml.text(x.trim());
+                        xml.end_elem();
+                    }
+                },
+                None => { }
+            }
+            match &package.manifest().metadata().repository {
+                Some(x) => {
+                    if re.is_match(x) {
+                        xml.begin_elem("reference");
+                        xml.attr("type", "vcs");
+                        xml.text(x.trim());
+                        xml.end_elem();
+                    }
+                },
+                None => { }
+            }
+            xml.end_elem();
+        }
+
+
         xml.end_elem(); // end component
     }
 
     xml.end_elem(); // end components
+    // TODO: Add dependency graph
     xml.end_elem(); // end bom
     xml.close();
     xml.flush();
