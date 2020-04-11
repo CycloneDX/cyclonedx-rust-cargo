@@ -21,6 +21,6 @@ cargo = "0.35"
 failure = "0.1"
 structopt = "0.2"
 regex = "1.3.6"
-uuid = { version = "0.7.4", features = ["serde", "v4"] }
+uuid = { version = "0.8.1", features = ["serde", "v4"] }
 packageurl = "0.2.0"
 xml_writer = "0.4.0"
