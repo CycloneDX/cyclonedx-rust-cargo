@@ -16,6 +16,10 @@ keywords = ["sbom", "bom", "bill-of-materials", "components", "dependencies"]
 [profile.release]
 lto = true
 
+exclude = [
+    ".github/*"
+]
+
 [dependencies]
 cargo = "0.38"
 failure = { version = "0.1", default-features = false }
