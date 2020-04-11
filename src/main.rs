@@ -60,7 +60,6 @@ use cargo::util::Config;
 use cargo::CargoResult;
 use packageurl::PackageUrl;
 use regex::Regex;
-use structopt::clap::AppSettings;
 use structopt::StructOpt;
 use uuid::Uuid;
 use xml_writer::XmlWriter;
@@ -68,14 +67,7 @@ use xml_writer::XmlWriter;
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
 enum Opts {
-    #[structopt(
-    name = "cyclonedx",
-    raw(
-    setting = "AppSettings::UnifiedHelpMessage",
-    setting = "AppSettings::DeriveDisplayOrder",
-    setting = "AppSettings::DontCollapseArgsInUsage"
-    )
-    )]
+    #[structopt(name = "cyclonedx")]
     /// Creates a CycloneDX Software Bill-of-Materials (SBOM) for Rust project
     Bom(Args),
 }
@@ -106,6 +98,9 @@ struct Args {
     #[structopt(long = "locked")]
     /// Require Cargo.lock is up to date
     locked: bool,
+    #[structopt(long = "offline")]
+    /// Run without accessing the network
+    offline: bool,
     #[structopt(short = "Z", value_name = "FLAG")]
     /// Unstable (nightly-only) flags to Cargo
     unstable_flags: Vec<String>,
@@ -124,6 +119,7 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
         &args.color,
         args.frozen,
         args.locked,
+        args.offline,
         &args.target_dir,
         &args.unstable_flags,
     )?;
