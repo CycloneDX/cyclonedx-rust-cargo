@@ -21,10 +21,10 @@ exclude = [
 ]
 
 [dependencies]
-cargo = "0.38"
-failure = { version = "0.1", default-features = false }
+cargo = "0.50"
 structopt = { version = "0.3", default-features = false }
 regex = "1.3.6"
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
 packageurl = "0.2.0"
 xml_writer = "0.4.0"
+anyhow = "1.0.37"

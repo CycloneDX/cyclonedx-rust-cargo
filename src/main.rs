@@ -45,14 +45,13 @@
 */
 use std::collections::BTreeSet;
 use std::fmt;
-use std::fs::{self, File};
+use std::fs::File;
 use std::io;
-use std::io::prelude::*;
 use std::io::LineWriter;
 use std::path;
 use std::str;
 
-use cargo::core::dependency::Kind;
+use cargo::core::dependency::DepKind;
 use cargo::core::package::PackageSet;
 use cargo::core::{Package, Resolve, Workspace};
 use cargo::ops;
@@ -104,6 +103,9 @@ struct Args {
     #[structopt(short = "Z", value_name = "FLAG")]
     /// Unstable (nightly-only) flags to Cargo
     unstable_flags: Vec<String>,
+    #[structopt(long = "config", value_name = "KEY=VALUE")]
+    /// Override a configuration value
+    config_args: Vec<String>,
 }
 
 fn main() -> Result<(), Error> {
@@ -115,13 +117,14 @@ fn main() -> Result<(), Error> {
 fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     config.configure(
         args.verbose,
-        args.quiet,
-        &args.color,
+        args.quiet.unwrap_or(false),
+        args.color.as_deref(),
         args.frozen,
         args.locked,
         args.offline,
         &args.target_dir,
         &args.unstable_flags,
+        &args.config_args,
     )?;
 
     let manifest = args
@@ -279,8 +282,8 @@ fn top_level_dependencies(
         for dependency in member.dependencies() {
             // Filter out Build and Development dependencies
             match dependency.kind() {
-                Kind::Normal => (),
-                Kind::Build | Kind::Development => continue,
+                DepKind::Normal => (),
+                DepKind::Build | DepKind::Development => continue,
             }
             if let Some(dep) = package_ids
                 .package_ids()
@@ -384,16 +387,15 @@ impl<'a> fmt::Display for Licenses<'a> {
 #[derive(Debug)]
 struct Error;
 
-impl From<failure::Error> for Error {
-    fn from(err: failure::Error) -> Self {
+impl From<anyhow::Error> for Error {
+    fn from(err: anyhow::Error) -> Self {
         cargo_exit(err)
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
-        let failure = failure::Error::from_boxed_compat(Box::new(err));
-        cargo_exit(failure)
+        cargo_exit(anyhow::Error::new(err))
     }
 }
 
