@@ -42,19 +42,19 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use std::collections::BTreeSet;
-use std::fs::File;
-use std::io;
-use std::io::LineWriter;
-use std::path;
-use std::str;
+use std::{
+    collections::BTreeSet,
+    fs::File,
+    io::{self, LineWriter},
+    path, str,
+};
 
-use cargo::core::dependency::DepKind;
-use cargo::core::package::PackageSet;
-use cargo::core::{Package, Resolve, Workspace};
-use cargo::ops;
-use cargo::util::Config;
-use cargo::CargoResult;
+use cargo::{
+    core::{dependency::DepKind, package::PackageSet, Package, Resolve, Workspace},
+    ops,
+    util::Config,
+    CargoResult,
+};
 use structopt::StructOpt;
 use uuid::Uuid;
 use xml_writer::XmlWriter;
