@@ -1,6 +1,7 @@
 use std::io;
 
 use cargo::core::Package;
+use lazy_static::lazy_static;
 use packageurl::PackageUrl;
 use regex::Regex;
 use xml_writer::XmlWriter;
@@ -105,6 +106,10 @@ impl ToXml for ExternalReferences<'_> {
 
 struct ExternalReferenceError;
 
+lazy_static! {
+    static ref URI_REGEX: Regex = Regex::new(r"^([a-z0-9+.-]+):(?://(?:((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9A-F]{2})*)@)?((?:[a-z0-9-._~!$&'()*+,;=]|%[0-9A-F]{2})*)(?::(\d*))?(/(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9A-F]{2})*)?|(/?(?:[a-z0-9-._~!$&'()*+,;=:@]|%[0-9A-F]{2})+(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9A-F]{2})*)?)(?:\?((?:[a-z0-9-._~!$&'()*+,;=:/?@]|%[0-9A-F]{2})*))?(?:#((?:[a-z0-9-._~!$&'()*+,;=:/?@]|%[0-9A-F]{2})*))?$").unwrap();
+}
+
 /// A reference to external materials, such as documentation.
 struct ExternalReference<'a> {
     ref_type: &'a str,
@@ -113,8 +118,7 @@ struct ExternalReference<'a> {
 
 impl<'a> ExternalReference<'a> {
     fn new(ref_type: &'a str, uri: &'a str) -> Result<Self, ExternalReferenceError> {
-        let re = Regex::new(r"^([a-z0-9+.-]+):(?://(?:((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9A-F]{2})*)@)?((?:[a-z0-9-._~!$&'()*+,;=]|%[0-9A-F]{2})*)(?::(\d*))?(/(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9A-F]{2})*)?|(/?(?:[a-z0-9-._~!$&'()*+,;=:@]|%[0-9A-F]{2})+(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9A-F]{2})*)?)(?:\?((?:[a-z0-9-._~!$&'()*+,;=:/?@]|%[0-9A-F]{2})*))?(?:#((?:[a-z0-9-._~!$&'()*+,;=:/?@]|%[0-9A-F]{2})*))?$").unwrap();
-        if re.is_match(uri) {
+        if URI_REGEX.is_match(uri) {
             Ok(Self { ref_type, uri })
         } else {
             Err(ExternalReferenceError)
