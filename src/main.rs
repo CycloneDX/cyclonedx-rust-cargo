@@ -56,14 +56,17 @@ use cargo::{
     CargoResult,
 };
 use structopt::StructOpt;
-use uuid::Uuid;
 use xml_writer::XmlWriter;
 
+mod bom;
 mod component;
+mod format;
 mod traits;
 
-use component::Component;
-use traits::ToXml;
+use bom::Bom;
+pub(crate) use component::Component;
+use format::Format;
+pub(crate) use traits::ToXml;
 
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -84,6 +87,9 @@ struct Args {
     #[structopt(long = "manifest-path", value_name = "PATH", parse(from_os_str))]
     /// Path to Cargo.toml
     manifest_path: Option<path::PathBuf>,
+    /// Output BOM format: json, xml
+    #[structopt(long = "format", short = "f", value_name = "FORMAT", default_value)]
+    format: Format,
     #[structopt(long = "verbose", short = "v", parse(from_occurrences))]
     /// Use verbose output (-vv very verbose/build.rs output)
     verbose: u32,
@@ -142,27 +148,24 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
         top_level_dependencies(&members, package_ids)?
     };
 
-    let file = File::create("bom.xml")?;
-    let file = LineWriter::new(file);
-    let mut xml = XmlWriter::new(file);
-    xml.dtd("UTF-8")?;
-    xml.begin_elem("bom")?;
-    xml.attr("serialNumber", &Uuid::new_v4().to_urn().to_string())?;
-    xml.attr("version", "1")?;
-    xml.attr("xmlns", "http://cyclonedx.org/schema/bom/1.1")?;
+    let bom: Bom = dependencies.iter().collect();
 
-    xml.begin_elem("components")?;
-    for package in &dependencies {
-        Component::from(package).to_xml(&mut xml)?;
+    match args.format {
+        Format::Json => {
+            serde_json::to_writer_pretty(File::create("bom.json")?, &bom)
+                .map_err(anyhow::Error::from)?;
+        }
+        Format::Xml => {
+            let file = File::create("bom.xml")?;
+            let file = LineWriter::new(file);
+            let mut xml = XmlWriter::new(file);
+
+            bom.to_xml(&mut xml)?;
+            xml.close()?;
+            xml.flush()?;
+            let _actual = xml.into_inner();
+        }
     }
-    xml.end_elem()?; // end components
-
-    // TODO: Add dependency graph
-
-    xml.end_elem()?; // end bom
-    xml.close()?;
-    xml.flush()?;
-    let _actual = xml.into_inner();
 
     Ok(())
 }

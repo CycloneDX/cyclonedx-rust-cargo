@@ -1,42 +1,45 @@
 use std::io;
 
 use cargo::core::Package;
-use lazy_static::lazy_static;
 use packageurl::PackageUrl;
-use regex::Regex;
+use serde::Serialize;
 use xml_writer::XmlWriter;
 
 use crate::traits::ToXml;
 
-pub struct Component<'a>(&'a Package);
+mod license;
+mod reference;
+
+use self::license::Licenses;
+use self::reference::ExternalReferences;
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Component<'a> {
+    #[serde(flatten)]
+    metadata: Metadata<'a>,
+    #[serde(skip_serializing_if = "Licenses::is_empty")]
+    licenses: Licenses<'a>,
+    #[serde(skip_serializing_if = "ExternalReferences::is_empty")]
+    external_references: ExternalReferences<'a>,
+}
 
 impl<'a> From<&'a Package> for Component<'a> {
     fn from(pkg: &'a Package) -> Self {
-        Self(pkg)
+        Self {
+            metadata: Metadata::from(pkg),
+            licenses: Licenses::from(pkg),
+            external_references: ExternalReferences::from(pkg),
+        }
     }
 }
 
 impl ToXml for Component<'_> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        let package = self.0;
-        let name = package.name().to_owned().as_str().trim();
-        let version = package.version().to_string();
         xml.begin_elem("component")?;
         xml.attr("type", "library")?;
 
-        xml.begin_elem("name")?;
-        xml.text(name)?;
-        xml.end_elem()?;
-
-        xml.begin_elem("version")?;
-        xml.text(version.trim())?;
-        xml.end_elem()?;
-
-        if let Some(x) = &package.manifest().metadata().description {
-            xml.begin_elem("description")?;
-            xml.cdata(x.trim())?;
-            xml.end_elem()?;
-        }
+        self.metadata.to_xml(xml)?;
 
         xml.begin_elem("scope")?;
         xml.text("required")?;
@@ -44,94 +47,63 @@ impl ToXml for Component<'_> {
 
         //TODO: Add hashes. May require file components and manual calculation of all files
 
-        if let Some(x) = &package.manifest().metadata().license {
-            xml.begin_elem("licenses")?;
-            xml.begin_elem("license")?;
-            xml.begin_elem("expression")?;
-            xml.text(x.trim())?;
-            xml.end_elem()?;
-            xml.end_elem()?;
-            xml.end_elem()?;
-        }
+        self.licenses.to_xml(xml)?;
+        self.external_references.to_xml(xml)?;
 
-        let purl = PackageUrl::new("cargo", name)
-            .with_version(version.trim())
-            .to_string();
-        xml.begin_elem("purl")?;
-        xml.text(&purl)?;
+        xml.end_elem()
+    }
+}
+
+#[derive(Serialize)]
+struct Metadata<'a> {
+    name: &'a str,
+    version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<&'a str>,
+    purl: String,
+}
+
+impl<'a> From<&'a Package> for Metadata<'a> {
+    fn from(package: &'a Package) -> Self {
+        let name = package.name().to_owned().as_str().trim();
+        let version = package.version().to_string();
+
+        Self {
+            name,
+            purl: PackageUrl::new("cargo", name)
+                .with_version(version.trim())
+                .to_string(),
+            version,
+            description: package
+                .manifest()
+                .metadata()
+                .description
+                .as_ref()
+                .map(|s| s.as_str()),
+        }
+    }
+}
+
+impl ToXml for Metadata<'_> {
+    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
+        xml.begin_elem("name")?;
+        xml.text(self.name)?;
         xml.end_elem()?;
 
-        ExternalReferences::from(self.0).to_xml(xml)?;
+        xml.begin_elem("version")?;
+        xml.text(self.version.trim())?;
+        xml.end_elem()?;
 
-        xml.end_elem()
-    }
-}
-
-struct ExternalReferences<'a>(Vec<ExternalReference<'a>>);
-
-impl<'a> From<&'a Package> for ExternalReferences<'a> {
-    fn from(v: &'a Package) -> Self {
-        fn ext_ref<'a>(
-            ref_type: &'a str,
-            uri: &'a Option<String>,
-        ) -> Option<ExternalReference<'a>> {
-            ExternalReference::new(ref_type, uri.as_ref()?).ok()
-        }
-
-        let metadata = v.manifest().metadata();
-        Self(
-            ext_ref("documentation", &metadata.documentation)
-                .into_iter()
-                .chain(ext_ref("website", &metadata.homepage))
-                .chain(ext_ref("other", &metadata.links))
-                .chain(ext_ref("vcs", &metadata.repository))
-                .collect(),
-        )
-    }
-}
-
-impl ToXml for ExternalReferences<'_> {
-    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        if !self.0.is_empty() {
-            xml.begin_elem("externalReferences")?;
-            for reference in &self.0 {
-                reference.to_xml(xml)?;
-            }
+        if let Some(x) = self.description {
+            xml.begin_elem("description")?;
+            xml.cdata(x.trim())?;
             xml.end_elem()?;
         }
 
+        xml.begin_elem("purl")?;
+        xml.text(&self.purl.to_string())?;
+        xml.end_elem()?;
+
         Ok(())
-    }
-}
-
-struct ExternalReferenceError;
-
-lazy_static! {
-    static ref URI_REGEX: Regex = Regex::new(r"^([a-z0-9+.-]+):(?://(?:((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9A-F]{2})*)@)?((?:[a-z0-9-._~!$&'()*+,;=]|%[0-9A-F]{2})*)(?::(\d*))?(/(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9A-F]{2})*)?|(/?(?:[a-z0-9-._~!$&'()*+,;=:@]|%[0-9A-F]{2})+(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9A-F]{2})*)?)(?:\?((?:[a-z0-9-._~!$&'()*+,;=:/?@]|%[0-9A-F]{2})*))?(?:#((?:[a-z0-9-._~!$&'()*+,;=:/?@]|%[0-9A-F]{2})*))?$").unwrap();
-}
-
-/// A reference to external materials, such as documentation.
-struct ExternalReference<'a> {
-    ref_type: &'a str,
-    uri: &'a str,
-}
-
-impl<'a> ExternalReference<'a> {
-    fn new(ref_type: &'a str, uri: &'a str) -> Result<Self, ExternalReferenceError> {
-        if URI_REGEX.is_match(uri) {
-            Ok(Self { ref_type, uri })
-        } else {
-            Err(ExternalReferenceError)
-        }
-    }
-}
-
-impl ToXml for ExternalReference<'_> {
-    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        xml.begin_elem("reference")?;
-        xml.attr("type", self.ref_type)?;
-        // XXX is this trim() needed? The regex doesn't permit leading or trailing whitespace.
-        xml.text(self.uri.trim())?;
-        xml.end_elem()
     }
 }
