@@ -7,6 +7,10 @@ use xml_writer::XmlWriter;
 
 use crate::{Component, ToXml};
 
+mod metadata;
+
+pub use self::metadata::Metadata;
+
 #[derive(Clone, Copy, Serialize)]
 enum BomFormat {
     CycloneDX,
@@ -27,6 +31,23 @@ pub struct Bom<'a> {
     version: u32,
     metadata: Metadata<'a>,
     components: Vec<Component<'a>>,
+}
+
+impl<'a> Bom<'a> {
+    /// Create a BOM for a specific package.
+    pub fn new(pkg: &'a Package) -> Self {
+        Self {
+            metadata: Metadata::from(pkg),
+            ..Default::default()
+        }
+    }
+
+    /// Amend the BOM with the specified crates as `components` entries.
+    pub fn with_dependencies(mut self, packages: impl IntoIterator<Item = &'a Package>) -> Self {
+        self.components
+            .extend(packages.into_iter().map(Component::from));
+        self
+    }
 }
 
 impl<'a> Default for Bom<'a> {

@@ -43,14 +43,17 @@
 * SOFTWARE.
 */
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet, VecDeque},
     fs::File,
     io::{self, LineWriter},
-    path, str,
+    iter, path, str,
 };
 
 use cargo::{
-    core::{dependency::DepKind, package::PackageSet, Package, Resolve, Workspace},
+    core::{
+        dependency::DepKind, package::PackageSet, Dependency, Package, PackageId, Resolve,
+        Workspace,
+    },
     ops,
     util::Config,
     CargoResult,
@@ -58,6 +61,7 @@ use cargo::{
 use structopt::StructOpt;
 use xml_writer::XmlWriter;
 
+mod author;
 mod bom;
 mod component;
 mod format;
@@ -66,7 +70,7 @@ mod traits;
 use bom::Bom;
 pub(crate) use component::Component;
 use format::Format;
-pub(crate) use traits::ToXml;
+pub(crate) use traits::{IsEmpty, ToXml};
 
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -142,13 +146,43 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     let members: Vec<Package> = ws.members().cloned().collect();
     let (package_ids, resolve) = ops::resolve_ws(&ws)?;
 
-    let dependencies = if args.all {
-        all_dependencies(&members, package_ids, resolve)?
-    } else {
-        top_level_dependencies(&members, package_ids)?
-    };
+    let packages = packages_by_id(&package_ids, resolve)?;
 
-    let bom: Bom = dependencies.iter().collect();
+    // If the caller provided a crate manifest path, generate a BOM for that
+    // crate; otherwise generate one for the entire workspace.
+    let bom = match ws.current_opt() {
+        Some(pkg) => {
+            // Convert dependency specs to packages, recursing if the `--all` flag was passed
+            let dependency_ids = if args.all {
+                resolve_dependencies_recursive(iter::once(pkg), &package_ids)?
+            } else {
+                resolve_direct_dependencies(iter::once(pkg), &package_ids)
+            };
+
+            Bom::new(pkg).with_dependencies(
+                dependency_ids
+                    .iter()
+                    .filter_map(|pkg_id| packages.get(pkg_id)),
+            )
+        }
+        None => {
+            // Convert dependency specs to packages, recursing if the `--all` flag was passed
+            let dependencies = if args.all {
+                resolve_dependencies_recursive(&members, &package_ids)?
+            } else {
+                resolve_direct_dependencies(&members, &package_ids)
+            };
+
+            // In the full-workspace case, workspace members shouldn't be part of the `components`
+            // BOM section, so we filter members out of the dependencies list.
+            Bom::default().with_dependencies(
+                dependencies
+                    .iter()
+                    .filter_map(|pkg_id| packages.get(pkg_id))
+                    .filter(|pkg| !members.contains(pkg)),
+            )
+        }
+    };
 
     match args.format {
         Format::Json => {
@@ -170,54 +204,62 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     Ok(())
 }
 
-fn top_level_dependencies(
-    members: &[Package],
-    package_ids: PackageSet<'_>,
-) -> CargoResult<BTreeSet<Package>> {
-    let mut dependencies = BTreeSet::new();
-
-    for member in members {
-        for dependency in member.dependencies() {
-            // Filter out Build and Development dependencies
-            match dependency.kind() {
-                DepKind::Normal => (),
-                DepKind::Build | DepKind::Development => continue,
-            }
-            if let Some(dep) = package_ids
-                .package_ids()
-                .find(|id| dependency.matches_id(*id))
-            {
-                let package = package_ids.get_one(dep)?;
-                dependencies.insert(package.to_owned());
-            }
-        }
-    }
-
-    // Filter out our own workspace crates from dependency list
-    for member in members {
-        dependencies.remove(member);
-    }
-
-    Ok(dependencies)
+fn is_runtime_dependency(dep: &&Dependency) -> bool {
+    dep.kind() == DepKind::Normal
 }
 
-fn all_dependencies(
-    members: &[Package],
-    package_ids: PackageSet<'_>,
-    resolve: Resolve,
-) -> CargoResult<BTreeSet<Package>> {
+/// Resolve a set of dependencies to package IDs in the set that will satisfy those dependencies.
+fn resolve_direct_dependencies<'a>(
+    packages: impl IntoIterator<Item = &'a Package>,
+    package_ids: &'a PackageSet,
+) -> BTreeSet<PackageId> {
     let mut dependencies = BTreeSet::new();
-
-    for package_id in resolve.iter() {
-        let package = package_ids.get_one(package_id)?;
-        if members.contains(&package) {
-            // Skip listing our own packages in our workspace
-            continue;
+    for dependency in packages
+        .into_iter()
+        .flat_map(|pkg| pkg.dependencies())
+        .filter(is_runtime_dependency)
+    {
+        if let Some(dep) = package_ids
+            .package_ids()
+            .find(|id| dependency.matches_id(*id))
+        {
+            dependencies.insert(dep);
         }
-        dependencies.insert(package.to_owned());
     }
 
-    Ok(dependencies)
+    dependencies
+}
+
+fn resolve_dependencies_recursive<'a>(
+    packages: impl IntoIterator<Item = &'a Package>,
+    package_ids: &'a PackageSet,
+) -> CargoResult<BTreeSet<PackageId>> {
+    let mut output = BTreeSet::new();
+    let mut packages_to_visit = VecDeque::new();
+    packages_to_visit.extend(packages);
+
+    while let Some(pkg) = packages_to_visit.pop_front() {
+        for dep in pkg.dependencies().iter().filter(is_runtime_dependency) {
+            if let Some(pkg_id) = package_ids.package_ids().find(|id| dep.matches_id(*id)) {
+                if output.insert(pkg_id.clone()) {
+                    packages_to_visit.push_back(package_ids.get_one(pkg_id)?);
+                }
+            }
+        }
+    }
+
+    Ok(output)
+}
+
+fn packages_by_id(
+    package_ids: &PackageSet<'_>,
+    resolve: Resolve,
+) -> CargoResult<BTreeMap<PackageId, Package>> {
+    Ok(package_ids
+        .get_many(resolve.iter())?
+        .into_iter()
+        .map(|pkg| (pkg.package_id(), pkg.to_owned()))
+        .collect())
 }
 
 #[derive(Debug)]
