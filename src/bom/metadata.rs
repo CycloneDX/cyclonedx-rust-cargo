@@ -1,19 +1,19 @@
-use std::{io, marker::PhantomData};
+use std::io;
 
-use cargo::core::Package;
+use cargo::core::{Package, TargetKind};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use xml_writer::XmlWriter;
 
-use crate::{author::Authors, IsEmpty, ToXml};
+use crate::{author::Authors, Component, IsEmpty, ToXml};
 
 #[derive(Serialize)]
 pub struct Metadata<'a> {
     timestamp: DateTime<Utc>,
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     authors: Option<Authors>,
-    #[serde(skip)]
-    temp: PhantomData<&'a ()>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    component: Option<Component<'a>>,
 }
 
 impl<'a> Default for Metadata<'a> {
@@ -21,7 +21,7 @@ impl<'a> Default for Metadata<'a> {
         Self {
             timestamp: Utc::now(),
             authors: None,
-            temp: PhantomData::default(),
+            component: None,
         }
     }
 }
@@ -30,6 +30,11 @@ impl<'a> From<&'a Package> for Metadata<'a> {
     fn from(pkg: &'a Package) -> Self {
         Self {
             authors: Some(Authors::from(pkg)),
+            component: Some(if could_be_application(pkg) {
+                Component::application(pkg).without_scope()
+            } else {
+                Component::library(pkg).without_scope()
+            }),
             ..Default::default()
         }
     }
@@ -50,6 +55,17 @@ impl ToXml for Metadata<'_> {
             authors.to_xml(xml)?;
         }
 
+        if let Some(component) = &self.component {
+            component.to_xml(xml)?;
+        }
+
         xml.end_elem()
     }
+}
+
+/// Check if `pkg` might be an executable application based on the presence of binary targets.
+fn could_be_application(pkg: &Package) -> bool {
+    pkg.targets()
+        .iter()
+        .any(|tgt| *tgt.kind() == TargetKind::Bin)
 }

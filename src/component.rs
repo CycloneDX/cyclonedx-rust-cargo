@@ -16,12 +16,14 @@ use self::reference::ExternalReferences;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 enum ComponentType {
+    Application,
     Library,
 }
 
 impl fmt::Display for ComponentType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Application => "application".fmt(f),
             Self::Library => "library".fmt(f),
         }
     }
@@ -48,7 +50,8 @@ pub struct Component<'a> {
     metadata: Metadata<'a>,
     #[serde(rename = "type")]
     component_type: ComponentType,
-    scope: Scope,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    scope: Option<Scope>,
     #[serde(skip_serializing_if = "Licenses::is_empty")]
     licenses: Licenses<'a>,
     #[serde(skip_serializing_if = "ExternalReferences::is_empty")]
@@ -60,11 +63,28 @@ impl<'a> Component<'a> {
     pub fn library(pkg: &'a Package) -> Self {
         Self {
             component_type: ComponentType::Library,
-            scope: Scope::Required,
+            scope: Some(Scope::Required),
             metadata: Metadata::from(pkg),
             licenses: Licenses::from(pkg),
             external_references: ExternalReferences::from(pkg),
         }
+    }
+
+    /// Create a component which describes the package as an application.
+    pub fn application(pkg: &'a Package) -> Self {
+        Self {
+            component_type: ComponentType::Application,
+            scope: Some(Scope::Required),
+            metadata: Metadata::from(pkg),
+            licenses: Licenses::from(pkg),
+            external_references: ExternalReferences::from(pkg),
+        }
+    }
+
+    /// Remove the `scope` value.
+    pub fn without_scope(mut self) -> Self {
+        self.scope = None;
+        self
     }
 }
 
@@ -75,7 +95,9 @@ impl ToXml for Component<'_> {
 
         self.metadata.to_xml(xml)?;
 
-        xml.elem_text("scope", &self.scope.to_string())?;
+        if let Some(scope) = &self.scope {
+            xml.elem_text("scope", &scope.to_string())?;
+        }
 
         //TODO: Add hashes. May require file components and manual calculation of all files
 
