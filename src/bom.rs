@@ -36,7 +36,7 @@ impl<'a> FromIterator<&'a Package> for Bom<'a> {
             spec_version: "1.3",
             version: 1,
             serial_number: Uuid::new_v4(),
-            components: iter.into_iter().map(Component::from).collect(),
+            components: iter.into_iter().map(Component::library).collect(),
         }
     }
 }
