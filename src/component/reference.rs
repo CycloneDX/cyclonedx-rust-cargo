@@ -97,8 +97,10 @@ impl ToXml for ExternalReference<'_> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("reference")?;
         xml.attr("type", self.ref_type)?;
+        xml.begin_elem("url")?;
         // XXX is this trim() needed? The regex doesn't permit leading or trailing whitespace.
         xml.text(self.url.trim())?;
+        xml.end_elem()?;
         xml.end_elem()
     }
 }
