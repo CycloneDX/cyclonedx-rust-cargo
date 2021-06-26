@@ -11,7 +11,7 @@ repository = "https://github.com/CycloneDX/cyclonedx-rust-cargo"
 readme = "README.md"
 
 categories = ["command-line-utilities", "development-tools", "development-tools::cargo-plugins"]
-keywords = ["sbom", "bom", "bill-of-materials", "components", "dependencies", "owasp"]
+keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
 
 [profile.release]
 lto = true
