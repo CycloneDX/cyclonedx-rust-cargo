@@ -24,10 +24,6 @@ use xml_writer::XmlWriter;
 
 use crate::{Component, ToXml};
 
-mod metadata;
-
-pub use self::metadata::Metadata;
-
 #[derive(Clone, Copy, Serialize)]
 enum BomFormat {
     CycloneDX,
@@ -46,29 +42,12 @@ pub struct Bom<'a> {
     #[serde(serialize_with = "uuid_to_urn")]
     serial_number: Uuid,
     version: u32,
-    metadata: Metadata<'a>,
     components: Vec<Component<'a>>,
 }
 
-impl<'a> Bom<'a> {
-    /// Create a BOM for a specific package.
-    pub fn new(pkg: &'a Package) -> Self {
-        Self {
-            metadata: Metadata::from(pkg),
-            ..Default::default()
-        }
-    }
-
-    /// Amend the BOM with the specified crates as `components` entries.
-    pub fn with_dependencies(mut self, packages: impl IntoIterator<Item = &'a Package>) -> Self {
-        self.components
-            .extend(packages.into_iter().map(Component::from));
-        self
-    }
-}
-
-impl<'a> Default for Bom<'a> {
-    fn default() -> Self {
+/// Create a new BOM from a sequence of cargo package references.
+impl<'a> FromIterator<&'a Package> for Bom<'a> {
+    fn from_iter<T: IntoIterator<Item = &'a Package>>(iter: T) -> Self {
         Self {
             bom_format: BomFormat::CycloneDX,
             spec_version: "1.3",
@@ -86,8 +65,6 @@ impl ToXml for Bom<'_> {
         xml.attr("serialNumber", &self.serial_number.to_urn().to_string())?;
         xml.attr("version", "1")?;
         xml.attr("xmlns", "http://cyclonedx.org/schema/bom/1.1")?;
-
-        self.metadata.to_xml(xml)?;
 
         xml.begin_elem("components")?;
         for component in &self.components {
