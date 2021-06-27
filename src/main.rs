@@ -61,6 +61,7 @@ use structopt::StructOpt;
 use xml_writer::XmlWriter;
 
 mod bom;
+mod author;
 mod component;
 mod format;
 mod traits;

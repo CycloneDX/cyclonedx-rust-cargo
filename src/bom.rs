@@ -15,6 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use std::iter::FromIterator;
 use std::{io};
 
 use cargo::core::Package;
@@ -23,6 +24,10 @@ use uuid::Uuid;
 use xml_writer::XmlWriter;
 
 use crate::{Component, ToXml};
+
+mod metadata;
+
+use self::metadata::Metadata;
 
 static SPEC_VERSION: &'static str = "1.3";
 
@@ -44,19 +49,29 @@ pub struct Bom<'a> {
     #[serde(serialize_with = "uuid_to_urn")]
     serial_number: Uuid,
     version: u32,
+    metadata: Option<Metadata<'a>>,
     components: Vec<Component<'a>>,
+}
+
+impl<'a> Default for Bom<'a> {
+    fn default() -> Bom<'a> {
+        Self {
+            bom_format: BomFormat::CycloneDX,
+            spec_version: SPEC_VERSION,
+            version: 1,
+            serial_number: Uuid::new_v4(),
+            metadata: Some(Metadata::default()),
+            components: vec!()
+        }
+    }
 }
 
 /// Create a new BOM from a sequence of cargo package references.
 impl<'a> FromIterator<&'a Package> for Bom<'a> {
     fn from_iter<T: IntoIterator<Item = &'a Package>>(iter: T) -> Self {
         Self {
-            bom_format: BomFormat::CycloneDX,
-            spec_version: SPEC_VERSION,
-            version: 1,
-            serial_number: Uuid::new_v4(),
-            components: vec!(),
-            metadata: Metadata::default()
+            components: iter.into_iter().map(Component::from).collect(),
+            ..Default::default()
         }
     }
 }
