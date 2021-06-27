@@ -49,6 +49,7 @@ pub struct Bom<'a> {
     #[serde(serialize_with = "uuid_to_urn")]
     serial_number: Uuid,
     version: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     metadata: Option<Metadata<'a>>,
     components: Vec<Component<'a>>,
 }
@@ -60,7 +61,7 @@ impl<'a> Default for Bom<'a> {
             spec_version: SPEC_VERSION,
             version: 1,
             serial_number: Uuid::new_v4(),
-            metadata: Some(Metadata::default()),
+            metadata: None::<Metadata>,
             components: vec!()
         }
     }
@@ -84,6 +85,10 @@ impl ToXml for Bom<'_> {
         xml.attr("serialNumber", &self.serial_number.to_urn().to_string())?;
         xml.attr("version", "1")?;
         xml.attr("xmlns", namespace.as_str())?;
+
+        if let Some(metadata) = &self.metadata {
+            metadata.to_xml(xml)?;
+        }
 
         xml.begin_elem("components")?;
         for component in &self.components {
