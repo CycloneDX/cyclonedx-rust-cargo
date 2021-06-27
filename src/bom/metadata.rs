@@ -9,11 +9,11 @@ use crate::{author::Authors, Component, IsEmpty, ToXml};
 
 #[derive(Serialize)]
 pub struct Metadata<'a> {
-    timestamp: DateTime<Utc>,
+    pub timestamp: DateTime<Utc>,
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
-    authors: Option<Authors>,
+    pub authors: Option<Authors>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    component: Option<Component<'a>>,
+    pub component: Option<Component<'a>>,
 }
 
 impl<'a> Default for Metadata<'a> {

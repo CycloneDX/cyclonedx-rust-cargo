@@ -105,6 +105,18 @@ impl<'a> Component<'a> {
     }
 }
 
+impl<'a> From<&'a Package> for Component<'a> {
+    fn from(package: &'a Package) -> Self {
+        Self {
+            component_type: ComponentType::Library,
+            scope: Some(Scope::Required),
+            metadata: Metadata::from(package),
+            licenses: Licenses::from(package),
+            external_references: ExternalReferences::from(package),
+        }
+    }
+}
+
 impl ToXml for Component<'_> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("component")?;
