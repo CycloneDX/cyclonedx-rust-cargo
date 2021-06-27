@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-use std::{io, iter::FromIterator};
+use std::{io};
 
 use cargo::core::Package;
 use serde::{Serialize, Serializer};
@@ -74,7 +74,8 @@ impl<'a> Default for Bom<'a> {
             spec_version: "1.3",
             version: 1,
             serial_number: Uuid::new_v4(),
-            components: iter.into_iter().map(Component::library).collect(),
+            components: vec!(),
+            metadata: Metadata::default()
         }
     }
 }
