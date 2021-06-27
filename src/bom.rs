@@ -24,9 +24,7 @@ use xml_writer::XmlWriter;
 
 use crate::{Component, ToXml};
 
-mod metadata;
-
-pub use self::metadata::Metadata;
+static SPEC_VERSION: &'static str = "1.3";
 
 #[derive(Clone, Copy, Serialize)]
 enum BomFormat {
@@ -46,32 +44,15 @@ pub struct Bom<'a> {
     #[serde(serialize_with = "uuid_to_urn")]
     serial_number: Uuid,
     version: u32,
-    metadata: Metadata<'a>,
     components: Vec<Component<'a>>,
 }
 
-impl<'a> Bom<'a> {
-    /// Create a BOM for a specific package.
-    pub fn new(pkg: &'a Package) -> Self {
-        Self {
-            metadata: Metadata::from(pkg),
-            ..Default::default()
-        }
-    }
-
-    /// Amend the BOM with the specified crates as `components` entries.
-    pub fn with_dependencies(mut self, packages: impl IntoIterator<Item = &'a Package>) -> Self {
-        self.components
-            .extend(packages.into_iter().map(Component::from));
-        self
-    }
-}
-
-impl<'a> Default for Bom<'a> {
-    fn default() -> Self {
+/// Create a new BOM from a sequence of cargo package references.
+impl<'a> FromIterator<&'a Package> for Bom<'a> {
+    fn from_iter<T: IntoIterator<Item = &'a Package>>(iter: T) -> Self {
         Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.3",
+            spec_version: SPEC_VERSION,
             version: 1,
             serial_number: Uuid::new_v4(),
             components: vec!(),
@@ -82,13 +63,12 @@ impl<'a> Default for Bom<'a> {
 
 impl ToXml for Bom<'_> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
+        let namespace = format!("http://cyclonedx.org/schema/bom/{}", SPEC_VERSION);
         xml.dtd("UTF-8")?;
         xml.begin_elem("bom")?;
         xml.attr("serialNumber", &self.serial_number.to_urn().to_string())?;
         xml.attr("version", "1")?;
-        xml.attr("xmlns", "http://cyclonedx.org/schema/bom/1.1")?;
-
-        self.metadata.to_xml(xml)?;
+        xml.attr("xmlns", namespace.as_str())?;
 
         xml.begin_elem("components")?;
         for component in &self.components {
