@@ -55,6 +55,26 @@ impl<'a> From<&'a Package> for ExternalReferences<'a> {
     }
 }
 
+impl<'a> From<&'a cargo_metadata::Package> for ExternalReferences<'a> {
+    fn from(v: &'a cargo_metadata::Package) -> Self {
+        fn ext_ref<'a>(
+            ref_type: &'a str,
+            uri: &'a Option<String>,
+        ) -> Option<ExternalReference<'a>> {
+            ExternalReference::new(ref_type, uri.as_ref()?).ok()
+        }
+
+        Self(
+            ext_ref("documentation", &v.documentation)
+                .into_iter()
+                .chain(ext_ref("website", &v.homepage))
+                .chain(ext_ref("other", &v.links))
+                .chain(ext_ref("vcs", &v.repository))
+                .collect(),
+        )
+    }
+}
+
 impl ToXml for ExternalReferences<'_> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         if !self.0.is_empty() {

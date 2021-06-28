@@ -46,6 +46,23 @@ impl<'a> From<&'a Package> for Licenses<'a> {
     }
 }
 
+impl<'a> From<&'a cargo_metadata::Package> for Licenses<'a> {
+    fn from(pkg: &'a cargo_metadata::Package) -> Self {
+        let mut licenses: Vec<License> = vec!();
+        
+        match &pkg.license {
+            Some(license) => {
+                licenses.push(License::Expression(&license));
+            },
+            None => {
+                // More or less, no license if we have no license :)
+            }
+        }
+
+        Self(licenses)
+    }
+}
+
 impl ToXml for Licenses<'_> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         if !self.0.is_empty() {

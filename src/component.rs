@@ -87,6 +87,16 @@ impl<'a> Component<'a> {
         }
     }
 
+    pub fn library_cm(package: &'a cargo_metadata::Package) -> Self {
+        Self {
+            component_type: ComponentType::Library,
+            external_references: ExternalReferences::from(package),
+            licenses: Licenses::from(package),
+            metadata: Metadata::from(package),
+            scope: Some(Scope::Required),
+        }
+    }
+
     /// Create a component which describes the package as an application.
     pub fn application(pkg: &'a Package) -> Self {
         Self {
@@ -95,6 +105,16 @@ impl<'a> Component<'a> {
             metadata: Metadata::from(pkg),
             licenses: Licenses::from(pkg),
             external_references: ExternalReferences::from(pkg),
+        }
+    }
+
+    pub fn application_cm(package: &'a cargo_metadata::Package) -> Self {
+        Self {
+            component_type: ComponentType::Application,
+            external_references: ExternalReferences::from(package),
+            licenses: Licenses::from(package),
+            metadata: Metadata::from(package),
+            scope: Some(Scope::Required),
         }
     }
 
@@ -113,6 +133,18 @@ impl<'a> From<&'a Package> for Component<'a> {
             metadata: Metadata::from(package),
             licenses: Licenses::from(package),
             external_references: ExternalReferences::from(package),
+        }
+    }
+}
+
+impl<'a> From<&'a cargo_metadata::Package> for Component<'a> {
+    fn from(package: &'a cargo_metadata::Package) -> Self {
+        Self {
+            component_type: ComponentType::Library,
+            external_references: ExternalReferences::from(package),
+            licenses: Licenses::from(package),
+            metadata: Metadata::from(package),
+            scope: Some(Scope::Required)
         }
     }
 }
@@ -160,6 +192,25 @@ impl<'a> From<&'a Package> for Metadata<'a> {
             description: package
                 .manifest()
                 .metadata()
+                .description
+                .as_ref()
+                .map(|s| s.as_str()),
+        }
+    }
+}
+
+impl<'a> From<&'a cargo_metadata::Package> for Metadata<'a> {
+    fn from(package: &'a cargo_metadata::Package) -> Self {
+        let name = package.name.as_str().trim();
+        let version = package.version.to_string();
+
+        Self {
+            name,
+            purl: PackageUrl::new("cargo", name)
+                .with_version(version.trim())
+                .to_string(),
+            version,
+            description: package
                 .description
                 .as_ref()
                 .map(|s| s.as_str()),
