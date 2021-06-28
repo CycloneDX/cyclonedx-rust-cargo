@@ -24,10 +24,7 @@ use uuid::Uuid;
 use xml_writer::XmlWriter;
 
 use crate::{Component, ToXml};
-
-mod metadata;
-
-use self::metadata::Metadata;
+use crate::metadata::Metadata;
 
 static SPEC_VERSION: &'static str = "1.3";
 
@@ -50,7 +47,7 @@ pub struct Bom<'a> {
     serial_number: Uuid,
     version: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    metadata: Option<Metadata<'a>>,
+    pub metadata: Option<Metadata<'a>>,
     components: Vec<Component<'a>>,
 }
 
@@ -72,6 +69,7 @@ impl<'a> FromIterator<&'a Package> for Bom<'a> {
     fn from_iter<T: IntoIterator<Item = &'a Package>>(iter: T) -> Self {
         Self {
             components: iter.into_iter().map(Component::from).collect(),
+            metadata: Some(Metadata::default()),
             ..Default::default()
         }
     }

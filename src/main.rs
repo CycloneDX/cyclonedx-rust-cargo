@@ -44,6 +44,8 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
+use crate::metadata::Metadata;
+use std::path::PathBuf;
 use std::{
     collections::BTreeSet,
     fs::File,
@@ -59,8 +61,10 @@ use cargo::{
 };
 use structopt::StructOpt;
 use xml_writer::XmlWriter;
+use anyhow::Result;
 
 mod bom;
+mod metadata;
 mod author;
 mod component;
 mod format;
@@ -144,6 +148,7 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     let ws = Workspace::new(&manifest, &config)?;
     let members: Vec<Package> = ws.members().cloned().collect();
     let (package_ids, resolve) = ops::resolve_ws(&ws)?;
+    let root = get_root_package(manifest)?;
 
     let dependencies = if args.all {
         all_dependencies(&members, package_ids, resolve)?
@@ -151,7 +156,15 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
         top_level_dependencies(&members, package_ids)?
     };
 
-    let bom: Bom = dependencies.iter().collect();
+    let mut bom: Bom = dependencies.iter().collect();
+
+    let root_component = Component::from(&root);
+
+    let mut metadata = Metadata::default();
+
+    metadata.component = Some(root_component);
+
+    bom.metadata = Some(metadata);
 
     match args.format {
         Format::Json => {
@@ -171,6 +184,17 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+fn get_root_package(toml_file_path: PathBuf) -> anyhow::Result<cargo_metadata::Package> {
+    let metadata = cargo_metadata::MetadataCommand::new()
+        .manifest_path(toml_file_path)
+        .features(cargo_metadata::CargoOpt::AllFeatures)
+        .exec()?;
+
+    let root = metadata.clone().root_package().unwrap().to_owned();
+
+    Ok(root)
 }
 
 fn top_level_dependencies(
@@ -234,6 +258,12 @@ impl From<anyhow::Error> for Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
+        cargo_exit(anyhow::Error::new(err))
+    }
+}
+
+impl From<cargo_metadata::Error> for Error {
+    fn from(err: cargo_metadata::Error) -> Self {
         cargo_exit(anyhow::Error::new(err))
     }
 }

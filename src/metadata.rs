@@ -60,6 +60,19 @@ impl<'a> From<&'a Package> for Metadata<'a> {
     }
 }
 
+impl<'a> From<&'a cargo_metadata::Package> for Metadata<'a> {
+    fn from(package: &'a cargo_metadata::Package) -> Self {
+        Self {
+            component: Some(if is_an_application(package) {
+                Component::application_cm(package).without_scope()
+            } else {
+                Component::library_cm(package).without_scope()
+            }),
+            ..Default::default()
+        }
+    }
+}
+
 impl ToXml for Metadata<'_> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("metadata")?;
@@ -89,4 +102,14 @@ fn could_be_application(pkg: &Package) -> bool {
     pkg.targets()
         .iter()
         .any(|tgt| *tgt.kind() == TargetKind::Bin)
+}
+
+/// Is the `package` an application? This will tell us!
+fn is_an_application(pkg: &cargo_metadata::Package) -> bool {
+    let mut kinds = pkg.targets
+        .iter()
+        .map(|target| target.clone().kind)
+        .flatten();
+
+    kinds.any(|kind| kind == "bin")
 }
