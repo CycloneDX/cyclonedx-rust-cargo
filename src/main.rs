@@ -44,7 +44,10 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use crate::metadata::Metadata;
+use cyclonedx_bom::metadata::Metadata;
+use cyclonedx_bom::bom::Bom;
+use cyclonedx_bom::component::Component;
+use cyclonedx_bom::traits::ToXml;
 use std::path::PathBuf;
 use std::{
     collections::BTreeSet,
@@ -63,17 +66,8 @@ use structopt::StructOpt;
 use xml_writer::XmlWriter;
 use anyhow::Result;
 
-mod bom;
-mod metadata;
-mod author;
-mod component;
 mod format;
-mod traits;
-
-use bom::Bom;
-pub(crate) use component::Component;
 use format::Format;
-pub(crate) use traits::ToXml;
 
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
