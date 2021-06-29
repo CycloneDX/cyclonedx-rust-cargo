@@ -378,6 +378,7 @@ dependencies = [
  "cargo_metadata",
  "chrono",
  "lazy_static",
+ "log",
  "packageurl",
  "regex",
  "serde",
