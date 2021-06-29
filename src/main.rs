@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
+use cyclonedx_bom::bom::Bom;
 /**
 * A special acknowledgement Ossi Herrala from SensorFu for providing a
 * starting point in which to develop this plugin. The original project
@@ -44,6 +44,9 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
+use cyclonedx_bom::metadata::Metadata;
+use cyclonedx_bom::traits::ToXml;
+use std::path::PathBuf;
 use std::{
     collections::BTreeSet,
     fs::File,
@@ -51,6 +54,8 @@ use std::{
     path, str,
 };
 
+use anyhow::anyhow;
+use anyhow::Result;
 use cargo::{
     core::{dependency::DepKind, package::PackageSet, Package, Resolve, Workspace},
     ops,
@@ -60,15 +65,8 @@ use cargo::{
 use structopt::StructOpt;
 use xml_writer::XmlWriter;
 
-mod bom;
-mod component;
 mod format;
-mod traits;
-
-use bom::Bom;
-pub(crate) use component::Component;
 use format::Format;
-pub(crate) use traits::ToXml;
 
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -144,13 +142,19 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     let members: Vec<Package> = ws.members().cloned().collect();
     let (package_ids, resolve) = ops::resolve_ws(&ws)?;
 
+    let root = get_root_package(manifest)?;
+
     let dependencies = if args.all {
         all_dependencies(&members, package_ids, resolve)?
     } else {
         top_level_dependencies(&members, package_ids)?
     };
 
-    let bom: Bom = dependencies.iter().collect();
+    let mut bom: Bom = dependencies.iter().collect();
+
+    let metadata = Metadata::from(&root);
+
+    bom.metadata = Some(metadata);
 
     match args.format {
         Format::Json => {
@@ -170,6 +174,19 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+fn get_root_package(toml_file_path: PathBuf) -> anyhow::Result<cargo_metadata::Package> {
+    let metadata = cargo_metadata::MetadataCommand::new()
+        .manifest_path(toml_file_path)
+        .features(cargo_metadata::CargoOpt::AllFeatures)
+        .exec()?;
+
+    if let Some(root) = metadata.clone().root_package() {
+        return Ok(root.to_owned());
+    }
+
+    Err(anyhow!("Could not get root package"))
 }
 
 fn top_level_dependencies(
@@ -233,6 +250,12 @@ impl From<anyhow::Error> for Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
+        cargo_exit(anyhow::Error::new(err))
+    }
+}
+
+impl From<cargo_metadata::Error> for Error {
+    fn from(err: cargo_metadata::Error) -> Self {
         cargo_exit(anyhow::Error::new(err))
     }
 }
