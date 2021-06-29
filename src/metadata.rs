@@ -22,6 +22,7 @@ use cargo::core::{Package, TargetKind};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::str::FromStr;
+use log::{debug};
 
 use crate::author::Author;
 use crate::component::Component;
@@ -100,10 +101,15 @@ impl ToXml for Metadata<'_> {
 
 fn get_authors_from_package<'a>(package: &'a Package) -> Option<Vec<Author>> {
     let mut authors = Vec::new();
-
+    let mut invalid_authors = Vec::new();
+    
     for author in package.authors() {
-        authors.push(Author::from_str(author).unwrap());
+        match Author::from_str(&author) {
+            Ok(author) => authors.push(author),
+            Err(e) => invalid_authors.push((author, e)),
+        }
     }
+    invalid_authors.into_iter().for_each(|(author, error)| debug!("Invalid author {}: {:?}", author, error));
 
     if authors.len() > 0 {
         return Some(authors);
@@ -114,10 +120,15 @@ fn get_authors_from_package<'a>(package: &'a Package) -> Option<Vec<Author>> {
 
 fn get_authors_from_package_cm<'a>(package: &'a cargo_metadata::Package) -> Option<Vec<Author>> {
     let mut authors = Vec::new();
-
+    let mut invalid_authors = Vec::new();
+    
     for author in &package.authors {
-        authors.push(Author::from_str(&author).unwrap());
+        match Author::from_str(&author) {
+            Ok(author) => authors.push(author),
+            Err(e) => invalid_authors.push((author, e)),
+        }
     }
+    invalid_authors.into_iter().for_each(|(author, error)| debug!("Invalid author {}: {:?}", author, error));
 
     if authors.len() > 0 {
         return Some(authors);
