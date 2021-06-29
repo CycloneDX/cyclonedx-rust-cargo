@@ -15,7 +15,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
 /**
 * A special acknowledgement Ossi Herrala from SensorFu for providing a
 * starting point in which to develop this plugin. The original project
@@ -46,7 +45,6 @@
 */
 use cyclonedx_bom::metadata::Metadata;
 use cyclonedx_bom::bom::Bom;
-use cyclonedx_bom::component::Component;
 use cyclonedx_bom::traits::ToXml;
 use std::path::PathBuf;
 use std::{
@@ -56,6 +54,7 @@ use std::{
     path, str,
 };
 
+use anyhow::Result;
 use cargo::{
     core::{dependency::DepKind, package::PackageSet, Package, Resolve, Workspace},
     ops,
@@ -64,7 +63,6 @@ use cargo::{
 };
 use structopt::StructOpt;
 use xml_writer::XmlWriter;
-use anyhow::Result;
 
 mod format;
 use format::Format;
@@ -142,6 +140,7 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     let ws = Workspace::new(&manifest, &config)?;
     let members: Vec<Package> = ws.members().cloned().collect();
     let (package_ids, resolve) = ops::resolve_ws(&ws)?;
+
     let root = get_root_package(manifest)?;
 
     let dependencies = if args.all {
@@ -152,11 +151,7 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
 
     let mut bom: Bom = dependencies.iter().collect();
 
-    let root_component = Component::from(&root);
-
-    let mut metadata = Metadata::default();
-
-    metadata.component = Some(root_component);
+    let metadata = Metadata::from(&root);
 
     bom.metadata = Some(metadata);
 

@@ -15,16 +15,16 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use std::io;
 use std::iter::FromIterator;
-use std::{io};
 
 use cargo::core::Package;
 use serde::{Serialize, Serializer};
 use uuid::Uuid;
 use xml_writer::XmlWriter;
 
-use crate::{Component, ToXml};
 use crate::metadata::Metadata;
+use crate::{Component, ToXml};
 
 static SPEC_VERSION: &'static str = "1.3";
 
@@ -59,7 +59,7 @@ impl<'a> Default for Bom<'a> {
             version: 1,
             serial_number: Uuid::new_v4(),
             metadata: None::<Metadata>,
-            components: vec!()
+            components: vec![],
         }
     }
 }

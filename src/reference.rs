@@ -17,77 +17,12 @@
  */
 use std::io;
 
-use cargo::core::Package;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Serialize;
 use xml_writer::XmlWriter;
 
 use crate::traits::ToXml;
-
-#[derive(Serialize)]
-pub struct ExternalReferences<'a>(Vec<ExternalReference<'a>>);
-
-impl<'a> ExternalReferences<'a> {
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
-impl<'a> From<&'a Package> for ExternalReferences<'a> {
-    fn from(v: &'a Package) -> Self {
-        fn ext_ref<'a>(
-            ref_type: &'a str,
-            uri: &'a Option<String>,
-        ) -> Option<ExternalReference<'a>> {
-            ExternalReference::new(ref_type, uri.as_ref()?).ok()
-        }
-
-        let metadata = v.manifest().metadata();
-        Self(
-            ext_ref("documentation", &metadata.documentation)
-                .into_iter()
-                .chain(ext_ref("website", &metadata.homepage))
-                .chain(ext_ref("other", &metadata.links))
-                .chain(ext_ref("vcs", &metadata.repository))
-                .collect(),
-        )
-    }
-}
-
-impl<'a> From<&'a cargo_metadata::Package> for ExternalReferences<'a> {
-    fn from(v: &'a cargo_metadata::Package) -> Self {
-        fn ext_ref<'a>(
-            ref_type: &'a str,
-            uri: &'a Option<String>,
-        ) -> Option<ExternalReference<'a>> {
-            ExternalReference::new(ref_type, uri.as_ref()?).ok()
-        }
-
-        Self(
-            ext_ref("documentation", &v.documentation)
-                .into_iter()
-                .chain(ext_ref("website", &v.homepage))
-                .chain(ext_ref("other", &v.links))
-                .chain(ext_ref("vcs", &v.repository))
-                .collect(),
-        )
-    }
-}
-
-impl ToXml for ExternalReferences<'_> {
-    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        if !self.0.is_empty() {
-            xml.begin_elem("externalReferences")?;
-            for reference in &self.0 {
-                reference.to_xml(xml)?;
-            }
-            xml.end_elem()?;
-        }
-
-        Ok(())
-    }
-}
 
 pub struct ExternalReferenceError;
 
@@ -99,8 +34,8 @@ lazy_static! {
 /// A reference to external materials, such as documentation.
 pub struct ExternalReference<'a> {
     #[serde(rename = "type")]
-    ref_type: &'a str,
-    url: &'a str,
+    pub ref_type: &'a str,
+    pub url: &'a str,
 }
 
 impl<'a> ExternalReference<'a> {
@@ -122,5 +57,19 @@ impl ToXml for ExternalReference<'_> {
         xml.text(self.url.trim())?;
         xml.end_elem()?;
         xml.end_elem()
+    }
+}
+
+impl ToXml for Vec<ExternalReference<'_>> {
+    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
+        if self.len() > 0 {
+            xml.begin_elem("externalReferences")?;
+            for reference in self {
+                reference.to_xml(xml)?;
+            }
+            xml.end_elem()?;
+        }
+
+        Ok(())
     }
 }

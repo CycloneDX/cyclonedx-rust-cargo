@@ -15,16 +15,17 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-use xml_writer::XmlWriter;
 use std::io;
+use xml_writer::XmlWriter;
 
 use cargo::core::{Package, TargetKind};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use std::str::FromStr;
 
-use crate::traits::{ToXml};
-use crate::component::Component;
 use crate::author::Author;
+use crate::component::Component;
+use crate::traits::ToXml;
 
 #[derive(Serialize)]
 pub struct Metadata<'a> {
@@ -41,7 +42,7 @@ impl<'a> Default for Metadata<'a> {
         Self {
             timestamp: Some(Utc::now()),
             authors: None::<Vec<Author>>,
-            component: None::<Component>
+            component: None::<Component>,
         }
     }
 }
@@ -49,7 +50,7 @@ impl<'a> Default for Metadata<'a> {
 impl<'a> From<&'a Package> for Metadata<'a> {
     fn from(pkg: &'a Package) -> Self {
         Self {
-            // authors: Some(Authors::from(pkg)),
+            authors: get_authors_from_package(pkg),
             component: Some(if could_be_application(pkg) {
                 Component::application(pkg).without_scope()
             } else {
@@ -63,6 +64,7 @@ impl<'a> From<&'a Package> for Metadata<'a> {
 impl<'a> From<&'a cargo_metadata::Package> for Metadata<'a> {
     fn from(package: &'a cargo_metadata::Package) -> Self {
         Self {
+            authors: get_authors_from_package_cm(package),
             component: Some(if is_an_application(package) {
                 Component::application_cm(package).without_scope()
             } else {
@@ -80,8 +82,7 @@ impl ToXml for Metadata<'_> {
         if let Some(timestamp) = &self.timestamp {
             xml.elem_text(
                 "timestamp",
-                    &timestamp
-                    .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                &timestamp.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
             )?;
         }
 
@@ -97,6 +98,34 @@ impl ToXml for Metadata<'_> {
     }
 }
 
+fn get_authors_from_package<'a>(package: &'a Package) -> Option<Vec<Author>> {
+    let mut authors = vec!();
+
+    for author in package.authors() {
+        authors.push(Author::from_str(author).unwrap());
+    }
+
+    if authors.len() > 0 {
+        return Some(authors);
+    }
+
+    None
+}
+
+fn get_authors_from_package_cm<'a>(package: &'a cargo_metadata::Package) -> Option<Vec<Author>> {
+    let mut authors = vec!();
+
+    for author in &package.authors {
+        authors.push(Author::from_str(&author).unwrap());
+    }
+
+    if authors.len() > 0 {
+        return Some(authors);
+    }
+
+    None
+}
+
 /// Check if `pkg` might be an executable application based on the presence of binary targets.
 fn could_be_application(pkg: &Package) -> bool {
     pkg.targets()
@@ -106,7 +135,8 @@ fn could_be_application(pkg: &Package) -> bool {
 
 /// Is the `package` an application? This will tell us!
 fn is_an_application(pkg: &cargo_metadata::Package) -> bool {
-    let mut kinds = pkg.targets
+    let mut kinds = pkg
+        .targets
         .iter()
         .map(|target| target.clone().kind)
         .flatten();
