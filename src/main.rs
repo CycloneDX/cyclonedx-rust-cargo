@@ -15,6 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use cyclonedx_bom::bom::Bom;
 /**
 * A special acknowledgement Ossi Herrala from SensorFu for providing a
 * starting point in which to develop this plugin. The original project
@@ -44,7 +45,6 @@
 * SOFTWARE.
 */
 use cyclonedx_bom::metadata::Metadata;
-use cyclonedx_bom::bom::Bom;
 use cyclonedx_bom::traits::ToXml;
 use std::path::PathBuf;
 use std::{
@@ -54,6 +54,7 @@ use std::{
     path, str,
 };
 
+use anyhow::anyhow;
 use anyhow::Result;
 use cargo::{
     core::{dependency::DepKind, package::PackageSet, Package, Resolve, Workspace},
@@ -181,9 +182,11 @@ fn get_root_package(toml_file_path: PathBuf) -> anyhow::Result<cargo_metadata::P
         .features(cargo_metadata::CargoOpt::AllFeatures)
         .exec()?;
 
-    let root = metadata.clone().root_package().unwrap().to_owned();
+    if let Some(root) = metadata.clone().root_package() {
+        return Ok(root.to_owned());
+    }
 
-    Ok(root)
+    Err(anyhow!("Could not get root package"))
 }
 
 fn top_level_dependencies(

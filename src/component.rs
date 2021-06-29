@@ -243,7 +243,7 @@ impl ToXml for ComponentCommon<'_> {
 
 // Moved to component.rs because references need not be aware of a package, but a component that wants to create external references can be
 fn get_external_references<'a>(package: &'a Package) -> Option<Vec<ExternalReference<'a>>> {
-    let mut references = vec![];
+    let mut references = Vec::new();
 
     let metadata = package.manifest().metadata();
 
@@ -286,7 +286,7 @@ fn get_external_references<'a>(package: &'a Package) -> Option<Vec<ExternalRefer
 fn get_external_references_cm<'a>(
     package: &'a cargo_metadata::Package,
 ) -> Option<Vec<ExternalReference<'a>>> {
-    let mut references = vec![];
+    let mut references = Vec::new();
 
     if let Some(documentation) = &package.documentation {
         references.push(ExternalReference {

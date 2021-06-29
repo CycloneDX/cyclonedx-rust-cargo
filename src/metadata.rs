@@ -99,7 +99,7 @@ impl ToXml for Metadata<'_> {
 }
 
 fn get_authors_from_package<'a>(package: &'a Package) -> Option<Vec<Author>> {
-    let mut authors = vec!();
+    let mut authors = Vec::new();
 
     for author in package.authors() {
         authors.push(Author::from_str(author).unwrap());
@@ -113,7 +113,7 @@ fn get_authors_from_package<'a>(package: &'a Package) -> Option<Vec<Author>> {
 }
 
 fn get_authors_from_package_cm<'a>(package: &'a cargo_metadata::Package) -> Option<Vec<Author>> {
-    let mut authors = vec!();
+    let mut authors = Vec::new();
 
     for author in &package.authors {
         authors.push(Author::from_str(&author).unwrap());

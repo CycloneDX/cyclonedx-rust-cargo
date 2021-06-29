@@ -59,7 +59,7 @@ impl<'a> Default for Bom<'a> {
             version: 1,
             serial_number: Uuid::new_v4(),
             metadata: None::<Metadata>,
-            components: vec![],
+            components: Vec::new(),
         }
     }
 }
