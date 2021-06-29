@@ -15,10 +15,15 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+pub mod author;
 pub mod bom;
 pub mod component;
-pub mod traits;
+pub mod license;
 pub mod metadata;
-pub mod author;
+pub mod reference;
+pub mod traits;
 
-pub use crate::{bom::Bom, component::Component, metadata::Metadata, author::Author, traits::*};
+pub use crate::{
+    author::Author, bom::Bom, component::*, license::License, metadata::Metadata,
+    reference::ExternalReference, traits::*,
+};
