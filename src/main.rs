@@ -45,7 +45,7 @@
 * SOFTWARE.
 */
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeSet, HashSet},
     fs::File,
     io::{self, LineWriter},
     path, str,
@@ -141,31 +141,36 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
         .manifest_path
         .unwrap_or_else(|| config.cwd().join("Cargo.toml"));
     let ws = Workspace::new(&manifest, &config)?;
-    let members: Vec<Package> = ws.members().cloned().collect();
+    let members: HashSet<Package> = ws.members().cloned().collect();
     let (package_ids, resolve) = ops::resolve_ws(&ws)?;
 
-    let dependencies = if args.all {
-        all_dependencies(&members, package_ids, resolve)?
-    } else {
-        top_level_dependencies(&members, package_ids)?
-    };
+    for member in members.iter() {
+        let dependencies = if args.all {
+            all_dependencies(&members, member, &package_ids, &resolve)?
+        } else {
+            top_level_dependencies(&members, member, &package_ids)?
+        };
 
-    let bom: Bom = dependencies.iter().collect();
+        let bom: Bom = dependencies.iter().collect();
 
-    match args.format {
-        Format::Json => {
-            serde_json::to_writer_pretty(File::create("bom.json")?, &bom)
-                .map_err(anyhow::Error::from)?;
-        }
-        Format::Xml => {
-            let file = File::create("bom.xml")?;
-            let file = LineWriter::new(file);
-            let mut xml = XmlWriter::new(file);
+        let mut path = member.root().to_path_buf();
+        match args.format {
+            Format::Json => {
+                path.push("bom.json");
+                serde_json::to_writer_pretty(File::create(path)?, &bom)
+                    .map_err(anyhow::Error::from)?;
+            }
+            Format::Xml => {
+                path.push("bom.xml");
+                let file = File::create(path)?;
+                let file = LineWriter::new(file);
+                let mut xml = XmlWriter::new(file);
 
-            bom.to_xml(&mut xml)?;
-            xml.close()?;
-            xml.flush()?;
-            let _actual = xml.into_inner();
+                bom.to_xml(&mut xml)?;
+                xml.close()?;
+                xml.flush()?;
+                let _actual = xml.into_inner();
+            }
         }
     }
 
@@ -173,50 +178,59 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
 }
 
 fn top_level_dependencies(
-    members: &[Package],
-    package_ids: PackageSet<'_>,
+    members: &HashSet<Package>,
+    member: &Package,
+    package_ids: &PackageSet<'_>,
 ) -> CargoResult<BTreeSet<Package>> {
     let mut dependencies = BTreeSet::new();
 
-    for member in members {
-        for dependency in member.dependencies() {
-            // Filter out Build and Development dependencies
-            match dependency.kind() {
-                DepKind::Normal => (),
-                DepKind::Build | DepKind::Development => continue,
-            }
-            if let Some(dep) = package_ids
-                .package_ids()
-                .find(|id| dependency.matches_id(*id))
-            {
-                let package = package_ids.get_one(dep)?;
-                dependencies.insert(package.to_owned());
-            }
+    for dependency in member.dependencies() {
+        // Filter out Build and Development dependencies
+        match dependency.kind() {
+            DepKind::Normal => (),
+            DepKind::Build | DepKind::Development => continue,
+        }
+        if let Some(dep) = package_ids
+            .package_ids()
+            .find(|id| dependency.matches_id(*id))
+        {
+            let package = package_ids.get_one(dep)?;
+            dependencies.insert(package.to_owned());
         }
     }
 
     // Filter out our own workspace crates from dependency list
-    for member in members {
-        dependencies.remove(member);
+    for m in members {
+        dependencies.remove(m);
     }
 
     Ok(dependencies)
 }
 
 fn all_dependencies(
-    members: &[Package],
-    package_ids: PackageSet<'_>,
-    resolve: Resolve,
+    members: &HashSet<Package>,
+    member: &Package,
+    package_ids: &PackageSet<'_>,
+    resolve: &Resolve,
 ) -> CargoResult<BTreeSet<Package>> {
     let mut dependencies = BTreeSet::new();
+    let mut worklist = vec![member.package_id()];
+    let mut processed = HashSet::new();
 
-    for package_id in resolve.iter() {
-        let package = package_ids.get_one(package_id)?;
-        if members.contains(&package) {
-            // Skip listing our own packages in our workspace
-            continue;
+    while let Some(package_id) = worklist.pop() {
+        processed.insert(package_id);
+        for (package_id, _) in resolve.deps(package_id) {
+            if processed.contains(&package_id) {
+                continue;
+            }
+            worklist.push(package_id);
+            let package = package_ids.get_one(package_id)?;
+            if members.contains(&package) {
+                // Skip listing our own packages in our workspace
+                continue;
+            }
+            dependencies.insert(package.to_owned());
         }
-        dependencies.insert(package.to_owned());
     }
 
     Ok(dependencies)
