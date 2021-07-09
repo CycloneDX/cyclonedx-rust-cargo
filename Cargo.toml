@@ -13,6 +13,10 @@ readme = "README.md"
 categories = ["command-line-utilities", "development-tools", "development-tools::cargo-plugins"]
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
 
+[[bin]]
+name = "cargo-cyclonedx"
+path = "src/main.rs"
+
 [profile.release]
 lto = true
 
