@@ -61,6 +61,7 @@ use xml_writer::XmlWriter;
 mod format;
 use format::Format;
 
+
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
 enum Opts {
@@ -131,7 +132,6 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     let manifest = args
         .manifest_path
         .unwrap_or_else(|| config.cwd().join("Cargo.toml"));
-
     let generator = SbomGenerator{all: Some(args.all)};
 
     let bom = generator.create_sbom(manifest)?;
