@@ -32,7 +32,13 @@ pub struct License {
 impl<'a> From<&'a Package> for License {
     fn from(pkg: &'a Package) -> Self {
         Self {
-            expression: pkg.manifest().metadata().license.as_ref().unwrap().to_string(),
+            expression: pkg
+                .manifest()
+                .metadata()
+                .license
+                .as_ref()
+                .unwrap()
+                .to_string(),
         }
     }
 }

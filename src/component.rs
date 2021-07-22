@@ -146,7 +146,7 @@ impl<'a> From<&'a cargo_metadata::Package> for Component {
     }
 }
 
-impl ToXml for Component{
+impl ToXml for Component {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("component")?;
         xml.attr("type", &self.component_type.to_string())?;

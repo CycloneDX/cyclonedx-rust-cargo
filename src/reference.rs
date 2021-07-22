@@ -41,7 +41,10 @@ pub struct ExternalReference {
 impl<'a> ExternalReference {
     pub fn new(ref_type: &'a str, url: &'a str) -> Result<Self, ExternalReferenceError> {
         if URL_REGEX.is_match(url) {
-            Ok(Self { ref_type: ref_type.to_string(), url: url.to_string() })
+            Ok(Self {
+                ref_type: ref_type.to_string(),
+                url: url.to_string(),
+            })
         } else {
             Err(ExternalReferenceError)
         }

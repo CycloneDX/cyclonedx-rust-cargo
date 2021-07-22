@@ -43,7 +43,7 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use cyclonedx_bom::generator::{SbomGenerator, Generator};
+use cyclonedx_bom::generator::{Generator, SbomGenerator};
 use cyclonedx_bom::traits::ToXml;
 use std::{
     fs::File,
@@ -52,15 +52,12 @@ use std::{
 };
 
 use anyhow::Result;
-use cargo::{
-    util::Config,
-};
+use cargo::util::Config;
 use structopt::StructOpt;
 use xml_writer::XmlWriter;
 
 mod format;
 use format::Format;
-
 
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -132,7 +129,9 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     let manifest = args
         .manifest_path
         .unwrap_or_else(|| config.cwd().join("Cargo.toml"));
-    let generator = SbomGenerator{all: Some(args.all)};
+    let generator = SbomGenerator {
+        all: Some(args.all),
+    };
 
     let bom = generator.create_sbom(manifest)?;
 
