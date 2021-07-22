@@ -18,12 +18,13 @@
 pub mod author;
 pub mod bom;
 pub mod component;
+pub mod generator;
 pub mod license;
 pub mod metadata;
 pub mod reference;
 pub mod traits;
 
 pub use crate::{
-    author::Author, bom::Bom, component::*, license::License, metadata::Metadata,
+    author::Author, bom::Bom, component::*, generator::*, license::License, metadata::Metadata,
     reference::ExternalReference, traits::*,
 };

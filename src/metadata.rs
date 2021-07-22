@@ -29,16 +29,16 @@ use crate::component::Component;
 use crate::traits::ToXml;
 
 #[derive(Serialize)]
-pub struct Metadata<'a> {
+pub struct Metadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authors: Option<Vec<Author>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub component: Option<Component<'a>>,
+    pub component: Option<Component>,
 }
 
-impl<'a> Default for Metadata<'a> {
+impl<'a> Default for Metadata {
     fn default() -> Self {
         Self {
             timestamp: Some(Utc::now()),
@@ -48,7 +48,7 @@ impl<'a> Default for Metadata<'a> {
     }
 }
 
-impl<'a> From<&'a Package> for Metadata<'a> {
+impl<'a> From<&'a Package> for Metadata {
     fn from(pkg: &'a Package) -> Self {
         Self {
             authors: get_authors_from_package(pkg),
@@ -62,7 +62,7 @@ impl<'a> From<&'a Package> for Metadata<'a> {
     }
 }
 
-impl<'a> From<&'a cargo_metadata::Package> for Metadata<'a> {
+impl<'a> From<&'a cargo_metadata::Package> for Metadata {
     fn from(package: &'a cargo_metadata::Package) -> Self {
         Self {
             authors: get_authors_from_package_cm(package),
@@ -76,7 +76,7 @@ impl<'a> From<&'a cargo_metadata::Package> for Metadata<'a> {
     }
 }
 
-impl ToXml for Metadata<'_> {
+impl ToXml for Metadata {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("metadata")?;
 

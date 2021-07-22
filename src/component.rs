@@ -59,20 +59,20 @@ impl fmt::Display for Scope {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Component<'a> {
+pub struct Component {
     #[serde(flatten)]
-    pub metadata: ComponentCommon<'a>,
+    pub metadata: ComponentCommon,
     #[serde(rename = "type")]
     pub component_type: ComponentType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<Scope>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub licenses: Option<Vec<License<'a>>>,
+    pub licenses: Option<Vec<License>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub external_references: Option<Vec<ExternalReference<'a>>>,
+    pub external_references: Option<Vec<ExternalReference>>,
 }
 
-impl<'a> Component<'a> {
+impl<'a> Component {
     /// Create a component which describes the package as a library.
     pub fn library(pkg: &'a Package) -> Self {
         Self {
@@ -122,7 +122,7 @@ impl<'a> Component<'a> {
     }
 }
 
-impl<'a> From<&'a Package> for Component<'a> {
+impl<'a> From<&'a Package> for Component {
     fn from(package: &'a Package) -> Self {
         Self {
             component_type: ComponentType::Library,
@@ -134,7 +134,7 @@ impl<'a> From<&'a Package> for Component<'a> {
     }
 }
 
-impl<'a> From<&'a cargo_metadata::Package> for Component<'a> {
+impl<'a> From<&'a cargo_metadata::Package> for Component {
     fn from(package: &'a cargo_metadata::Package) -> Self {
         Self {
             component_type: ComponentType::Library,
@@ -146,7 +146,7 @@ impl<'a> From<&'a cargo_metadata::Package> for Component<'a> {
     }
 }
 
-impl ToXml for Component<'_> {
+impl ToXml for Component{
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("component")?;
         xml.attr("type", &self.component_type.to_string())?;
@@ -172,22 +172,22 @@ impl ToXml for Component<'_> {
 }
 
 #[derive(Serialize)]
-pub struct ComponentCommon<'a> {
-    pub name: &'a str,
+pub struct ComponentCommon {
+    pub name: String,
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<&'a str>,
+    pub description: Option<String>,
     pub purl: String,
 }
 
-impl<'a> From<&'a Package> for ComponentCommon<'a> {
+impl<'a> From<&'a Package> for ComponentCommon {
     fn from(package: &'a Package) -> Self {
-        let name = package.name().to_owned().as_str().trim();
+        let name = package.name().to_owned().trim().to_string();
         let version = package.version().to_string();
 
         Self {
-            name,
-            purl: PackageUrl::new("cargo", name)
+            name: name.clone(),
+            purl: PackageUrl::new("cargo", name.clone())
                 .with_version(version.trim())
                 .to_string(),
             version,
@@ -196,38 +196,38 @@ impl<'a> From<&'a Package> for ComponentCommon<'a> {
                 .metadata()
                 .description
                 .as_ref()
-                .map(|s| s.as_str()),
+                .map(|s| s.to_string()),
         }
     }
 }
 
-impl<'a> From<&'a cargo_metadata::Package> for ComponentCommon<'a> {
+impl<'a> From<&'a cargo_metadata::Package> for ComponentCommon {
     fn from(package: &'a cargo_metadata::Package) -> Self {
-        let name = package.name.as_str().trim();
+        let name = package.name.trim().to_string();
         let version = package.version.to_string();
 
         Self {
-            name,
-            purl: PackageUrl::new("cargo", name)
+            name: name.clone(),
+            purl: PackageUrl::new("cargo", name.clone())
                 .with_version(version.trim())
                 .to_string(),
             version,
-            description: package.description.as_ref().map(|s| s.as_str()),
+            description: package.description.as_ref().map(|s| s.to_string()),
         }
     }
 }
 
-impl ToXml for ComponentCommon<'_> {
+impl ToXml for ComponentCommon {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("name")?;
-        xml.text(self.name)?;
+        xml.text(&self.name)?;
         xml.end_elem()?;
 
         xml.begin_elem("version")?;
         xml.text(self.version.trim())?;
         xml.end_elem()?;
 
-        if let Some(x) = self.description {
+        if let Some(x) = &self.description {
             xml.begin_elem("description")?;
             xml.cdata(x.trim())?;
             xml.end_elem()?;
@@ -242,36 +242,36 @@ impl ToXml for ComponentCommon<'_> {
 }
 
 // Moved to component.rs because references need not be aware of a package, but a component that wants to create external references can be
-fn get_external_references<'a>(package: &'a Package) -> Option<Vec<ExternalReference<'a>>> {
+fn get_external_references<'a>(package: &'a Package) -> Option<Vec<ExternalReference>> {
     let mut references = Vec::new();
 
     let metadata = package.manifest().metadata();
 
     if let Some(documentation) = &metadata.documentation {
         references.push(ExternalReference {
-            ref_type: "documentation",
-            url: &documentation,
+            ref_type: "documentation".to_string(),
+            url: documentation.to_string(),
         });
     }
 
     if let Some(website) = &metadata.homepage {
         references.push(ExternalReference {
-            ref_type: "website",
-            url: &website,
+            ref_type: "website".to_string(),
+            url: website.to_string(),
         });
     }
 
     if let Some(other) = &metadata.links {
         references.push(ExternalReference {
-            ref_type: "other",
-            url: &other,
+            ref_type: "other".to_string(),
+            url: other.to_string(),
         });
     }
 
     if let Some(vcs) = &metadata.repository {
         references.push(ExternalReference {
-            ref_type: "vcs",
-            url: &vcs,
+            ref_type: "vcs".to_string(),
+            url: vcs.to_string(),
         });
     }
 
@@ -285,34 +285,34 @@ fn get_external_references<'a>(package: &'a Package) -> Option<Vec<ExternalRefer
 // Duplicate of the above fn get_external_references, largely just for parsing `cargo_metadata::Package`
 fn get_external_references_cm<'a>(
     package: &'a cargo_metadata::Package,
-) -> Option<Vec<ExternalReference<'a>>> {
+) -> Option<Vec<ExternalReference>> {
     let mut references = Vec::new();
 
     if let Some(documentation) = &package.documentation {
         references.push(ExternalReference {
-            ref_type: "documentation",
-            url: &documentation,
+            ref_type: "documentation".to_string(),
+            url: documentation.to_string(),
         });
     }
 
     if let Some(website) = &package.homepage {
         references.push(ExternalReference {
-            ref_type: "website",
-            url: &website,
+            ref_type: "website".to_string(),
+            url: website.to_string(),
         });
     }
 
     if let Some(other) = &package.links {
         references.push(ExternalReference {
-            ref_type: "other",
-            url: &other,
+            ref_type: "other".to_string(),
+            url: other.to_string(),
         });
     }
 
     if let Some(vcs) = &package.repository {
         references.push(ExternalReference {
-            ref_type: "vcs",
-            url: &vcs,
+            ref_type: "vcs".to_string(),
+            url: vcs.to_string(),
         });
     }
 

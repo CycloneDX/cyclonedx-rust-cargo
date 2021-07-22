@@ -40,19 +40,19 @@ fn uuid_to_urn<S: Serializer>(uuid: &Uuid, serializer: S) -> Result<S::Ok, S::Er
 /// A software bill of materials for a Rust crate.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Bom<'a> {
+pub struct Bom {
     bom_format: BomFormat,
     spec_version: &'static str,
     #[serde(serialize_with = "uuid_to_urn")]
     serial_number: Uuid,
     version: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<Metadata<'a>>,
-    components: Vec<Component<'a>>,
+    pub metadata: Option<Metadata>,
+    components: Vec<Component>,
 }
 
-impl<'a> Default for Bom<'a> {
-    fn default() -> Bom<'a> {
+impl<'a> Default for Bom {
+    fn default() -> Bom {
         Self {
             bom_format: BomFormat::CycloneDX,
             spec_version: SPEC_VERSION,
@@ -65,7 +65,7 @@ impl<'a> Default for Bom<'a> {
 }
 
 /// Create a new BOM from a sequence of cargo package references.
-impl<'a> FromIterator<&'a Package> for Bom<'a> {
+impl<'a> FromIterator<&'a Package> for Bom {
     fn from_iter<T: IntoIterator<Item = &'a Package>>(iter: T) -> Self {
         Self {
             components: iter.into_iter().map(Component::from).collect(),
@@ -75,7 +75,7 @@ impl<'a> FromIterator<&'a Package> for Bom<'a> {
     }
 }
 
-impl ToXml for Bom<'_> {
+impl ToXml for Bom {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         let namespace = format!("http://cyclonedx.org/schema/bom/{}", SPEC_VERSION);
         xml.dtd("UTF-8")?;

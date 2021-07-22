@@ -25,27 +25,27 @@ use crate::traits::ToXml;
 
 #[derive(Serialize)]
 #[serde(rename_all = "lowercase")]
-pub struct License<'a> {
-    pub expression: &'a str,
+pub struct License {
+    pub expression: String,
 }
 
-impl<'a> From<&'a Package> for License<'a> {
+impl<'a> From<&'a Package> for License {
     fn from(pkg: &'a Package) -> Self {
         Self {
-            expression: &pkg.manifest().metadata().license.as_ref().unwrap(),
+            expression: pkg.manifest().metadata().license.as_ref().unwrap().to_string(),
         }
     }
 }
 
-impl<'a> From<&'a cargo_metadata::Package> for License<'a> {
+impl<'a> From<&'a cargo_metadata::Package> for License {
     fn from(pkg: &'a cargo_metadata::Package) -> Self {
         Self {
-            expression: &pkg.license.as_ref().unwrap(),
+            expression: pkg.license.as_ref().unwrap().to_string(),
         }
     }
 }
 
-impl ToXml for License<'_> {
+impl ToXml for License {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("license")?;
         match self {
@@ -59,7 +59,7 @@ impl ToXml for License<'_> {
     }
 }
 
-impl ToXml for Vec<License<'_>> {
+impl ToXml for Vec<License> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         if self.len() > 0 {
             xml.begin_elem("licenses")?;

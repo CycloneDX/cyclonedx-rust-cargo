@@ -32,26 +32,26 @@ lazy_static! {
 
 #[derive(Serialize)]
 /// A reference to external materials, such as documentation.
-pub struct ExternalReference<'a> {
+pub struct ExternalReference {
     #[serde(rename = "type")]
-    pub ref_type: &'a str,
-    pub url: &'a str,
+    pub ref_type: String,
+    pub url: String,
 }
 
-impl<'a> ExternalReference<'a> {
+impl<'a> ExternalReference {
     pub fn new(ref_type: &'a str, url: &'a str) -> Result<Self, ExternalReferenceError> {
         if URL_REGEX.is_match(url) {
-            Ok(Self { ref_type, url })
+            Ok(Self { ref_type: ref_type.to_string(), url: url.to_string() })
         } else {
             Err(ExternalReferenceError)
         }
     }
 }
 
-impl ToXml for ExternalReference<'_> {
+impl ToXml for ExternalReference {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("reference")?;
-        xml.attr("type", self.ref_type)?;
+        xml.attr("type", &self.ref_type)?;
         xml.begin_elem("url")?;
         // XXX is this trim() needed? The regex doesn't permit leading or trailing whitespace.
         xml.text(self.url.trim())?;
@@ -60,7 +60,7 @@ impl ToXml for ExternalReference<'_> {
     }
 }
 
-impl ToXml for Vec<ExternalReference<'_>> {
+impl ToXml for Vec<ExternalReference> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         if self.len() > 0 {
             xml.begin_elem("externalReferences")?;
