@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
 use std::{io, str::FromStr};
 
