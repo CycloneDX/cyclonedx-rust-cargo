@@ -16,7 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-
 /**
 * A special acknowledgement Ossi Herrala from SensorFu for providing a
 * starting point in which to develop this plugin. The original project
@@ -45,31 +44,21 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
+use cyclonedx_bom::generator::{Generator, SbomGenerator};
+use cyclonedx_bom::traits::ToXml;
 use std::{
-    collections::BTreeSet,
     fs::File,
     io::{self, LineWriter},
     path, str,
 };
 
-use cargo::{
-    core::{dependency::DepKind, package::PackageSet, Package, Resolve, Workspace},
-    ops,
-    util::Config,
-    CargoResult,
-};
+use anyhow::Result;
+use cargo::util::Config;
 use structopt::StructOpt;
 use xml_writer::XmlWriter;
 
-mod bom;
-mod component;
 mod format;
-mod traits;
-
-use bom::Bom;
-pub(crate) use component::Component;
 use format::Format;
-pub(crate) use traits::ToXml;
 
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
@@ -141,17 +130,11 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     let manifest = args
         .manifest_path
         .unwrap_or_else(|| config.cwd().join("Cargo.toml"));
-    let ws = Workspace::new(&manifest, &config)?;
-    let members: Vec<Package> = ws.members().cloned().collect();
-    let (package_ids, resolve) = ops::resolve_ws(&ws)?;
-
-    let dependencies = if args.all {
-        all_dependencies(&members, package_ids, resolve)?
-    } else {
-        top_level_dependencies(&members, package_ids)?
+    let generator = SbomGenerator {
+        all: Some(args.all),
     };
 
-    let bom: Bom = dependencies.iter().collect();
+    let bom = generator.create_sbom(manifest)?;
 
     match args.format {
         Format::Json => {
@@ -173,56 +156,6 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     Ok(())
 }
 
-fn top_level_dependencies(
-    members: &[Package],
-    package_ids: PackageSet<'_>,
-) -> CargoResult<BTreeSet<Package>> {
-    let mut dependencies = BTreeSet::new();
-
-    for member in members {
-        for dependency in member.dependencies() {
-            // Filter out Build and Development dependencies
-            match dependency.kind() {
-                DepKind::Normal => (),
-                DepKind::Build | DepKind::Development => continue,
-            }
-            if let Some(dep) = package_ids
-                .package_ids()
-                .find(|id| dependency.matches_id(*id))
-            {
-                let package = package_ids.get_one(dep)?;
-                dependencies.insert(package.to_owned());
-            }
-        }
-    }
-
-    // Filter out our own workspace crates from dependency list
-    for member in members {
-        dependencies.remove(member);
-    }
-
-    Ok(dependencies)
-}
-
-fn all_dependencies(
-    members: &[Package],
-    package_ids: PackageSet<'_>,
-    resolve: Resolve,
-) -> CargoResult<BTreeSet<Package>> {
-    let mut dependencies = BTreeSet::new();
-
-    for package_id in resolve.iter() {
-        let package = package_ids.get_one(package_id)?;
-        if members.contains(&package) {
-            // Skip listing our own packages in our workspace
-            continue;
-        }
-        dependencies.insert(package.to_owned());
-    }
-
-    Ok(dependencies)
-}
-
 #[derive(Debug)]
 struct Error;
 
@@ -234,6 +167,18 @@ impl From<anyhow::Error> for Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
+        cargo_exit(anyhow::Error::new(err))
+    }
+}
+
+impl From<cyclonedx_bom::generator::GeneratorError> for Error {
+    fn from(err: cyclonedx_bom::generator::GeneratorError) -> Self {
+        cargo_exit(anyhow::Error::new(err))
+    }
+}
+
+impl From<cargo_metadata::Error> for Error {
+    fn from(err: cargo_metadata::Error) -> Self {
         cargo_exit(anyhow::Error::new(err))
     }
 }

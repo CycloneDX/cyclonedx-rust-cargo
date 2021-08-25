@@ -18,49 +18,12 @@
  */
 use std::{io, str::FromStr};
 
-use cargo::core::Package;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Serialize;
 use xml_writer::XmlWriter;
 
-use crate::traits::{IsEmpty, ToXml};
-
-#[derive(Serialize)]
-pub struct Authors(Vec<Author>);
-
-impl<'a> From<&'a Package> for Authors {
-    fn from(pkg: &'a Package) -> Self {
-        Self(
-            pkg.manifest()
-                .metadata()
-                .authors
-                .iter()
-                .filter_map(|author| Author::from_str(author).ok())
-                .collect(),
-        )
-    }
-}
-
-impl IsEmpty for Authors {
-    fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
-impl ToXml for Authors {
-    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        if !self.is_empty() {
-            xml.begin_elem("authors")?;
-            for author in &self.0 {
-                author.to_xml(xml)?;
-            }
-            xml.end_elem()?;
-        }
-
-        Ok(())
-    }
-}
+use crate::traits::ToXml;
 
 lazy_static! {
     static ref EMAIL_REGEX: Regex = Regex::new(r#"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"#).unwrap();
@@ -89,6 +52,18 @@ impl Author {
         }
 
         Ok(Self { name, email })
+    }
+}
+
+impl ToXml for Vec<Author> {
+    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
+        xml.begin_elem("authors")?;
+
+        for author in self {
+            author.to_xml(xml)?;
+        }
+
+        xml.end_elem()
     }
 }
 

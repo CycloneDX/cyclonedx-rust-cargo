@@ -18,57 +18,12 @@
  */
 use std::io;
 
-use cargo::core::Package;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Serialize;
 use xml_writer::XmlWriter;
 
 use crate::traits::ToXml;
-
-#[derive(Serialize)]
-pub struct ExternalReferences<'a>(Vec<ExternalReference<'a>>);
-
-impl<'a> ExternalReferences<'a> {
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
-impl<'a> From<&'a Package> for ExternalReferences<'a> {
-    fn from(v: &'a Package) -> Self {
-        fn ext_ref<'a>(
-            ref_type: &'a str,
-            uri: &'a Option<String>,
-        ) -> Option<ExternalReference<'a>> {
-            ExternalReference::new(ref_type, uri.as_ref()?).ok()
-        }
-
-        let metadata = v.manifest().metadata();
-        Self(
-            ext_ref("documentation", &metadata.documentation)
-                .into_iter()
-                .chain(ext_ref("website", &metadata.homepage))
-                .chain(ext_ref("other", &metadata.links))
-                .chain(ext_ref("vcs", &metadata.repository))
-                .collect(),
-        )
-    }
-}
-
-impl ToXml for ExternalReferences<'_> {
-    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        if !self.0.is_empty() {
-            xml.begin_elem("externalReferences")?;
-            for reference in &self.0 {
-                reference.to_xml(xml)?;
-            }
-            xml.end_elem()?;
-        }
-
-        Ok(())
-    }
-}
 
 pub struct ExternalReferenceError;
 
@@ -78,30 +33,47 @@ lazy_static! {
 
 #[derive(Serialize)]
 /// A reference to external materials, such as documentation.
-pub struct ExternalReference<'a> {
+pub struct ExternalReference {
     #[serde(rename = "type")]
-    ref_type: &'a str,
-    url: &'a str,
+    pub ref_type: String,
+    pub url: String,
 }
 
-impl<'a> ExternalReference<'a> {
+impl<'a> ExternalReference {
     pub fn new(ref_type: &'a str, url: &'a str) -> Result<Self, ExternalReferenceError> {
         if URL_REGEX.is_match(url) {
-            Ok(Self { ref_type, url })
+            Ok(Self {
+                ref_type: ref_type.to_string(),
+                url: url.to_string(),
+            })
         } else {
             Err(ExternalReferenceError)
         }
     }
 }
 
-impl ToXml for ExternalReference<'_> {
+impl ToXml for ExternalReference {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("reference")?;
-        xml.attr("type", self.ref_type)?;
+        xml.attr("type", &self.ref_type)?;
         xml.begin_elem("url")?;
         // XXX is this trim() needed? The regex doesn't permit leading or trailing whitespace.
         xml.text(self.url.trim())?;
         xml.end_elem()?;
         xml.end_elem()
+    }
+}
+
+impl ToXml for Vec<ExternalReference> {
+    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
+        if self.len() > 0 {
+            xml.begin_elem("externalReferences")?;
+            for reference in self {
+                reference.to_xml(xml)?;
+            }
+            xml.end_elem()?;
+        }
+
+        Ok(())
     }
 }

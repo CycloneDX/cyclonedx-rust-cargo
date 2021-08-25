@@ -25,34 +25,53 @@ use xml_writer::XmlWriter;
 use crate::traits::ToXml;
 
 #[derive(Serialize)]
-pub struct Licenses<'a>(Vec<License<'a>>);
-
-impl<'a> Licenses<'a> {
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
+#[serde(rename_all = "lowercase")]
+pub struct License {
+    pub expression: String,
 }
 
-impl<'a> From<&'a Package> for Licenses<'a> {
+impl<'a> From<&'a Package> for License {
     fn from(pkg: &'a Package) -> Self {
-        Self(
-            pkg.manifest()
+        Self {
+            expression: pkg
+                .manifest()
                 .metadata()
                 .license
                 .as_ref()
-                .map(|s| License::Expression(s.as_str()))
-                .into_iter()
-                .collect(),
-        )
+                .unwrap()
+                .to_string(),
+        }
     }
 }
 
-impl ToXml for Licenses<'_> {
+impl<'a> From<&'a cargo_metadata::Package> for License {
+    fn from(pkg: &'a cargo_metadata::Package) -> Self {
+        Self {
+            expression: pkg.license.as_ref().unwrap().to_string(),
+        }
+    }
+}
+
+impl ToXml for License {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        if !self.0.is_empty() {
+        xml.begin_elem("license")?;
+        match self {
+            expr => {
+                xml.begin_elem("expression")?;
+                xml.text(expr.expression.trim())?;
+                xml.end_elem()?;
+            }
+        }
+        xml.end_elem()
+    }
+}
+
+impl ToXml for Vec<License> {
+    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
+        if self.len() > 0 {
             xml.begin_elem("licenses")?;
 
-            for license in &self.0 {
+            for license in self {
                 license.to_xml(xml)?;
             }
 
@@ -60,25 +79,5 @@ impl ToXml for Licenses<'_> {
         }
 
         Ok(())
-    }
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "lowercase")]
-enum License<'a> {
-    Expression(&'a str),
-}
-
-impl ToXml for License<'_> {
-    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        xml.begin_elem("license")?;
-        match self {
-            Self::Expression(expr) => {
-                xml.begin_elem("expression")?;
-                xml.text(expr.trim())?;
-                xml.end_elem()?;
-            }
-        }
-        xml.end_elem()
     }
 }
