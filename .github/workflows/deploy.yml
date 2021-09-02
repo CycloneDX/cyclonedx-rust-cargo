@@ -1,0 +1,41 @@
+name: Deploy to Crates.io
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseType:
+        description: 'Release type (major, minor, patch)'
+        required: true
+        default: 'patch'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Cargo bump
+        run: |
+          cargo install cargo-bump
+          cargo bump ${{ github.event.inputs.releaseType }}
+      - name: Retrieve new version
+        run: |
+          echo "::set-output name=CARGO_VERSION::$(grep -e '^version' Cargo.toml | cut -d "=" -f2 | tr -d '/"' | tr -d ' ')"
+        id: version
+      - name: Build one time, for sanity
+        run: cargo build
+      - uses: katyo/publish-crates@v1
+        with:
+          args: --verbose --allow-dirty
+          dry-run: true
+      - name: Configure git and add files
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -am "New development bump to ${{steps.version.outputs.CARGO_VERSION}}"
+          git tag -a ${{steps.version.outputs.CARGO_VERSION}} -m "${{steps.version.outputs.CARGO_VERSION}} release"
+          git push
+          git push origin ${{steps.version.outputs.CARGO_VERSION}}
