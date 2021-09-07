@@ -37,5 +37,4 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git commit -am "New development bump to ${{steps.version.outputs.CARGO_VERSION}}"
           git tag -a ${{steps.version.outputs.CARGO_VERSION}} -m "${{steps.version.outputs.CARGO_VERSION}} release"
-          git push
-          git push origin ${{steps.version.outputs.CARGO_VERSION}}
+          git push --follow-tags
