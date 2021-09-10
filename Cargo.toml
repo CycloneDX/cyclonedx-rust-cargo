@@ -18,7 +18,7 @@ lto = true
 
 [dependencies]
 anyhow = "1.0.37"
-cargo = "0.54.0"
+cargo = "0.56.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 lazy_static = "1.4.0"
 packageurl = "0.2.0"
