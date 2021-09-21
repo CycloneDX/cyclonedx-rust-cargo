@@ -178,19 +178,18 @@ pub struct ComponentCommon {
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    pub purl: String,
+    pub purl: Option<String>,
 }
 
 impl<'a> From<&'a Package> for ComponentCommon {
     fn from(package: &'a Package) -> Self {
         let name = package.name().to_owned().trim().to_string();
         let version = package.version().to_string();
+        let purl = create_purl(&name, &version);
 
         Self {
-            name: name.clone(),
-            purl: PackageUrl::new("cargo", name.clone())
-                .with_version(version.trim())
-                .to_string(),
+            name,
+            purl,
             version,
             description: package
                 .manifest()
@@ -206,14 +205,30 @@ impl<'a> From<&'a cargo_metadata::Package> for ComponentCommon {
     fn from(package: &'a cargo_metadata::Package) -> Self {
         let name = package.name.trim().to_string();
         let version = package.version.to_string();
+        let purl = create_purl(&name, &version);
 
         Self {
-            name: name.clone(),
-            purl: PackageUrl::new("cargo", name.clone())
-                .with_version(version.trim())
-                .to_string(),
+            name,
+            purl,
             version,
             description: package.description.as_ref().map(|s| s.to_string()),
+        }
+    }
+}
+
+fn create_purl(name: &str, version: &str) -> Option<String> {
+    // PackageUrl::new performs validation on the "type" value passed in. Since we hard-code this value to "cargo", this should always pass.
+    // Setting this to gracefully log and handle the potential future case where the "name" field is validated as well.
+    // Reference: https://github.com/althonos/packageurl.rs/blob/0.3.0/src/validation.rs#L2
+    let purl = PackageUrl::new("cargo", name);
+    match purl {
+        Ok(mut purl) => {
+            let output = purl.with_version(version.trim()).to_string();
+            Some(output)
+        }
+        Err(e) => {
+            log::debug!("Error processing purl: {}", e);
+            None
         }
     }
 }
@@ -233,10 +248,11 @@ impl ToXml for ComponentCommon {
             xml.cdata(x.trim())?;
             xml.end_elem()?;
         }
-
-        xml.begin_elem("purl")?;
-        xml.text(&self.purl.to_string())?;
-        xml.end_elem()?;
+        if let Some(purl) = &self.purl {
+            xml.begin_elem("purl")?;
+            xml.text(&purl)?;
+            xml.end_elem()?;
+        }
 
         Ok(())
     }
@@ -322,4 +338,17 @@ fn get_external_references_cm<'a>(
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn purl_construction() {
+        assert_eq!(
+            create_purl("test-library", " 0.0.1 "),
+            Some("pkg:cargo/test-library@0.0.1".to_string())
+        )
+    }
 }
