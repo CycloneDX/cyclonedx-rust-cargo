@@ -49,99 +49,45 @@ use cyclonedx_bom::traits::ToXml;
 use std::{
     fs::File,
     io::{self, LineWriter},
-    path, str,
+    path::PathBuf,
 };
 
 use anyhow::Result;
-use cargo::util::Config;
+use env_logger::Builder;
+use log::{LevelFilter, SetLoggerError};
 use structopt::StructOpt;
 use xml_writer::XmlWriter;
 
 mod format;
 use format::Format;
 
-#[derive(StructOpt)]
-#[structopt(bin_name = "cargo")]
-enum Opts {
-    #[structopt(name = "cyclonedx")]
-    /// Creates a CycloneDX Software Bill-of-Materials (SBOM) for Rust project
-    Bom(Args),
-}
-
-#[derive(StructOpt)]
-struct Args {
-    /// List all dependencies instead of only top level ones
-    #[structopt(long = "all", short = "a")]
-    all: bool,
-    /// Directory for all generated artifacts
-    #[structopt(long = "target-dir", value_name = "DIRECTORY", parse(from_os_str))]
-    target_dir: Option<path::PathBuf>,
-    #[structopt(long = "manifest-path", value_name = "PATH", parse(from_os_str))]
-    /// Path to Cargo.toml
-    manifest_path: Option<path::PathBuf>,
-    /// Output BOM format: json, xml
-    #[structopt(long = "format", short = "f", value_name = "FORMAT", default_value)]
-    format: Format,
-    #[structopt(long = "verbose", short = "v", parse(from_occurrences))]
-    /// Use verbose output (-vv very verbose/build.rs output)
-    verbose: u32,
-    #[structopt(long = "quiet", short = "q")]
-    /// No output printed to stdout other than the tree
-    quiet: Option<bool>,
-    #[structopt(long = "color", value_name = "WHEN")]
-    /// Coloring: auto, always, never
-    color: Option<String>,
-    #[structopt(long = "frozen")]
-    /// Require Cargo.lock and cache are up to date
-    frozen: bool,
-    #[structopt(long = "locked")]
-    /// Require Cargo.lock is up to date
-    locked: bool,
-    #[structopt(long = "offline")]
-    /// Run without accessing the network
-    offline: bool,
-    #[structopt(short = "Z", value_name = "FLAG")]
-    /// Unstable (nightly-only) flags to Cargo
-    unstable_flags: Vec<String>,
-    #[structopt(long = "config", value_name = "KEY=VALUE")]
-    /// Override a configuration value
-    config_args: Vec<String>,
-}
+mod cli;
+use cli::{Args, Opts};
 
 fn main() -> Result<(), Error> {
-    let mut config = Config::default()?;
     let Opts::Bom(args) = Opts::from_args();
-    real_main(&mut config, args)
+    setup_logging(&args)?;
+    real_main(args)
 }
 
-fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
-    config.configure(
-        args.verbose,
-        args.quiet.unwrap_or(false),
-        args.color.as_deref(),
-        args.frozen,
-        args.locked,
-        args.offline,
-        &args.target_dir,
-        &args.unstable_flags,
-        &args.config_args,
-    )?;
-
-    let manifest = args
-        .manifest_path
-        .unwrap_or_else(|| config.cwd().join("Cargo.toml"));
+fn real_main(args: Args) -> Result<(), Error> {
+    let manifest = locate_manifest(&args)?;
     let generator = SbomGenerator {
-        all: Some(args.all),
+        all: args.all,
     };
 
+    log::trace!("SBOM generation started");
     let bom = generator.create_sbom(manifest)?;
+    log::trace!("SBOM generation finished");
 
     match args.format {
         Format::Json => {
+            log::info!("Outputting bom.json");
             serde_json::to_writer_pretty(File::create("bom.json")?, &bom)
                 .map_err(anyhow::Error::from)?;
         }
         Format::Xml => {
+            log::info!("Outputting bom.xml");
             let file = File::create("bom.xml")?;
             let file = LineWriter::new(file);
             let mut xml = XmlWriter::new(file);
@@ -156,6 +102,41 @@ fn real_main(config: &mut Config, args: Args) -> Result<(), Error> {
     Ok(())
 }
 
+fn setup_logging(args: &Args) -> Result<(), SetLoggerError> {
+    let mut builder = Builder::new();
+
+    // default cargo internals to quiet unless overriden via an environment variable
+    // call with RUST_LOG='cargo::=debug' to access these logs
+    builder.filter_module("cargo::", LevelFilter::Error);
+
+    let level_filter = if args.quiet {
+        LevelFilter::Off
+    } else {
+        match args.verbose {
+            0 => LevelFilter::Error,
+            1 => LevelFilter::Info,
+            2 => LevelFilter::Debug,
+            _ => LevelFilter::Trace,
+        }
+    };
+    builder.filter_level(level_filter);
+
+    builder.parse_default_env(); // allow overriding CLI arguments
+    builder.try_init()?;
+    Ok(())
+}
+
+fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
+    if let Some(manifest_path) = &args.manifest_path {
+        log::info!("Using manually specified Cargo.toml manifest located: {}", manifest_path.to_string_lossy());
+        Ok(manifest_path.clone())
+    } else {
+        let manifest_path = std::env::current_dir()?.join("Cargo.toml");
+        log::info!("Using Cargo.toml manifest located: {}", manifest_path.to_string_lossy());
+        Ok(manifest_path)
+    }
+}
+
 #[derive(Debug)]
 struct Error;
 
@@ -167,6 +148,12 @@ impl From<anyhow::Error> for Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
+        cargo_exit(anyhow::Error::new(err))
+    }
+}
+
+impl From<SetLoggerError> for Error {
+    fn from(err: SetLoggerError) -> Self {
         cargo_exit(anyhow::Error::new(err))
     }
 }

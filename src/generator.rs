@@ -36,7 +36,7 @@ pub trait Generator {
 }
 
 pub struct SbomGenerator {
-    pub all: Option<bool>,
+    pub all: bool,
 }
 
 impl Generator for SbomGenerator {
@@ -49,7 +49,7 @@ impl Generator for SbomGenerator {
 
         let root = get_root_package(manifest_path)?;
 
-        let dependencies = if self.all.unwrap_or(true) {
+        let dependencies = if self.all {
             all_dependencies(&members, package_ids, resolve)?
         } else {
             top_level_dependencies(&members, package_ids)?

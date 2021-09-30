@@ -360,6 +360,7 @@ dependencies = [
  "cargo",
  "cargo_metadata",
  "chrono",
+ "env_logger",
  "lazy_static",
  "log",
  "packageurl",

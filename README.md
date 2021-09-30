@@ -21,7 +21,7 @@ cargo install cyclonedx-bom
 
 #### Executing binary
 ```bash
-~/.cargo/bin/cyclonedx-bom cyclonedx
+~/.cargo/bin/cargo-cyclonedx cyclonedx
 ```
 
 #### Executing from cargo
