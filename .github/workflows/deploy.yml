@@ -30,7 +30,7 @@ jobs:
       - uses: katyo/publish-crates@v1
         with:
           args: --verbose --allow-dirty
-          dry-run: true
+          registry-token: ${{ secrets.CARGO_API_KEY }}
       - name: Configure git and add files
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
