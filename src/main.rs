@@ -72,9 +72,7 @@ fn main() -> Result<(), Error> {
 
 fn real_main(args: Args) -> Result<(), Error> {
     let manifest = locate_manifest(&args)?;
-    let generator = SbomGenerator {
-        all: args.all,
-    };
+    let generator = SbomGenerator { all: args.all };
 
     log::trace!("SBOM generation started");
     let bom = generator.create_sbom(manifest)?;
@@ -128,11 +126,17 @@ fn setup_logging(args: &Args) -> Result<(), SetLoggerError> {
 
 fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
     if let Some(manifest_path) = &args.manifest_path {
-        log::info!("Using manually specified Cargo.toml manifest located: {}", manifest_path.to_string_lossy());
+        log::info!(
+            "Using manually specified Cargo.toml manifest located: {}",
+            manifest_path.to_string_lossy()
+        );
         Ok(manifest_path.clone())
     } else {
         let manifest_path = std::env::current_dir()?.join("Cargo.toml");
-        log::info!("Using Cargo.toml manifest located: {}", manifest_path.to_string_lossy());
+        log::info!(
+            "Using Cargo.toml manifest located: {}",
+            manifest_path.to_string_lossy()
+        );
         Ok(manifest_path)
     }
 }
