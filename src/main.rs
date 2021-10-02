@@ -127,14 +127,14 @@ fn setup_logging(args: &Args) -> Result<(), SetLoggerError> {
 fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
     if let Some(manifest_path) = &args.manifest_path {
         log::info!(
-            "Using manually specified Cargo.toml manifest located: {}",
+            "Using manually specified Cargo.toml manifest located at: {}",
             manifest_path.to_string_lossy()
         );
         Ok(manifest_path.clone())
     } else {
         let manifest_path = std::env::current_dir()?.join("Cargo.toml");
         log::info!(
-            "Using Cargo.toml manifest located: {}",
+            "Using Cargo.toml manifest located at: {}",
             manifest_path.to_string_lossy()
         );
         Ok(manifest_path)
