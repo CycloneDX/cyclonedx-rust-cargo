@@ -368,6 +368,7 @@ dependencies = [
  "serde",
  "serde_json",
  "structopt",
+ "thiserror",
  "uuid",
  "xml_writer",
 ]
