@@ -64,13 +64,13 @@ use format::Format;
 mod cli;
 use cli::{Args, Opts};
 
-fn main() -> Result<(), Error> {
+fn main() -> anyhow::Result<()> {
     let Opts::Bom(args) = Opts::from_args();
     setup_logging(&args)?;
     real_main(args)
 }
 
-fn real_main(args: Args) -> Result<(), Error> {
+fn real_main(args: Args) -> anyhow::Result<()> {
     let manifest = locate_manifest(&args)?;
     let generator = SbomGenerator { all: args.all };
 
@@ -139,42 +139,4 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
         );
         Ok(manifest_path)
     }
-}
-
-#[derive(Debug)]
-struct Error;
-
-impl From<anyhow::Error> for Error {
-    fn from(err: anyhow::Error) -> Self {
-        cargo_exit(err)
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Self {
-        cargo_exit(anyhow::Error::new(err))
-    }
-}
-
-impl From<SetLoggerError> for Error {
-    fn from(err: SetLoggerError) -> Self {
-        cargo_exit(anyhow::Error::new(err))
-    }
-}
-
-impl From<cyclonedx_bom::generator::GeneratorError> for Error {
-    fn from(err: cyclonedx_bom::generator::GeneratorError) -> Self {
-        cargo_exit(anyhow::Error::new(err))
-    }
-}
-
-impl From<cargo_metadata::Error> for Error {
-    fn from(err: cargo_metadata::Error) -> Self {
-        cargo_exit(anyhow::Error::new(err))
-    }
-}
-
-fn cargo_exit<E: Into<cargo::CliError>>(err: E) -> ! {
-    let mut shell = cargo::core::shell::Shell::new();
-    cargo::exit_with_error(err.into(), &mut shell)
 }

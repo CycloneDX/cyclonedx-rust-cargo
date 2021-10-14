@@ -17,19 +17,16 @@
  */
 use crate::Bom;
 use crate::Metadata;
-use anyhow::anyhow;
 use cargo::core::dependency::DepKind;
 use cargo::core::Package;
 use cargo::core::PackageSet;
 use cargo::core::Resolve;
 use cargo::core::Workspace;
 use cargo::ops;
-use cargo::CargoResult;
 use cargo::Config;
 use std::collections::BTreeSet;
-use std::error::Error;
-use std::fmt;
 use std::path::PathBuf;
+use thiserror::Error;
 
 pub trait Generator {
     fn create_sbom<'a>(&self, manifest_path: PathBuf) -> Result<Bom, GeneratorError>;
@@ -41,11 +38,24 @@ pub struct SbomGenerator {
 
 impl Generator for SbomGenerator {
     fn create_sbom<'a>(&self, manifest_path: PathBuf) -> Result<Bom, GeneratorError> {
-        let config = Config::default()?;
+        let config_filepath = manifest_path.to_string_lossy().to_string();
+        let config = Config::default().map_err(|error| GeneratorError::CargoConfigError {
+            config_filepath: config_filepath.clone(),
+            error,
+        })?;
 
-        let ws = Workspace::new(&manifest_path, &config)?;
+        let ws = Workspace::new(&manifest_path, &config).map_err(|error| {
+            GeneratorError::CargoConfigError {
+                config_filepath: config_filepath.clone(),
+                error,
+            }
+        })?;
         let members: Vec<Package> = ws.members().cloned().collect();
-        let (package_ids, resolve) = ops::resolve_ws(&ws)?;
+        let (package_ids, resolve) =
+            ops::resolve_ws(&ws).map_err(|error| GeneratorError::CargoConfigError {
+                config_filepath: config_filepath.clone(),
+                error,
+            })?;
 
         let root = get_root_package(manifest_path)?;
 
@@ -65,7 +75,7 @@ impl Generator for SbomGenerator {
     }
 }
 
-fn get_root_package(toml_file_path: PathBuf) -> anyhow::Result<cargo_metadata::Package> {
+fn get_root_package(toml_file_path: PathBuf) -> Result<cargo_metadata::Package, GeneratorError> {
     let metadata = cargo_metadata::MetadataCommand::new()
         .manifest_path(toml_file_path)
         .features(cargo_metadata::CargoOpt::AllFeatures)
@@ -75,29 +85,28 @@ fn get_root_package(toml_file_path: PathBuf) -> anyhow::Result<cargo_metadata::P
         return Ok(root.to_owned());
     }
 
-    Err(anyhow!("Could not get root package"))
+    Err(GeneratorError::RootPackageMissingError)
 }
 
 fn top_level_dependencies(
     members: &[Package],
     package_ids: PackageSet<'_>,
-) -> CargoResult<BTreeSet<Package>> {
+) -> Result<BTreeSet<Package>, GeneratorError> {
     let mut dependencies = BTreeSet::new();
 
-    for member in members {
-        for dependency in member.dependencies() {
-            // Filter out Build and Development dependencies
-            match dependency.kind() {
-                DepKind::Normal => (),
-                DepKind::Build | DepKind::Development => continue,
-            }
-            if let Some(dep) = package_ids
-                .package_ids()
-                .find(|id| dependency.matches_id(*id))
-            {
-                let package = package_ids.get_one(dep)?;
-                dependencies.insert(package.to_owned());
-            }
+    let all_dependencies = members
+        .iter()
+        .flat_map(|m| m.dependencies().iter())
+        .filter(|d| d.kind() == DepKind::Normal);
+    for dependency in all_dependencies {
+        if let Some(package_id) = package_ids
+            .package_ids()
+            .find(|id| dependency.matches_id(*id))
+        {
+            let package = package_ids
+                .get_one(package_id)
+                .map_err(|error| GeneratorError::PackageError { package_id, error })?;
+            dependencies.insert(package.to_owned());
         }
     }
 
@@ -113,11 +122,13 @@ fn all_dependencies(
     members: &[Package],
     package_ids: PackageSet<'_>,
     resolve: Resolve,
-) -> CargoResult<BTreeSet<Package>> {
+) -> Result<BTreeSet<Package>, GeneratorError> {
     let mut dependencies = BTreeSet::new();
 
     for package_id in resolve.iter() {
-        let package = package_ids.get_one(package_id)?;
+        let package = package_ids
+            .get_one(package_id)
+            .map_err(|error| GeneratorError::PackageError { package_id, error })?;
         if members.contains(&package) {
             // Skip listing our own packages in our workspace
             continue;
@@ -128,23 +139,25 @@ fn all_dependencies(
     Ok(dependencies)
 }
 
-#[derive(Debug)]
-pub struct GeneratorError {
-    details: String,
-}
+#[derive(Error, Debug)]
+pub enum GeneratorError {
+    #[error("Could not get root package")]
+    RootPackageMissingError,
 
-impl From<anyhow::Error> for GeneratorError {
-    fn from(_: anyhow::Error) -> Self {
-        Self {
-            details: "An error occurred returning an anyhow error".to_string(),
-        }
-    }
-}
+    #[error("Could not process the cargo config: {config_filepath}")]
+    CargoConfigError {
+        config_filepath: String,
+        #[source]
+        error: anyhow::Error,
+    },
 
-impl fmt::Display for GeneratorError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "An error occurred generating a Bom")
-    }
-}
+    #[error("Error with Cargo metadata")]
+    CargoMetaDataError(#[from] cargo_metadata::Error),
 
-impl Error for GeneratorError {}
+    #[error("Error retrieving package information: {package_id}")]
+    PackageError {
+        package_id: cargo::core::package_id::PackageId,
+        #[source]
+        error: anyhow::Error,
+    },
+}
