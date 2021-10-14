@@ -57,8 +57,6 @@ impl Generator for SbomGenerator {
                 error,
             })?;
 
-        let root = get_root_package(manifest_path)?;
-
         let dependencies = if self.all {
             all_dependencies(&members, package_ids, resolve)?
         } else {
@@ -67,25 +65,34 @@ impl Generator for SbomGenerator {
 
         let mut bom: Bom = dependencies.iter().collect();
 
-        let metadata = Metadata::from(&root);
-
-        bom.metadata = Some(metadata);
+        bom.metadata = get_metadata(manifest_path);
 
         Ok(bom)
     }
 }
 
-fn get_root_package(toml_file_path: PathBuf) -> Result<cargo_metadata::Package, GeneratorError> {
+/// attempt to treat the Cargo.toml as a simple project to get the metadata
+/// for now, do not attempt to generate metadata about a workspace
+fn get_metadata(toml_file_path: PathBuf) -> Option<Metadata> {
     let metadata = cargo_metadata::MetadataCommand::new()
-        .manifest_path(toml_file_path)
+        .manifest_path(&toml_file_path)
         .features(cargo_metadata::CargoOpt::AllFeatures)
-        .exec()?;
+        .exec();
 
-    if let Some(root) = metadata.clone().root_package() {
-        return Ok(root.to_owned());
+    match metadata {
+        Ok(metadata) => metadata
+            .root_package()
+            .map(Metadata::from)
+            .or_else(|| Some(Metadata::default())),
+        Err(e) => {
+            log::error!(
+                "Attempted to get metadata from the cargo config: {}",
+                toml_file_path.to_string_lossy(),
+            );
+            log::debug!("Got error: {}", e);
+            Some(Metadata::default())
+        }
     }
-
-    Err(GeneratorError::RootPackageMissingError)
 }
 
 fn top_level_dependencies(
@@ -141,8 +148,8 @@ fn all_dependencies(
 
 #[derive(Error, Debug)]
 pub enum GeneratorError {
-    #[error("Could not get root package")]
-    RootPackageMissingError,
+    #[error("Expected a root package in the cargo config: {config_filepath}")]
+    RootPackageMissingError { config_filepath: String },
 
     #[error("Could not process the cargo config: {config_filepath}")]
     CargoConfigError {
