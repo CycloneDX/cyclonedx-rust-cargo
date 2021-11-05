@@ -21,6 +21,7 @@ use std::{io, str::FromStr};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Serialize;
+use thiserror::Error;
 use xml_writer::XmlWriter;
 
 use crate::traits::ToXml;
@@ -29,9 +30,10 @@ lazy_static! {
     static ref EMAIL_REGEX: Regex = Regex::new(r#"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"#).unwrap();
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error, PartialEq)]
 pub enum AuthorParseError {
-    Email,
+    #[error("Could not parse email: {0}")]
+    Email(String),
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -43,12 +45,10 @@ pub struct Author {
 
 impl Author {
     fn new(name: String, email: Option<String>) -> Result<Self, AuthorParseError> {
-        if email
-            .as_ref()
-            .map(|should_be_email| EMAIL_REGEX.is_match(should_be_email))
-            == Some(false)
-        {
-            return Err(AuthorParseError::Email);
+        if let Some(email) = &email {
+            if !EMAIL_REGEX.is_match(&email) {
+                return Err(AuthorParseError::Email(email.to_owned()));
+            }
         }
 
         Ok(Self { name, email })
@@ -105,10 +105,11 @@ impl ToXml for Author {
 
 #[cfg(test)]
 mod test {
-    use super::Author;
+    use super::*;
 
     fn author(name: &'static str, email: impl Into<Option<&'static str>>) -> Author {
-        Author::new(name.into(), email.into().map(String::from)).unwrap()
+        Author::new(name.into(), email.into().map(String::from))
+            .expect("Failed to construct author for test")
     }
 
     #[test]
@@ -117,7 +118,7 @@ mod test {
             author("Steve Springett", "steve.springett@owasp.org"),
             "Steve Springett <steve.springett@owasp.org>"
                 .parse()
-                .unwrap()
+                .expect("Failed to parse string as author")
         );
     }
 
@@ -125,7 +126,16 @@ mod test {
     fn author_without_email() {
         assert_eq!(
             author("Steve Springett", None),
-            "Steve Springett".parse().unwrap()
+            "Steve Springett"
+                .parse()
+                .expect("Failed to parse string as author")
         );
+    }
+
+    #[test]
+    fn author_with_invalid_email() {
+        let error = Author::new("Ferris".to_string(), Some("invalid email".to_string()))
+            .expect_err("Should have gotten an email error");
+        assert_eq!(error, AuthorParseError::Email("invalid email".to_string()));
     }
 }

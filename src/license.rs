@@ -16,10 +16,11 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-use std::io;
+use std::{convert::TryFrom, io};
 
 use cargo::core::Package;
 use serde::Serialize;
+use thiserror::Error;
 use xml_writer::XmlWriter;
 
 use crate::traits::ToXml;
@@ -30,25 +31,37 @@ pub struct License {
     pub expression: String,
 }
 
-impl<'a> From<&'a Package> for License {
-    fn from(pkg: &'a Package) -> Self {
-        Self {
-            expression: pkg
-                .manifest()
-                .metadata()
-                .license
-                .as_ref()
-                .unwrap()
-                .to_string(),
-        }
+impl<'a> TryFrom<&'a Package> for License {
+    type Error = LicenseError;
+
+    fn try_from(pkg: &'a Package) -> Result<Self, Self::Error> {
+        let expression = pkg
+            .manifest()
+            .metadata()
+            .license
+            .as_ref()
+            .ok_or_else(|| LicenseError::NoLicenseProvidedError)?
+            .to_string();
+        Ok(Self { expression })
     }
 }
 
-impl<'a> From<&'a cargo_metadata::Package> for License {
-    fn from(pkg: &'a cargo_metadata::Package) -> Self {
-        Self {
-            expression: pkg.license.as_ref().unwrap().to_string(),
-        }
+#[derive(Debug, Error)]
+pub enum LicenseError {
+    #[error("No license was found in the package manifest")]
+    NoLicenseProvidedError,
+}
+
+impl<'a> TryFrom<&'a cargo_metadata::Package> for License {
+    type Error = LicenseError;
+
+    fn try_from(pkg: &'a cargo_metadata::Package) -> Result<Self, Self::Error> {
+        let expression = pkg
+            .license
+            .as_ref()
+            .ok_or_else(|| LicenseError::NoLicenseProvidedError)?
+            .to_string();
+        Ok(Self { expression })
     }
 }
 

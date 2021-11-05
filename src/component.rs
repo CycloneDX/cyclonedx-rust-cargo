@@ -16,14 +16,14 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-use std::{fmt, io};
+use std::{convert::TryFrom, fmt, io};
 
 use cargo::core::Package;
 use packageurl::PackageUrl;
 use serde::Serialize;
 use xml_writer::XmlWriter;
 
-use crate::traits::ToXml;
+use crate::{license::LicenseError, traits::ToXml};
 
 use crate::license::License;
 use crate::reference::ExternalReference;
@@ -76,20 +76,34 @@ pub struct Component {
 impl<'a> Component {
     /// Create a component which describes the package as a library.
     pub fn library(pkg: &'a Package) -> Self {
+        let licenses = match License::try_from(pkg) {
+            Ok(license) => vec![license],
+            Err(LicenseError::NoLicenseProvidedError) => {
+                log::trace!("Library did not have a license");
+                Vec::new()
+            }
+        };
         Self {
             component_type: ComponentType::Library,
             scope: Some(Scope::Required),
             metadata: ComponentCommon::from(pkg),
-            licenses: Some(vec![License::from(pkg)]),
+            licenses: Some(licenses),
             external_references: get_external_references(pkg),
         }
     }
 
     pub fn library_cm(package: &'a cargo_metadata::Package) -> Self {
+        let licenses = match License::try_from(package) {
+            Ok(license) => vec![license],
+            Err(LicenseError::NoLicenseProvidedError) => {
+                log::trace!("Library CM did not have a license");
+                Vec::new()
+            }
+        };
         Self {
             component_type: ComponentType::Library,
             external_references: get_external_references_cm(package),
-            licenses: Some(vec![License::from(package)]),
+            licenses: Some(licenses),
             metadata: ComponentCommon::from(package),
             scope: Some(Scope::Required),
         }
@@ -97,20 +111,34 @@ impl<'a> Component {
 
     /// Create a component which describes the package as an application.
     pub fn application(pkg: &'a Package) -> Self {
+        let licenses = match License::try_from(pkg) {
+            Ok(license) => vec![license],
+            Err(LicenseError::NoLicenseProvidedError) => {
+                log::trace!("Application did not have a license");
+                Vec::new()
+            }
+        };
         Self {
             component_type: ComponentType::Application,
             scope: Some(Scope::Required),
             metadata: ComponentCommon::from(pkg),
-            licenses: Some(vec![License::from(pkg)]),
+            licenses: Some(licenses),
             external_references: get_external_references(pkg),
         }
     }
 
     pub fn application_cm(package: &'a cargo_metadata::Package) -> Self {
+        let licenses = match License::try_from(package) {
+            Ok(license) => vec![license],
+            Err(LicenseError::NoLicenseProvidedError) => {
+                log::trace!("Application CM did not have a license");
+                Vec::new()
+            }
+        };
         Self {
             component_type: ComponentType::Application,
             external_references: get_external_references_cm(package),
-            licenses: Some(vec![License::from(package)]),
+            licenses: Some(licenses),
             metadata: ComponentCommon::from(package),
             scope: Some(Scope::Required),
         }
@@ -125,11 +153,18 @@ impl<'a> Component {
 
 impl<'a> From<&'a Package> for Component {
     fn from(package: &'a Package) -> Self {
+        let licenses = match License::try_from(package) {
+            Ok(license) => vec![license],
+            Err(LicenseError::NoLicenseProvidedError) => {
+                log::trace!("Package did not have a license");
+                Vec::new()
+            }
+        };
         Self {
             component_type: ComponentType::Library,
             scope: Some(Scope::Required),
             metadata: ComponentCommon::from(package),
-            licenses: Some(vec![License::from(package)]),
+            licenses: Some(licenses),
             external_references: get_external_references(package),
         }
     }
@@ -137,10 +172,17 @@ impl<'a> From<&'a Package> for Component {
 
 impl<'a> From<&'a cargo_metadata::Package> for Component {
     fn from(package: &'a cargo_metadata::Package) -> Self {
+        let licenses = match License::try_from(package) {
+            Ok(license) => vec![license],
+            Err(LicenseError::NoLicenseProvidedError) => {
+                log::trace!("Package did not have a license");
+                Vec::new()
+            }
+        };
         Self {
             component_type: ComponentType::Library,
             external_references: get_external_references_cm(package),
-            licenses: Some(vec![License::from(package)]),
+            licenses: Some(licenses),
             metadata: ComponentCommon::from(package),
             scope: Some(Scope::Required),
         }
