@@ -75,25 +75,31 @@ fn real_main(args: Args) -> anyhow::Result<()> {
     let generator = SbomGenerator { all: args.all };
 
     log::trace!("SBOM generation started");
-    let bom = generator.create_sbom(manifest)?;
+    let boms = generator.create_sboms(manifest)?;
     log::trace!("SBOM generation finished");
 
     match args.format {
         Format::Json => {
-            log::info!("Outputting bom.json");
-            serde_json::to_writer_pretty(File::create("bom.json")?, &bom)
-                .map_err(anyhow::Error::from)?;
+            for (manifest_path, bom) in boms {
+                let path = manifest_path.with_file_name("bom.json");
+                log::info!("Outputting {}", path.display());
+                serde_json::to_writer_pretty(File::create(path)?, &bom)
+                    .map_err(anyhow::Error::from)?;
+            }
         }
         Format::Xml => {
-            log::info!("Outputting bom.xml");
-            let file = File::create("bom.xml")?;
-            let file = LineWriter::new(file);
-            let mut xml = XmlWriter::new(file);
+            for (manifest_path, bom) in boms {
+                let path = manifest_path.with_file_name("bom.xml");
+                log::info!("Outputting {}", path.display());
+                let file = File::create(path)?;
+                let file = LineWriter::new(file);
+                let mut xml = XmlWriter::new(file);
 
-            bom.to_xml(&mut xml)?;
-            xml.close()?;
-            xml.flush()?;
-            let _actual = xml.into_inner();
+                bom.to_xml(&mut xml)?;
+                xml.close()?;
+                xml.flush()?;
+                let _actual = xml.into_inner();
+            }
         }
     }
 

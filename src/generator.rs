@@ -24,12 +24,15 @@ use cargo::core::Resolve;
 use cargo::core::Workspace;
 use cargo::ops;
 use cargo::Config;
-use std::collections::BTreeSet;
-use std::path::PathBuf;
+use std::collections::{BTreeSet, HashMap};
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 pub trait Generator {
-    fn create_sbom<'a>(&self, manifest_path: PathBuf) -> Result<Bom, GeneratorError>;
+    fn create_sboms<'a>(
+        &self,
+        manifest_path: PathBuf,
+    ) -> Result<HashMap<PathBuf, Bom>, GeneratorError>;
 }
 
 pub struct SbomGenerator {
@@ -37,7 +40,10 @@ pub struct SbomGenerator {
 }
 
 impl Generator for SbomGenerator {
-    fn create_sbom<'a>(&self, manifest_path: PathBuf) -> Result<Bom, GeneratorError> {
+    fn create_sboms<'a>(
+        &self,
+        manifest_path: PathBuf,
+    ) -> Result<HashMap<PathBuf, Bom>, GeneratorError> {
         let config_filepath = manifest_path.to_string_lossy().to_string();
         let config = Config::default().map_err(|error| GeneratorError::CargoConfigError {
             config_filepath: config_filepath.clone(),
@@ -57,23 +63,27 @@ impl Generator for SbomGenerator {
                 error,
             })?;
 
-        let dependencies = if self.all {
-            all_dependencies(&members, package_ids, resolve)?
-        } else {
-            top_level_dependencies(&members, package_ids)?
-        };
+        let mut result = HashMap::with_capacity(members.len());
+        for member in members.iter() {
+            let dependencies = if self.all {
+                all_dependencies(&members, &package_ids, &resolve)?
+            } else {
+                top_level_dependencies(&members, &package_ids)?
+            };
 
-        let mut bom: Bom = dependencies.iter().collect();
+            let mut bom: Bom = dependencies.iter().collect();
 
-        bom.metadata = get_metadata(manifest_path);
+            bom.metadata = get_metadata(member.manifest_path());
+            result.insert(member.manifest_path().to_path_buf(), bom);
+        }
 
-        Ok(bom)
+        Ok(result)
     }
 }
 
 /// attempt to treat the Cargo.toml as a simple project to get the metadata
 /// for now, do not attempt to generate metadata about a workspace
-fn get_metadata(toml_file_path: PathBuf) -> Option<Metadata> {
+fn get_metadata(toml_file_path: &Path) -> Option<Metadata> {
     let metadata = cargo_metadata::MetadataCommand::new()
         .manifest_path(&toml_file_path)
         .features(cargo_metadata::CargoOpt::AllFeatures)
@@ -97,7 +107,7 @@ fn get_metadata(toml_file_path: PathBuf) -> Option<Metadata> {
 
 fn top_level_dependencies(
     members: &[Package],
-    package_ids: PackageSet<'_>,
+    package_ids: &PackageSet<'_>,
 ) -> Result<BTreeSet<Package>, GeneratorError> {
     let mut dependencies = BTreeSet::new();
 
@@ -127,8 +137,8 @@ fn top_level_dependencies(
 
 fn all_dependencies(
     members: &[Package],
-    package_ids: PackageSet<'_>,
-    resolve: Resolve,
+    package_ids: &PackageSet<'_>,
+    resolve: &Resolve,
 ) -> Result<BTreeSet<Package>, GeneratorError> {
     let mut dependencies = BTreeSet::new();
 
