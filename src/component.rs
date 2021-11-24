@@ -227,7 +227,13 @@ impl<'a> From<&'a Package> for ComponentCommon {
     fn from(package: &'a Package) -> Self {
         let name = package.name().to_owned().trim().to_string();
         let version = package.version().to_string();
-        let purl = create_purl(&name, &version);
+        let source_id = package.package_id().source_id();
+        let repository_url = if !source_id.is_default_registry() {
+            Some(source_id.url().as_str())
+        } else {
+            None
+        };
+        let purl = create_purl(&name, &version, repository_url);
 
         Self {
             name,
@@ -247,7 +253,7 @@ impl<'a> From<&'a cargo_metadata::Package> for ComponentCommon {
     fn from(package: &'a cargo_metadata::Package) -> Self {
         let name = package.name.trim().to_string();
         let version = package.version.to_string();
-        let purl = create_purl(&name, &version);
+        let purl = create_purl(&name, &version, None);
 
         Self {
             name,
@@ -258,15 +264,25 @@ impl<'a> From<&'a cargo_metadata::Package> for ComponentCommon {
     }
 }
 
-fn create_purl(name: &str, version: &str) -> Option<String> {
+fn create_purl(name: &str, version: &str, repository_url: Option<&str>) -> Option<String> {
     // PackageUrl::new performs validation on the "type" value passed in. Since we hard-code this value to "cargo", this should always pass.
     // Setting this to gracefully log and handle the potential future case where the "name" field is validated as well.
     // Reference: https://github.com/althonos/packageurl.rs/blob/0.3.0/src/validation.rs#L2
     let purl = PackageUrl::new("cargo", name);
     match purl {
         Ok(mut purl) => {
-            let output = purl.with_version(version.trim()).to_string();
-            Some(output)
+            purl.with_version(version.trim());
+            if let Some(repository_url) = repository_url {
+                if let Err(e) = purl.add_qualifier("repository_url", repository_url) {
+                    log::debug!(
+                        "Error process purl: failed to add qualifier {}: {}",
+                        repository_url,
+                        e
+                    );
+                    return None;
+                }
+            }
+            Some(purl.to_string())
         }
         Err(e) => {
             log::debug!("Error processing purl: {}", e);
@@ -389,8 +405,12 @@ mod tests {
     #[test]
     fn purl_construction() {
         assert_eq!(
-            create_purl("test-library", " 0.0.1 "),
+            create_purl("test-library", " 0.0.1 ", None),
             Some("pkg:cargo/test-library@0.0.1".to_string())
+        );
+        assert_eq!(
+            create_purl("test-library", " 0.0.1 ", Some("https://github.com/CycloneDX/cyclonedx-rust-cargo")),
+            Some("pkg:cargo/test-library@0.0.1?repository_url=https://github.com/CycloneDX/cyclonedx-rust-cargo".to_string())
         )
     }
 }
