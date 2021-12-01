@@ -44,8 +44,8 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use cyclonedx_bom::generator::{Generator, SbomGenerator};
-use cyclonedx_bom::traits::ToXml;
+use cargo_cyclonedx::generator::{Generator, SbomGenerator};
+use cargo_cyclonedx::traits::ToXml;
 use std::{
     fs::File,
     io::{self, LineWriter},

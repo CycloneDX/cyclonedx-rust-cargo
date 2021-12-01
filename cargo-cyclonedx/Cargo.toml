@@ -1,0 +1,38 @@
+[package]
+name = "cargo-cyclonedx"
+version = "0.3.0"
+authors = [ "Steve Springett <steve.springett@owasp.org>" ]
+license = "Apache-2.0"
+edition = "2018"
+
+description = "CycloneDX Software Bill of Materials (SBOM) for Rust Crates"
+homepage = "https://cyclonedx.org/"
+repository = "https://github.com/CycloneDX/cyclonedx-rust-cargo"
+readme = "README.md"
+
+categories = ["command-line-utilities", "development-tools", "development-tools::cargo-plugins"]
+keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
+
+[[bin]]
+name = "cargo-cyclonedx"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+
+[dependencies]
+anyhow = "1.0.51"
+cargo = "0.58.0"
+cargo_metadata = "0.14.1"
+chrono = { version = "0.4.19", features = ["serde"] }
+env_logger = "0.9.0"
+lazy_static = "1.4.0"
+log = "0.4.14"
+packageurl = "0.3.0"
+regex = "1.3.6"
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = "1.0.72"
+structopt = { version = "0.3.25", default-features = false }
+thiserror = "1.0.30"
+uuid = { version = "0.8.1", features = ["serde", "v4"] }
+xml_writer = "0.4.0"
