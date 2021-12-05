@@ -1,10 +1,10 @@
-name: Deploy to Crates.io
+name: Deploy cargo-cyclonedx to Crates.io
 
 on:
   workflow_dispatch:
     inputs:
       releaseType:
-        description: 'Release type (major, minor, patch)'
+        description: 'cargo-cyclonedx release type (major, minor, patch)'
         required: true
         default: 'patch'
 
@@ -12,6 +12,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: JQ
+        run: |
+          sudo apt-get install -y jq
       - uses: actions/checkout@v2.4.0
       - uses: actions-rs/toolchain@v1
         with:
@@ -23,18 +26,19 @@ jobs:
           cargo bump ${{ github.event.inputs.releaseType }}
       - name: Retrieve new version
         run: |
-          echo "::set-output name=CARGO_VERSION::$(grep -e '^version' Cargo.toml | cut -d "=" -f2 | tr -d '/"' | tr -d ' ')"
+          echo "::set-output name=CARGO_VERSION::$(cargo metadata | jq -r '.packages[] | select(.name == "cargo-cyclonedx") | .version')"
         id: version
       - name: Build one time, for sanity
         run: cargo build
       - uses: katyo/publish-crates@v1
         with:
+          path: './cargo-cyclonedx/'
           args: --verbose --allow-dirty
           registry-token: ${{ secrets.CARGO_API_KEY }}
       - name: Configure git and add files
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -am "New development bump to ${{steps.version.outputs.CARGO_VERSION}}"
-          git tag -a ${{steps.version.outputs.CARGO_VERSION}} -m "${{steps.version.outputs.CARGO_VERSION}} release"
+          git commit -am "New development bump of cargo-cylonedx to ${{steps.version.outputs.CARGO_VERSION}}"
+          git tag -a "cargo-cyclonedx-${{steps.version.outputs.CARGO_VERSION}}" -m "cargo-cyclonedx ${{steps.version.outputs.CARGO_VERSION}} release"
           git push --follow-tags
