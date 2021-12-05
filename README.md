@@ -16,7 +16,7 @@ Execute CycloneDX from within a Rust project directory containing Cargo.toml.
 
 #### Installing
 ```bash
-cargo install cyclonedx-bom
+cargo install cargo-cyclonedx
 ```
 
 #### Executing binary
