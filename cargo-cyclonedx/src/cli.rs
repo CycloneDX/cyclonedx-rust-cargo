@@ -31,47 +31,4 @@ pub struct Args {
     /// List all dependencies instead of only top level ones
     #[structopt(long = "all", short = "a")]
     pub all: bool,
-
-    // the following arguments are deprecated and will be removed in the next major release
-    /// Deprecated (will be removed in the next release)
-    /// Directory for all generated artifacts
-    #[allow(dead_code)]
-    #[structopt(long = "target-dir", value_name = "DIRECTORY", parse(from_os_str))]
-    target_dir: Option<path::PathBuf>,
-
-    /// Deprecated (will be removed in the next release)
-    /// Coloring: auto, always, never
-    #[allow(dead_code)]
-    #[structopt(long = "color", value_name = "WHEN")]
-    color: Option<String>,
-
-    /// Deprecated (will be removed in the next release)
-    /// Require Cargo.lock and cache are up to date
-    #[allow(dead_code)]
-    #[structopt(long = "frozen")]
-    frozen: bool,
-
-    /// Deprecated (will be removed in the next release)
-    /// Require Cargo.lock is up to date
-    #[allow(dead_code)]
-    #[structopt(long = "locked")]
-    locked: bool,
-
-    /// Deprecated (will be removed in the next release)
-    /// Run without accessing the network
-    #[allow(dead_code)]
-    #[structopt(long = "offline")]
-    offline: bool,
-
-    /// Deprecated (will be removed in the next release)
-    /// Unstable (nightly-only) flags to Cargo
-    #[allow(dead_code)]
-    #[structopt(short = "Z", value_name = "FLAG")]
-    unstable_flags: Vec<String>,
-
-    /// Deprecated (will be removed in the next release)
-    /// Override a configuration value
-    #[allow(dead_code)]
-    #[structopt(long = "config", value_name = "KEY=VALUE")]
-    config_args: Vec<String>,
 }
