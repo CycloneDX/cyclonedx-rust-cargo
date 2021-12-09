@@ -27,3 +27,5 @@ jobs:
       run: cargo +beta test --verbose
     - name: Execute nightly tests
       run: cargo +nightly test --verbose
+      # Allow nightly to fail
+      continue-on-error: true
