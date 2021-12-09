@@ -137,7 +137,7 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
             "Using manually specified Cargo.toml manifest located at: {}",
             manifest_path.to_string_lossy()
         );
-        Ok(manifest_path.clone())
+        Ok(manifest_path)
     } else {
         let manifest_path = std::env::current_dir()?.join("Cargo.toml");
         log::info!(

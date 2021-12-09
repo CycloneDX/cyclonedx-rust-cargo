@@ -100,12 +100,12 @@ impl ToXml for Metadata {
     }
 }
 
-fn get_authors_from_package<'a>(package: &'a Package) -> Option<Vec<Author>> {
+fn get_authors_from_package(package: &Package) -> Option<Vec<Author>> {
     let mut authors = Vec::new();
     let mut invalid_authors = Vec::new();
 
     for author in package.authors() {
-        match Author::from_str(&author) {
+        match Author::from_str(author) {
             Ok(author) => authors.push(author),
             Err(e) => invalid_authors.push((author, e)),
         }
@@ -114,19 +114,19 @@ fn get_authors_from_package<'a>(package: &'a Package) -> Option<Vec<Author>> {
         .into_iter()
         .for_each(|(author, error)| debug!("Invalid author {}: {:?}", author, error));
 
-    if authors.len() > 0 {
+    if !authors.is_empty() {
         return Some(authors);
     }
 
     None
 }
 
-fn get_authors_from_package_cm<'a>(package: &'a cargo_metadata::Package) -> Option<Vec<Author>> {
+fn get_authors_from_package_cm(package: &cargo_metadata::Package) -> Option<Vec<Author>> {
     let mut authors = Vec::new();
     let mut invalid_authors = Vec::new();
 
     for author in &package.authors {
-        match Author::from_str(&author) {
+        match Author::from_str(author) {
             Ok(author) => authors.push(author),
             Err(e) => invalid_authors.push((author, e)),
         }
@@ -135,7 +135,7 @@ fn get_authors_from_package_cm<'a>(package: &'a cargo_metadata::Package) -> Opti
         .into_iter()
         .for_each(|(author, error)| debug!("Invalid author {}: {:?}", author, error));
 
-    if authors.len() > 0 {
+    if !authors.is_empty() {
         return Some(authors);
     }
 

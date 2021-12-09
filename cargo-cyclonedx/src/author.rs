@@ -46,7 +46,7 @@ pub struct Author {
 impl Author {
     fn new(name: String, email: Option<String>) -> Result<Self, AuthorParseError> {
         if let Some(email) = &email {
-            if !EMAIL_REGEX.is_match(&email) {
+            if !EMAIL_REGEX.is_match(email) {
                 return Err(AuthorParseError::Email(email.to_owned()));
             }
         }
@@ -71,8 +71,8 @@ impl FromStr for Author {
     type Err = AuthorParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.ends_with('>') {
-            let mut parts = s[..s.len() - 1].rsplitn(2, '<');
+        if let Some(without_suffix) = s.strip_suffix('>') {
+            let mut parts = without_suffix.rsplitn(2, '<');
             let maybe_email = parts.next();
             let maybe_name = parts.next();
 

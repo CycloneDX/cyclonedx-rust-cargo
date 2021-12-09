@@ -40,7 +40,7 @@ impl<'a> TryFrom<&'a Package> for License {
             .metadata()
             .license
             .as_ref()
-            .ok_or_else(|| LicenseError::NoLicenseProvidedError)?
+            .ok_or(LicenseError::NoLicenseProvidedError)?
             .to_string();
         Ok(Self { expression })
     }
@@ -59,7 +59,7 @@ impl<'a> TryFrom<&'a cargo_metadata::Package> for License {
         let expression = pkg
             .license
             .as_ref()
-            .ok_or_else(|| LicenseError::NoLicenseProvidedError)?
+            .ok_or(LicenseError::NoLicenseProvidedError)?
             .to_string();
         Ok(Self { expression })
     }
@@ -68,20 +68,16 @@ impl<'a> TryFrom<&'a cargo_metadata::Package> for License {
 impl ToXml for License {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
         xml.begin_elem("license")?;
-        match self {
-            expr => {
-                xml.begin_elem("expression")?;
-                xml.text(expr.expression.trim())?;
-                xml.end_elem()?;
-            }
-        }
+        xml.begin_elem("expression")?;
+        xml.text(self.expression.trim())?;
+        xml.end_elem()?;
         xml.end_elem()
     }
 }
 
 impl ToXml for Vec<License> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        if self.len() > 0 {
+        if !self.is_empty() {
             xml.begin_elem("licenses")?;
 
             for license in self {
