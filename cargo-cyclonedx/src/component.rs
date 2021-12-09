@@ -292,7 +292,7 @@ impl ToXml for ComponentCommon {
         }
         if let Some(purl) = &self.purl {
             xml.begin_elem("purl")?;
-            xml.text(&purl)?;
+            xml.text(purl)?;
             xml.end_elem()?;
         }
 
@@ -301,7 +301,7 @@ impl ToXml for ComponentCommon {
 }
 
 // Moved to component.rs because references need not be aware of a package, but a component that wants to create external references can be
-fn get_external_references<'a>(package: &'a Package) -> Option<Vec<ExternalReference>> {
+fn get_external_references(package: &Package) -> Option<Vec<ExternalReference>> {
     let mut references = Vec::new();
 
     let metadata = package.manifest().metadata();
@@ -334,7 +334,7 @@ fn get_external_references<'a>(package: &'a Package) -> Option<Vec<ExternalRefer
         });
     }
 
-    if references.len() > 0 {
+    if !references.is_empty() {
         return Some(references);
     }
 
@@ -342,9 +342,7 @@ fn get_external_references<'a>(package: &'a Package) -> Option<Vec<ExternalRefer
 }
 
 // Duplicate of the above fn get_external_references, largely just for parsing `cargo_metadata::Package`
-fn get_external_references_cm<'a>(
-    package: &'a cargo_metadata::Package,
-) -> Option<Vec<ExternalReference>> {
+fn get_external_references_cm(package: &cargo_metadata::Package) -> Option<Vec<ExternalReference>> {
     let mut references = Vec::new();
 
     if let Some(documentation) = &package.documentation {
@@ -375,7 +373,7 @@ fn get_external_references_cm<'a>(
         });
     }
 
-    if references.len() > 0 {
+    if !references.is_empty() {
         return Some(references);
     }
 

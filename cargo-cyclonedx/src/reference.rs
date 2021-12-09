@@ -66,7 +66,7 @@ impl ToXml for ExternalReference {
 
 impl ToXml for Vec<ExternalReference> {
     fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        if self.len() > 0 {
+        if !self.is_empty() {
             xml.begin_elem("externalReferences")?;
             for reference in self {
                 reference.to_xml(xml)?;

@@ -29,10 +29,8 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 pub trait Generator {
-    fn create_sboms<'a>(
-        &self,
-        manifest_path: PathBuf,
-    ) -> Result<HashMap<PathBuf, Bom>, GeneratorError>;
+    fn create_sboms(&self, manifest_path: PathBuf)
+        -> Result<HashMap<PathBuf, Bom>, GeneratorError>;
 }
 
 pub struct SbomGenerator {
@@ -40,7 +38,7 @@ pub struct SbomGenerator {
 }
 
 impl Generator for SbomGenerator {
-    fn create_sboms<'a>(
+    fn create_sboms(
         &self,
         manifest_path: PathBuf,
     ) -> Result<HashMap<PathBuf, Bom>, GeneratorError> {
@@ -146,7 +144,7 @@ fn all_dependencies(
         let package = package_ids
             .get_one(package_id)
             .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-        if members.contains(&package) {
+        if members.contains(package) {
             // Skip listing our own packages in our workspace
             continue;
         }

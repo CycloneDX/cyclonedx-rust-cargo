@@ -27,7 +27,7 @@ use xml_writer::XmlWriter;
 use crate::metadata::Metadata;
 use crate::{Component, ToXml};
 
-static SPEC_VERSION: &'static str = "1.3";
+static SPEC_VERSION: &str = "1.3";
 
 #[derive(Clone, Copy, Serialize)]
 enum BomFormat {
