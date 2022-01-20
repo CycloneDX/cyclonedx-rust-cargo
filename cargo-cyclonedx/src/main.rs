@@ -55,7 +55,7 @@ use std::{
 use anyhow::Result;
 use env_logger::Builder;
 use log::{LevelFilter, SetLoggerError};
-use structopt::StructOpt;
+use clap::Parser;
 use xml_writer::XmlWriter;
 
 mod format;
@@ -65,7 +65,7 @@ mod cli;
 use cli::{Args, Opts};
 
 fn main() -> anyhow::Result<()> {
-    let Opts::Bom(args) = Opts::from_args();
+    let Opts::Bom(args) = Opts::parse();
     setup_logging(&args)?;
     real_main(args)
 }
