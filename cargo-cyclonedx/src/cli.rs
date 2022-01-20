@@ -1,6 +1,6 @@
 use crate::format::Format;
-use std::path;
 use clap::Parser;
+use std::path;
 
 #[derive(Parser, Debug)]
 #[clap(bin_name = "cargo")]
