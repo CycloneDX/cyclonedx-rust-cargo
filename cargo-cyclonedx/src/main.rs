@@ -53,9 +53,9 @@ use std::{
 };
 
 use anyhow::Result;
+use clap::Parser;
 use env_logger::Builder;
 use log::{LevelFilter, SetLoggerError};
-use clap::Parser;
 use xml_writer::XmlWriter;
 
 mod format;
