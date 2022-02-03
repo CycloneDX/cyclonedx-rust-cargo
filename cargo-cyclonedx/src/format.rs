@@ -16,10 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
+use serde::Deserialize;
 use std::{fmt, str::FromStr};
 
 /// Output format for CycloneDX BOM.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all(deserialize = "kebab-case"))]
 pub enum Format {
     Json,
     Xml,

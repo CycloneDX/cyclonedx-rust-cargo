@@ -44,72 +44,47 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use cargo_cyclonedx::generator::{Generator, SbomGenerator};
-use cargo_cyclonedx::traits::ToXml;
+use cargo::core::Workspace;
+use cargo::Config;
+use cargo_cyclonedx::generator::SbomGenerator;
 use std::{
-    fs::File,
-    io::{self, LineWriter},
+    io::{self},
     path::PathBuf,
 };
 
 use anyhow::Result;
 use clap::Parser;
 use env_logger::Builder;
-use log::{LevelFilter, SetLoggerError};
-use xml_writer::XmlWriter;
-
-mod format;
-use format::Format;
+use log::LevelFilter;
 
 mod cli;
 use cli::{Args, Opts};
 
 fn main() -> anyhow::Result<()> {
     let Opts::Bom(args) = Opts::parse();
-    setup_logging(&args)?;
-    real_main(args)
-}
+    let mut config = Config::default()?;
+    setup_logging(&args, &mut config)?;
 
-fn real_main(args: Args) -> anyhow::Result<()> {
-    let manifest = locate_manifest(&args)?;
-    let generator = SbomGenerator { all: args.all };
+    let manifest_path = locate_manifest(&args)?;
+    let cli_config = args.as_config();
+
+    let ws = Workspace::new(&manifest_path, &config)?;
 
     log::trace!("SBOM generation started");
-    let boms = generator.create_sboms(manifest)?;
+    let boms = SbomGenerator::create_sboms(ws, &cli_config)?;
     log::trace!("SBOM generation finished");
 
-    match args.format {
-        Format::Json => {
-            for (manifest_path, bom) in boms {
-                let path = manifest_path.with_file_name("bom.json");
-                log::info!("Outputting {}", path.display());
-                serde_json::to_writer_pretty(File::create(path)?, &bom)
-                    .map_err(anyhow::Error::from)?;
-            }
-        }
-        Format::Xml => {
-            for (manifest_path, bom) in boms {
-                let path = manifest_path.with_file_name("bom.xml");
-                log::info!("Outputting {}", path.display());
-                let file = File::create(path)?;
-                let file = LineWriter::new(file);
-                let mut xml = XmlWriter::new(file);
-
-                bom.to_xml(&mut xml)?;
-                xml.close()?;
-                xml.flush()?;
-                let _actual = xml.into_inner();
-            }
-        }
+    for bom in boms {
+        bom.write_to_file()?;
     }
 
     Ok(())
 }
 
-fn setup_logging(args: &Args) -> Result<(), SetLoggerError> {
+fn setup_logging(args: &Args, config: &mut Config) -> anyhow::Result<()> {
     let mut builder = Builder::new();
 
-    // default cargo internals to quiet unless overriden via an environment variable
+    // default cargo internals to quiet unless overridden via an environment variable
     // call with RUST_LOG='cargo::=debug' to access these logs
     builder.filter_module("cargo::", LevelFilter::Error);
 
@@ -127,6 +102,20 @@ fn setup_logging(args: &Args) -> Result<(), SetLoggerError> {
 
     builder.parse_default_env(); // allow overriding CLI arguments
     builder.try_init()?;
+
+    // configure logging level of cargo to match what was passed via CLI
+    config.configure(
+        args.verbose,
+        args.quiet,
+        None,
+        false,
+        false,
+        false,
+        &None,
+        &[],
+        &[],
+    )?;
+
     Ok(())
 }
 

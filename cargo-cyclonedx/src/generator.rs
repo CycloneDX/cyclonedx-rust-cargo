@@ -15,6 +15,12 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use crate::config::config_from_toml;
+use crate::config::ConfigError;
+use crate::config::IncludedDependencies;
+use crate::config::SbomConfig;
+use crate::format::Format;
+use crate::traits::ToXml;
 use crate::Bom;
 use crate::Metadata;
 use cargo::core::dependency::DepKind;
@@ -23,59 +29,92 @@ use cargo::core::PackageSet;
 use cargo::core::Resolve;
 use cargo::core::Workspace;
 use cargo::ops;
-use cargo::Config;
-use std::collections::{BTreeSet, HashMap};
-use std::path::{Path, PathBuf};
+use std::{
+    collections::BTreeSet,
+    fs::File,
+    io::LineWriter,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
+use xml_writer::XmlWriter;
 
-pub trait Generator {
-    fn create_sboms(&self, manifest_path: PathBuf)
-        -> Result<HashMap<PathBuf, Bom>, GeneratorError>;
-}
+pub struct SbomGenerator {}
 
-pub struct SbomGenerator {
-    pub all: bool,
-}
-
-impl Generator for SbomGenerator {
-    fn create_sboms(
-        &self,
-        manifest_path: PathBuf,
-    ) -> Result<HashMap<PathBuf, Bom>, GeneratorError> {
-        let config_filepath = manifest_path.to_string_lossy().to_string();
-        let config = Config::default().map_err(|error| GeneratorError::CargoConfigError {
-            config_filepath: config_filepath.clone(),
-            error,
-        })?;
-
-        let ws = Workspace::new(&manifest_path, &config).map_err(|error| {
-            GeneratorError::CargoConfigError {
-                config_filepath: config_filepath.clone(),
-                error,
-            }
-        })?;
+impl SbomGenerator {
+    pub fn create_sboms(
+        ws: Workspace,
+        config_override: &SbomConfig,
+    ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
+        let workspace_config = config_from_metadata(ws.custom_metadata())?;
         let members: Vec<Package> = ws.members().cloned().collect();
+
         let (package_ids, resolve) =
             ops::resolve_ws(&ws).map_err(|error| GeneratorError::CargoConfigError {
-                config_filepath: config_filepath.clone(),
+                config_filepath: ws.root_manifest().to_string_lossy().to_string(),
                 error,
             })?;
 
-        let mut result = HashMap::with_capacity(members.len());
+        let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
-            let dependencies = if self.all {
-                all_dependencies(&members, &package_ids, &resolve)?
-            } else {
-                top_level_dependencies(&members, &package_ids)?
-            };
+            let package_config = config_from_metadata(member.manifest().custom_metadata())?;
+            let config = workspace_config
+                .merge(&package_config)
+                .merge(&config_override);
+            let dependencies =
+                if config.included_dependencies() == IncludedDependencies::AllDependencies {
+                    all_dependencies(&members, &package_ids, &resolve)?
+                } else {
+                    top_level_dependencies(&members, &package_ids)?
+                };
 
             let mut bom: Bom = dependencies.iter().collect();
 
             bom.metadata = get_metadata(member.manifest_path());
-            result.insert(member.manifest_path().to_path_buf(), bom);
+
+            let generated = GeneratedSbom {
+                bom: bom,
+                manifest_path: member.manifest_path().to_path_buf(),
+                sbom_config: package_config,
+            };
+
+            result.push(generated);
         }
 
         Ok(result)
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum GeneratorError {
+    #[error("Expected a root package in the cargo config: {config_filepath}")]
+    RootPackageMissingError { config_filepath: String },
+
+    #[error("Could not process the cargo config: {config_filepath}")]
+    CargoConfigError {
+        config_filepath: String,
+        #[source]
+        error: anyhow::Error,
+    },
+
+    #[error("Error with Cargo metadata")]
+    CargoMetaDataError(#[from] cargo_metadata::Error),
+
+    #[error("Error retrieving package information: {package_id}")]
+    PackageError {
+        package_id: cargo::core::package_id::PackageId,
+        #[source]
+        error: anyhow::Error,
+    },
+
+    #[error("Error with Cargo custom_metadata: {0}")]
+    CustomMetadataTomlError(ConfigError),
+}
+
+fn config_from_metadata(metadata: Option<&toml::Value>) -> Result<SbomConfig, GeneratorError> {
+    if let Some(metadata) = metadata {
+        config_from_toml(metadata).map_err(|e| GeneratorError::CustomMetadataTomlError(e))
+    } else {
+        Ok(SbomConfig::default())
     }
 }
 
@@ -154,25 +193,55 @@ fn all_dependencies(
     Ok(dependencies)
 }
 
+/// Contains a generated SBOM and context used in its generation
+///
+/// * `bom` - Generated SBOM
+/// * `manifest_path` - Folder containing the `Cargo.toml` manifest
+/// * `sbom_config` - Configuration options used during generation
+pub struct GeneratedSbom {
+    pub bom: Bom,
+    pub manifest_path: PathBuf,
+    pub sbom_config: SbomConfig,
+}
+
+impl GeneratedSbom {
+    /// Writes SBOM to either a JSON or XML file in the same folder as `Cargo.toml` manifest
+    pub fn write_to_file(&self) -> Result<(), SbomWriterError> {
+        match self.sbom_config.format() {
+            Format::Json => {
+                let path = self.manifest_path.with_file_name("bom.json");
+                log::info!("Outputting {}", path.display());
+                let file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
+                serde_json::to_writer_pretty(file, &self.bom)?;
+            }
+            Format::Xml => {
+                let path = self.manifest_path.with_file_name("bom.xml");
+                log::info!("Outputting {}", path.display());
+                let file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
+                let file = LineWriter::new(file);
+                let mut xml = XmlWriter::new(file);
+
+                self.bom
+                    .to_xml(&mut xml)
+                    .map_err(SbomWriterError::SerializeXmlError)?;
+                xml.close().map_err(SbomWriterError::SerializeXmlError)?;
+                xml.flush().map_err(SbomWriterError::SerializeXmlError)?;
+                let _actual = xml.into_inner();
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Error, Debug)]
-pub enum GeneratorError {
-    #[error("Expected a root package in the cargo config: {config_filepath}")]
-    RootPackageMissingError { config_filepath: String },
+pub enum SbomWriterError {
+    #[error("Error creating file")]
+    FileCreateError(#[source] std::io::Error),
 
-    #[error("Could not process the cargo config: {config_filepath}")]
-    CargoConfigError {
-        config_filepath: String,
-        #[source]
-        error: anyhow::Error,
-    },
+    #[error("Error serializing to JSON")]
+    SerializeJsonError(#[from] serde_json::Error),
 
-    #[error("Error with Cargo metadata")]
-    CargoMetaDataError(#[from] cargo_metadata::Error),
-
-    #[error("Error retrieving package information: {package_id}")]
-    PackageError {
-        package_id: cargo::core::package_id::PackageId,
-        #[source]
-        error: anyhow::Error,
-    },
+    #[error("Error serializing to XML")]
+    SerializeXmlError(#[source] std::io::Error),
 }

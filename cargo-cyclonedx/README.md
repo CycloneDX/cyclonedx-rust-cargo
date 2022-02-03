@@ -35,6 +35,47 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
 * `--all`: Include the transitive dependencies for the project rather than only the top-level dependencies
 * `--manifest-path`: where to find the `Cargo.toml` file if other than the default `cargo` location of the current directory
 
+### Manifest Configuration
+
+There are several locations you can set configuration options for convenience. If your project uses a 
+[Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html), you can set configuration as 
+toml values under `[workspace.metadata.cyclonedx]` in your workspace manifest. These configuration values will 
+propagate to your workspace packages unless you override the values either by specifying toml values under 
+`[package.metadata.cyclonedx]` in your package manifest or with command-line options.
+
+Option                  | Values (*default)   | Description               
+----------------------- | ------------------- | --------------------------
+`included_dependencies` | `top-level`*, `all` | Either only direct (`top-level`) or including transitive (`all`) dependencies
+`format`                | `xml`*, `json`      | Output format for the SBOM
+
+#### Precedence
+
+Configuration options will be merged and applied in the following order from lowest to highest precedence.
+
+1. Defaults
+2. Workspace manifest metadata
+3. Package manifest metadata
+4. Command-line options
+
+
+#### Example Workspace Configuration
+
+``` toml
+[workspace.metadata.cyclonedx]
+included_dependencies = "top-level"
+format = "xml"
+```
+
+#### Example Package Configuration
+
+You can also specify your configuration in using package metadata in your package manifest.
+
+``` toml
+[package.metadata.cyclonedx]
+included_dependencies = "all"
+format = "json"
+```
+
 ## Copyright & License
 
 CycloneDX Rust Cargo is Copyright (c) OWASP Foundation. All Rights Reserved.

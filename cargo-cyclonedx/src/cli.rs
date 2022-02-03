@@ -1,4 +1,7 @@
-use crate::format::Format;
+use cargo_cyclonedx::{
+    config::{IncludedDependencies, SbomConfig},
+    format::Format,
+};
 use clap::Parser;
 use std::path;
 
@@ -17,18 +20,33 @@ pub struct Args {
     pub manifest_path: Option<path::PathBuf>,
 
     /// Output BOM format: json, xml
-    #[clap(long = "format", short = 'f', value_name = "FORMAT", default_value_t)]
-    pub format: Format,
+    #[clap(long = "format", short = 'f', value_name = "FORMAT")]
+    pub format: Option<Format>,
 
     /// Use verbose output (-vv very verbose/build.rs output)
     #[clap(long = "verbose", short = 'v', parse(from_occurrences))]
     pub verbose: u32,
 
-    /// No output printed to stdout other than the tree
+    /// No output printed to stdout
     #[clap(long = "quiet", short = 'q')]
     pub quiet: bool,
 
     /// List all dependencies instead of only top level ones
     #[clap(long = "all", short = 'a')]
     pub all: bool,
+}
+
+impl Args {
+    pub fn as_config(&self) -> SbomConfig {
+        let included_dependencies = if self.all {
+            IncludedDependencies::AllDependencies
+        } else {
+            IncludedDependencies::TopLevelDependencies
+        };
+
+        SbomConfig {
+            format: self.format,
+            included_dependencies: Some(included_dependencies),
+        }
+    }
 }
