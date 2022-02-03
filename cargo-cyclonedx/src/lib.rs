@@ -18,6 +18,8 @@
 pub mod author;
 pub mod bom;
 pub mod component;
+pub mod config;
+pub mod format;
 pub mod generator;
 pub mod license;
 pub mod metadata;
