@@ -39,14 +39,14 @@ pub struct Args {
 impl Args {
     pub fn as_config(&self) -> SbomConfig {
         let included_dependencies = if self.all {
-            IncludedDependencies::AllDependencies
+            Some(IncludedDependencies::AllDependencies)
         } else {
-            IncludedDependencies::TopLevelDependencies
+            None
         };
 
         SbomConfig {
             format: self.format,
-            included_dependencies: Some(included_dependencies),
+            included_dependencies: included_dependencies,
         }
     }
 }
