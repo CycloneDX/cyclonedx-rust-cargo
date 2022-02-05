@@ -74,7 +74,7 @@ impl SbomGenerator {
             let generated = GeneratedSbom {
                 bom: bom,
                 manifest_path: member.manifest_path().to_path_buf(),
-                sbom_config: package_config,
+                sbom_config: config,
             };
 
             result.push(generated);
@@ -114,7 +114,7 @@ fn config_from_metadata(metadata: Option<&toml::Value>) -> Result<SbomConfig, Ge
     if let Some(metadata) = metadata {
         config_from_toml(metadata).map_err(|e| GeneratorError::CustomMetadataTomlError(e))
     } else {
-        Ok(SbomConfig::default())
+        Ok(SbomConfig::empty_config())
     }
 }
 
@@ -146,6 +146,7 @@ fn top_level_dependencies(
     members: &[Package],
     package_ids: &PackageSet<'_>,
 ) -> Result<BTreeSet<Package>, GeneratorError> {
+    log::trace!("Adding top-level dependencies to SBOM");
     let mut dependencies = BTreeSet::new();
 
     let all_dependencies = members
@@ -177,6 +178,7 @@ fn all_dependencies(
     package_ids: &PackageSet<'_>,
     resolve: &Resolve,
 ) -> Result<BTreeSet<Package>, GeneratorError> {
+    log::trace!("Adding all dependencies to SBOM");
     let mut dependencies = BTreeSet::new();
 
     for package_id in resolve.iter() {
