@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 /*
  * This file is part of CycloneDX Rust Cargo.
  *
@@ -23,7 +25,7 @@ pub fn config_from_toml(value: &toml::Value) -> Result<SbomConfig, ConfigError> 
     let wrapper: Result<ConfigWrapper, _> = value.clone().try_into();
 
     wrapper
-        .map(|w| w.cyclonedx.unwrap_or_default())
+        .map(|w| w.cyclonedx.unwrap_or(SbomConfig::empty_config()))
         .map_err(|e| ConfigError::TomlConfigError(format!("{}", e)))
 }
 
@@ -39,6 +41,13 @@ pub struct SbomConfig {
 }
 
 impl SbomConfig {
+    pub fn empty_config() -> Self {
+        Self {
+            format: None,
+            included_dependencies: None,
+        }
+    }
+
     pub fn merge(&self, other: &SbomConfig) -> SbomConfig {
         SbomConfig {
             format: other.format.or(self.format),
@@ -55,15 +64,6 @@ impl SbomConfig {
     }
 }
 
-impl Default for SbomConfig {
-    fn default() -> Self {
-        Self {
-            format: None,
-            included_dependencies: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub enum IncludedDependencies {
     #[serde(rename(deserialize = "top-level"))]
@@ -75,6 +75,18 @@ pub enum IncludedDependencies {
 impl Default for IncludedDependencies {
     fn default() -> Self {
         Self::TopLevelDependencies
+    }
+}
+
+impl FromStr for IncludedDependencies {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "all" => Ok(Self::AllDependencies),
+            "top-level" => Ok(Self::TopLevelDependencies),
+            _ => Err(format!("Expected all or top-level, got `{}`", s)),
+        }
     }
 }
 
