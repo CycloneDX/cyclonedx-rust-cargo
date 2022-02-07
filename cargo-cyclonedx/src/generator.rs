@@ -59,7 +59,7 @@ impl SbomGenerator {
             let package_config = config_from_metadata(member.manifest().custom_metadata())?;
             let config = workspace_config
                 .merge(&package_config)
-                .merge(&config_override);
+                .merge(config_override);
             let dependencies =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(&members, &package_ids, &resolve)?
@@ -72,7 +72,7 @@ impl SbomGenerator {
             bom.metadata = get_metadata(member.manifest_path());
 
             let generated = GeneratedSbom {
-                bom: bom,
+                bom,
                 manifest_path: member.manifest_path().to_path_buf(),
                 sbom_config: config,
             };
@@ -112,7 +112,7 @@ pub enum GeneratorError {
 
 fn config_from_metadata(metadata: Option<&toml::Value>) -> Result<SbomConfig, GeneratorError> {
     if let Some(metadata) = metadata {
-        config_from_toml(metadata).map_err(|e| GeneratorError::CustomMetadataTomlError(e))
+        config_from_toml(metadata).map_err(GeneratorError::CustomMetadataTomlError)
     } else {
         Ok(SbomConfig::empty_config())
     }

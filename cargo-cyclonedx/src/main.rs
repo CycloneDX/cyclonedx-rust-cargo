@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
+
 /**
 * A special acknowledgement Ossi Herrala from SensorFu for providing a
 * starting point in which to develop this plugin. The original project
@@ -57,6 +58,8 @@ use clap::Parser;
 use env_logger::Builder;
 use log::LevelFilter;
 
+#[deny(clippy::all)]
+#[deny(warnings)]
 mod cli;
 use cli::{Args, Opts};
 
