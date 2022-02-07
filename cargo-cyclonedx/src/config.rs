@@ -25,7 +25,7 @@ pub fn config_from_toml(value: &toml::Value) -> Result<SbomConfig, ConfigError> 
     let wrapper: Result<ConfigWrapper, _> = value.clone().try_into();
 
     wrapper
-        .map(|w| w.cyclonedx.unwrap_or(SbomConfig::empty_config()))
+        .map(|w| w.cyclonedx.unwrap_or_else(SbomConfig::empty_config))
         .map_err(|e| ConfigError::TomlConfigError(format!("{}", e)))
 }
 
