@@ -16,6 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#![deny(clippy::all)]
+#![deny(warnings)]
+
 pub mod errors;
 pub mod models;
 
