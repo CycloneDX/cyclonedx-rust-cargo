@@ -40,10 +40,7 @@ impl Default for Bom {
     fn default() -> Self {
         Self {
             version: 1,
-            serial_number: Some(UrnUuid(format!(
-                "urn:uuid:{}",
-                uuid::Uuid::new_v4().to_string()
-            ))),
+            serial_number: Some(UrnUuid(format!("urn:uuid:{}", uuid::Uuid::new_v4()))),
             metadata: None,
             components: None,
             services: None,
@@ -318,7 +315,7 @@ impl ToString for AggregateType {
             AggregateType::IncompleteThirdPartyOnly => "incomplete_third_party_only",
             AggregateType::Unknown => "unknown",
             AggregateType::NotSpecified => "not_specified",
-            AggregateType::UnknownAggregateType(uat) => &uat,
+            AggregateType::UnknownAggregateType(uat) => uat,
         }
         .to_string()
     }
@@ -363,7 +360,7 @@ impl ToString for Classification {
             Classification::Device => "device",
             Classification::Firmware => "firmware",
             Classification::File => "file",
-            Classification::UnknownClassification(uc) => &uc,
+            Classification::UnknownClassification(uc) => uc,
         }
         .to_string()
     }
@@ -405,7 +402,7 @@ impl ToString for DataFlowType {
             DataFlowType::Outbound => "outbound",
             DataFlowType::BiDirectional => "bi-directional",
             DataFlowType::Unknown => "unknown",
-            DataFlowType::UnknownDataFlow(df) => &df,
+            DataFlowType::UnknownDataFlow(df) => df,
         }
         .to_string()
     }
@@ -487,7 +484,7 @@ impl ToString for ExternalReferenceType {
             ExternalReferenceType::BuildMeta => "build-meta",
             ExternalReferenceType::BuildSystem => "build-system",
             ExternalReferenceType::Other => "other",
-            ExternalReferenceType::UnknownExternalReferenceType(un) => &un,
+            ExternalReferenceType::UnknownExternalReferenceType(un) => un,
         }
         .to_string()
     }
@@ -550,7 +547,7 @@ impl ToString for HashAlgorithm {
             HashAlgorithm::BLAKE2b_384 => "BLAKE2b-384",
             HashAlgorithm::BLAKE2b_512 => "BLAKE2b-512",
             HashAlgorithm::BLAKE3 => "BLAKE3",
-            HashAlgorithm::UnknownHashAlgorithm(un) => &un,
+            HashAlgorithm::UnknownHashAlgorithm(un) => un,
         }
         .to_string()
     }
@@ -594,7 +591,7 @@ impl ToString for IssueClassification {
             IssueClassification::Defect => "defect",
             IssueClassification::Enhancement => "enhancement",
             IssueClassification::Security => "security",
-            IssueClassification::UnknownIssueClassification(uic) => &uic,
+            IssueClassification::UnknownIssueClassification(uic) => uic,
         }
         .to_string()
     }
@@ -631,7 +628,7 @@ impl ToString for PatchClassification {
             PatchClassification::Monkey => "monkey",
             PatchClassification::Backport => "backport",
             PatchClassification::CherryPick => "cherry-pick",
-            PatchClassification::UnknownPatchClassification(upc) => &upc,
+            PatchClassification::UnknownPatchClassification(upc) => upc,
         }
         .to_string()
     }
@@ -664,7 +661,7 @@ impl ToString for Scope {
             Scope::Required => "required",
             Scope::Optional => "optional",
             Scope::Excluded => "excluded",
-            Scope::UnknownScope(us) => &us,
+            Scope::UnknownScope(us) => us,
         }
         .to_string()
     }
