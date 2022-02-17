@@ -38,6 +38,7 @@ struct ConfigWrapper {
 pub struct SbomConfig {
     pub format: Option<Format>,
     pub included_dependencies: Option<IncludedDependencies>,
+    pub output_options: Option<OutputOptions>,
 }
 
 impl SbomConfig {
@@ -45,6 +46,7 @@ impl SbomConfig {
         Self {
             format: None,
             included_dependencies: None,
+            output_options: None,
         }
     }
 
@@ -52,6 +54,7 @@ impl SbomConfig {
         SbomConfig {
             format: other.format.or(self.format),
             included_dependencies: other.included_dependencies.or(self.included_dependencies),
+            output_options: other.output_options.or(self.output_options),
         }
     }
 
@@ -90,6 +93,44 @@ impl FromStr for IncludedDependencies {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+pub struct OutputOptions {
+    #[serde(rename(deserialize = "cdx"))]
+    pub cdx_extension: Option<bool>,
+    #[serde(rename(deserialize = "pattern"))]
+    pub prefix_pattern: Option<PrefixPattern>,
+    // TODO: Unsure what to do here. I can do &str instead but then lifetime annotations
+    // become required on every parent struct to derive Copy. Not sure if that's correct
+    //
+    // #[serde(rename(deserialize = "cdx"))]
+    // pub prefix_custom: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[serde(rename_all(deserialize = "lowercase"))]
+pub enum PrefixPattern {
+    Bom,
+    Package,
+}
+
+impl Default for PrefixPattern {
+    fn default() -> Self {
+        Self::Bom
+    }
+}
+
+impl FromStr for PrefixPattern {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "bom" => Ok(Self::Bom),
+            "package" => Ok(Self::Package),
+            _ => Err(format!("Expected bom or package, got `{}`", s)),
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("Failed to deserialize configuration from Toml: {0}")]
@@ -106,6 +147,7 @@ mod test {
 [cyclonedx]
 format = "json"
 included_dependencies = "top-level"
+output_options = { cdx = true, pattern = "bom", prefix = "" }
 "#;
 
         let actual: ConfigWrapper = toml::from_str(toml).expect("Failed to parse toml");
@@ -113,6 +155,10 @@ included_dependencies = "top-level"
         let expected = SbomConfig {
             format: Some(Format::Json),
             included_dependencies: Some(IncludedDependencies::TopLevelDependencies),
+            output_options: Some(OutputOptions {
+                cdx_extension: Some(true),
+                prefix_pattern: Some(PrefixPattern::Bom),
+            }),
         };
 
         assert_eq!(actual.cyclonedx, Some(expected));
