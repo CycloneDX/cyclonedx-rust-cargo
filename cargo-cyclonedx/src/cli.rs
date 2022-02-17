@@ -52,6 +52,8 @@ impl Args {
         SbomConfig {
             format: self.format,
             included_dependencies,
+            // TODO - Make this real. None while I test TOML parsing
+            output_options: None,
         }
     }
 }
