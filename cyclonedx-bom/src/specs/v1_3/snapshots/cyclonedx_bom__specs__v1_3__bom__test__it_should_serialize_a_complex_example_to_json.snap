@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/v1_3/bom.rs
+assertion_line: 144
 expression: actual
 
 ---
@@ -62,15 +63,7 @@ expression: actual
       ],
       "licenses": [
         {
-          "license": {
-            "id": "spdx id",
-            "text": {
-              "contentType": "content type",
-              "encoding": "encoding",
-              "content": "content"
-            },
-            "url": "url"
-          }
+          "expression": "expression"
         }
       ],
       "copyright": "copyright",
@@ -164,15 +157,7 @@ expression: actual
       "evidence": {
         "licenses": [
           {
-            "license": {
-              "name": "name",
-              "text": {
-                "contentType": "content type",
-                "encoding": "encoding",
-                "content": "content"
-              },
-              "url": "url"
-            }
+            "expression": "expression"
           }
         ],
         "copyright": [
@@ -210,15 +195,7 @@ expression: actual
     },
     "licenses": [
       {
-        "license": {
-          "name": "name",
-          "text": {
-            "contentType": "content type",
-            "encoding": "encoding",
-            "content": "content"
-          },
-          "url": "url"
-        }
+        "expression": "expression"
       }
     ],
     "properties": [
@@ -261,15 +238,7 @@ expression: actual
       ],
       "licenses": [
         {
-          "license": {
-            "id": "spdx id",
-            "text": {
-              "contentType": "content type",
-              "encoding": "encoding",
-              "content": "content"
-            },
-            "url": "url"
-          }
+          "expression": "expression"
         }
       ],
       "copyright": "copyright",
@@ -363,15 +332,7 @@ expression: actual
       "evidence": {
         "licenses": [
           {
-            "license": {
-              "name": "name",
-              "text": {
-                "contentType": "content type",
-                "encoding": "encoding",
-                "content": "content"
-              },
-              "url": "url"
-            }
+            "expression": "expression"
           }
         ],
         "copyright": [

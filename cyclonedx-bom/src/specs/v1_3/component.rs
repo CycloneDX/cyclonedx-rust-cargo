@@ -23,7 +23,7 @@ use crate::{
     },
     specs::v1_3::{
         attached_text::AttachedText, code::Commit, code::Patch,
-        external_reference::ExternalReference, hash::Hashes, license::LicenseChoice,
+        external_reference::ExternalReference, hash::Hashes, license::Licenses,
         organization::OrganizationalEntity, property::Properties,
     },
 };
@@ -59,7 +59,7 @@ pub(crate) struct Component {
     #[serde(skip_serializing_if = "Option::is_none")]
     hashes: Option<Hashes>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    licenses: Option<Vec<LicenseChoice>>,
+    licenses: Option<Licenses>,
     #[serde(skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -97,7 +97,7 @@ impl From<models::Component> for Component {
             description: other.description.map(|d| d.to_string()),
             scope: other.scope.map(|s| s.to_string()),
             hashes: convert_optional(other.hashes),
-            licenses: convert_optional_vec(other.licenses),
+            licenses: convert_optional(other.licenses),
             copyright: other.copyright.map(|c| c.to_string()),
             cpe: convert_optional(other.cpe),
             purl: other.purl.map(|p| p.0.to_string()),
@@ -127,7 +127,7 @@ impl From<Component> for models::Component {
             description: other.description.map(NormalizedString::new_unchecked),
             scope: other.scope.map(models::Scope::new_unchecked),
             hashes: convert_optional(other.hashes),
-            licenses: convert_optional_vec(other.licenses),
+            licenses: convert_optional(other.licenses),
             copyright: other.copyright.map(NormalizedString::new_unchecked),
             cpe: convert_optional(other.cpe),
             purl: other.purl.map(|p| Purl(Uri(p))),
@@ -206,7 +206,7 @@ impl From<Cpe> for models::Cpe {
 #[serde(rename_all = "camelCase")]
 struct ComponentEvidence {
     #[serde(skip_serializing_if = "Option::is_none")]
-    licenses: Option<Vec<LicenseChoice>>,
+    licenses: Option<Licenses>,
     #[serde(skip_serializing_if = "Option::is_none")]
     copyright: Option<Vec<Copyright>>,
 }
@@ -214,7 +214,7 @@ struct ComponentEvidence {
 impl From<models::ComponentEvidence> for ComponentEvidence {
     fn from(other: models::ComponentEvidence) -> Self {
         Self {
-            licenses: convert_optional_vec(other.licenses),
+            licenses: convert_optional(other.licenses),
             copyright: convert_optional_vec(other.copyright),
         }
     }
@@ -223,7 +223,7 @@ impl From<models::ComponentEvidence> for ComponentEvidence {
 impl From<ComponentEvidence> for models::ComponentEvidence {
     fn from(other: ComponentEvidence) -> Self {
         Self {
-            licenses: convert_optional_vec(other.licenses),
+            licenses: convert_optional(other.licenses),
             copyright: convert_optional_vec(other.copyright),
         }
     }
@@ -311,10 +311,7 @@ pub(crate) mod test {
         code::test::{corresponding_commit, corresponding_patch, example_commit, example_patch},
         external_reference::test::{corresponding_external_reference, example_external_reference},
         hash::test::{corresponding_hashes, example_hashes},
-        license::test::{
-            corresponding_named_license, corresponding_spdx_license, example_named_license,
-            example_spdx_license,
-        },
+        license::test::{corresponding_licenses, example_licenses},
         organization::test::{corresponding_entity, example_entity},
         property::test::{corresponding_properties, example_properties},
     };
@@ -335,7 +332,7 @@ pub(crate) mod test {
             description: Some("description".to_string()),
             scope: Some("scope".to_string()),
             hashes: Some(example_hashes()),
-            licenses: Some(vec![example_spdx_license()]),
+            licenses: Some(example_licenses()),
             copyright: Some("copyright".to_string()),
             cpe: Some(example_cpe()),
             purl: Some("purl".to_string()),
@@ -365,7 +362,7 @@ pub(crate) mod test {
             description: Some(NormalizedString::new_unchecked("description".to_string())),
             scope: Some(models::Scope::UnknownScope("scope".to_string())),
             hashes: Some(corresponding_hashes()),
-            licenses: Some(vec![corresponding_spdx_license()]),
+            licenses: Some(corresponding_licenses()),
             copyright: Some(NormalizedString::new_unchecked("copyright".to_string())),
             cpe: Some(corresponding_cpe()),
             purl: Some(Purl(Uri("purl".to_string()))),
@@ -435,14 +432,14 @@ pub(crate) mod test {
 
     fn example_evidence() -> ComponentEvidence {
         ComponentEvidence {
-            licenses: Some(vec![example_named_license()]),
+            licenses: Some(example_licenses()),
             copyright: Some(vec![example_copyright()]),
         }
     }
 
     fn corresponding_evidence() -> models::ComponentEvidence {
         models::ComponentEvidence {
-            licenses: Some(vec![corresponding_named_license()]),
+            licenses: Some(corresponding_licenses()),
             copyright: Some(vec![corresponding_copyright()]),
         }
     }

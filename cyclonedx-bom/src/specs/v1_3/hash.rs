@@ -18,6 +18,7 @@
 
 use crate::{
     models,
+    utilities::convert_vec,
     xml::{to_xml_write_error, ToXml},
 };
 use serde::{Deserialize, Serialize};
@@ -29,13 +30,13 @@ pub(crate) struct Hashes(Vec<Hash>);
 
 impl From<models::Hashes> for Hashes {
     fn from(other: models::Hashes) -> Self {
-        Hashes(other.0.into_iter().map(Into::into).collect())
+        Hashes(convert_vec(other.0))
     }
 }
 
 impl From<Hashes> for models::Hashes {
     fn from(other: Hashes) -> Self {
-        models::Hashes(other.0.into_iter().map(Into::into).collect())
+        models::Hashes(convert_vec(other.0))
     }
 }
 

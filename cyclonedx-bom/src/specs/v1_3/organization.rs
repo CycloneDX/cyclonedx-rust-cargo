@@ -21,7 +21,7 @@ use crate::{
     external_models::{normalized_string::NormalizedString, uri::Uri},
     models,
     utilities::convert_optional_vec,
-    xml::{to_xml_write_error, ToInnerXml},
+    xml::{to_xml_write_error, write_simple_tag, ToInnerXml},
 };
 use serde::{Deserialize, Serialize};
 use xml::writer::XmlEvent;
@@ -72,39 +72,15 @@ impl ToInnerXml for OrganizationalContact {
             .map_err(to_xml_write_error(tag))?;
 
         if let Some(name) = &self.name {
-            writer
-                .write(XmlEvent::start_element(NAME_TAG))
-                .map_err(to_xml_write_error(NAME_TAG))?;
-            writer
-                .write(XmlEvent::characters(name))
-                .map_err(to_xml_write_error(NAME_TAG))?;
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(NAME_TAG))?;
+            write_simple_tag(writer, NAME_TAG, name)?;
         }
 
         if let Some(email) = &self.email {
-            writer
-                .write(XmlEvent::start_element(EMAIL_TAG))
-                .map_err(to_xml_write_error(EMAIL_TAG))?;
-            writer
-                .write(XmlEvent::characters(email))
-                .map_err(to_xml_write_error(EMAIL_TAG))?;
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(EMAIL_TAG))?;
+            write_simple_tag(writer, EMAIL_TAG, email)?;
         }
 
         if let Some(phone) = &self.phone {
-            writer
-                .write(XmlEvent::start_element(PHONE_TAG))
-                .map_err(to_xml_write_error(PHONE_TAG))?;
-            writer
-                .write(XmlEvent::characters(phone))
-                .map_err(to_xml_write_error(PHONE_TAG))?;
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(PHONE_TAG))?;
+            write_simple_tag(writer, PHONE_TAG, phone)?;
         }
 
         writer
@@ -166,28 +142,12 @@ impl ToInnerXml for OrganizationalEntity {
             .map_err(to_xml_write_error(tag))?;
 
         if let Some(name) = &self.name {
-            writer
-                .write(XmlEvent::start_element(NAME_TAG))
-                .map_err(to_xml_write_error(NAME_TAG))?;
-            writer
-                .write(XmlEvent::characters(name))
-                .map_err(to_xml_write_error(NAME_TAG))?;
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(NAME_TAG))?;
+            write_simple_tag(writer, NAME_TAG, name)?;
         }
 
         if let Some(urls) = &self.url {
             for url in urls {
-                writer
-                    .write(XmlEvent::start_element(URL_TAG))
-                    .map_err(to_xml_write_error(URL_TAG))?;
-                writer
-                    .write(XmlEvent::characters(url))
-                    .map_err(to_xml_write_error(URL_TAG))?;
-                writer
-                    .write(XmlEvent::end_element())
-                    .map_err(to_xml_write_error(URL_TAG))?;
+                write_simple_tag(writer, URL_TAG, url)?;
             }
         }
 

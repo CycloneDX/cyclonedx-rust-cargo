@@ -1,6 +1,6 @@
 use crate::errors::XmlWriteError;
 use std::io::Write;
-use xml::writer::EventWriter;
+use xml::writer::{EventWriter, XmlEvent};
 
 pub(crate) trait ToXmlDocument {
     fn write_xml_document<W: Write>(
@@ -29,6 +29,26 @@ pub(crate) trait ToInnerXml {
     fn will_write(&self) -> bool {
         true
     }
+}
+
+/// Write a tag that is of the form `<tag>content</tag>`
+pub(crate) fn write_simple_tag<W: Write>(
+    writer: &mut EventWriter<W>,
+    tag: &str,
+    content: &str,
+) -> Result<(), XmlWriteError> {
+    writer
+        .write(XmlEvent::start_element(tag))
+        .map_err(to_xml_write_error(tag))?;
+
+    writer
+        .write(XmlEvent::characters(content))
+        .map_err(to_xml_write_error(tag))?;
+
+    writer
+        .write(XmlEvent::end_element())
+        .map_err(to_xml_write_error(tag))?;
+    Ok(())
 }
 
 pub(crate) fn to_xml_write_error(

@@ -24,8 +24,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 use crate::specs::v1_3::{
-    external_reference::ExternalReference, license::LicenseChoice,
-    organization::OrganizationalEntity, property::Properties,
+    external_reference::ExternalReference, license::Licenses, organization::OrganizationalEntity,
+    property::Properties,
 };
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -51,7 +51,7 @@ pub(crate) struct Service {
     #[serde(skip_serializing_if = "Option::is_none")]
     data: Option<Vec<DataClassification>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    licenses: Option<Vec<LicenseChoice>>,
+    licenses: Option<Licenses>,
     #[serde(skip_serializing_if = "Option::is_none")]
     external_references: Option<Vec<ExternalReference>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -75,7 +75,7 @@ impl From<models::Service> for Service {
             authenticated: other.authenticated,
             x_trust_boundary: other.x_trust_boundary,
             data: convert_optional_vec(other.data),
-            licenses: convert_optional_vec(other.licenses),
+            licenses: convert_optional(other.licenses),
             external_references: convert_optional_vec(other.external_references),
             properties: convert_optional(other.properties),
             services: convert_optional_vec(other.services),
@@ -98,7 +98,7 @@ impl From<Service> for models::Service {
             authenticated: other.authenticated,
             x_trust_boundary: other.x_trust_boundary,
             data: convert_optional_vec(other.data),
-            licenses: convert_optional_vec(other.licenses),
+            licenses: convert_optional(other.licenses),
             external_references: convert_optional_vec(other.external_references),
             properties: convert_optional(other.properties),
             services: convert_optional_vec(other.services),
@@ -136,7 +136,7 @@ pub(crate) mod test {
     use super::*;
     use crate::specs::v1_3::{
         external_reference::test::{corresponding_external_reference, example_external_reference},
-        license::test::{corresponding_license_expression, example_license_expression},
+        license::test::{corresponding_licenses, example_licenses},
         organization::test::{corresponding_entity, example_entity},
         property::test::{corresponding_properties, example_properties},
     };
@@ -153,7 +153,7 @@ pub(crate) mod test {
             authenticated: Some(true),
             x_trust_boundary: Some(true),
             data: Some(vec![example_data_classification()]),
-            licenses: Some(vec![example_license_expression()]),
+            licenses: Some(example_licenses()),
             external_references: Some(vec![example_external_reference()]),
             properties: Some(example_properties()),
             services: Some(vec![]),
@@ -172,7 +172,7 @@ pub(crate) mod test {
             authenticated: Some(true),
             x_trust_boundary: Some(true),
             data: Some(vec![corresponding_data_classification()]),
-            licenses: Some(vec![corresponding_license_expression()]),
+            licenses: Some(corresponding_licenses()),
             external_references: Some(vec![corresponding_external_reference()]),
             properties: Some(corresponding_properties()),
             services: Some(vec![]),

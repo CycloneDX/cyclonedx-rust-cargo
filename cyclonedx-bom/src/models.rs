@@ -99,7 +99,7 @@ pub struct Component {
     pub description: Option<NormalizedString>,
     pub scope: Option<Scope>,
     pub hashes: Option<Hashes>,
-    pub licenses: Option<Vec<LicenseChoice>>,
+    pub licenses: Option<Licenses>,
     pub copyright: Option<NormalizedString>,
     pub cpe: Option<Cpe>,
     pub purl: Option<Purl>,
@@ -114,7 +114,7 @@ pub struct Component {
 
 #[derive(Debug, PartialEq)]
 pub struct ComponentEvidence {
-    pub licenses: Option<Vec<LicenseChoice>>,
+    pub licenses: Option<Licenses>,
     pub copyright: Option<Vec<Copyright>>,
 }
 
@@ -185,8 +185,8 @@ pub struct Issue {
 
 #[derive(Debug, PartialEq)]
 pub enum LicenseChoice {
-    License(Option<License>),
-    Expression(Option<NormalizedString>),
+    License(License),
+    Expression(NormalizedString),
 }
 
 #[derive(Debug, PartialEq)]
@@ -197,6 +197,9 @@ pub struct License {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct Licenses(pub Vec<LicenseChoice>);
+
+#[derive(Debug, PartialEq)]
 pub enum LicenseIdentifier {
     SpdxId(SpdxIdentifier),
     Name(NormalizedString),
@@ -205,12 +208,12 @@ pub enum LicenseIdentifier {
 #[derive(Debug, PartialEq)]
 pub struct Metadata {
     pub timestamp: Option<DateTime>,
-    pub tools: Option<Vec<Tool>>,
+    pub tools: Option<Tools>,
     pub authors: Option<Vec<OrganizationalContact>>,
     pub component: Option<Component>,
     pub manufacture: Option<OrganizationalEntity>,
     pub supplier: Option<OrganizationalEntity>,
-    pub licenses: Option<Vec<LicenseChoice>>,
+    pub licenses: Option<Licenses>,
     pub properties: Option<Properties>,
 }
 
@@ -283,7 +286,7 @@ pub struct Service {
     pub authenticated: Option<bool>,
     pub x_trust_boundary: Option<bool>,
     pub data: Option<Vec<DataClassification>>,
-    pub licenses: Option<Vec<LicenseChoice>>,
+    pub licenses: Option<Licenses>,
     pub external_references: Option<Vec<ExternalReference>>,
     pub properties: Option<Properties>,
     pub services: Option<Vec<Service>>,
@@ -296,6 +299,9 @@ pub struct Tool {
     pub version: Option<NormalizedString>,
     pub hashes: Option<Hashes>,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct Tools(pub Vec<Tool>);
 
 #[derive(Debug, PartialEq)]
 pub enum AggregateType {

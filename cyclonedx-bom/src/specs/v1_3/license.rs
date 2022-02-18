@@ -19,22 +19,63 @@
 use crate::{
     external_models::{normalized_string::NormalizedString, spdx::SpdxIdentifier, uri::Uri},
     models,
+    xml::{to_xml_write_error, ToInnerXml, ToXml},
 };
 use crate::{specs::v1_3::attached_text::AttachedText, utilities::convert_optional};
+use crate::{utilities::convert_vec, xml::write_simple_tag};
 use serde::{Deserialize, Serialize};
+use xml::writer::XmlEvent;
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(transparent)]
+pub(crate) struct Licenses(Vec<LicenseChoice>);
+
+impl From<models::Licenses> for Licenses {
+    fn from(other: models::Licenses) -> Self {
+        Licenses(convert_vec(other.0))
+    }
+}
+
+impl From<Licenses> for models::Licenses {
+    fn from(other: Licenses) -> Self {
+        models::Licenses(convert_vec(other.0))
+    }
+}
+
+const LICENSES_TAG: &str = "licenses";
+
+impl ToXml for Licenses {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(LICENSES_TAG))
+            .map_err(to_xml_write_error(LICENSES_TAG))?;
+
+        for license in &self.0 {
+            license.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(LICENSES_TAG))?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum LicenseChoice {
-    License(Option<License>),
-    Expression(Option<String>),
+    License(License),
+    Expression(String),
 }
 
 impl From<models::LicenseChoice> for LicenseChoice {
     fn from(other: models::LicenseChoice) -> Self {
         match other {
-            models::LicenseChoice::License(l) => Self::License(convert_optional(l)),
-            models::LicenseChoice::Expression(e) => Self::Expression(e.map(|e| e.to_string())),
+            models::LicenseChoice::License(l) => Self::License(l.into()),
+            models::LicenseChoice::Expression(e) => Self::Expression(e.to_string()),
         }
     }
 }
@@ -42,11 +83,29 @@ impl From<models::LicenseChoice> for LicenseChoice {
 impl From<LicenseChoice> for models::LicenseChoice {
     fn from(other: LicenseChoice) -> Self {
         match other {
-            LicenseChoice::License(l) => Self::License(convert_optional(l)),
+            LicenseChoice::License(l) => Self::License(l.into()),
+            LicenseChoice::Expression(e) => Self::Expression(NormalizedString::new_unchecked(e)),
+        }
+    }
+}
+
+const EXPRESSION_TAG: &str = "expression";
+
+impl ToXml for LicenseChoice {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        match self {
+            LicenseChoice::License(l) => {
+                l.write_xml_element(writer)?;
+            }
             LicenseChoice::Expression(e) => {
-                Self::Expression(e.map(NormalizedString::new_unchecked))
+                write_simple_tag(writer, EXPRESSION_TAG, e)?;
             }
         }
+
+        Ok(())
     }
 }
 
@@ -81,6 +140,37 @@ impl From<License> for models::License {
     }
 }
 
+const LICENSE_TAG: &str = "license";
+const TEXT_TAG: &str = "text";
+const URL_TAG: &str = "url";
+
+impl ToXml for License {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(LICENSE_TAG))
+            .map_err(to_xml_write_error(LICENSE_TAG))?;
+
+        self.license_identifier.write_xml_element(writer)?;
+
+        if let Some(attached_text) = &self.text {
+            attached_text.write_xml_named_element(writer, TEXT_TAG)?;
+        }
+
+        if let Some(url) = &self.url {
+            write_simple_tag(writer, URL_TAG, url)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(LICENSE_TAG))?;
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 enum LicenseIdentifier {
@@ -107,68 +197,108 @@ impl From<LicenseIdentifier> for models::LicenseIdentifier {
     }
 }
 
+const ID_TAG: &str = "id";
+const NAME_TAG: &str = "name";
+
+impl ToXml for LicenseIdentifier {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        match self {
+            LicenseIdentifier::SpdxId(spdx_id) => {
+                write_simple_tag(writer, ID_TAG, spdx_id)?;
+            }
+            LicenseIdentifier::Name(name) => {
+                write_simple_tag(writer, NAME_TAG, name)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::specs::v1_3::attached_text::test::{
-        corresponding_attached_text, example_attached_text,
+    use crate::{
+        specs::v1_3::attached_text::test::{corresponding_attached_text, example_attached_text},
+        xml::test::write_element_to_string,
     };
 
     use super::*;
 
+    pub(crate) fn example_licenses() -> Licenses {
+        Licenses(vec![example_license_expression()])
+    }
+
+    pub(crate) fn corresponding_licenses() -> models::Licenses {
+        models::Licenses(vec![corresponding_license_expression()])
+    }
+
     pub(crate) fn example_spdx_license() -> LicenseChoice {
-        LicenseChoice::License(Some(License {
+        LicenseChoice::License(License {
             license_identifier: LicenseIdentifier::SpdxId("spdx id".to_string()),
             text: Some(example_attached_text()),
             url: Some("url".to_string()),
-        }))
+        })
     }
 
+    #[allow(unused)]
     pub(crate) fn corresponding_spdx_license() -> models::LicenseChoice {
-        models::LicenseChoice::License(Some(models::License {
+        models::LicenseChoice::License(models::License {
             license_identifier: models::LicenseIdentifier::SpdxId(SpdxIdentifier(
                 "spdx id".to_string(),
             )),
             text: Some(corresponding_attached_text()),
             url: Some(Uri("url".to_string())),
-        }))
+        })
     }
 
     pub(crate) fn example_named_license() -> LicenseChoice {
-        LicenseChoice::License(Some(License {
+        LicenseChoice::License(License {
             license_identifier: LicenseIdentifier::Name("name".to_string()),
             text: Some(example_attached_text()),
             url: Some("url".to_string()),
-        }))
+        })
     }
 
+    #[allow(unused)]
     pub(crate) fn corresponding_named_license() -> models::LicenseChoice {
-        models::LicenseChoice::License(Some(models::License {
+        models::LicenseChoice::License(models::License {
             license_identifier: models::LicenseIdentifier::Name(NormalizedString::new_unchecked(
                 "name".to_string(),
             )),
             text: Some(corresponding_attached_text()),
             url: Some(Uri("url".to_string())),
-        }))
+        })
     }
 
     pub(crate) fn example_license_expression() -> LicenseChoice {
-        LicenseChoice::Expression(Some("expression".to_string()))
+        LicenseChoice::Expression("expression".to_string())
     }
 
     pub(crate) fn corresponding_license_expression() -> models::LicenseChoice {
-        models::LicenseChoice::Expression(Some(NormalizedString::new_unchecked(
-            "expression".to_string(),
-        )))
+        models::LicenseChoice::Expression(NormalizedString::new_unchecked("expression".to_string()))
     }
 
     #[test]
     fn it_should_handle_licenses_correctly() {
-        let actual = vec![
+        let actual = Licenses(vec![
             example_spdx_license(),
             example_named_license(),
             example_license_expression(),
-        ];
+        ]);
 
         insta::assert_json_snapshot!(actual);
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_element_to_string(Licenses(vec![
+            example_spdx_license(),
+            example_named_license(),
+            example_license_expression(),
+        ]));
+        insta::assert_snapshot!(xml_output);
     }
 }
