@@ -16,8 +16,50 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::models;
+use crate::{
+    models,
+    xml::{to_xml_write_error, ToXml},
+};
 use serde::{Deserialize, Serialize};
+use xml::writer::XmlEvent;
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(transparent)]
+pub(crate) struct Hashes(Vec<Hash>);
+
+impl From<models::Hashes> for Hashes {
+    fn from(other: models::Hashes) -> Self {
+        Hashes(other.0.into_iter().map(Into::into).collect())
+    }
+}
+
+impl From<Hashes> for models::Hashes {
+    fn from(other: Hashes) -> Self {
+        models::Hashes(other.0.into_iter().map(Into::into).collect())
+    }
+}
+
+const HASHES_TAG: &str = "hashes";
+
+impl ToXml for Hashes {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(HASHES_TAG))
+            .map_err(to_xml_write_error(HASHES_TAG))?;
+
+        for hash in &self.0 {
+            hash.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(HASHES_TAG))?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -44,6 +86,29 @@ impl From<Hash> for models::Hash {
     }
 }
 
+const HASH_TAG: &str = "hash";
+const ALG_ATTR: &str = "alg";
+
+impl ToXml for Hash {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(HASH_TAG).attr(ALG_ATTR, &self.alg))
+            .map_err(to_xml_write_error(HASH_TAG))?;
+
+        writer
+            .write(XmlEvent::characters(&self.content.0))
+            .map_err(to_xml_write_error(HASH_TAG))?;
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(HASH_TAG))?;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub(crate) struct HashValue(String);
 
@@ -61,7 +126,17 @@ impl From<HashValue> for models::HashValue {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use crate::xml::test::write_element_to_string;
+
     use super::*;
+
+    pub(crate) fn example_hashes() -> Hashes {
+        Hashes(vec![example_hash()])
+    }
+
+    pub(crate) fn corresponding_hashes() -> models::Hashes {
+        models::Hashes(vec![corresponding_hash()])
+    }
 
     pub(crate) fn example_hash() -> Hash {
         Hash {
@@ -75,5 +150,11 @@ pub(crate) mod test {
             alg: models::HashAlgorithm::UnknownHashAlgorithm("algorithm".to_string()),
             content: models::HashValue("hash value".to_string()),
         }
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_element_to_string(example_hashes());
+        insta::assert_snapshot!(xml_output);
     }
 }

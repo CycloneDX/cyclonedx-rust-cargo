@@ -16,9 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::external_models::normalized_string::NormalizedString;
-use crate::models;
+use crate::{
+    errors::XmlWriteError, external_models::normalized_string::NormalizedString, xml::ToInnerXml,
+};
+use crate::{models, xml::to_xml_write_error};
 use serde::{Deserialize, Serialize};
+use xml::writer::{EventWriter, XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -50,9 +53,40 @@ impl From<AttachedText> for models::AttachedText {
     }
 }
 
+impl ToInnerXml for AttachedText {
+    fn write_xml_named_element<W: std::io::Write>(
+        &self,
+        writer: &mut EventWriter<W>,
+        tag: &str,
+    ) -> Result<(), XmlWriteError> {
+        let mut attached_text_tag = XmlEvent::start_element(tag);
+
+        if let Some(content_type) = &self.content_type {
+            attached_text_tag = attached_text_tag.attr("content-type", content_type);
+        }
+
+        if let Some(encoding) = &self.encoding {
+            attached_text_tag = attached_text_tag.attr("encoding", encoding);
+        }
+        writer
+            .write(attached_text_tag)
+            .map_err(to_xml_write_error(tag))?;
+
+        writer
+            .write(XmlEvent::characters(&self.content))
+            .map_err(to_xml_write_error(tag))?;
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(tag))?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
+    use crate::xml::test::write_named_element_to_string;
 
     pub(crate) fn example_attached_text() -> AttachedText {
         AttachedText {
@@ -68,5 +102,24 @@ pub(crate) mod test {
             encoding: Some(models::Encoding::UnknownEncoding("encoding".to_string())),
             content: "content".to_string(),
         }
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_named_element_to_string(example_attached_text(), "text");
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_write_xml_no_attributes() {
+        let xml_output = write_named_element_to_string(
+            AttachedText {
+                content_type: None,
+                encoding: None,
+                content: "content".to_string(),
+            },
+            "text",
+        );
+        insta::assert_snapshot!(xml_output);
     }
 }

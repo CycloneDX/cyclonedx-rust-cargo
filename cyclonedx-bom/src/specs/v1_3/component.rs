@@ -23,7 +23,7 @@ use crate::{
     },
     specs::v1_3::{
         attached_text::AttachedText, code::Commit, code::Patch,
-        external_reference::ExternalReference, hash::Hash, license::LicenseChoice,
+        external_reference::ExternalReference, hash::Hashes, license::LicenseChoice,
         organization::OrganizationalEntity, property::Properties,
     },
 };
@@ -57,7 +57,7 @@ pub(crate) struct Component {
     #[serde(skip_serializing_if = "Option::is_none")]
     scope: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    hashes: Option<Vec<Hash>>,
+    hashes: Option<Hashes>,
     #[serde(skip_serializing_if = "Option::is_none")]
     licenses: Option<Vec<LicenseChoice>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -96,7 +96,7 @@ impl From<models::Component> for Component {
             version: other.version.to_string(),
             description: other.description.map(|d| d.to_string()),
             scope: other.scope.map(|s| s.to_string()),
-            hashes: convert_optional_vec(other.hashes),
+            hashes: convert_optional(other.hashes),
             licenses: convert_optional_vec(other.licenses),
             copyright: other.copyright.map(|c| c.to_string()),
             cpe: convert_optional(other.cpe),
@@ -126,7 +126,7 @@ impl From<Component> for models::Component {
             version: NormalizedString::new_unchecked(other.version),
             description: other.description.map(NormalizedString::new_unchecked),
             scope: other.scope.map(models::Scope::new_unchecked),
-            hashes: convert_optional_vec(other.hashes),
+            hashes: convert_optional(other.hashes),
             licenses: convert_optional_vec(other.licenses),
             copyright: other.copyright.map(NormalizedString::new_unchecked),
             cpe: convert_optional(other.cpe),
@@ -310,7 +310,7 @@ pub(crate) mod test {
         attached_text::test::{corresponding_attached_text, example_attached_text},
         code::test::{corresponding_commit, corresponding_patch, example_commit, example_patch},
         external_reference::test::{corresponding_external_reference, example_external_reference},
-        hash::test::{corresponding_hash, example_hash},
+        hash::test::{corresponding_hashes, example_hashes},
         license::test::{
             corresponding_named_license, corresponding_spdx_license, example_named_license,
             example_spdx_license,
@@ -334,7 +334,7 @@ pub(crate) mod test {
             version: "version".to_string(),
             description: Some("description".to_string()),
             scope: Some("scope".to_string()),
-            hashes: Some(vec![example_hash()]),
+            hashes: Some(example_hashes()),
             licenses: Some(vec![example_spdx_license()]),
             copyright: Some("copyright".to_string()),
             cpe: Some(example_cpe()),
@@ -364,7 +364,7 @@ pub(crate) mod test {
             version: NormalizedString::new_unchecked("version".to_string()),
             description: Some(NormalizedString::new_unchecked("description".to_string())),
             scope: Some(models::Scope::UnknownScope("scope".to_string())),
-            hashes: Some(vec![corresponding_hash()]),
+            hashes: Some(corresponding_hashes()),
             licenses: Some(vec![corresponding_spdx_license()]),
             copyright: Some(NormalizedString::new_unchecked("copyright".to_string())),
             cpe: Some(corresponding_cpe()),

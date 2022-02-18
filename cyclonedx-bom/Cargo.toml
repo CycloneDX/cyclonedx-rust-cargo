@@ -23,6 +23,7 @@ thiserror = "1.0.30"
 time = "0.3.5"
 url = "2.2.2"
 uuid = "0.8.2"
+xml-rs = "0.8.4"
 
 [dev-dependencies]
 insta = "1.8.0"

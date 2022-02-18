@@ -18,8 +18,13 @@
 
 use std::collections::HashSet;
 
-use crate::models;
+use crate::{
+    errors::XmlWriteError,
+    models,
+    xml::{to_xml_write_error, ToXml},
+};
 use serde::{Deserialize, Serialize};
+use xml::writer::XmlEvent;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub(crate) struct Dependencies(Vec<Dependency>);
@@ -58,6 +63,29 @@ impl From<Dependencies> for models::Dependencies {
     }
 }
 
+const DEPENDENCIES_TAG: &str = "dependencies";
+
+impl ToXml for Dependencies {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(DEPENDENCIES_TAG))
+            .map_err(to_xml_write_error(DEPENDENCIES_TAG))?;
+
+        for dependency in &self.0 {
+            dependency.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(DEPENDENCIES_TAG))?;
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Dependency {
@@ -82,9 +110,39 @@ impl From<Dependency> for models::Dependency {
     }
 }
 
+const DEPENDENCY_TAG: &str = "dependency";
+
+impl ToXml for Dependency {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(DEPENDENCY_TAG).attr("ref", &self.dependency_ref))
+            .map_err(to_xml_write_error(DEPENDENCY_TAG))?;
+
+        for dependency in &self.depends_on {
+            writer
+                .write(XmlEvent::start_element(DEPENDENCY_TAG).attr("ref", dependency))
+                .map_err(to_xml_write_error(DEPENDENCY_TAG))?;
+
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(DEPENDENCY_TAG))?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(DEPENDENCY_TAG))?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
+    use crate::xml::test::write_element_to_string;
 
     pub(crate) fn example_dependencies() -> Dependencies {
         Dependencies(vec![Dependency {
@@ -166,5 +224,26 @@ pub(crate) mod test {
             },
         ]);
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_element_to_string(example_dependencies());
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_write_xml_empty_dependencies() {
+        let xml_output = write_element_to_string(Dependencies(Vec::new()));
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_write_xml_dependencies_with_no_children() {
+        let xml_output = write_element_to_string(Dependencies(vec![Dependency {
+            dependency_ref: "dependency".to_string(),
+            depends_on: Vec::new(),
+        }]));
+        insta::assert_snapshot!(xml_output);
     }
 }

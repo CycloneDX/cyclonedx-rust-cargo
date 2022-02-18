@@ -16,8 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::{external_models::uri::Uri, specs::v1_3::hash::Hash};
-use crate::{models, utilities::convert_optional_vec};
+use crate::external_models::uri::Uri;
+use crate::specs::v1_3::hash::Hashes;
+use crate::{models, utilities::convert_optional};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -29,7 +30,7 @@ pub(crate) struct ExternalReference {
     #[serde(skip_serializing_if = "Option::is_none")]
     comment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    hashes: Option<Vec<Hash>>,
+    hashes: Option<Hashes>,
 }
 
 impl From<models::ExternalReference> for ExternalReference {
@@ -38,7 +39,7 @@ impl From<models::ExternalReference> for ExternalReference {
             external_reference_type: other.external_reference_type.to_string(),
             url: other.url.to_string(),
             comment: other.comment,
-            hashes: convert_optional_vec(other.hashes),
+            hashes: convert_optional(other.hashes),
         }
     }
 }
@@ -51,7 +52,7 @@ impl From<ExternalReference> for models::ExternalReference {
             ),
             url: Uri(other.url),
             comment: other.comment,
-            hashes: convert_optional_vec(other.hashes),
+            hashes: convert_optional(other.hashes),
         }
     }
 }
@@ -59,14 +60,14 @@ impl From<ExternalReference> for models::ExternalReference {
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
-    use crate::specs::v1_3::hash::test::{corresponding_hash, example_hash};
+    use crate::specs::v1_3::hash::test::{corresponding_hashes, example_hashes};
 
     pub(crate) fn example_external_reference() -> ExternalReference {
         ExternalReference {
             external_reference_type: "external reference type".to_string(),
             url: "url".to_string(),
             comment: Some("comment".to_string()),
-            hashes: Some(vec![example_hash()]),
+            hashes: Some(example_hashes()),
         }
     }
 
@@ -77,7 +78,7 @@ pub(crate) mod test {
             ),
             url: Uri("url".to_string()),
             comment: Some("comment".to_string()),
-            hashes: Some(vec![corresponding_hash()]),
+            hashes: Some(corresponding_hashes()),
         }
     }
 }

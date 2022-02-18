@@ -16,8 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::{external_models::normalized_string::NormalizedString, specs::v1_3::hash::Hash};
-use crate::{models, utilities::convert_optional_vec};
+use crate::{external_models::normalized_string::NormalizedString, specs::v1_3::hash::Hashes};
+use crate::{models, utilities::convert_optional};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -30,7 +30,7 @@ pub(crate) struct Tool {
     #[serde(skip_serializing_if = "Option::is_none")]
     version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    hashes: Option<Vec<Hash>>,
+    hashes: Option<Hashes>,
 }
 
 impl From<models::Tool> for Tool {
@@ -39,7 +39,7 @@ impl From<models::Tool> for Tool {
             vendor: other.vendor.map(|v| v.to_string()),
             name: other.name.map(|n| n.to_string()),
             version: other.version.map(|v| v.to_string()),
-            hashes: convert_optional_vec(other.hashes),
+            hashes: convert_optional(other.hashes),
         }
     }
 }
@@ -50,14 +50,14 @@ impl From<Tool> for models::Tool {
             vendor: other.vendor.map(NormalizedString::new_unchecked),
             name: other.name.map(NormalizedString::new_unchecked),
             version: other.version.map(NormalizedString::new_unchecked),
-            hashes: convert_optional_vec(other.hashes),
+            hashes: convert_optional(other.hashes),
         }
     }
 }
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::specs::v1_3::hash::test::{corresponding_hash, example_hash};
+    use crate::specs::v1_3::hash::test::{corresponding_hashes, example_hashes};
 
     use super::*;
 
@@ -66,7 +66,7 @@ pub(crate) mod test {
             vendor: Some("vendor".to_string()),
             name: Some("name".to_string()),
             version: Some("version".to_string()),
-            hashes: Some(vec![example_hash()]),
+            hashes: Some(example_hashes()),
         }
     }
 
@@ -75,7 +75,7 @@ pub(crate) mod test {
             vendor: Some(NormalizedString::new_unchecked("vendor".to_string())),
             name: Some(NormalizedString::new_unchecked("name".to_string())),
             version: Some(NormalizedString::new_unchecked("version".to_string())),
-            hashes: Some(vec![corresponding_hash()]),
+            hashes: Some(corresponding_hashes()),
         }
     }
 }

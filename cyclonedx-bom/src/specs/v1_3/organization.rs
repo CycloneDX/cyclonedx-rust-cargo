@@ -17,11 +17,14 @@
  */
 
 use crate::{
+    errors::XmlWriteError,
     external_models::{normalized_string::NormalizedString, uri::Uri},
     models,
     utilities::convert_optional_vec,
+    xml::{to_xml_write_error, ToInnerXml},
 };
 use serde::{Deserialize, Serialize};
+use xml::writer::XmlEvent;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -51,6 +54,68 @@ impl From<OrganizationalContact> for models::OrganizationalContact {
             email: other.email.map(NormalizedString::new_unchecked),
             phone: other.phone.map(NormalizedString::new_unchecked),
         }
+    }
+}
+
+const NAME_TAG: &str = "name";
+const EMAIL_TAG: &str = "email";
+const PHONE_TAG: &str = "phone";
+
+impl ToInnerXml for OrganizationalContact {
+    fn write_xml_named_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+        tag: &str,
+    ) -> Result<(), XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(tag))
+            .map_err(to_xml_write_error(tag))?;
+
+        if let Some(name) = &self.name {
+            writer
+                .write(XmlEvent::start_element(NAME_TAG))
+                .map_err(to_xml_write_error(NAME_TAG))?;
+            writer
+                .write(XmlEvent::characters(name))
+                .map_err(to_xml_write_error(NAME_TAG))?;
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(NAME_TAG))?;
+        }
+
+        if let Some(email) = &self.email {
+            writer
+                .write(XmlEvent::start_element(EMAIL_TAG))
+                .map_err(to_xml_write_error(EMAIL_TAG))?;
+            writer
+                .write(XmlEvent::characters(email))
+                .map_err(to_xml_write_error(EMAIL_TAG))?;
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(EMAIL_TAG))?;
+        }
+
+        if let Some(phone) = &self.phone {
+            writer
+                .write(XmlEvent::start_element(PHONE_TAG))
+                .map_err(to_xml_write_error(PHONE_TAG))?;
+            writer
+                .write(XmlEvent::characters(phone))
+                .map_err(to_xml_write_error(PHONE_TAG))?;
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(PHONE_TAG))?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(tag))?;
+
+        Ok(())
+    }
+
+    fn will_write(&self) -> bool {
+        self.name.is_some() || self.email.is_some() || self.phone.is_some()
     }
 }
 
@@ -87,8 +152,69 @@ impl From<OrganizationalEntity> for models::OrganizationalEntity {
     }
 }
 
+const URL_TAG: &str = "url";
+const CONTACT_TAG: &str = "contact";
+
+impl ToInnerXml for OrganizationalEntity {
+    fn write_xml_named_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+        tag: &str,
+    ) -> Result<(), XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(tag))
+            .map_err(to_xml_write_error(tag))?;
+
+        if let Some(name) = &self.name {
+            writer
+                .write(XmlEvent::start_element(NAME_TAG))
+                .map_err(to_xml_write_error(NAME_TAG))?;
+            writer
+                .write(XmlEvent::characters(name))
+                .map_err(to_xml_write_error(NAME_TAG))?;
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(NAME_TAG))?;
+        }
+
+        if let Some(urls) = &self.url {
+            for url in urls {
+                writer
+                    .write(XmlEvent::start_element(URL_TAG))
+                    .map_err(to_xml_write_error(URL_TAG))?;
+                writer
+                    .write(XmlEvent::characters(url))
+                    .map_err(to_xml_write_error(URL_TAG))?;
+                writer
+                    .write(XmlEvent::end_element())
+                    .map_err(to_xml_write_error(URL_TAG))?;
+            }
+        }
+
+        if let Some(contacts) = &self.contact {
+            for contact in contacts {
+                if contact.will_write() {
+                    contact.write_xml_named_element(writer, CONTACT_TAG)?;
+                }
+            }
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(tag))?;
+
+        Ok(())
+    }
+
+    fn will_write(&self) -> bool {
+        self.name.is_some() || self.url.is_some() || self.contact.is_some()
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
+    use crate::xml::test::write_named_element_to_string;
+
     use super::*;
 
     pub(crate) fn example_contact() -> OrganizationalContact {
@@ -121,5 +247,41 @@ pub(crate) mod test {
             url: Some(vec![Uri("url".to_string())]),
             contact: Some(vec![corresponding_contact()]),
         }
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_named_element_to_string(example_entity(), "supplier");
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_not_write_xml_empty_contacts() {
+        let xml_output = write_named_element_to_string(
+            OrganizationalEntity {
+                name: Some("name".to_string()),
+                url: Some(vec!["url".to_string()]),
+                contact: Some(vec![OrganizationalContact {
+                    name: None,
+                    email: None,
+                    phone: None,
+                }]),
+            },
+            "supplier",
+        );
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_write_xml_multiple_urls_contacts() {
+        let xml_output = write_named_element_to_string(
+            OrganizationalEntity {
+                name: Some("name".to_string()),
+                url: Some(vec!["url".to_string(), "url".to_string()]),
+                contact: Some(vec![example_contact(), example_contact()]),
+            },
+            "supplier",
+        );
+        insta::assert_snapshot!(xml_output);
     }
 }

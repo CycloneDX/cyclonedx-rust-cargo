@@ -1,0 +1,8 @@
+---
+source: cyclonedx-bom/src/specs/v1_3/attached_text.rs
+assertion_line: 119
+expression: xml_output
+
+---
+<?xml version="1.0" encoding="utf-8"?>
+<text content-type="content type" encoding="encoding">content</text>

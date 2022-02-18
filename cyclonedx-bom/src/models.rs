@@ -98,7 +98,7 @@ pub struct Component {
     pub version: NormalizedString,
     pub description: Option<NormalizedString>,
     pub scope: Option<Scope>,
-    pub hashes: Option<Vec<Hash>>,
+    pub hashes: Option<Hashes>,
     pub licenses: Option<Vec<LicenseChoice>>,
     pub copyright: Option<NormalizedString>,
     pub cpe: Option<Cpe>,
@@ -154,7 +154,7 @@ pub struct ExternalReference {
     pub external_reference_type: ExternalReferenceType,
     pub url: Uri,
     pub comment: Option<String>,
-    pub hashes: Option<Vec<Hash>>,
+    pub hashes: Option<Hashes>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -162,6 +162,9 @@ pub struct Hash {
     pub alg: HashAlgorithm,
     pub content: HashValue,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct Hashes(pub Vec<Hash>);
 
 #[derive(Debug, PartialEq)]
 pub struct IdentifiableAction {
@@ -291,7 +294,7 @@ pub struct Tool {
     pub vendor: Option<NormalizedString>,
     pub name: Option<NormalizedString>,
     pub version: Option<NormalizedString>,
-    pub hashes: Option<Vec<Hash>>,
+    pub hashes: Option<Hashes>,
 }
 
 #[derive(Debug, PartialEq)]

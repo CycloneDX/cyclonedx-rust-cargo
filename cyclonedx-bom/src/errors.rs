@@ -24,3 +24,13 @@ pub enum BomError {
     #[error("Failed to serialize BOM to XML: {0}")]
     XmlSerializationError(String),
 }
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum XmlWriteError {
+    #[error("Failed to serialize XML while writing {element}: {error}")]
+    XmlElementWriteError {
+        #[source]
+        error: xml::writer::Error,
+        element: String,
+    },
+}
