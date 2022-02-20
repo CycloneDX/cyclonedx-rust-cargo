@@ -29,8 +29,8 @@ pub struct Bom {
     pub serial_number: Option<UrnUuid>,
     pub metadata: Option<Metadata>,
     pub components: Option<Vec<Component>>,
-    pub services: Option<Vec<Service>>,
-    pub external_references: Option<Vec<ExternalReference>>,
+    pub services: Option<Services>,
+    pub external_references: Option<ExternalReferences>,
     pub dependencies: Option<Dependencies>,
     pub compositions: Option<Vec<Composition>>,
     pub properties: Option<Properties>,
@@ -106,7 +106,7 @@ pub struct Component {
     pub swid: Option<Swid>,
     pub modified: Option<bool>,
     pub pedigree: Option<Pedigree>,
-    pub external_references: Option<Vec<ExternalReference>>,
+    pub external_references: Option<ExternalReferences>,
     pub properties: Option<Properties>,
     pub components: Option<Vec<Component>>,
     pub evidence: Option<ComponentEvidence>,
@@ -156,6 +156,9 @@ pub struct ExternalReference {
     pub comment: Option<String>,
     pub hashes: Option<Hashes>,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct ExternalReferences(pub Vec<ExternalReference>);
 
 #[derive(Debug, PartialEq)]
 pub struct Hash {
@@ -287,10 +290,13 @@ pub struct Service {
     pub x_trust_boundary: Option<bool>,
     pub data: Option<Vec<DataClassification>>,
     pub licenses: Option<Licenses>,
-    pub external_references: Option<Vec<ExternalReference>>,
+    pub external_references: Option<ExternalReferences>,
     pub properties: Option<Properties>,
-    pub services: Option<Vec<Service>>,
+    pub services: Option<Services>,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct Services(pub Vec<Service>);
 
 #[derive(Debug, PartialEq)]
 pub struct Tool {

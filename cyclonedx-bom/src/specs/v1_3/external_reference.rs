@@ -16,10 +16,55 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::external_models::uri::Uri;
-use crate::specs::v1_3::hash::Hashes;
-use crate::{models, utilities::convert_optional};
+use crate::{
+    external_models::uri::Uri,
+    xml::{write_simple_tag, ToXml},
+};
+use crate::{
+    models,
+    utilities::{convert_optional, convert_vec},
+};
+use crate::{specs::v1_3::hash::Hashes, xml::to_xml_write_error};
 use serde::{Deserialize, Serialize};
+use xml::writer::XmlEvent;
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(transparent)]
+pub(crate) struct ExternalReferences(Vec<ExternalReference>);
+
+impl From<models::ExternalReferences> for ExternalReferences {
+    fn from(other: models::ExternalReferences) -> Self {
+        ExternalReferences(convert_vec(other.0))
+    }
+}
+
+impl From<ExternalReferences> for models::ExternalReferences {
+    fn from(other: ExternalReferences) -> Self {
+        models::ExternalReferences(convert_vec(other.0))
+    }
+}
+
+const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
+
+impl ToXml for ExternalReferences {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(EXTERNAL_REFERENCES_TAG))
+            .map_err(to_xml_write_error(EXTERNAL_REFERENCES_TAG))?;
+
+        for external_reference in &self.0 {
+            external_reference.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(EXTERNAL_REFERENCES_TAG))?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -57,10 +102,56 @@ impl From<ExternalReference> for models::ExternalReference {
     }
 }
 
+const REFERENCE_TAG: &str = "reference";
+const TYPE_ATTR: &str = "type";
+const URL_TAG: &str = "url";
+const COMMENT_TAG: &str = "comment";
+
+impl ToXml for ExternalReference {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(
+                XmlEvent::start_element(REFERENCE_TAG)
+                    .attr(TYPE_ATTR, &self.external_reference_type),
+            )
+            .map_err(to_xml_write_error(REFERENCE_TAG))?;
+
+        write_simple_tag(writer, URL_TAG, &self.url)?;
+
+        if let Some(comment) = &self.comment {
+            write_simple_tag(writer, COMMENT_TAG, comment)?;
+        }
+
+        if let Some(hashes) = &self.hashes {
+            hashes.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(REFERENCE_TAG))?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
-    use crate::specs::v1_3::hash::test::{corresponding_hashes, example_hashes};
+    use crate::{
+        specs::v1_3::hash::test::{corresponding_hashes, example_hashes},
+        xml::test::write_element_to_string,
+    };
+
+    pub(crate) fn example_external_references() -> ExternalReferences {
+        ExternalReferences(vec![example_external_reference()])
+    }
+
+    pub(crate) fn corresponding_external_references() -> models::ExternalReferences {
+        models::ExternalReferences(vec![corresponding_external_reference()])
+    }
 
     pub(crate) fn example_external_reference() -> ExternalReference {
         ExternalReference {
@@ -80,5 +171,11 @@ pub(crate) mod test {
             comment: Some("comment".to_string()),
             hashes: Some(corresponding_hashes()),
         }
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_element_to_string(example_external_references());
+        insta::assert_snapshot!(xml_output);
     }
 }

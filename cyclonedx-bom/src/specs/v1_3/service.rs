@@ -19,14 +19,54 @@
 use crate::{
     external_models::{normalized_string::NormalizedString, uri::Uri},
     models,
-    utilities::{convert_optional, convert_optional_vec},
+    utilities::{convert_optional, convert_optional_vec, convert_vec},
+    xml::{to_xml_write_error, write_simple_tag, ToInnerXml, ToXml},
 };
 use serde::{Deserialize, Serialize};
+use xml::writer::XmlEvent;
 
 use crate::specs::v1_3::{
-    external_reference::ExternalReference, license::Licenses, organization::OrganizationalEntity,
+    external_reference::ExternalReferences, license::Licenses, organization::OrganizationalEntity,
     property::Properties,
 };
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(transparent)]
+pub(crate) struct Services(Vec<Service>);
+
+impl From<models::Services> for Services {
+    fn from(other: models::Services) -> Self {
+        Services(convert_vec(other.0))
+    }
+}
+
+impl From<Services> for models::Services {
+    fn from(other: Services) -> Self {
+        models::Services(convert_vec(other.0))
+    }
+}
+
+const SERVICES_TAG: &str = "services";
+
+impl ToXml for Services {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(SERVICES_TAG))
+            .map_err(to_xml_write_error(SERVICES_TAG))?;
+
+        for service in &self.0 {
+            service.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(SERVICES_TAG))?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -53,11 +93,11 @@ pub(crate) struct Service {
     #[serde(skip_serializing_if = "Option::is_none")]
     licenses: Option<Licenses>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    external_references: Option<Vec<ExternalReference>>,
+    external_references: Option<ExternalReferences>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    services: Option<Vec<Service>>,
+    services: Option<Services>,
 }
 
 impl From<models::Service> for Service {
@@ -76,9 +116,9 @@ impl From<models::Service> for Service {
             x_trust_boundary: other.x_trust_boundary,
             data: convert_optional_vec(other.data),
             licenses: convert_optional(other.licenses),
-            external_references: convert_optional_vec(other.external_references),
+            external_references: convert_optional(other.external_references),
             properties: convert_optional(other.properties),
-            services: convert_optional_vec(other.services),
+            services: convert_optional(other.services),
         }
     }
 }
@@ -99,10 +139,116 @@ impl From<Service> for models::Service {
             x_trust_boundary: other.x_trust_boundary,
             data: convert_optional_vec(other.data),
             licenses: convert_optional(other.licenses),
-            external_references: convert_optional_vec(other.external_references),
+            external_references: convert_optional(other.external_references),
             properties: convert_optional(other.properties),
-            services: convert_optional_vec(other.services),
+            services: convert_optional(other.services),
         }
+    }
+}
+
+const SERVICE_TAG: &str = "service";
+const BOM_REF_ATTR: &str = "bom-ref";
+const PROVIDER_TAG: &str = "provider";
+const GROUP_TAG: &str = "group";
+const NAME_TAG: &str = "name";
+const VERSION_TAG: &str = "version";
+const DESCRIPTION_TAG: &str = "description";
+const ENDPOINTS_TAG: &str = "endpoints";
+const ENDPOINT_TAG: &str = "endpoint";
+const AUTHENTICATED_TAG: &str = "authenticated";
+const X_TRUST_BOUNDARY_TAG: &str = "x-trust-boundary";
+const DATA_TAG: &str = "data";
+
+impl ToXml for Service {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        let mut service_start_tag = XmlEvent::start_element(SERVICE_TAG);
+
+        if let Some(bom_ref) = &self.bom_ref {
+            service_start_tag = service_start_tag.attr(BOM_REF_ATTR, bom_ref);
+        }
+
+        writer
+            .write(service_start_tag)
+            .map_err(to_xml_write_error(SERVICE_TAG))?;
+
+        if let Some(provider) = &self.provider {
+            provider.write_xml_named_element(writer, PROVIDER_TAG)?;
+        }
+
+        if let Some(group) = &self.group {
+            write_simple_tag(writer, GROUP_TAG, group)?;
+        }
+
+        write_simple_tag(writer, NAME_TAG, &self.name)?;
+
+        if let Some(version) = &self.version {
+            write_simple_tag(writer, VERSION_TAG, version)?;
+        }
+
+        if let Some(description) = &self.description {
+            write_simple_tag(writer, DESCRIPTION_TAG, description)?;
+        }
+
+        if let Some(endpoints) = &self.endpoints {
+            writer
+                .write(XmlEvent::start_element(ENDPOINTS_TAG))
+                .map_err(to_xml_write_error(ENDPOINTS_TAG))?;
+            for endpoint in endpoints {
+                write_simple_tag(writer, ENDPOINT_TAG, endpoint)?;
+            }
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(ENDPOINTS_TAG))?;
+        }
+
+        if let Some(authenticated) = &self.authenticated {
+            write_simple_tag(writer, AUTHENTICATED_TAG, &format!("{}", authenticated))?;
+        }
+
+        if let Some(x_trust_boundary) = &self.x_trust_boundary {
+            write_simple_tag(
+                writer,
+                X_TRUST_BOUNDARY_TAG,
+                &format!("{}", x_trust_boundary),
+            )?;
+        }
+
+        if let Some(data) = &self.data {
+            writer
+                .write(XmlEvent::start_element(DATA_TAG))
+                .map_err(to_xml_write_error(DATA_TAG))?;
+            for d in data {
+                d.write_xml_element(writer)?;
+            }
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(DATA_TAG))?;
+        }
+
+        if let Some(licenses) = &self.licenses {
+            licenses.write_xml_element(writer)?;
+        }
+
+        if let Some(external_references) = &self.external_references {
+            external_references.write_xml_element(writer)?;
+        }
+
+        if let Some(properties) = &self.properties {
+            properties.write_xml_element(writer)?;
+        }
+
+        if let Some(services) = &self.services {
+            services.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(SERVICE_TAG))?;
+
+        Ok(())
     }
 }
 
@@ -131,15 +277,52 @@ impl From<DataClassification> for models::DataClassification {
     }
 }
 
+const CLASSIFICATION_TAG: &str = "classification";
+const FLOW_ATTR: &str = "flow";
+
+impl ToXml for DataClassification {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(CLASSIFICATION_TAG).attr(FLOW_ATTR, &self.flow))
+            .map_err(to_xml_write_error(CLASSIFICATION_TAG))?;
+
+        writer
+            .write(XmlEvent::characters(&self.classification))
+            .map_err(to_xml_write_error(CLASSIFICATION_TAG))?;
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(CLASSIFICATION_TAG))?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
-    use crate::specs::v1_3::{
-        external_reference::test::{corresponding_external_reference, example_external_reference},
-        license::test::{corresponding_licenses, example_licenses},
-        organization::test::{corresponding_entity, example_entity},
-        property::test::{corresponding_properties, example_properties},
+    use crate::{
+        specs::v1_3::{
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            license::test::{corresponding_licenses, example_licenses},
+            organization::test::{corresponding_entity, example_entity},
+            property::test::{corresponding_properties, example_properties},
+        },
+        xml::test::write_element_to_string,
     };
+
+    pub(crate) fn example_services() -> Services {
+        Services(vec![example_service()])
+    }
+
+    pub(crate) fn corresponding_services() -> models::Services {
+        models::Services(vec![corresponding_service()])
+    }
 
     pub(crate) fn example_service() -> Service {
         Service {
@@ -154,9 +337,9 @@ pub(crate) mod test {
             x_trust_boundary: Some(true),
             data: Some(vec![example_data_classification()]),
             licenses: Some(example_licenses()),
-            external_references: Some(vec![example_external_reference()]),
+            external_references: Some(example_external_references()),
             properties: Some(example_properties()),
-            services: Some(vec![]),
+            services: Some(Services(vec![])),
         }
     }
 
@@ -173,9 +356,9 @@ pub(crate) mod test {
             x_trust_boundary: Some(true),
             data: Some(vec![corresponding_data_classification()]),
             licenses: Some(corresponding_licenses()),
-            external_references: Some(vec![corresponding_external_reference()]),
+            external_references: Some(corresponding_external_references()),
             properties: Some(corresponding_properties()),
-            services: Some(vec![]),
+            services: Some(models::Services(vec![])),
         }
     }
 
@@ -191,5 +374,11 @@ pub(crate) mod test {
             flow: models::DataFlowType::UnknownDataFlow("flow".to_string()),
             classification: NormalizedString::new_unchecked("classification".to_string()),
         }
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_element_to_string(example_services());
+        insta::assert_snapshot!(xml_output);
     }
 }

@@ -16,12 +16,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::{models, utilities::convert_optional};
+use crate::{
+    models::{self},
+    utilities::convert_optional,
+};
 use crate::{
     specs::v1_3::{
         component::Component, composition::Composition, dependency::Dependencies,
-        external_reference::ExternalReference, metadata::Metadata, property::Properties,
-        service::Service,
+        external_reference::ExternalReferences, metadata::Metadata, property::Properties,
+        service::Services,
     },
     utilities::convert_optional_vec,
 };
@@ -39,9 +42,9 @@ pub(crate) struct Bom {
     #[serde(skip_serializing_if = "Option::is_none")]
     components: Option<Vec<Component>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    services: Option<Vec<Service>>,
+    services: Option<Services>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    external_references: Option<Vec<ExternalReference>>,
+    external_references: Option<ExternalReferences>,
     #[serde(skip_serializing_if = "Option::is_none")]
     dependencies: Option<Dependencies>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,8 +62,8 @@ impl From<models::Bom> for Bom {
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
             components: convert_optional_vec(other.components),
-            services: convert_optional_vec(other.services),
-            external_references: convert_optional_vec(other.external_references),
+            services: convert_optional(other.services),
+            external_references: convert_optional(other.external_references),
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional_vec(other.compositions),
             properties: convert_optional(other.properties),
@@ -75,8 +78,8 @@ impl From<Bom> for models::Bom {
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
             components: convert_optional_vec(other.components),
-            services: convert_optional_vec(other.services),
-            external_references: convert_optional_vec(other.external_references),
+            services: convert_optional(other.services),
+            external_references: convert_optional(other.external_references),
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional_vec(other.compositions),
             properties: convert_optional(other.properties),
@@ -110,10 +113,12 @@ pub(crate) mod test {
         component::test::{corresponding_component, example_component},
         composition::test::{corresponding_composition, example_composition},
         dependency::test::{corresponding_dependencies, example_dependencies},
-        external_reference::test::{corresponding_external_reference, example_external_reference},
+        external_reference::test::{
+            corresponding_external_references, example_external_references,
+        },
         metadata::test::{corresponding_metadata, example_metadata},
         property::test::{corresponding_properties, example_properties},
-        service::test::{corresponding_service, example_service},
+        service::test::{corresponding_services, example_services},
     };
 
     use super::*;
@@ -166,8 +171,8 @@ pub(crate) mod test {
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: Some(example_metadata()),
             components: Some(vec![example_component()]),
-            services: Some(vec![example_service()]),
-            external_references: Some(vec![example_external_reference()]),
+            services: Some(example_services()),
+            external_references: Some(example_external_references()),
             dependencies: Some(example_dependencies()),
             compositions: Some(vec![example_composition()]),
             properties: Some(example_properties()),
@@ -180,8 +185,8 @@ pub(crate) mod test {
             serial_number: Some(models::UrnUuid("fake-uuid".to_string())),
             metadata: Some(corresponding_metadata()),
             components: Some(vec![corresponding_component()]),
-            services: Some(vec![corresponding_service()]),
-            external_references: Some(vec![corresponding_external_reference()]),
+            services: Some(corresponding_services()),
+            external_references: Some(corresponding_external_references()),
             dependencies: Some(corresponding_dependencies()),
             compositions: Some(vec![corresponding_composition()]),
             properties: Some(corresponding_properties()),

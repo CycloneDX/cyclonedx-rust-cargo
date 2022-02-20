@@ -23,7 +23,7 @@ use crate::{
     },
     specs::v1_3::{
         attached_text::AttachedText, code::Commit, code::Patch,
-        external_reference::ExternalReference, hash::Hashes, license::Licenses,
+        external_reference::ExternalReferences, hash::Hashes, license::Licenses,
         organization::OrganizationalEntity, property::Properties,
     },
 };
@@ -73,7 +73,7 @@ pub(crate) struct Component {
     #[serde(skip_serializing_if = "Option::is_none")]
     pedigree: Option<Pedigree>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    external_references: Option<Vec<ExternalReference>>,
+    external_references: Option<ExternalReferences>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -104,7 +104,7 @@ impl From<models::Component> for Component {
             swid: convert_optional(other.swid),
             modified: other.modified,
             pedigree: convert_optional(other.pedigree),
-            external_references: convert_optional_vec(other.external_references),
+            external_references: convert_optional(other.external_references),
             properties: convert_optional(other.properties),
             components: convert_optional_vec(other.components),
             evidence: convert_optional(other.evidence),
@@ -134,7 +134,7 @@ impl From<Component> for models::Component {
             swid: convert_optional(other.swid),
             modified: other.modified,
             pedigree: convert_optional(other.pedigree),
-            external_references: convert_optional_vec(other.external_references),
+            external_references: convert_optional(other.external_references),
             properties: convert_optional(other.properties),
             components: convert_optional_vec(other.components),
             evidence: convert_optional(other.evidence),
@@ -309,7 +309,9 @@ pub(crate) mod test {
     use crate::specs::v1_3::{
         attached_text::test::{corresponding_attached_text, example_attached_text},
         code::test::{corresponding_commit, corresponding_patch, example_commit, example_patch},
-        external_reference::test::{corresponding_external_reference, example_external_reference},
+        external_reference::test::{
+            corresponding_external_references, example_external_references,
+        },
         hash::test::{corresponding_hashes, example_hashes},
         license::test::{corresponding_licenses, example_licenses},
         organization::test::{corresponding_entity, example_entity},
@@ -339,7 +341,7 @@ pub(crate) mod test {
             swid: Some(example_swid()),
             modified: Some(true),
             pedigree: Some(example_pedigree()),
-            external_references: Some(vec![example_external_reference()]),
+            external_references: Some(example_external_references()),
             properties: Some(example_properties()),
             components: Some(vec![]),
             evidence: Some(example_evidence()),
@@ -369,7 +371,7 @@ pub(crate) mod test {
             swid: Some(corresponding_swid()),
             modified: Some(true),
             pedigree: Some(corresponding_pedigree()),
-            external_references: Some(vec![corresponding_external_reference()]),
+            external_references: Some(corresponding_external_references()),
             properties: Some(corresponding_properties()),
             components: Some(vec![]),
             evidence: Some(corresponding_evidence()),
