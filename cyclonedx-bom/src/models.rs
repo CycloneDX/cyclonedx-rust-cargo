@@ -28,7 +28,7 @@ pub struct Bom {
     pub version: u32,
     pub serial_number: Option<UrnUuid>,
     pub metadata: Option<Metadata>,
-    pub components: Option<Vec<Component>>,
+    pub components: Option<Components>,
     pub services: Option<Services>,
     pub external_references: Option<ExternalReferences>,
     pub dependencies: Option<Dependencies>,
@@ -111,14 +111,17 @@ pub struct Component {
     pub pedigree: Option<Pedigree>,
     pub external_references: Option<ExternalReferences>,
     pub properties: Option<Properties>,
-    pub components: Option<Vec<Component>>,
+    pub components: Option<Components>,
     pub evidence: Option<ComponentEvidence>,
 }
 
 #[derive(Debug, PartialEq)]
+pub struct Components(pub Vec<Component>);
+
+#[derive(Debug, PartialEq)]
 pub struct ComponentEvidence {
     pub licenses: Option<Licenses>,
-    pub copyright: Option<Vec<Copyright>>,
+    pub copyright: Option<CopyrightTexts>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -132,7 +135,10 @@ pub struct Composition {
 pub struct Compositions(pub Vec<Composition>);
 
 #[derive(Debug, PartialEq)]
-pub struct Copyright(pub(crate) String);
+pub struct Copyright(pub String);
+
+#[derive(Debug, PartialEq)]
+pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
 
 #[derive(Debug, PartialEq)]
 pub struct DataClassification {
@@ -252,9 +258,9 @@ pub struct Patches(pub Vec<Patch>);
 
 #[derive(Debug, PartialEq)]
 pub struct Pedigree {
-    pub ancestors: Option<Vec<Component>>,
-    pub descendants: Option<Vec<Component>>,
-    pub variants: Option<Vec<Component>>,
+    pub ancestors: Option<Components>,
+    pub descendants: Option<Components>,
+    pub variants: Option<Components>,
     pub commits: Option<Commits>,
     pub patches: Option<Patches>,
     pub notes: Option<String>,

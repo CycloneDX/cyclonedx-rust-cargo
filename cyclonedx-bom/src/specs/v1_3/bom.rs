@@ -16,17 +16,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::specs::v1_3::{
+    component::Components, composition::Compositions, dependency::Dependencies,
+    external_reference::ExternalReferences, metadata::Metadata, property::Properties,
+    service::Services,
+};
 use crate::{
     models::{self},
     utilities::convert_optional,
-};
-use crate::{
-    specs::v1_3::{
-        component::Component, composition::Compositions, dependency::Dependencies,
-        external_reference::ExternalReferences, metadata::Metadata, property::Properties,
-        service::Services,
-    },
-    utilities::convert_optional_vec,
 };
 use serde::{Deserialize, Serialize};
 
@@ -40,7 +37,7 @@ pub(crate) struct Bom {
     #[serde(skip_serializing_if = "Option::is_none")]
     metadata: Option<Metadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    components: Option<Vec<Component>>,
+    components: Option<Components>,
     #[serde(skip_serializing_if = "Option::is_none")]
     services: Option<Services>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -61,7 +58,7 @@ impl From<models::Bom> for Bom {
             version: Some(other.version),
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
-            components: convert_optional_vec(other.components),
+            components: convert_optional(other.components),
             services: convert_optional(other.services),
             external_references: convert_optional(other.external_references),
             dependencies: convert_optional(other.dependencies),
@@ -77,7 +74,7 @@ impl From<Bom> for models::Bom {
             version: other.version.unwrap_or(1),
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
-            components: convert_optional_vec(other.components),
+            components: convert_optional(other.components),
             services: convert_optional(other.services),
             external_references: convert_optional(other.external_references),
             dependencies: convert_optional(other.dependencies),
@@ -110,7 +107,7 @@ impl From<UrnUuid> for models::UrnUuid {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::specs::v1_3::{
-        component::test::{corresponding_component, example_component},
+        component::test::{corresponding_components, example_components},
         composition::test::{corresponding_compositions, example_compositions},
         dependency::test::{corresponding_dependencies, example_dependencies},
         external_reference::test::{
@@ -170,7 +167,7 @@ pub(crate) mod test {
             version: Some(1),
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: Some(example_metadata()),
-            components: Some(vec![example_component()]),
+            components: Some(example_components()),
             services: Some(example_services()),
             external_references: Some(example_external_references()),
             dependencies: Some(example_dependencies()),
@@ -184,7 +181,7 @@ pub(crate) mod test {
             version: 1,
             serial_number: Some(models::UrnUuid("fake-uuid".to_string())),
             metadata: Some(corresponding_metadata()),
-            components: Some(vec![corresponding_component()]),
+            components: Some(corresponding_components()),
             services: Some(corresponding_services()),
             external_references: Some(corresponding_external_references()),
             dependencies: Some(corresponding_dependencies()),
