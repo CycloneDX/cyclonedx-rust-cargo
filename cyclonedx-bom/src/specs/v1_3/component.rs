@@ -22,7 +22,7 @@ use crate::{
         uri::{Purl, Uri},
     },
     specs::v1_3::{
-        attached_text::AttachedText, code::Commit, code::Patch,
+        attached_text::AttachedText, code::Commits, code::Patches,
         external_reference::ExternalReferences, hash::Hashes, license::Licenses,
         organization::OrganizationalEntity, property::Properties,
     },
@@ -239,9 +239,9 @@ struct Pedigree {
     #[serde(skip_serializing_if = "Option::is_none")]
     variants: Option<Vec<Component>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    commits: Option<Vec<Commit>>,
+    commits: Option<Commits>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    patches: Option<Vec<Patch>>,
+    patches: Option<Patches>,
     #[serde(skip_serializing_if = "Option::is_none")]
     notes: Option<String>,
 }
@@ -252,8 +252,8 @@ impl From<models::Pedigree> for Pedigree {
             ancestors: convert_optional_vec(other.ancestors),
             descendants: convert_optional_vec(other.descendants),
             variants: convert_optional_vec(other.variants),
-            commits: convert_optional_vec(other.commits),
-            patches: convert_optional_vec(other.patches),
+            commits: convert_optional(other.commits),
+            patches: convert_optional(other.patches),
             notes: other.notes,
         }
     }
@@ -265,8 +265,8 @@ impl From<Pedigree> for models::Pedigree {
             ancestors: convert_optional_vec(other.ancestors),
             descendants: convert_optional_vec(other.descendants),
             variants: convert_optional_vec(other.variants),
-            commits: convert_optional_vec(other.commits),
-            patches: convert_optional_vec(other.patches),
+            commits: convert_optional(other.commits),
+            patches: convert_optional(other.patches),
             notes: other.notes,
         }
     }
@@ -308,7 +308,9 @@ impl From<MimeType> for models::MimeType {
 pub(crate) mod test {
     use crate::specs::v1_3::{
         attached_text::test::{corresponding_attached_text, example_attached_text},
-        code::test::{corresponding_commit, corresponding_patch, example_commit, example_patch},
+        code::test::{
+            corresponding_commits, corresponding_patches, example_commits, example_patches,
+        },
         external_reference::test::{
             corresponding_external_references, example_external_references,
         },
@@ -415,8 +417,8 @@ pub(crate) mod test {
             ancestors: Some(vec![]),
             descendants: Some(vec![]),
             variants: Some(vec![]),
-            commits: Some(vec![example_commit()]),
-            patches: Some(vec![example_patch()]),
+            commits: Some(example_commits()),
+            patches: Some(example_patches()),
             notes: Some("notes".to_string()),
         }
     }
@@ -426,8 +428,8 @@ pub(crate) mod test {
             ancestors: Some(vec![]),
             descendants: Some(vec![]),
             variants: Some(vec![]),
-            commits: Some(vec![corresponding_commit()]),
-            patches: Some(vec![corresponding_patch()]),
+            commits: Some(corresponding_commits()),
+            patches: Some(corresponding_patches()),
             notes: Some("notes".to_string()),
         }
     }

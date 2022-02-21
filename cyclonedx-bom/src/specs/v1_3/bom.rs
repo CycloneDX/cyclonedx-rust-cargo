@@ -22,7 +22,7 @@ use crate::{
 };
 use crate::{
     specs::v1_3::{
-        component::Component, composition::Composition, dependency::Dependencies,
+        component::Component, composition::Compositions, dependency::Dependencies,
         external_reference::ExternalReferences, metadata::Metadata, property::Properties,
         service::Services,
     },
@@ -48,7 +48,7 @@ pub(crate) struct Bom {
     #[serde(skip_serializing_if = "Option::is_none")]
     dependencies: Option<Dependencies>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    compositions: Option<Vec<Composition>>,
+    compositions: Option<Compositions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
 }
@@ -65,7 +65,7 @@ impl From<models::Bom> for Bom {
             services: convert_optional(other.services),
             external_references: convert_optional(other.external_references),
             dependencies: convert_optional(other.dependencies),
-            compositions: convert_optional_vec(other.compositions),
+            compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
         }
     }
@@ -81,7 +81,7 @@ impl From<Bom> for models::Bom {
             services: convert_optional(other.services),
             external_references: convert_optional(other.external_references),
             dependencies: convert_optional(other.dependencies),
-            compositions: convert_optional_vec(other.compositions),
+            compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
         }
     }
@@ -111,7 +111,7 @@ impl From<UrnUuid> for models::UrnUuid {
 pub(crate) mod test {
     use crate::specs::v1_3::{
         component::test::{corresponding_component, example_component},
-        composition::test::{corresponding_composition, example_composition},
+        composition::test::{corresponding_compositions, example_compositions},
         dependency::test::{corresponding_dependencies, example_dependencies},
         external_reference::test::{
             corresponding_external_references, example_external_references,
@@ -174,7 +174,7 @@ pub(crate) mod test {
             services: Some(example_services()),
             external_references: Some(example_external_references()),
             dependencies: Some(example_dependencies()),
-            compositions: Some(vec![example_composition()]),
+            compositions: Some(example_compositions()),
             properties: Some(example_properties()),
         }
     }
@@ -188,7 +188,7 @@ pub(crate) mod test {
             services: Some(corresponding_services()),
             external_references: Some(corresponding_external_references()),
             dependencies: Some(corresponding_dependencies()),
-            compositions: Some(vec![corresponding_composition()]),
+            compositions: Some(corresponding_compositions()),
             properties: Some(corresponding_properties()),
         }
     }
