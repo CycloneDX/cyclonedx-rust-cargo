@@ -32,7 +32,7 @@ pub struct Bom {
     pub services: Option<Services>,
     pub external_references: Option<ExternalReferences>,
     pub dependencies: Option<Dependencies>,
-    pub compositions: Option<Vec<Composition>>,
+    pub compositions: Option<Compositions>,
     pub properties: Option<Properties>,
 }
 
@@ -86,6 +86,9 @@ pub struct Commit {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct Commits(pub Vec<Commit>);
+
+#[derive(Debug, PartialEq)]
 pub struct Component {
     pub component_type: Classification,
     pub mime_type: Option<MimeType>,
@@ -124,6 +127,9 @@ pub struct Composition {
     pub assemblies: Option<Vec<BomReference>>,
     pub dependencies: Option<Vec<BomReference>>,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct Compositions(pub Vec<Composition>);
 
 #[derive(Debug, PartialEq)]
 pub struct Copyright(pub(crate) String);
@@ -237,17 +243,20 @@ pub struct OrganizationalEntity {
 #[derive(Debug, PartialEq)]
 pub struct Patch {
     pub patch_type: PatchClassification,
-    pub diff: Diff,
+    pub diff: Option<Diff>,
     pub resolves: Option<Vec<Issue>>,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct Patches(pub Vec<Patch>);
 
 #[derive(Debug, PartialEq)]
 pub struct Pedigree {
     pub ancestors: Option<Vec<Component>>,
     pub descendants: Option<Vec<Component>>,
     pub variants: Option<Vec<Component>>,
-    pub commits: Option<Vec<Commit>>,
-    pub patches: Option<Vec<Patch>>,
+    pub commits: Option<Commits>,
+    pub patches: Option<Patches>,
     pub notes: Option<String>,
 }
 
