@@ -28,11 +28,21 @@ cargo cyclonedx
 
 This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists in the workspace.
 
-#### Common command-line options
+#### Command-line options
 
 * `--format` (`xml` or `json`): Defaults to XML output
 * `--all`: Include the transitive dependencies for the project rather than only the top-level dependencies
 * `--manifest-path`: where to find the `Cargo.toml` file if other than the default `cargo` location of the current directory
+* `--output-cdx`: Include `.cdx` in the filename as described in [the recognized file patterns](https://cyclonedx.org/specification/overview/#recognized-file-patterns)
+* `--output-pattern` (`bom` or `package`)
+  * `bom`: Outputs a prefix of `bom` for the filename
+  * `package`: Outputs a prefix using the `Cargo.toml` package name for the filename
+* `--output-prefix`: Outputs a custom prefix for the filename
+
+Notes:
+
+* `--output-cdx`, `--output-pattern`, and `--output-prefix` are a group of options. Passing any of them as arguments will override any `output_options` configurations in `Cargo.toml` files.
+* `--output-pattern` and `--output-prefix` cannot be passed as arguments at the same time.
 
 ### Manifest Configuration
 
@@ -46,6 +56,20 @@ Option                  | Values (*default)   | Description
 ----------------------- | ------------------- | --------------------------
 `included_dependencies` | `top-level`*, `all` | Either only direct (`top-level`) or including transitive (`all`) dependencies
 `format`                | `xml`*, `json`      | Output format for the SBOM
+`output_options`        | `<defined below>`   | A collection of options for file output
+
+#### Output Options
+
+Option    | Values (*default)   | Description
+--------- | ------------------- | --------------------------
+`cdx`     | `true` / `false`*   | Determines if `.cdx` is included in the filename as described in [the recognized file patterns](https://cyclonedx.org/specification/overview/#recognized-file-patterns)
+`pattern` | `bom`*, `package`   | `bom` outputs `bom`, while `package` outputs the `Cargo.toml` package name as the prefix
+`prefix`  | `<filename prefix>` | Outputs a custom value for the prefix
+
+Notes:
+
+* `output_options` values are merged as a single configuration, so a package-level configuration will override the whole workspace-level configuration.
+* `pattern` and `prefix` cannot be configured at the same time.
 
 #### Precedence
 
@@ -56,13 +80,13 @@ Configuration options will be merged and applied in the following order from low
 3. Package manifest metadata
 4. Command-line options
 
-
 #### Example Workspace Configuration
 
 ``` toml
 [workspace.metadata.cyclonedx]
 included_dependencies = "top-level"
 format = "xml"
+output_options = { cdx = false, prefix = "cyclonedx" }
 ```
 
 #### Example Package Configuration
@@ -73,6 +97,7 @@ You can also specify your configuration in using package metadata in your packag
 [package.metadata.cyclonedx]
 included_dependencies = "all"
 format = "json"
+output_options = { cdx = true, pattern = "package" }
 ```
 
 ## Copyright & License

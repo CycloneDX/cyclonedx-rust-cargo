@@ -69,7 +69,7 @@ fn main() -> anyhow::Result<()> {
     setup_logging(&args, &mut config)?;
 
     let manifest_path = locate_manifest(&args)?;
-    let cli_config = args.as_config();
+    let cli_config = args.as_config()?;
 
     let ws = Workspace::new(&manifest_path, &config)?;
 
@@ -77,9 +77,11 @@ fn main() -> anyhow::Result<()> {
     let boms = SbomGenerator::create_sboms(ws, &cli_config)?;
     log::trace!("SBOM generation finished");
 
+    log::trace!("SBOM output started");
     for bom in boms {
         bom.write_to_file()?;
     }
+    log::trace!("SBOM output finished");
 
     Ok(())
 }

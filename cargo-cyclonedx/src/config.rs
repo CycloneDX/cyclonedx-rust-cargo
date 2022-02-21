@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use thiserror::Error;
+
 /*
  * This file is part of CycloneDX Rust Cargo.
  *
@@ -18,23 +20,8 @@ use std::str::FromStr;
  * SPDX-License-Identifier: Apache-2.0
  */
 use crate::format::Format;
-use serde::Deserialize;
-use thiserror::Error;
 
-pub fn config_from_toml(value: &toml::Value) -> Result<SbomConfig, ConfigError> {
-    let wrapper: Result<ConfigWrapper, _> = value.clone().try_into();
-
-    wrapper
-        .map(|w| w.cyclonedx.unwrap_or_else(SbomConfig::empty_config))
-        .map_err(|e| ConfigError::TomlConfigError(format!("{}", e)))
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-struct ConfigWrapper {
-    cyclonedx: Option<SbomConfig>,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct SbomConfig {
     pub format: Option<Format>,
     pub included_dependencies: Option<IncludedDependencies>,
@@ -54,7 +41,10 @@ impl SbomConfig {
         SbomConfig {
             format: other.format.or(self.format),
             included_dependencies: other.included_dependencies.or(self.included_dependencies),
-            output_options: other.output_options.or(self.output_options),
+            output_options: other
+                .output_options
+                .clone()
+                .or_else(|| self.output_options.clone()),
         }
     }
 
@@ -65,13 +55,15 @@ impl SbomConfig {
     pub fn included_dependencies(&self) -> IncludedDependencies {
         self.included_dependencies.unwrap_or_default()
     }
+
+    pub fn output_options(&self) -> OutputOptions {
+        self.output_options.clone().unwrap_or_default()
+    }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum IncludedDependencies {
-    #[serde(rename(deserialize = "top-level"))]
     TopLevelDependencies,
-    #[serde(rename(deserialize = "all"))]
     AllDependencies,
 }
 
@@ -93,33 +85,67 @@ impl FromStr for IncludedDependencies {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OutputOptions {
-    #[serde(rename(deserialize = "cdx"))]
-    pub cdx_extension: Option<bool>,
-    #[serde(rename(deserialize = "pattern"))]
-    pub prefix_pattern: Option<PrefixPattern>,
-    // TODO: Unsure what to do here. I can do &str instead but then lifetime annotations
-    // become required on every parent struct to derive Copy. Not sure if that's correct
-    //
-    // #[serde(rename(deserialize = "cdx"))]
-    // pub prefix_custom: Option<String>,
+    pub cdx_extension: CdxExtension,
+    pub prefix: Prefix,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
-#[serde(rename_all(deserialize = "lowercase"))]
-pub enum PrefixPattern {
+impl Default for OutputOptions {
+    fn default() -> Self {
+        Self {
+            cdx_extension: CdxExtension::default(),
+            prefix: Prefix::Pattern(Pattern::Bom),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CdxExtension {
+    Included,
+    NotIncluded,
+}
+
+impl CdxExtension {
+    pub fn extension(&self) -> String {
+        match &self {
+            CdxExtension::Included => ".cdx".to_string(),
+            CdxExtension::NotIncluded => "".to_string(),
+        }
+    }
+}
+
+impl Default for CdxExtension {
+    fn default() -> Self {
+        Self::NotIncluded
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Prefix {
+    Pattern(Pattern),
+    Custom(CustomPrefix),
+}
+
+impl Default for Prefix {
+    fn default() -> Self {
+        Self::Pattern(Pattern::default())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Pattern {
     Bom,
     Package,
 }
 
-impl Default for PrefixPattern {
+impl Default for Pattern {
     fn default() -> Self {
         Self::Bom
     }
 }
 
-impl FromStr for PrefixPattern {
+impl FromStr for Pattern {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -131,10 +157,33 @@ impl FromStr for PrefixPattern {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum ConfigError {
-    #[error("Failed to deserialize configuration from Toml: {0}")]
-    TomlConfigError(String),
+#[derive(Debug, Clone, PartialEq)]
+pub struct CustomPrefix(String);
+
+impl CustomPrefix {
+    pub fn new(custom_prefix: impl Into<String>) -> Result<Self, PrefixError> {
+        let prefix = custom_prefix.into();
+
+        if prefix.contains(std::path::MAIN_SEPARATOR) {
+            Err(PrefixError::CustomPrefixError(
+                std::path::MAIN_SEPARATOR.to_string(),
+            ))
+        } else {
+            Ok(Self(prefix))
+        }
+    }
+}
+
+impl ToString for CustomPrefix {
+    fn to_string(&self) -> String {
+        self.0.clone()
+    }
+}
+
+#[derive(Error, Debug, PartialEq)]
+pub enum PrefixError {
+    #[error("Illegal characters in custom prefix string: {0}")]
+    CustomPrefixError(String),
 }
 
 #[cfg(test)]
@@ -142,38 +191,26 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_should_deserialize_from_toml_value() {
-        let toml = r#"
-[cyclonedx]
-format = "json"
-included_dependencies = "top-level"
-output_options = { cdx = true, pattern = "bom", prefix = "" }
-"#;
+    fn it_should_error_for_a_prefix_with_a_path_separator() {
+        let prefix = format!("directory{}prefix", std::path::MAIN_SEPARATOR.to_string());
 
-        let actual: ConfigWrapper = toml::from_str(toml).expect("Failed to parse toml");
+        let actual = CustomPrefix::new(prefix)
+            .expect_err("Should not have been able to create CustomPrefix with path separator");
 
-        let expected = SbomConfig {
-            format: Some(Format::Json),
-            included_dependencies: Some(IncludedDependencies::TopLevelDependencies),
-            output_options: Some(OutputOptions {
-                cdx_extension: Some(true),
-                prefix_pattern: Some(PrefixPattern::Bom),
-            }),
-        };
+        let expected = PrefixError::CustomPrefixError(std::path::MAIN_SEPARATOR.to_string());
 
-        assert_eq!(actual.cyclonedx, Some(expected));
+        assert_eq!(actual, expected);
     }
 
     #[test]
-    fn it_should_ignore_other_packages_from_toml_value() {
-        let toml = r#"
-[notourpackage]
-format = "json"
-included_dependencies = "top-level"
-"#;
+    fn it_should_create_a_custom_prefix_from_a_valid_string() {
+        let prefix = "customprefix".to_string();
 
-        let actual: ConfigWrapper = toml::from_str(toml).expect("Failed to parse toml");
+        let actual = CustomPrefix::new(prefix.clone())
+            .expect("Should have been able to create CustomPrefix");
 
-        assert_eq!(actual.cyclonedx, None);
+        let expected = CustomPrefix(prefix);
+
+        assert_eq!(actual, expected);
     }
 }
