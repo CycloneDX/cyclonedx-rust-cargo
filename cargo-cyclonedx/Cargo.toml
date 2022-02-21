@@ -21,7 +21,7 @@ path = "src/main.rs"
 lto = true
 
 [dependencies]
-anyhow = "1.0.53"
+anyhow = "1.0.54"
 cargo = "0.59.0"
 cargo_metadata = "0.14.2"
 chrono = { version = "0.4.19", features = ["serde"] }
