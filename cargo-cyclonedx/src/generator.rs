@@ -15,11 +15,13 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-use crate::config::config_from_toml;
-use crate::config::ConfigError;
 use crate::config::IncludedDependencies;
+use crate::config::Pattern;
+use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::format::Format;
+use crate::toml::config_from_toml;
+use crate::toml::ConfigError;
 use crate::traits::ToXml;
 use crate::Bom;
 use crate::Metadata;
@@ -45,7 +47,11 @@ impl SbomGenerator {
         ws: Workspace,
         config_override: &SbomConfig,
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
-        let workspace_config = config_from_metadata(ws.custom_metadata())?;
+        log::trace!(
+            "Processing the workspace {} configuration",
+            ws.root_manifest().to_string_lossy()
+        );
+        let workspace_config = config_from_toml(ws.custom_metadata())?;
         let members: Vec<Package> = ws.members().cloned().collect();
 
         let (package_ids, resolve) =
@@ -56,10 +62,20 @@ impl SbomGenerator {
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
-            let package_config = config_from_metadata(member.manifest().custom_metadata())?;
+            log::trace!(
+                "Processing the package {} configuration",
+                member.manifest_path().to_string_lossy()
+            );
+            let package_config = config_from_toml(member.manifest().custom_metadata())?;
             let config = workspace_config
                 .merge(&package_config)
                 .merge(config_override);
+
+            log::trace!("Config from workspace metadata: {:?}", workspace_config);
+            log::trace!("Config from package metadata: {:?}", package_config);
+            log::trace!("Config from config override: {:?}", config_override);
+            log::debug!("Config from merged config: {:?}", config);
+
             let dependencies =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(&members, &package_ids, &resolve)?
@@ -74,6 +90,7 @@ impl SbomGenerator {
             let generated = GeneratedSbom {
                 bom,
                 manifest_path: member.manifest_path().to_path_buf(),
+                package_name: member.name().to_string(),
                 sbom_config: config,
             };
 
@@ -106,16 +123,8 @@ pub enum GeneratorError {
         error: anyhow::Error,
     },
 
-    #[error("Error with Cargo custom_metadata: {0}")]
-    CustomMetadataTomlError(ConfigError),
-}
-
-fn config_from_metadata(metadata: Option<&toml::Value>) -> Result<SbomConfig, GeneratorError> {
-    if let Some(metadata) = metadata {
-        config_from_toml(metadata).map_err(GeneratorError::CustomMetadataTomlError)
-    } else {
-        Ok(SbomConfig::empty_config())
-    }
+    #[error("Error with Cargo custom_metadata")]
+    CustomMetadataTomlError(#[from] ConfigError),
 }
 
 /// attempt to treat the Cargo.toml as a simple project to get the metadata
@@ -199,27 +208,26 @@ fn all_dependencies(
 ///
 /// * `bom` - Generated SBOM
 /// * `manifest_path` - Folder containing the `Cargo.toml` manifest
+/// * `package_name` - Package from which this SBOM was generated
 /// * `sbom_config` - Configuration options used during generation
 pub struct GeneratedSbom {
     pub bom: Bom,
     pub manifest_path: PathBuf,
+    pub package_name: String,
     pub sbom_config: SbomConfig,
 }
 
 impl GeneratedSbom {
     /// Writes SBOM to either a JSON or XML file in the same folder as `Cargo.toml` manifest
     pub fn write_to_file(&self) -> Result<(), SbomWriterError> {
+        let path = self.manifest_path.with_file_name(self.filename());
+        log::info!("Outputting {}", path.display());
+        let file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
         match self.sbom_config.format() {
             Format::Json => {
-                let path = self.manifest_path.with_file_name("bom.json");
-                log::info!("Outputting {}", path.display());
-                let file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
                 serde_json::to_writer_pretty(file, &self.bom)?;
             }
             Format::Xml => {
-                let path = self.manifest_path.with_file_name("bom.xml");
-                log::info!("Outputting {}", path.display());
-                let file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
                 let file = LineWriter::new(file);
                 let mut xml = XmlWriter::new(file);
 
@@ -233,6 +241,22 @@ impl GeneratedSbom {
         }
 
         Ok(())
+    }
+
+    fn filename(&self) -> String {
+        let output_options = self.sbom_config.output_options();
+        let prefix = match output_options.prefix {
+            Prefix::Pattern(Pattern::Bom) => "bom".to_string(),
+            Prefix::Pattern(Pattern::Package) => self.package_name.clone(),
+            Prefix::Custom(c) => c.to_string(),
+        };
+
+        format!(
+            "{}{}.{}",
+            prefix,
+            output_options.cdx_extension.extension(),
+            self.sbom_config.format()
+        )
     }
 }
 
