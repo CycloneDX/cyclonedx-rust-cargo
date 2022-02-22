@@ -16,16 +16,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::specs::v1_3::{
-    component::Components, composition::Compositions, dependency::Dependencies,
-    external_reference::ExternalReferences, metadata::Metadata, property::Properties,
-    service::Services,
-};
 use crate::{
     models::{self},
     utilities::convert_optional,
+    xml::to_xml_write_error,
+};
+use crate::{
+    specs::v1_3::{
+        component::Components, composition::Compositions, dependency::Dependencies,
+        external_reference::ExternalReferences, metadata::Metadata, property::Properties,
+        service::Services,
+    },
+    xml::ToXml,
 };
 use serde::{Deserialize, Serialize};
+use xml::writer::XmlEvent;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -84,6 +89,67 @@ impl From<Bom> for models::Bom {
     }
 }
 
+const BOM_TAG: &str = "bom";
+const SERIAL_NUMBER_ATTR: &str = "serialNumber";
+const VERSION_ATTR: &str = "version";
+
+impl ToXml for Bom {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        let version = self.version.map(|v| format!("{}", v));
+        let mut bom_start_element =
+            XmlEvent::start_element(BOM_TAG).default_ns("http://cyclonedx.org/schema/bom/1.3");
+
+        if let Some(serial_number) = &self.serial_number {
+            bom_start_element = bom_start_element.attr(SERIAL_NUMBER_ATTR, &serial_number.0);
+        }
+
+        if let Some(version) = &version {
+            bom_start_element = bom_start_element.attr(VERSION_ATTR, version);
+        }
+
+        writer
+            .write(bom_start_element)
+            .map_err(to_xml_write_error(BOM_TAG))?;
+
+        if let Some(metadata) = &self.metadata {
+            metadata.write_xml_element(writer)?;
+        }
+
+        if let Some(components) = &self.components {
+            components.write_xml_element(writer)?;
+        }
+
+        if let Some(services) = &self.services {
+            services.write_xml_element(writer)?;
+        }
+
+        if let Some(external_references) = &self.external_references {
+            external_references.write_xml_element(writer)?;
+        }
+
+        if let Some(dependencies) = &self.dependencies {
+            dependencies.write_xml_element(writer)?;
+        }
+
+        if let Some(compositions) = &self.compositions {
+            compositions.write_xml_element(writer)?;
+        }
+
+        if let Some(properties) = &self.properties {
+            properties.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(BOM_TAG))?;
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 enum BomFormat {
     CycloneDX,
@@ -106,37 +172,32 @@ impl From<UrnUuid> for models::UrnUuid {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::specs::v1_3::{
-        component::test::{corresponding_components, example_components},
-        composition::test::{corresponding_compositions, example_compositions},
-        dependency::test::{corresponding_dependencies, example_dependencies},
-        external_reference::test::{
-            corresponding_external_references, example_external_references,
+    use crate::{
+        specs::v1_3::{
+            component::test::{corresponding_components, example_components},
+            composition::test::{corresponding_compositions, example_compositions},
+            dependency::test::{corresponding_dependencies, example_dependencies},
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            metadata::test::{corresponding_metadata, example_metadata},
+            property::test::{corresponding_properties, example_properties},
+            service::test::{corresponding_services, example_services},
         },
-        metadata::test::{corresponding_metadata, example_metadata},
-        property::test::{corresponding_properties, example_properties},
-        service::test::{corresponding_services, example_services},
+        xml::test::write_element_to_string,
     };
 
     use super::*;
 
     #[test]
     fn it_should_serialize_to_json() {
-        let actual = Bom {
-            bom_format: BomFormat::CycloneDX,
-            spec_version: "1.3".to_string(),
-            version: Some(1),
-            serial_number: Some(UrnUuid("fake-uuid".to_string())),
-            metadata: None,
-            components: None,
-            services: None,
-            external_references: None,
-            dependencies: None,
-            compositions: None,
-            properties: None,
-        };
+        insta::assert_json_snapshot!(minimal_bom_example());
+    }
 
-        insta::assert_json_snapshot!(actual);
+    #[test]
+    fn it_should_serialize_to_xml() {
+        let xml_output = write_element_to_string(minimal_bom_example());
+        insta::assert_snapshot!(xml_output);
     }
 
     #[test]
@@ -144,6 +205,12 @@ pub(crate) mod test {
         let actual = full_bom_example();
 
         insta::assert_json_snapshot!(actual);
+    }
+
+    #[test]
+    fn it_should_serialize_a_complex_example_to_xml() {
+        let xml_output = write_element_to_string(full_bom_example());
+        insta::assert_snapshot!(xml_output);
     }
 
     #[test]
@@ -158,6 +225,22 @@ pub(crate) mod test {
         let model = corresponding_internal_model();
         let spec: Bom = model.into();
         assert_eq!(spec, full_bom_example());
+    }
+
+    pub(crate) fn minimal_bom_example() -> Bom {
+        Bom {
+            bom_format: BomFormat::CycloneDX,
+            spec_version: "1.3".to_string(),
+            version: Some(1),
+            serial_number: Some(UrnUuid("fake-uuid".to_string())),
+            metadata: None,
+            components: None,
+            services: None,
+            external_references: None,
+            dependencies: None,
+            compositions: None,
+            properties: None,
+        }
     }
 
     pub(crate) fn full_bom_example() -> Bom {

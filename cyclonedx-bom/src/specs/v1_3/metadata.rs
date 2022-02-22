@@ -22,12 +22,14 @@ use crate::{
         component::Component, license::Licenses, organization::OrganizationalContact,
         organization::OrganizationalEntity, property::Properties, tool::Tools,
     },
+    xml::{to_xml_write_error, write_simple_tag, ToInnerXml, ToXml},
 };
 use crate::{
     models,
     utilities::{convert_optional, convert_optional_vec},
 };
 use serde::{Deserialize, Serialize};
+use xml::writer::XmlEvent;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -80,16 +82,98 @@ impl From<Metadata> for models::Metadata {
     }
 }
 
+const METADATA_TAG: &str = "metadata";
+const TIMESTAMP_TAG: &str = "timestamp";
+const AUTHORS_TAG: &str = "authors";
+const AUTHOR_TAG: &str = "author";
+const MANUFACTURE_TAG: &str = "manufacture";
+const SUPPLIER_TAG: &str = "supplier";
+
+impl ToXml for Metadata {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(METADATA_TAG))
+            .map_err(to_xml_write_error(METADATA_TAG))?;
+
+        if let Some(timestamp) = &self.timestamp {
+            write_simple_tag(writer, TIMESTAMP_TAG, timestamp)?;
+        }
+
+        if let Some(tools) = &self.tools {
+            tools.write_xml_element(writer)?;
+        }
+
+        if let Some(authors) = &self.authors {
+            writer
+                .write(XmlEvent::start_element(AUTHORS_TAG))
+                .map_err(to_xml_write_error(AUTHORS_TAG))?;
+
+            for author in authors {
+                if author.will_write() {
+                    author.write_xml_named_element(writer, AUTHOR_TAG)?;
+                }
+            }
+
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(AUTHORS_TAG))?;
+        }
+
+        if let Some(component) = &self.component {
+            component.write_xml_element(writer)?;
+        }
+
+        if let Some(manufacture) = &self.manufacture {
+            manufacture.write_xml_named_element(writer, MANUFACTURE_TAG)?
+        }
+
+        if let Some(supplier) = &self.supplier {
+            supplier.write_xml_named_element(writer, SUPPLIER_TAG)?;
+        }
+
+        if let Some(licenses) = &self.licenses {
+            licenses.write_xml_element(writer)?;
+        }
+
+        if let Some(properties) = &self.properties {
+            properties.write_xml_element(writer)?;
+        }
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(METADATA_TAG))?;
+
+        Ok(())
+    }
+
+    fn will_write(&self) -> bool {
+        self.timestamp.is_some()
+            || self.tools.is_some()
+            || self.authors.is_some()
+            || self.component.is_some()
+            || self.manufacture.is_some()
+            || self.supplier.is_some()
+            || self.licenses.is_some()
+            || self.properties.is_some()
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::specs::v1_3::{
-        component::test::{corresponding_component, example_component},
-        license::test::{corresponding_licenses, example_licenses},
-        organization::test::{
-            corresponding_contact, corresponding_entity, example_contact, example_entity,
+    use crate::{
+        specs::v1_3::{
+            component::test::{corresponding_component, example_component},
+            license::test::{corresponding_licenses, example_licenses},
+            organization::test::{
+                corresponding_contact, corresponding_entity, example_contact, example_entity,
+            },
+            property::test::{corresponding_properties, example_properties},
+            tool::test::{corresponding_tools, example_tools},
         },
-        property::test::{corresponding_properties, example_properties},
-        tool::test::{corresponding_tools, example_tools},
+        xml::test::write_element_to_string,
     };
 
     use super::*;
@@ -118,5 +202,11 @@ pub(crate) mod test {
             licenses: Some(corresponding_licenses()),
             properties: Some(corresponding_properties()),
         }
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_element_to_string(example_metadata());
+        insta::assert_snapshot!(xml_output);
     }
 }
