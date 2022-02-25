@@ -151,11 +151,7 @@ fn could_be_application(pkg: &Package) -> bool {
 
 /// Is the `package` an application? This will tell us!
 fn is_an_application(pkg: &cargo_metadata::Package) -> bool {
-    let mut kinds = pkg
-        .targets
-        .iter()
-        .map(|target| target.clone().kind)
-        .flatten();
+    let mut kinds = pkg.targets.iter().flat_map(|target| target.clone().kind);
 
     kinds.any(|kind| kind == "bin")
 }

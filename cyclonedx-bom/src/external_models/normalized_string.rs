@@ -25,9 +25,9 @@ impl NormalizedString {
     pub fn new(value: &str) -> Self {
         let value = value
             .replace("\r\n", " ")
-            .replace("\r", " ")
-            .replace("\n", " ")
-            .replace("\t", " ");
+            .replace('\r', " ")
+            .replace('\n', " ")
+            .replace('\t', " ");
         NormalizedString(value)
     }
 
