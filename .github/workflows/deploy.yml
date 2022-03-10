@@ -22,8 +22,8 @@ jobs:
           override: true
       - name: Cargo bump
         run: |
-          cargo install cargo-bump
-          cargo bump ${{ github.event.inputs.releaseType }}
+          cargo install cargo-edit
+          cargo set-version --package cargo-cyclonedx --bump ${{ github.event.inputs.releaseType }}
       - name: Retrieve new version
         run: |
           echo "::set-output name=CARGO_VERSION::$(cargo metadata | jq -r '.packages[] | select(.name == "cargo-cyclonedx") | .version')"
