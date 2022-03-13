@@ -29,8 +29,8 @@ use xml::writer::XmlEvent;
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub(crate) struct Dependencies(Vec<Dependency>);
 
-impl From<models::Dependencies> for Dependencies {
-    fn from(other: models::Dependencies) -> Self {
+impl From<models::dependency::Dependencies> for Dependencies {
+    fn from(other: models::dependency::Dependencies) -> Self {
         let mut dependencies_to_process = other.0;
         let mut flat_dependencies = HashSet::new();
 
@@ -57,7 +57,7 @@ impl From<models::Dependencies> for Dependencies {
     }
 }
 
-impl From<Dependencies> for models::Dependencies {
+impl From<Dependencies> for models::dependency::Dependencies {
     fn from(other: Dependencies) -> Self {
         Self(other.0.into_iter().map(std::convert::Into::into).collect())
     }
@@ -94,14 +94,14 @@ pub(crate) struct Dependency {
     depends_on: Vec<String>,
 }
 
-impl From<Dependency> for models::Dependency {
+impl From<Dependency> for models::dependency::Dependency {
     fn from(other: Dependency) -> Self {
         Self {
             dependency_ref: other.dependency_ref,
             dependencies: other
                 .depends_on
                 .into_iter()
-                .map(|d| models::Dependency {
+                .map(|d| models::dependency::Dependency {
                     dependency_ref: d,
                     dependencies: Vec::new(),
                 })
@@ -151,10 +151,10 @@ pub(crate) mod test {
         }])
     }
 
-    pub(crate) fn corresponding_dependencies() -> models::Dependencies {
-        models::Dependencies(vec![models::Dependency {
+    pub(crate) fn corresponding_dependencies() -> models::dependency::Dependencies {
+        models::dependency::Dependencies(vec![models::dependency::Dependency {
             dependency_ref: "ref".to_string(),
-            dependencies: vec![models::Dependency {
+            dependencies: vec![models::dependency::Dependency {
                 dependency_ref: "depends on".to_string(),
                 dependencies: Vec::new(),
             }],
@@ -163,20 +163,21 @@ pub(crate) mod test {
 
     #[test]
     fn it_flattens_dependencies() {
-        let actual: Dependencies = models::Dependencies(vec![models::Dependency {
-            dependency_ref: "a".to_string(),
-            dependencies: vec![
-                models::Dependency {
-                    dependency_ref: "b".to_string(),
-                    dependencies: Vec::new(),
-                },
-                models::Dependency {
-                    dependency_ref: "c".to_string(),
-                    dependencies: Vec::new(),
-                },
-            ],
-        }])
-        .into();
+        let actual: Dependencies =
+            models::dependency::Dependencies(vec![models::dependency::Dependency {
+                dependency_ref: "a".to_string(),
+                dependencies: vec![
+                    models::dependency::Dependency {
+                        dependency_ref: "b".to_string(),
+                        dependencies: Vec::new(),
+                    },
+                    models::dependency::Dependency {
+                        dependency_ref: "c".to_string(),
+                        dependencies: Vec::new(),
+                    },
+                ],
+            }])
+            .into();
         let expected = Dependencies(vec![Dependency {
             dependency_ref: "a".to_string(),
             depends_on: vec!["b".to_string(), "c".to_string()],
@@ -186,22 +187,22 @@ pub(crate) mod test {
 
     #[test]
     fn it_deduplicates_when_flattening_dependencies() {
-        let actual: Dependencies = models::Dependencies(vec![
-            models::Dependency {
+        let actual: Dependencies = models::dependency::Dependencies(vec![
+            models::dependency::Dependency {
                 dependency_ref: "a".to_string(),
-                dependencies: vec![models::Dependency {
+                dependencies: vec![models::dependency::Dependency {
                     dependency_ref: "common".to_string(),
-                    dependencies: vec![models::Dependency {
+                    dependencies: vec![models::dependency::Dependency {
                         dependency_ref: "common_transitive".to_string(),
                         dependencies: Vec::new(),
                     }],
                 }],
             },
-            models::Dependency {
+            models::dependency::Dependency {
                 dependency_ref: "b".to_string(),
-                dependencies: vec![models::Dependency {
+                dependencies: vec![models::dependency::Dependency {
                     dependency_ref: "common".to_string(),
-                    dependencies: vec![models::Dependency {
+                    dependencies: vec![models::dependency::Dependency {
                         dependency_ref: "common_transitive".to_string(),
                         dependencies: Vec::new(),
                     }],

@@ -33,8 +33,8 @@ pub(crate) struct AttachedText {
     content: String,
 }
 
-impl From<models::AttachedText> for AttachedText {
-    fn from(other: models::AttachedText) -> Self {
+impl From<models::attached_text::AttachedText> for AttachedText {
+    fn from(other: models::attached_text::AttachedText) -> Self {
         Self {
             content_type: other.content_type.map(|n| n.0),
             encoding: other.encoding.map(|e| e.to_string()),
@@ -43,11 +43,13 @@ impl From<models::AttachedText> for AttachedText {
     }
 }
 
-impl From<AttachedText> for models::AttachedText {
+impl From<AttachedText> for models::attached_text::AttachedText {
     fn from(other: AttachedText) -> Self {
         Self {
             content_type: other.content_type.map(NormalizedString::new_unchecked),
-            encoding: other.encoding.map(models::Encoding::new_unchecked),
+            encoding: other
+                .encoding
+                .map(models::attached_text::Encoding::new_unchecked),
             content: other.content,
         }
     }
@@ -96,10 +98,12 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_attached_text() -> models::AttachedText {
-        models::AttachedText {
+    pub(crate) fn corresponding_attached_text() -> models::attached_text::AttachedText {
+        models::attached_text::AttachedText {
             content_type: Some(NormalizedString::new_unchecked("content type".to_string())),
-            encoding: Some(models::Encoding::UnknownEncoding("encoding".to_string())),
+            encoding: Some(models::attached_text::Encoding::UnknownEncoding(
+                "encoding".to_string(),
+            )),
             content: "content".to_string(),
         }
     }

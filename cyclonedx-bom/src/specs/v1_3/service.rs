@@ -34,15 +34,15 @@ use crate::specs::v1_3::{
 #[serde(transparent)]
 pub(crate) struct Services(Vec<Service>);
 
-impl From<models::Services> for Services {
-    fn from(other: models::Services) -> Self {
+impl From<models::service::Services> for Services {
+    fn from(other: models::service::Services) -> Self {
         Services(convert_vec(other.0))
     }
 }
 
-impl From<Services> for models::Services {
+impl From<Services> for models::service::Services {
     fn from(other: Services) -> Self {
-        models::Services(convert_vec(other.0))
+        models::service::Services(convert_vec(other.0))
     }
 }
 
@@ -100,8 +100,8 @@ pub(crate) struct Service {
     services: Option<Services>,
 }
 
-impl From<models::Service> for Service {
-    fn from(other: models::Service) -> Self {
+impl From<models::service::Service> for Service {
+    fn from(other: models::service::Service) -> Self {
         Self {
             bom_ref: other.bom_ref,
             provider: convert_optional(other.provider),
@@ -123,7 +123,7 @@ impl From<models::Service> for Service {
     }
 }
 
-impl From<Service> for models::Service {
+impl From<Service> for models::service::Service {
     fn from(other: Service) -> Self {
         Self {
             bom_ref: other.bom_ref,
@@ -259,8 +259,8 @@ struct DataClassification {
     classification: String,
 }
 
-impl From<models::DataClassification> for DataClassification {
-    fn from(other: models::DataClassification) -> Self {
+impl From<models::service::DataClassification> for DataClassification {
+    fn from(other: models::service::DataClassification) -> Self {
         Self {
             flow: other.flow.to_string(),
             classification: other.classification.to_string(),
@@ -268,10 +268,10 @@ impl From<models::DataClassification> for DataClassification {
     }
 }
 
-impl From<DataClassification> for models::DataClassification {
+impl From<DataClassification> for models::service::DataClassification {
     fn from(other: DataClassification) -> Self {
         Self {
-            flow: models::DataFlowType::new_unchecked(&other.flow),
+            flow: models::service::DataFlowType::new_unchecked(&other.flow),
             classification: NormalizedString::new_unchecked(other.classification),
         }
     }
@@ -320,8 +320,8 @@ pub(crate) mod test {
         Services(vec![example_service()])
     }
 
-    pub(crate) fn corresponding_services() -> models::Services {
-        models::Services(vec![corresponding_service()])
+    pub(crate) fn corresponding_services() -> models::service::Services {
+        models::service::Services(vec![corresponding_service()])
     }
 
     pub(crate) fn example_service() -> Service {
@@ -343,8 +343,8 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_service() -> models::Service {
-        models::Service {
+    pub(crate) fn corresponding_service() -> models::service::Service {
+        models::service::Service {
             bom_ref: Some("bom-ref".to_string()),
             provider: Some(corresponding_entity()),
             group: Some(NormalizedString::new_unchecked("group".to_string())),
@@ -358,7 +358,7 @@ pub(crate) mod test {
             licenses: Some(corresponding_licenses()),
             external_references: Some(corresponding_external_references()),
             properties: Some(corresponding_properties()),
-            services: Some(models::Services(vec![])),
+            services: Some(models::service::Services(vec![])),
         }
     }
 
@@ -369,9 +369,9 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_data_classification() -> models::DataClassification {
-        models::DataClassification {
-            flow: models::DataFlowType::UnknownDataFlow("flow".to_string()),
+    fn corresponding_data_classification() -> models::service::DataClassification {
+        models::service::DataClassification {
+            flow: models::service::DataFlowType::UnknownDataFlow("flow".to_string()),
             classification: NormalizedString::new_unchecked("classification".to_string()),
         }
     }

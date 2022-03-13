@@ -28,15 +28,15 @@ use xml::writer::XmlEvent;
 #[serde(transparent)]
 pub(crate) struct Compositions(Vec<Composition>);
 
-impl From<models::Compositions> for Compositions {
-    fn from(other: models::Compositions) -> Self {
+impl From<models::composition::Compositions> for Compositions {
+    fn from(other: models::composition::Compositions) -> Self {
         Compositions(convert_vec(other.0))
     }
 }
 
-impl From<Compositions> for models::Compositions {
+impl From<Compositions> for models::composition::Compositions {
     fn from(other: Compositions) -> Self {
-        models::Compositions(convert_vec(other.0))
+        models::composition::Compositions(convert_vec(other.0))
     }
 }
 
@@ -72,8 +72,8 @@ pub(crate) struct Composition {
     dependencies: Option<Vec<BomReference>>,
 }
 
-impl From<models::Composition> for Composition {
-    fn from(other: models::Composition) -> Self {
+impl From<models::composition::Composition> for Composition {
+    fn from(other: models::composition::Composition) -> Self {
         Self {
             aggregate: other.aggregate.to_string(),
             assemblies: convert_optional_vec(other.assemblies),
@@ -82,10 +82,10 @@ impl From<models::Composition> for Composition {
     }
 }
 
-impl From<Composition> for models::Composition {
+impl From<Composition> for models::composition::Composition {
     fn from(other: Composition) -> Self {
         Self {
-            aggregate: models::AggregateType::new_unchecked(other.aggregate),
+            aggregate: models::composition::AggregateType::new_unchecked(other.aggregate),
             assemblies: convert_optional_vec(other.assemblies),
             dependencies: convert_optional_vec(other.dependencies),
         }
@@ -149,13 +149,13 @@ impl ToXml for Composition {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct BomReference(String);
 
-impl From<models::BomReference> for BomReference {
-    fn from(other: models::BomReference) -> Self {
+impl From<models::composition::BomReference> for BomReference {
+    fn from(other: models::composition::BomReference) -> Self {
         Self(other.0)
     }
 }
 
-impl From<BomReference> for models::BomReference {
+impl From<BomReference> for models::composition::BomReference {
     fn from(other: BomReference) -> Self {
         Self(other.0)
     }
@@ -191,8 +191,8 @@ pub(crate) mod test {
         Compositions(vec![example_composition()])
     }
 
-    pub(crate) fn corresponding_compositions() -> models::Compositions {
-        models::Compositions(vec![corresponding_composition()])
+    pub(crate) fn corresponding_compositions() -> models::composition::Compositions {
+        models::composition::Compositions(vec![corresponding_composition()])
     }
 
     pub(crate) fn example_composition() -> Composition {
@@ -203,11 +203,17 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_composition() -> models::Composition {
-        models::Composition {
-            aggregate: models::AggregateType::UnknownAggregateType("aggregate".to_string()),
-            assemblies: Some(vec![models::BomReference("assembly".to_string())]),
-            dependencies: Some(vec![models::BomReference("dependency".to_string())]),
+    pub(crate) fn corresponding_composition() -> models::composition::Composition {
+        models::composition::Composition {
+            aggregate: models::composition::AggregateType::UnknownAggregateType(
+                "aggregate".to_string(),
+            ),
+            assemblies: Some(vec![models::composition::BomReference(
+                "assembly".to_string(),
+            )]),
+            dependencies: Some(vec![models::composition::BomReference(
+                "dependency".to_string(),
+            )]),
         }
     }
 

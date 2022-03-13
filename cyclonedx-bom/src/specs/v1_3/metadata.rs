@@ -52,8 +52,8 @@ pub(crate) struct Metadata {
     properties: Option<Properties>,
 }
 
-impl From<models::Metadata> for Metadata {
-    fn from(other: models::Metadata) -> Self {
+impl From<models::metadata::Metadata> for Metadata {
+    fn from(other: models::metadata::Metadata) -> Self {
         Self {
             timestamp: other.timestamp.map(|t| t.to_string()),
             tools: convert_optional(other.tools),
@@ -67,7 +67,7 @@ impl From<models::Metadata> for Metadata {
     }
 }
 
-impl From<Metadata> for models::Metadata {
+impl From<Metadata> for models::metadata::Metadata {
     fn from(other: Metadata) -> Self {
         Self {
             timestamp: other.timestamp.map(DateTime),
@@ -191,8 +191,8 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_metadata() -> models::Metadata {
-        models::Metadata {
+    pub(crate) fn corresponding_metadata() -> models::metadata::Metadata {
+        models::metadata::Metadata {
             timestamp: Some(DateTime("timestamp".to_string())),
             tools: Some(corresponding_tools()),
             authors: Some(vec![corresponding_contact()]),

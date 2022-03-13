@@ -28,15 +28,15 @@ use xml::writer::XmlEvent;
 #[serde(transparent)]
 pub(crate) struct Hashes(Vec<Hash>);
 
-impl From<models::Hashes> for Hashes {
-    fn from(other: models::Hashes) -> Self {
+impl From<models::hash::Hashes> for Hashes {
+    fn from(other: models::hash::Hashes) -> Self {
         Hashes(convert_vec(other.0))
     }
 }
 
-impl From<Hashes> for models::Hashes {
+impl From<Hashes> for models::hash::Hashes {
     fn from(other: Hashes) -> Self {
-        models::Hashes(convert_vec(other.0))
+        models::hash::Hashes(convert_vec(other.0))
     }
 }
 
@@ -69,8 +69,8 @@ pub(crate) struct Hash {
     content: HashValue,
 }
 
-impl From<models::Hash> for Hash {
-    fn from(other: models::Hash) -> Self {
+impl From<models::hash::Hash> for Hash {
+    fn from(other: models::hash::Hash) -> Self {
         Self {
             alg: other.alg.to_string(),
             content: other.content.into(),
@@ -78,10 +78,10 @@ impl From<models::Hash> for Hash {
     }
 }
 
-impl From<Hash> for models::Hash {
+impl From<Hash> for models::hash::Hash {
     fn from(other: Hash) -> Self {
         Self {
-            alg: models::HashAlgorithm::new_unchecked(other.alg),
+            alg: models::hash::HashAlgorithm::new_unchecked(other.alg),
             content: other.content.into(),
         }
     }
@@ -113,13 +113,13 @@ impl ToXml for Hash {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub(crate) struct HashValue(String);
 
-impl From<models::HashValue> for HashValue {
-    fn from(other: models::HashValue) -> Self {
+impl From<models::hash::HashValue> for HashValue {
+    fn from(other: models::hash::HashValue) -> Self {
         Self(other.0)
     }
 }
 
-impl From<HashValue> for models::HashValue {
+impl From<HashValue> for models::hash::HashValue {
     fn from(other: HashValue) -> Self {
         Self(other.0)
     }
@@ -135,8 +135,8 @@ pub(crate) mod test {
         Hashes(vec![example_hash()])
     }
 
-    pub(crate) fn corresponding_hashes() -> models::Hashes {
-        models::Hashes(vec![corresponding_hash()])
+    pub(crate) fn corresponding_hashes() -> models::hash::Hashes {
+        models::hash::Hashes(vec![corresponding_hash()])
     }
 
     pub(crate) fn example_hash() -> Hash {
@@ -146,10 +146,10 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_hash() -> models::Hash {
-        models::Hash {
-            alg: models::HashAlgorithm::UnknownHashAlgorithm("algorithm".to_string()),
-            content: models::HashValue("hash value".to_string()),
+    pub(crate) fn corresponding_hash() -> models::hash::Hash {
+        models::hash::Hash {
+            alg: models::hash::HashAlgorithm::UnknownHashAlgorithm("algorithm".to_string()),
+            content: models::hash::HashValue("hash value".to_string()),
         }
     }
 
