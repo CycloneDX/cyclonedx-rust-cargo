@@ -55,8 +55,8 @@ pub(crate) struct Bom {
     properties: Option<Properties>,
 }
 
-impl From<models::Bom> for Bom {
-    fn from(other: models::Bom) -> Self {
+impl From<models::bom::Bom> for Bom {
+    fn from(other: models::bom::Bom) -> Self {
         Self {
             bom_format: BomFormat::CycloneDX,
             spec_version: "1.4".to_string(),
@@ -73,7 +73,7 @@ impl From<models::Bom> for Bom {
     }
 }
 
-impl From<Bom> for models::Bom {
+impl From<Bom> for models::bom::Bom {
     fn from(other: Bom) -> Self {
         Self {
             version: other.version.unwrap_or(1),
@@ -158,13 +158,13 @@ enum BomFormat {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct UrnUuid(String);
 
-impl From<models::UrnUuid> for UrnUuid {
-    fn from(other: models::UrnUuid) -> Self {
+impl From<models::bom::UrnUuid> for UrnUuid {
+    fn from(other: models::bom::UrnUuid) -> Self {
         Self(other.0)
     }
 }
 
-impl From<UrnUuid> for models::UrnUuid {
+impl From<UrnUuid> for models::bom::UrnUuid {
     fn from(other: UrnUuid) -> Self {
         Self(other.0)
     }
@@ -216,7 +216,7 @@ pub(crate) mod test {
     #[test]
     fn it_can_convert_to_the_internal_model() {
         let spec = full_bom_example();
-        let model: models::Bom = spec.into();
+        let model: models::bom::Bom = spec.into();
         assert_eq!(model, corresponding_internal_model());
     }
 
@@ -259,10 +259,10 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_internal_model() -> models::Bom {
-        models::Bom {
+    pub(crate) fn corresponding_internal_model() -> models::bom::Bom {
+        models::bom::Bom {
             version: 1,
-            serial_number: Some(models::UrnUuid("fake-uuid".to_string())),
+            serial_number: Some(models::bom::UrnUuid("fake-uuid".to_string())),
             metadata: Some(corresponding_metadata()),
             components: Some(corresponding_components()),
             services: Some(corresponding_services()),

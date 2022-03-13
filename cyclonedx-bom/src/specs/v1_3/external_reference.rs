@@ -32,15 +32,15 @@ use xml::writer::XmlEvent;
 #[serde(transparent)]
 pub(crate) struct ExternalReferences(Vec<ExternalReference>);
 
-impl From<models::ExternalReferences> for ExternalReferences {
-    fn from(other: models::ExternalReferences) -> Self {
+impl From<models::external_reference::ExternalReferences> for ExternalReferences {
+    fn from(other: models::external_reference::ExternalReferences) -> Self {
         ExternalReferences(convert_vec(other.0))
     }
 }
 
-impl From<ExternalReferences> for models::ExternalReferences {
+impl From<ExternalReferences> for models::external_reference::ExternalReferences {
     fn from(other: ExternalReferences) -> Self {
-        models::ExternalReferences(convert_vec(other.0))
+        models::external_reference::ExternalReferences(convert_vec(other.0))
     }
 }
 
@@ -78,8 +78,8 @@ pub(crate) struct ExternalReference {
     hashes: Option<Hashes>,
 }
 
-impl From<models::ExternalReference> for ExternalReference {
-    fn from(other: models::ExternalReference) -> Self {
+impl From<models::external_reference::ExternalReference> for ExternalReference {
+    fn from(other: models::external_reference::ExternalReference) -> Self {
         Self {
             external_reference_type: other.external_reference_type.to_string(),
             url: other.url.to_string(),
@@ -89,12 +89,13 @@ impl From<models::ExternalReference> for ExternalReference {
     }
 }
 
-impl From<ExternalReference> for models::ExternalReference {
+impl From<ExternalReference> for models::external_reference::ExternalReference {
     fn from(other: ExternalReference) -> Self {
         Self {
-            external_reference_type: models::ExternalReferenceType::new_unchecked(
-                other.external_reference_type,
-            ),
+            external_reference_type:
+                models::external_reference::ExternalReferenceType::new_unchecked(
+                    other.external_reference_type,
+                ),
             url: Uri(other.url),
             comment: other.comment,
             hashes: convert_optional(other.hashes),
@@ -149,8 +150,9 @@ pub(crate) mod test {
         ExternalReferences(vec![example_external_reference()])
     }
 
-    pub(crate) fn corresponding_external_references() -> models::ExternalReferences {
-        models::ExternalReferences(vec![corresponding_external_reference()])
+    pub(crate) fn corresponding_external_references(
+    ) -> models::external_reference::ExternalReferences {
+        models::external_reference::ExternalReferences(vec![corresponding_external_reference()])
     }
 
     pub(crate) fn example_external_reference() -> ExternalReference {
@@ -162,11 +164,13 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_external_reference() -> models::ExternalReference {
-        models::ExternalReference {
-            external_reference_type: models::ExternalReferenceType::UnknownExternalReferenceType(
-                "external reference type".to_string(),
-            ),
+    pub(crate) fn corresponding_external_reference() -> models::external_reference::ExternalReference
+    {
+        models::external_reference::ExternalReference {
+            external_reference_type:
+                models::external_reference::ExternalReferenceType::UnknownExternalReferenceType(
+                    "external reference type".to_string(),
+                ),
             url: Uri("url".to_string()),
             comment: Some("comment".to_string()),
             hashes: Some(corresponding_hashes()),

@@ -29,13 +29,13 @@ use xml::writer::XmlEvent;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Properties(Vec<Property>);
 
-impl From<models::Properties> for Properties {
-    fn from(other: models::Properties) -> Self {
+impl From<models::property::Properties> for Properties {
+    fn from(other: models::property::Properties) -> Self {
         Self(other.0.into_iter().map(std::convert::Into::into).collect())
     }
 }
 
-impl From<Properties> for models::Properties {
+impl From<Properties> for models::property::Properties {
     fn from(other: Properties) -> Self {
         Self(other.0.into_iter().map(std::convert::Into::into).collect())
     }
@@ -70,8 +70,8 @@ pub(crate) struct Property {
     value: String,
 }
 
-impl From<models::Property> for Property {
-    fn from(other: models::Property) -> Self {
+impl From<models::property::Property> for Property {
+    fn from(other: models::property::Property) -> Self {
         Self {
             name: other.name,
             value: other.value.0,
@@ -79,7 +79,7 @@ impl From<models::Property> for Property {
     }
 }
 
-impl From<Property> for models::Property {
+impl From<Property> for models::property::Property {
     fn from(other: Property) -> Self {
         Self {
             name: other.name,
@@ -123,8 +123,8 @@ pub(crate) mod test {
         }])
     }
 
-    pub(crate) fn corresponding_properties() -> models::Properties {
-        models::Properties(vec![models::Property {
+    pub(crate) fn corresponding_properties() -> models::property::Properties {
+        models::property::Properties(vec![models::property::Property {
             name: "name".to_string(),
             value: NormalizedString::new_unchecked("value".to_string()),
         }])

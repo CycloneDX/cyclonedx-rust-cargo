@@ -37,8 +37,8 @@ pub(crate) struct OrganizationalContact {
     phone: Option<String>,
 }
 
-impl From<models::OrganizationalContact> for OrganizationalContact {
-    fn from(other: models::OrganizationalContact) -> Self {
+impl From<models::organization::OrganizationalContact> for OrganizationalContact {
+    fn from(other: models::organization::OrganizationalContact) -> Self {
         Self {
             name: other.name.map(|n| n.to_string()),
             email: other.email.map(|e| e.to_string()),
@@ -47,7 +47,7 @@ impl From<models::OrganizationalContact> for OrganizationalContact {
     }
 }
 
-impl From<OrganizationalContact> for models::OrganizationalContact {
+impl From<OrganizationalContact> for models::organization::OrganizationalContact {
     fn from(other: OrganizationalContact) -> Self {
         Self {
             name: other.name.map(NormalizedString::new_unchecked),
@@ -106,8 +106,8 @@ pub(crate) struct OrganizationalEntity {
     contact: Option<Vec<OrganizationalContact>>,
 }
 
-impl From<models::OrganizationalEntity> for OrganizationalEntity {
-    fn from(other: models::OrganizationalEntity) -> Self {
+impl From<models::organization::OrganizationalEntity> for OrganizationalEntity {
+    fn from(other: models::organization::OrganizationalEntity) -> Self {
         Self {
             name: other.name.map(|n| n.to_string()),
             url: other
@@ -118,7 +118,7 @@ impl From<models::OrganizationalEntity> for OrganizationalEntity {
     }
 }
 
-impl From<OrganizationalEntity> for models::OrganizationalEntity {
+impl From<OrganizationalEntity> for models::organization::OrganizationalEntity {
     fn from(other: OrganizationalEntity) -> Self {
         Self {
             name: other.name.map(NormalizedString::new_unchecked),
@@ -185,8 +185,8 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_contact() -> models::OrganizationalContact {
-        models::OrganizationalContact {
+    pub(crate) fn corresponding_contact() -> models::organization::OrganizationalContact {
+        models::organization::OrganizationalContact {
             name: Some(NormalizedString::new_unchecked("name".to_string())),
             email: Some(NormalizedString::new_unchecked("email".to_string())),
             phone: Some(NormalizedString::new_unchecked("phone".to_string())),
@@ -201,8 +201,8 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_entity() -> models::OrganizationalEntity {
-        models::OrganizationalEntity {
+    pub(crate) fn corresponding_entity() -> models::organization::OrganizationalEntity {
+        models::organization::OrganizationalEntity {
             name: Some(NormalizedString::new_unchecked("name".to_string())),
             url: Some(vec![Uri("url".to_string())]),
             contact: Some(vec![corresponding_contact()]),

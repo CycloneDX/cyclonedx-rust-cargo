@@ -39,15 +39,15 @@ use xml::writer::XmlEvent;
 #[serde(transparent)]
 pub(crate) struct Components(Vec<Component>);
 
-impl From<models::Components> for Components {
-    fn from(other: models::Components) -> Self {
+impl From<models::component::Components> for Components {
+    fn from(other: models::component::Components) -> Self {
         Components(convert_vec(other.0))
     }
 }
 
-impl From<Components> for models::Components {
+impl From<Components> for models::component::Components {
     fn from(other: Components) -> Self {
-        models::Components(convert_vec(other.0))
+        models::component::Components(convert_vec(other.0))
     }
 }
 
@@ -132,8 +132,8 @@ pub(crate) struct Component {
     evidence: Option<ComponentEvidence>,
 }
 
-impl From<models::Component> for Component {
-    fn from(other: models::Component) -> Self {
+impl From<models::component::Component> for Component {
+    fn from(other: models::component::Component) -> Self {
         Self {
             component_type: other.component_type.to_string(),
             mime_type: other.mime_type.map(|m| MimeType(m.0)),
@@ -162,11 +162,11 @@ impl From<models::Component> for Component {
     }
 }
 
-impl From<Component> for models::Component {
+impl From<Component> for models::component::Component {
     fn from(other: Component) -> Self {
         Self {
-            component_type: models::Classification::new_unchecked(other.component_type),
-            mime_type: other.mime_type.map(|m| models::MimeType(m.0)),
+            component_type: models::component::Classification::new_unchecked(other.component_type),
+            mime_type: other.mime_type.map(|m| models::component::MimeType(m.0)),
             bom_ref: other.bom_ref,
             supplier: convert_optional(other.supplier),
             author: other.author.map(NormalizedString::new_unchecked),
@@ -175,7 +175,7 @@ impl From<Component> for models::Component {
             name: NormalizedString::new_unchecked(other.name),
             version: NormalizedString::new_unchecked(other.version),
             description: other.description.map(NormalizedString::new_unchecked),
-            scope: other.scope.map(models::Scope::new_unchecked),
+            scope: other.scope.map(models::component::Scope::new_unchecked),
             hashes: convert_optional(other.hashes),
             licenses: convert_optional(other.licenses),
             copyright: other.copyright.map(NormalizedString::new_unchecked),
@@ -333,8 +333,8 @@ struct Swid {
     url: Option<String>,
 }
 
-impl From<models::Swid> for Swid {
-    fn from(other: models::Swid) -> Self {
+impl From<models::component::Swid> for Swid {
+    fn from(other: models::component::Swid) -> Self {
         Self {
             tag_id: other.tag_id,
             name: other.name,
@@ -347,7 +347,7 @@ impl From<models::Swid> for Swid {
     }
 }
 
-impl From<Swid> for models::Swid {
+impl From<Swid> for models::component::Swid {
     fn from(other: Swid) -> Self {
         Self {
             tag_id: other.tag_id,
@@ -417,13 +417,13 @@ impl ToXml for Swid {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct Cpe(String);
 
-impl From<models::Cpe> for Cpe {
-    fn from(other: models::Cpe) -> Self {
+impl From<models::component::Cpe> for Cpe {
+    fn from(other: models::component::Cpe) -> Self {
         Self(other.0)
     }
 }
 
-impl From<Cpe> for models::Cpe {
+impl From<Cpe> for models::component::Cpe {
     fn from(other: Cpe) -> Self {
         Self(other.0)
     }
@@ -449,8 +449,8 @@ struct ComponentEvidence {
     copyright: Option<CopyrightTexts>,
 }
 
-impl From<models::ComponentEvidence> for ComponentEvidence {
-    fn from(other: models::ComponentEvidence) -> Self {
+impl From<models::component::ComponentEvidence> for ComponentEvidence {
+    fn from(other: models::component::ComponentEvidence) -> Self {
         Self {
             licenses: convert_optional(other.licenses),
             copyright: convert_optional(other.copyright),
@@ -458,7 +458,7 @@ impl From<models::ComponentEvidence> for ComponentEvidence {
     }
 }
 
-impl From<ComponentEvidence> for models::ComponentEvidence {
+impl From<ComponentEvidence> for models::component::ComponentEvidence {
     fn from(other: ComponentEvidence) -> Self {
         Self {
             licenses: convert_optional(other.licenses),
@@ -515,8 +515,8 @@ struct Pedigree {
     notes: Option<String>,
 }
 
-impl From<models::Pedigree> for Pedigree {
-    fn from(other: models::Pedigree) -> Self {
+impl From<models::component::Pedigree> for Pedigree {
+    fn from(other: models::component::Pedigree) -> Self {
         Self {
             ancestors: convert_optional(other.ancestors),
             descendants: convert_optional(other.descendants),
@@ -528,7 +528,7 @@ impl From<models::Pedigree> for Pedigree {
     }
 }
 
-impl From<Pedigree> for models::Pedigree {
+impl From<Pedigree> for models::component::Pedigree {
     fn from(other: Pedigree) -> Self {
         Self {
             ancestors: convert_optional(other.ancestors),
@@ -602,13 +602,13 @@ struct Copyright {
     text: String,
 }
 
-impl From<models::Copyright> for Copyright {
-    fn from(other: models::Copyright) -> Self {
+impl From<models::component::Copyright> for Copyright {
+    fn from(other: models::component::Copyright) -> Self {
         Self { text: other.0 }
     }
 }
 
-impl From<Copyright> for models::Copyright {
+impl From<Copyright> for models::component::Copyright {
     fn from(other: Copyright) -> Self {
         Self(other.text)
     }
@@ -639,15 +639,15 @@ impl ToXml for Copyright {
 #[serde(transparent)]
 struct CopyrightTexts(Vec<Copyright>);
 
-impl From<models::CopyrightTexts> for CopyrightTexts {
-    fn from(other: models::CopyrightTexts) -> Self {
+impl From<models::component::CopyrightTexts> for CopyrightTexts {
+    fn from(other: models::component::CopyrightTexts) -> Self {
         CopyrightTexts(convert_vec(other.0))
     }
 }
 
-impl From<CopyrightTexts> for models::CopyrightTexts {
+impl From<CopyrightTexts> for models::component::CopyrightTexts {
     fn from(other: CopyrightTexts) -> Self {
-        models::CopyrightTexts(convert_vec(other.0))
+        models::component::CopyrightTexts(convert_vec(other.0))
     }
 }
 
@@ -674,13 +674,13 @@ impl ToXml for CopyrightTexts {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct MimeType(String);
 
-impl From<models::MimeType> for MimeType {
-    fn from(other: models::MimeType) -> Self {
+impl From<models::component::MimeType> for MimeType {
+    fn from(other: models::component::MimeType) -> Self {
         Self(other.0)
     }
 }
 
-impl From<MimeType> for models::MimeType {
+impl From<MimeType> for models::component::MimeType {
     fn from(other: MimeType) -> Self {
         Self(other.0)
     }
@@ -711,8 +711,8 @@ pub(crate) mod test {
         Components(vec![example_component()])
     }
 
-    pub(crate) fn corresponding_components() -> models::Components {
-        models::Components(vec![corresponding_component()])
+    pub(crate) fn corresponding_components() -> models::component::Components {
+        models::component::Components(vec![corresponding_component()])
     }
 
     pub(crate) fn example_component() -> Component {
@@ -743,12 +743,12 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_component() -> models::Component {
-        models::Component {
-            component_type: models::Classification::UnknownClassification(
+    pub(crate) fn corresponding_component() -> models::component::Component {
+        models::component::Component {
+            component_type: models::component::Classification::UnknownClassification(
                 "component type".to_string(),
             ),
-            mime_type: Some(models::MimeType("mime type".to_string())),
+            mime_type: Some(models::component::MimeType("mime type".to_string())),
             bom_ref: Some("bom ref".to_string()),
             supplier: Some(corresponding_entity()),
             author: Some(NormalizedString::new_unchecked("author".to_string())),
@@ -757,7 +757,7 @@ pub(crate) mod test {
             name: NormalizedString::new_unchecked("name".to_string()),
             version: NormalizedString::new_unchecked("version".to_string()),
             description: Some(NormalizedString::new_unchecked("description".to_string())),
-            scope: Some(models::Scope::UnknownScope("scope".to_string())),
+            scope: Some(models::component::Scope::UnknownScope("scope".to_string())),
             hashes: Some(corresponding_hashes()),
             licenses: Some(corresponding_licenses()),
             copyright: Some(NormalizedString::new_unchecked("copyright".to_string())),
@@ -777,16 +777,16 @@ pub(crate) mod test {
         Components(Vec::new())
     }
 
-    fn corresponding_empty_components() -> models::Components {
-        models::Components(Vec::new())
+    fn corresponding_empty_components() -> models::component::Components {
+        models::component::Components(Vec::new())
     }
 
     fn example_cpe() -> Cpe {
         Cpe("cpe".to_string())
     }
 
-    fn corresponding_cpe() -> models::Cpe {
-        models::Cpe("cpe".to_string())
+    fn corresponding_cpe() -> models::component::Cpe {
+        models::component::Cpe("cpe".to_string())
     }
 
     fn example_swid() -> Swid {
@@ -801,8 +801,8 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_swid() -> models::Swid {
-        models::Swid {
+    fn corresponding_swid() -> models::component::Swid {
+        models::component::Swid {
             tag_id: "tag id".to_string(),
             name: "name".to_string(),
             version: Some("version".to_string()),
@@ -824,8 +824,8 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_pedigree() -> models::Pedigree {
-        models::Pedigree {
+    fn corresponding_pedigree() -> models::component::Pedigree {
+        models::component::Pedigree {
             ancestors: Some(corresponding_empty_components()),
             descendants: Some(corresponding_empty_components()),
             variants: Some(corresponding_empty_components()),
@@ -842,8 +842,8 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_evidence() -> models::ComponentEvidence {
-        models::ComponentEvidence {
+    fn corresponding_evidence() -> models::component::ComponentEvidence {
+        models::component::ComponentEvidence {
             licenses: Some(corresponding_licenses()),
             copyright: Some(corresponding_copyright_texts()),
         }
@@ -853,8 +853,8 @@ pub(crate) mod test {
         CopyrightTexts(vec![example_copyright()])
     }
 
-    fn corresponding_copyright_texts() -> models::CopyrightTexts {
-        models::CopyrightTexts(vec![corresponding_copyright()])
+    fn corresponding_copyright_texts() -> models::component::CopyrightTexts {
+        models::component::CopyrightTexts(vec![corresponding_copyright()])
     }
 
     fn example_copyright() -> Copyright {
@@ -863,8 +863,8 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_copyright() -> models::Copyright {
-        models::Copyright("copyright".to_string())
+    fn corresponding_copyright() -> models::component::Copyright {
+        models::component::Copyright("copyright".to_string())
     }
 
     #[test]

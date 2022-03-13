@@ -30,15 +30,15 @@ use xml::writer::XmlEvent;
 #[serde(transparent)]
 pub(crate) struct Licenses(Vec<LicenseChoice>);
 
-impl From<models::Licenses> for Licenses {
-    fn from(other: models::Licenses) -> Self {
+impl From<models::license::Licenses> for Licenses {
+    fn from(other: models::license::Licenses) -> Self {
         Licenses(convert_vec(other.0))
     }
 }
 
-impl From<Licenses> for models::Licenses {
+impl From<Licenses> for models::license::Licenses {
     fn from(other: Licenses) -> Self {
-        models::Licenses(convert_vec(other.0))
+        models::license::Licenses(convert_vec(other.0))
     }
 }
 
@@ -71,16 +71,16 @@ pub(crate) enum LicenseChoice {
     Expression(String),
 }
 
-impl From<models::LicenseChoice> for LicenseChoice {
-    fn from(other: models::LicenseChoice) -> Self {
+impl From<models::license::LicenseChoice> for LicenseChoice {
+    fn from(other: models::license::LicenseChoice) -> Self {
         match other {
-            models::LicenseChoice::License(l) => Self::License(l.into()),
-            models::LicenseChoice::Expression(e) => Self::Expression(e.to_string()),
+            models::license::LicenseChoice::License(l) => Self::License(l.into()),
+            models::license::LicenseChoice::Expression(e) => Self::Expression(e.to_string()),
         }
     }
 }
 
-impl From<LicenseChoice> for models::LicenseChoice {
+impl From<LicenseChoice> for models::license::LicenseChoice {
     fn from(other: LicenseChoice) -> Self {
         match other {
             LicenseChoice::License(l) => Self::License(l.into()),
@@ -120,8 +120,8 @@ pub(crate) struct License {
     url: Option<String>,
 }
 
-impl From<models::License> for License {
-    fn from(other: models::License) -> Self {
+impl From<models::license::License> for License {
+    fn from(other: models::license::License) -> Self {
         Self {
             license_identifier: other.license_identifier.into(),
             text: convert_optional(other.text),
@@ -130,7 +130,7 @@ impl From<models::License> for License {
     }
 }
 
-impl From<License> for models::License {
+impl From<License> for models::license::License {
     fn from(other: License) -> Self {
         Self {
             license_identifier: other.license_identifier.into(),
@@ -179,16 +179,16 @@ enum LicenseIdentifier {
     Name(String),
 }
 
-impl From<models::LicenseIdentifier> for LicenseIdentifier {
-    fn from(other: models::LicenseIdentifier) -> Self {
+impl From<models::license::LicenseIdentifier> for LicenseIdentifier {
+    fn from(other: models::license::LicenseIdentifier) -> Self {
         match other {
-            models::LicenseIdentifier::SpdxId(spdx) => Self::SpdxId(spdx.0),
-            models::LicenseIdentifier::Name(name) => Self::Name(name.to_string()),
+            models::license::LicenseIdentifier::SpdxId(spdx) => Self::SpdxId(spdx.0),
+            models::license::LicenseIdentifier::Name(name) => Self::Name(name.to_string()),
         }
     }
 }
 
-impl From<LicenseIdentifier> for models::LicenseIdentifier {
+impl From<LicenseIdentifier> for models::license::LicenseIdentifier {
     fn from(other: LicenseIdentifier) -> Self {
         match other {
             LicenseIdentifier::SpdxId(spdx) => Self::SpdxId(SpdxIdentifier(spdx)),
@@ -231,8 +231,8 @@ pub(crate) mod test {
         Licenses(vec![example_license_expression()])
     }
 
-    pub(crate) fn corresponding_licenses() -> models::Licenses {
-        models::Licenses(vec![corresponding_license_expression()])
+    pub(crate) fn corresponding_licenses() -> models::license::Licenses {
+        models::license::Licenses(vec![corresponding_license_expression()])
     }
 
     pub(crate) fn example_spdx_license() -> LicenseChoice {
@@ -244,9 +244,9 @@ pub(crate) mod test {
     }
 
     #[allow(unused)]
-    pub(crate) fn corresponding_spdx_license() -> models::LicenseChoice {
-        models::LicenseChoice::License(models::License {
-            license_identifier: models::LicenseIdentifier::SpdxId(SpdxIdentifier(
+    pub(crate) fn corresponding_spdx_license() -> models::license::LicenseChoice {
+        models::license::LicenseChoice::License(models::license::License {
+            license_identifier: models::license::LicenseIdentifier::SpdxId(SpdxIdentifier(
                 "spdx id".to_string(),
             )),
             text: Some(corresponding_attached_text()),
@@ -263,11 +263,11 @@ pub(crate) mod test {
     }
 
     #[allow(unused)]
-    pub(crate) fn corresponding_named_license() -> models::LicenseChoice {
-        models::LicenseChoice::License(models::License {
-            license_identifier: models::LicenseIdentifier::Name(NormalizedString::new_unchecked(
-                "name".to_string(),
-            )),
+    pub(crate) fn corresponding_named_license() -> models::license::LicenseChoice {
+        models::license::LicenseChoice::License(models::license::License {
+            license_identifier: models::license::LicenseIdentifier::Name(
+                NormalizedString::new_unchecked("name".to_string()),
+            ),
             text: Some(corresponding_attached_text()),
             url: Some(Uri("url".to_string())),
         })
@@ -277,8 +277,10 @@ pub(crate) mod test {
         LicenseChoice::Expression("expression".to_string())
     }
 
-    pub(crate) fn corresponding_license_expression() -> models::LicenseChoice {
-        models::LicenseChoice::Expression(NormalizedString::new_unchecked("expression".to_string()))
+    pub(crate) fn corresponding_license_expression() -> models::license::LicenseChoice {
+        models::license::LicenseChoice::Expression(NormalizedString::new_unchecked(
+            "expression".to_string(),
+        ))
     }
 
     #[test]

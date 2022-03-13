@@ -30,15 +30,15 @@ use xml::writer::XmlEvent;
 #[serde(transparent)]
 pub(crate) struct Tools(Vec<Tool>);
 
-impl From<models::Tools> for Tools {
-    fn from(other: models::Tools) -> Self {
+impl From<models::tool::Tools> for Tools {
+    fn from(other: models::tool::Tools) -> Self {
         Tools(convert_vec(other.0))
     }
 }
 
-impl From<Tools> for models::Tools {
+impl From<Tools> for models::tool::Tools {
     fn from(other: Tools) -> Self {
-        models::Tools(convert_vec(other.0))
+        models::tool::Tools(convert_vec(other.0))
     }
 }
 
@@ -77,8 +77,8 @@ pub(crate) struct Tool {
     hashes: Option<Hashes>,
 }
 
-impl From<models::Tool> for Tool {
-    fn from(other: models::Tool) -> Self {
+impl From<models::tool::Tool> for Tool {
+    fn from(other: models::tool::Tool) -> Self {
         Self {
             vendor: other.vendor.map(|v| v.to_string()),
             name: other.name.map(|n| n.to_string()),
@@ -88,7 +88,7 @@ impl From<models::Tool> for Tool {
     }
 }
 
-impl From<Tool> for models::Tool {
+impl From<Tool> for models::tool::Tool {
     fn from(other: Tool) -> Self {
         Self {
             vendor: other.vendor.map(NormalizedString::new_unchecked),
@@ -159,8 +159,8 @@ pub(crate) mod test {
         Tools(vec![example_tool()])
     }
 
-    pub(crate) fn corresponding_tools() -> models::Tools {
-        models::Tools(vec![corresponding_tool()])
+    pub(crate) fn corresponding_tools() -> models::tool::Tools {
+        models::tool::Tools(vec![corresponding_tool()])
     }
 
     pub(crate) fn example_tool() -> Tool {
@@ -172,8 +172,8 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_tool() -> models::Tool {
-        models::Tool {
+    pub(crate) fn corresponding_tool() -> models::tool::Tool {
+        models::tool::Tool {
             vendor: Some(NormalizedString::new_unchecked("vendor".to_string())),
             name: Some(NormalizedString::new_unchecked("name".to_string())),
             version: Some(NormalizedString::new_unchecked("version".to_string())),

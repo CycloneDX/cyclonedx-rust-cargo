@@ -30,15 +30,15 @@ use xml::writer::XmlEvent;
 #[serde(transparent)]
 pub(crate) struct Commits(Vec<Commit>);
 
-impl From<models::Commits> for Commits {
-    fn from(other: models::Commits) -> Self {
+impl From<models::code::Commits> for Commits {
+    fn from(other: models::code::Commits) -> Self {
         Commits(convert_vec(other.0))
     }
 }
 
-impl From<Commits> for models::Commits {
+impl From<Commits> for models::code::Commits {
     fn from(other: Commits) -> Self {
-        models::Commits(convert_vec(other.0))
+        models::code::Commits(convert_vec(other.0))
     }
 }
 
@@ -79,8 +79,8 @@ pub(crate) struct Commit {
     message: Option<String>,
 }
 
-impl From<models::Commit> for Commit {
-    fn from(other: models::Commit) -> Self {
+impl From<models::code::Commit> for Commit {
+    fn from(other: models::code::Commit) -> Self {
         Self {
             uid: other.uid.map(|uid| uid.to_string()),
             url: other.url.map(|url| url.to_string()),
@@ -91,7 +91,7 @@ impl From<models::Commit> for Commit {
     }
 }
 
-impl From<Commit> for models::Commit {
+impl From<Commit> for models::code::Commit {
     fn from(other: Commit) -> Self {
         Self {
             uid: other.uid.map(NormalizedString::new_unchecked),
@@ -158,8 +158,8 @@ struct IdentifiableAction {
     email: Option<String>,
 }
 
-impl From<models::IdentifiableAction> for IdentifiableAction {
-    fn from(other: models::IdentifiableAction) -> Self {
+impl From<models::code::IdentifiableAction> for IdentifiableAction {
+    fn from(other: models::code::IdentifiableAction) -> Self {
         Self {
             timestamp: other.timestamp.map(|t| t.to_string()),
             name: other.name.map(|n| n.to_string()),
@@ -168,7 +168,7 @@ impl From<models::IdentifiableAction> for IdentifiableAction {
     }
 }
 
-impl From<IdentifiableAction> for models::IdentifiableAction {
+impl From<IdentifiableAction> for models::code::IdentifiableAction {
     fn from(other: IdentifiableAction) -> Self {
         Self {
             timestamp: other.timestamp.map(DateTime),
@@ -216,15 +216,15 @@ impl ToInnerXml for IdentifiableAction {
 #[serde(transparent)]
 pub(crate) struct Patches(Vec<Patch>);
 
-impl From<models::Patches> for Patches {
-    fn from(other: models::Patches) -> Self {
+impl From<models::code::Patches> for Patches {
+    fn from(other: models::code::Patches) -> Self {
         Patches(convert_vec(other.0))
     }
 }
 
-impl From<Patches> for models::Patches {
+impl From<Patches> for models::code::Patches {
     fn from(other: Patches) -> Self {
-        models::Patches(convert_vec(other.0))
+        models::code::Patches(convert_vec(other.0))
     }
 }
 
@@ -260,8 +260,8 @@ pub(crate) struct Patch {
     resolves: Option<Vec<Issue>>,
 }
 
-impl From<models::Patch> for Patch {
-    fn from(other: models::Patch) -> Self {
+impl From<models::code::Patch> for Patch {
+    fn from(other: models::code::Patch) -> Self {
         Self {
             patch_type: other.patch_type.to_string(),
             diff: convert_optional(other.diff),
@@ -270,10 +270,10 @@ impl From<models::Patch> for Patch {
     }
 }
 
-impl From<Patch> for models::Patch {
+impl From<Patch> for models::code::Patch {
     fn from(other: Patch) -> Self {
         Self {
-            patch_type: models::PatchClassification::new_unchecked(other.patch_type),
+            patch_type: models::code::PatchClassification::new_unchecked(other.patch_type),
             diff: convert_optional(other.diff),
             resolves: convert_optional_vec(other.resolves),
         }
@@ -330,8 +330,8 @@ struct Diff {
     url: Option<String>,
 }
 
-impl From<models::Diff> for Diff {
-    fn from(other: models::Diff) -> Self {
+impl From<models::code::Diff> for Diff {
+    fn from(other: models::code::Diff) -> Self {
         Self {
             text: convert_optional(other.text),
             url: other.url.map(|u| u.to_string()),
@@ -339,7 +339,7 @@ impl From<models::Diff> for Diff {
     }
 }
 
-impl From<Diff> for models::Diff {
+impl From<Diff> for models::code::Diff {
     fn from(other: Diff) -> Self {
         Self {
             text: convert_optional(other.text),
@@ -397,8 +397,8 @@ struct Issue {
     references: Option<Vec<String>>,
 }
 
-impl From<models::Issue> for Issue {
-    fn from(other: models::Issue) -> Self {
+impl From<models::code::Issue> for Issue {
+    fn from(other: models::code::Issue) -> Self {
         Self {
             issue_type: other.issue_type.to_string(),
             id: other.id.map(|i| i.to_string()),
@@ -412,10 +412,10 @@ impl From<models::Issue> for Issue {
     }
 }
 
-impl From<Issue> for models::Issue {
+impl From<Issue> for models::code::Issue {
     fn from(other: Issue) -> Self {
         Self {
-            issue_type: models::IssueClassification::new_unchecked(other.issue_type),
+            issue_type: models::code::IssueClassification::new_unchecked(other.issue_type),
             id: other.id.map(NormalizedString::new_unchecked),
             name: other.name.map(NormalizedString::new_unchecked),
             description: other.description.map(NormalizedString::new_unchecked),
@@ -490,8 +490,8 @@ struct Source {
     url: Option<String>,
 }
 
-impl From<models::Source> for Source {
-    fn from(other: models::Source) -> Self {
+impl From<models::code::Source> for Source {
+    fn from(other: models::code::Source) -> Self {
         Self {
             name: other.name.map(|n| n.to_string()),
             url: other.url.map(|u| u.to_string()),
@@ -499,7 +499,7 @@ impl From<models::Source> for Source {
     }
 }
 
-impl From<Source> for models::Source {
+impl From<Source> for models::code::Source {
     fn from(other: Source) -> Self {
         Self {
             name: other.name.map(NormalizedString::new_unchecked),
@@ -552,8 +552,8 @@ pub(crate) mod test {
         Commits(vec![example_commit()])
     }
 
-    pub(crate) fn corresponding_commits() -> models::Commits {
-        models::Commits(vec![corresponding_commit()])
+    pub(crate) fn corresponding_commits() -> models::code::Commits {
+        models::code::Commits(vec![corresponding_commit()])
     }
 
     pub(crate) fn example_commit() -> Commit {
@@ -566,8 +566,8 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_commit() -> models::Commit {
-        models::Commit {
+    pub(crate) fn corresponding_commit() -> models::code::Commit {
+        models::code::Commit {
             uid: Some(NormalizedString::new_unchecked("uid".to_string())),
             url: Some(Uri("url".to_string())),
             author: Some(corresponding_identifiable_action()),
@@ -584,8 +584,8 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_identifiable_action() -> models::IdentifiableAction {
-        models::IdentifiableAction {
+    fn corresponding_identifiable_action() -> models::code::IdentifiableAction {
+        models::code::IdentifiableAction {
             timestamp: Some(DateTime("timestamp".to_string())),
             name: Some(NormalizedString::new_unchecked("name".to_string())),
             email: Some(NormalizedString::new_unchecked("email".to_string())),
@@ -596,8 +596,8 @@ pub(crate) mod test {
         Patches(vec![example_patch()])
     }
 
-    pub(crate) fn corresponding_patches() -> models::Patches {
-        models::Patches(vec![corresponding_patch()])
+    pub(crate) fn corresponding_patches() -> models::code::Patches {
+        models::code::Patches(vec![corresponding_patch()])
     }
 
     pub(crate) fn example_patch() -> Patch {
@@ -608,9 +608,9 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_patch() -> models::Patch {
-        models::Patch {
-            patch_type: models::PatchClassification::UnknownPatchClassification(
+    pub(crate) fn corresponding_patch() -> models::code::Patch {
+        models::code::Patch {
+            patch_type: models::code::PatchClassification::UnknownPatchClassification(
                 "patch type".to_string(),
             ),
             diff: Some(corresponding_diff()),
@@ -625,8 +625,8 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_diff() -> models::Diff {
-        models::Diff {
+    fn corresponding_diff() -> models::code::Diff {
+        models::code::Diff {
             text: Some(corresponding_attached_text()),
             url: Some(Uri("url".to_string())),
         }
@@ -643,9 +643,9 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_issue() -> models::Issue {
-        models::Issue {
-            issue_type: models::IssueClassification::UnknownIssueClassification(
+    fn corresponding_issue() -> models::code::Issue {
+        models::code::Issue {
+            issue_type: models::code::IssueClassification::UnknownIssueClassification(
                 "issue type".to_string(),
             ),
             id: Some(NormalizedString::new_unchecked("id".to_string())),
@@ -663,8 +663,8 @@ pub(crate) mod test {
         }
     }
 
-    fn corresponding_source() -> models::Source {
-        models::Source {
+    fn corresponding_source() -> models::code::Source {
+        models::code::Source {
             name: Some(NormalizedString::new_unchecked("name".to_string())),
             url: Some(Uri("url".to_string())),
         }
