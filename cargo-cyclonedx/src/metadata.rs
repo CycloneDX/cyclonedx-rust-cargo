@@ -20,10 +20,12 @@ use std::io;
 use xml_writer::XmlWriter;
 
 use cargo::core::{Package, TargetKind};
-use chrono::{DateTime, Utc};
 use log::debug;
 use serde::Serialize;
 use std::str::FromStr;
+use time::format_description::well_known::Rfc3339;
+use time::serde::rfc3339;
+use time::OffsetDateTime;
 
 use crate::author::Author;
 use crate::component::Component;
@@ -31,8 +33,8 @@ use crate::traits::ToXml;
 
 #[derive(Serialize)]
 pub struct Metadata {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<DateTime<Utc>>,
+    #[serde(with = "rfc3339::option", skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<OffsetDateTime>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authors: Option<Vec<Author>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,7 +44,7 @@ pub struct Metadata {
 impl<'a> Default for Metadata {
     fn default() -> Self {
         Self {
-            timestamp: Some(Utc::now()),
+            timestamp: Some(OffsetDateTime::now_utc()),
             authors: None::<Vec<Author>>,
             component: None::<Component>,
         }
@@ -82,10 +84,14 @@ impl ToXml for Metadata {
         xml.begin_elem("metadata")?;
 
         if let Some(timestamp) = &self.timestamp {
-            xml.elem_text(
-                "timestamp",
-                &timestamp.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-            )?;
+            match timestamp.format(&Rfc3339) {
+                Ok(formatted_timestamp) => {
+                    xml.elem_text("timestamp", &formatted_timestamp)?;
+                }
+                Err(e) => {
+                    log::error!("Could not format time for XML output: {}", e);
+                }
+            }
         }
 
         if let Some(authors) = &self.authors {
