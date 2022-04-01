@@ -23,6 +23,21 @@ jobs:
         cargo fmt -- --check
         cargo clippy
 
+  dependencies:
+    name: Check Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust Toolchain
+      run: |
+        rustup update
+        rustup install nightly
+        cargo install cargo-udeps
+    - name: Check for unused dependencies
+      run: |
+        cargo +nightly udeps
+
   test:
     name: Test Suite Runs - ${{ matrix.test-arm }}
     runs-on: ubuntu-latest
