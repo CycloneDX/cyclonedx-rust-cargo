@@ -20,7 +20,7 @@ use crate::{
     errors::XmlWriteError,
     external_models::normalized_string::NormalizedString,
     models,
-    xml::{to_xml_write_error, ToXml},
+    xml::{attribute_or_error, read_list_tag, read_simple_tag, to_xml_write_error, FromXml, ToXml},
 };
 use serde::{Deserialize, Serialize};
 use xml::writer::XmlEvent;
@@ -63,6 +63,19 @@ impl ToXml for Properties {
     }
 }
 
+impl FromXml for Properties {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, PROPERTY_TAG).map(Properties)
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Property {
@@ -89,6 +102,7 @@ impl From<Property> for models::property::Property {
 }
 
 const PROPERTY_TAG: &str = "property";
+const NAME_ATTR: &str = "name";
 
 impl ToXml for Property {
     fn write_xml_element<W: std::io::Write>(
@@ -111,10 +125,25 @@ impl ToXml for Property {
     }
 }
 
+impl FromXml for Property {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        let name = attribute_or_error(element_name, attributes, NAME_ATTR)?;
+        let value = read_simple_tag(event_reader, element_name)?;
+        Ok(Self { name, value })
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
-    use crate::xml::test::write_element_to_string;
+    use crate::xml::test::{read_element_from_string, write_element_to_string};
 
     pub(crate) fn example_properties() -> Properties {
         Properties(vec![Property {
@@ -140,5 +169,27 @@ pub(crate) mod test {
     fn it_should_write_xml_properties_with_no_children() {
         let xml_output = write_element_to_string(Properties(Vec::new()));
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<properties>
+  <property name="name">value</property>
+</properties>
+"#;
+        let actual: Properties = read_element_from_string(input);
+        let expected = example_properties();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_xml_properties_with_no_children() {
+        let input = r#"
+<properties />
+"#;
+        let actual: Properties = read_element_from_string(input);
+        let expected = Properties(Vec::new());
+        assert_eq!(actual, expected);
     }
 }

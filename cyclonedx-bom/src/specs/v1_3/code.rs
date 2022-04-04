@@ -17,14 +17,18 @@
  */
 
 use crate::{
+    errors::XmlReadError,
     external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri},
     models,
     specs::v1_3::attached_text::AttachedText,
     utilities::{convert_optional, convert_optional_vec, convert_vec},
-    xml::{to_xml_write_error, write_simple_tag, ToInnerXml, ToXml},
+    xml::{
+        attribute_or_error, read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
+        unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
+    },
 };
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::{reader, writer};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -50,7 +54,7 @@ impl ToXml for Commits {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(COMMITS_TAG))
+            .write(writer::XmlEvent::start_element(COMMITS_TAG))
             .map_err(to_xml_write_error(COMMITS_TAG))?;
 
         for commit in &self.0 {
@@ -58,9 +62,22 @@ impl ToXml for Commits {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(COMMITS_TAG))?;
         Ok(())
+    }
+}
+
+impl FromXml for Commits {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, COMMIT_TAG).map(Commits)
     }
 }
 
@@ -116,7 +133,7 @@ impl ToXml for Commit {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(COMMIT_TAG))
+            .write(writer::XmlEvent::start_element(COMMIT_TAG))
             .map_err(to_xml_write_error(COMMIT_TAG))?;
 
         if let Some(uid) = &self.uid {
@@ -140,10 +157,73 @@ impl ToXml for Commit {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(COMMIT_TAG))?;
 
         Ok(())
+    }
+}
+
+impl FromXml for Commit {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut uid: Option<String> = None;
+        let mut url: Option<String> = None;
+        let mut author: Option<IdentifiableAction> = None;
+        let mut committer: Option<IdentifiableAction> = None;
+        let mut message: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(COMMIT_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == UID_TAG => {
+                    uid = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                    url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == AUTHOR_TAG => {
+                    author = Some(IdentifiableAction::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == COMMITTER_TAG => {
+                    committer = Some(IdentifiableAction::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == MESSAGE_TAG => {
+                    message = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            uid,
+            url,
+            author,
+            committer,
+            message,
+        })
     }
 }
 
@@ -189,7 +269,7 @@ impl ToInnerXml for IdentifiableAction {
         tag: &str,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(tag))
+            .write(writer::XmlEvent::start_element(tag))
             .map_err(to_xml_write_error(tag))?;
 
         if let Some(timestamp) = &self.timestamp {
@@ -205,10 +285,53 @@ impl ToInnerXml for IdentifiableAction {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(tag))?;
 
         Ok(())
+    }
+}
+
+impl FromXml for IdentifiableAction {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut timestamp: Option<String> = None;
+        let mut identity_name: Option<String> = None;
+        let mut email: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(element_name.local_name.as_str()))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == TIMESTAMP_TAG => {
+                    timestamp = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    identity_name = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == EMAIL_TAG => {
+                    email = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            timestamp,
+            name: identity_name,
+            email,
+        })
     }
 }
 
@@ -236,7 +359,7 @@ impl ToXml for Patches {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(PATCHES_TAG))
+            .write(writer::XmlEvent::start_element(PATCHES_TAG))
             .map_err(to_xml_write_error(PATCHES_TAG))?;
 
         for patch in &self.0 {
@@ -244,9 +367,22 @@ impl ToXml for Patches {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(PATCHES_TAG))?;
         Ok(())
+    }
+}
+
+impl FromXml for Patches {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, PATCH_TAG).map(Patches)
     }
 }
 
@@ -290,7 +426,7 @@ impl ToXml for Patch {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(PATCH_TAG).attr(TYPE_ATTR, &self.patch_type))
+            .write(writer::XmlEvent::start_element(PATCH_TAG).attr(TYPE_ATTR, &self.patch_type))
             .map_err(to_xml_write_error(PATCH_TAG))?;
 
         if let Some(diff) = &self.diff {
@@ -301,7 +437,7 @@ impl ToXml for Patch {
 
         if let Some(resolves) = &self.resolves {
             writer
-                .write(XmlEvent::start_element(RESOLVES_TAG))
+                .write(writer::XmlEvent::start_element(RESOLVES_TAG))
                 .map_err(to_xml_write_error(PATCH_TAG))?;
 
             for issue in resolves {
@@ -309,15 +445,55 @@ impl ToXml for Patch {
             }
 
             writer
-                .write(XmlEvent::end_element())
+                .write(writer::XmlEvent::end_element())
                 .map_err(to_xml_write_error(RESOLVES_TAG))?;
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(PATCH_TAG))?;
 
         Ok(())
+    }
+}
+
+impl FromXml for Patch {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let patch_type = attribute_or_error(element_name, attributes, TYPE_ATTR)?;
+        let mut diff: Option<Diff> = None;
+        let mut resolves: Option<Vec<Issue>> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(PATCH_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == DIFF_TAG => {
+                    diff = Some(Diff::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == RESOLVES_TAG => {
+                    resolves = Some(read_list_tag(event_reader, &name, ISSUE_TAG)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            patch_type,
+            diff,
+            resolves,
+        })
     }
 }
 
@@ -357,7 +533,7 @@ impl ToXml for Diff {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(DIFF_TAG))
+            .write(writer::XmlEvent::start_element(DIFF_TAG))
             .map_err(to_xml_write_error(DIFF_TAG))?;
 
         if let Some(text) = &self.text {
@@ -369,7 +545,7 @@ impl ToXml for Diff {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(DIFF_TAG))?;
 
         Ok(())
@@ -377,6 +553,45 @@ impl ToXml for Diff {
 
     fn will_write(&self) -> bool {
         self.text.is_some() || self.url.is_some()
+    }
+}
+
+impl FromXml for Diff {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut text: Option<AttachedText> = None;
+        let mut url: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(DIFF_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == TEXT_TAG => {
+                    text = Some(AttachedText::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                    url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self { text, url })
     }
 }
 
@@ -438,7 +653,7 @@ impl ToXml for Issue {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(ISSUE_TAG).attr(TYPE_ATTR, &self.issue_type))
+            .write(writer::XmlEvent::start_element(ISSUE_TAG).attr(TYPE_ATTR, &self.issue_type))
             .map_err(to_xml_write_error(ISSUE_TAG))?;
 
         if let Some(id) = &self.id {
@@ -461,7 +676,7 @@ impl ToXml for Issue {
 
         if let Some(references) = &self.references {
             writer
-                .write(XmlEvent::start_element(REFERENCES_TAG))
+                .write(writer::XmlEvent::start_element(REFERENCES_TAG))
                 .map_err(to_xml_write_error(REFERENCES_TAG))?;
 
             for reference in references {
@@ -469,15 +684,74 @@ impl ToXml for Issue {
             }
 
             writer
-                .write(XmlEvent::end_element())
+                .write(writer::XmlEvent::end_element())
                 .map_err(to_xml_write_error(REFERENCES_TAG))?;
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(ISSUE_TAG))?;
 
         Ok(())
+    }
+}
+
+impl FromXml for Issue {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let issue_type = attribute_or_error(element_name, attributes, TYPE_ATTR)?;
+        let mut id: Option<String> = None;
+        let mut issue_name: Option<String> = None;
+        let mut description: Option<String> = None;
+        let mut source: Option<Source> = None;
+        let mut references: Option<Vec<String>> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(DIFF_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == ID_TAG => {
+                    id = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    issue_name = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == DESCRIPTION_TAG =>
+                {
+                    description = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SOURCE_TAG => {
+                    source = Some(Source::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == REFERENCES_TAG =>
+                {
+                    references = Some(read_list_tag(event_reader, &name, URL_TAG)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            issue_type,
+            id,
+            name: issue_name,
+            description,
+            source,
+            references,
+        })
     }
 }
 
@@ -516,7 +790,7 @@ impl ToXml for Source {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(SOURCE_TAG))
+            .write(writer::XmlEvent::start_element(SOURCE_TAG))
             .map_err(to_xml_write_error(SOURCE_TAG))?;
 
         if let Some(name) = &self.name {
@@ -528,7 +802,7 @@ impl ToXml for Source {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(SOURCE_TAG))?;
 
         Ok(())
@@ -539,11 +813,47 @@ impl ToXml for Source {
     }
 }
 
+impl FromXml for Source {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut source_name: Option<String> = None;
+        let mut url: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(DIFF_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    source_name = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                    url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            name: source_name,
+            url,
+        })
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
         specs::v1_3::attached_text::test::{corresponding_attached_text, example_attached_text},
-        xml::test::write_element_to_string,
+        xml::test::{read_element_from_string, write_element_to_string},
     };
 
     use super::*;
@@ -680,5 +990,64 @@ pub(crate) mod test {
     fn it_should_write_patches_xml_full() {
         let xml_output = write_element_to_string(example_patches());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_commits_xml_full() {
+        let input = r#"
+<commits>
+  <commit>
+    <uid>uid</uid>
+    <url>url</url>
+    <author>
+      <timestamp>timestamp</timestamp>
+      <name>name</name>
+      <email>email</email>
+    </author>
+    <committer>
+      <timestamp>timestamp</timestamp>
+      <name>name</name>
+      <email>email</email>
+    </committer>
+    <message>message</message>
+  </commit>
+</commits>
+
+"#;
+        let actual: Commits = read_element_from_string(input);
+        let expected = example_commits();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_patches_xml_full() {
+        let input = r#"
+<patches>
+  <patch type="patch type">
+    <diff>
+      <text content-type="content type" encoding="encoding">content</text>
+      <url>url</url>
+    </diff>
+    <resolves>
+      <issue type="issue type">
+        <id>id</id>
+        <name>name</name>
+        <description>description</description>
+        <source>
+          <name>name</name>
+          <url>url</url>
+        </source>
+        <references>
+          <url>reference</url>
+        </references>
+      </issue>
+    </resolves>
+  </patch>
+</patches>
+
+"#;
+        let actual: Patches = read_element_from_string(input);
+        let expected = example_patches();
+        assert_eq!(actual, expected);
     }
 }

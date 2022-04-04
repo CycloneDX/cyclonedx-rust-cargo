@@ -17,6 +17,7 @@
  */
 
 use crate::{
+    errors::XmlReadError,
     external_models::{
         normalized_string::NormalizedString,
         uri::{Purl, Uri},
@@ -26,14 +27,19 @@ use crate::{
         external_reference::ExternalReferences, hash::Hashes, license::Licenses,
         organization::OrganizationalEntity, property::Properties,
     },
-    xml::{to_xml_write_error, write_simple_tag, ToInnerXml, ToXml},
+    xml::{
+        attribute_or_error, optional_attribute, parse_as_xml_boolean, read_boolean_tag,
+        read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
+        unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
+    },
 };
 use crate::{
     models,
     utilities::{convert_optional, convert_vec},
 };
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use std::str::FromStr;
+use xml::{reader, writer::XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -80,6 +86,19 @@ impl ToXml for Components {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         self.write_xml_named_element(writer, COMPONENTS_TAG)
+    }
+}
+
+impl FromXml for Components {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, COMPONENT_TAG).map(Components)
     }
 }
 
@@ -316,6 +335,205 @@ impl ToXml for Component {
     }
 }
 
+const HASHES_TAG: &str = "hashes";
+const LICENSES_TAG: &str = "licenses";
+const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
+const PROPERTIES_TAG: &str = "properties";
+
+impl FromXml for Component {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        let component_type = attribute_or_error(element_name, attributes, TYPE_ATTR)?;
+        let mime_type = optional_attribute(attributes, MIME_TYPE_ATTR).map(MimeType);
+        let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+
+        let mut supplier: Option<OrganizationalEntity> = None;
+        let mut author: Option<String> = None;
+        let mut publisher: Option<String> = None;
+        let mut group: Option<String> = None;
+        let mut component_name: Option<String> = None;
+        let mut version: Option<String> = None;
+        let mut description: Option<String> = None;
+        let mut scope: Option<String> = None;
+        let mut hashes: Option<Hashes> = None;
+        let mut licenses: Option<Licenses> = None;
+        let mut copyright: Option<String> = None;
+        let mut cpe: Option<Cpe> = None;
+        let mut purl: Option<String> = None;
+        let mut swid: Option<Swid> = None;
+        let mut modified: Option<bool> = None;
+        let mut pedigree: Option<Pedigree> = None;
+        let mut external_references: Option<ExternalReferences> = None;
+        let mut properties: Option<Properties> = None;
+        let mut components: Option<Components> = None;
+        let mut evidence: Option<ComponentEvidence> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(COMPONENT_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SUPPLIER_TAG => {
+                    supplier = Some(OrganizationalEntity::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == AUTHOR_TAG => {
+                    author = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == PUBLISHER_TAG => {
+                    publisher = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == GROUP_TAG => {
+                    group = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    component_name = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == VERSION_TAG => {
+                    version = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == DESCRIPTION_TAG =>
+                {
+                    description = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == SCOPE_TAG => {
+                    scope = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == HASHES_TAG => {
+                    hashes = Some(Hashes::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == LICENSES_TAG => {
+                    licenses = Some(Licenses::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == COPYRIGHT_TAG => {
+                    copyright = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == CPE_TAG => {
+                    cpe = Some(Cpe::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == PURL_TAG => {
+                    purl = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SWID_TAG => {
+                    swid = Some(Swid::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == MODIFIED_TAG => {
+                    modified = Some(read_boolean_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == PEDIGREE_TAG => {
+                    pedigree = Some(Pedigree::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == EXTERNAL_REFERENCES_TAG => {
+                    external_references = Some(ExternalReferences::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == PROPERTIES_TAG => {
+                    properties = Some(Properties::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == COMPONENTS_TAG => {
+                    components = Some(Components::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == EVIDENCE_TAG => {
+                    evidence = Some(ComponentEvidence::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        let component_name = component_name.ok_or_else(|| XmlReadError::RequiredDataMissing {
+            required_field: NAME_TAG.to_string(),
+            element: element_name.local_name.to_string(),
+        })?;
+        let version = version.ok_or_else(|| XmlReadError::RequiredDataMissing {
+            required_field: VERSION_TAG.to_string(),
+            element: element_name.local_name.to_string(),
+        })?;
+
+        Ok(Self {
+            component_type,
+            mime_type,
+            bom_ref,
+            supplier,
+            author,
+            publisher,
+            group,
+            name: component_name,
+            version,
+            description,
+            scope,
+            hashes,
+            licenses,
+            copyright,
+            cpe,
+            purl,
+            swid,
+            modified,
+            pedigree,
+            external_references,
+            properties,
+            components,
+            evidence,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 struct Swid {
@@ -414,6 +632,82 @@ impl ToXml for Swid {
     }
 }
 
+impl FromXml for Swid {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let tag_id = attribute_or_error(element_name, attributes, TAG_ID_ATTR)?;
+        let name = attribute_or_error(element_name, attributes, NAME_ATTR)?;
+        let version = optional_attribute(attributes, VERSION_ATTR);
+        let tag_version =
+            if let Some(tag_version) = optional_attribute(attributes, TAG_VERSION_ATTR) {
+                match u32::from_str(&tag_version) {
+                    Ok(tag_version) => Some(tag_version),
+                    Err(_) => {
+                        return Err(XmlReadError::InvalidParseError {
+                            value: tag_version.to_string(),
+                            data_type: "xs:integer".to_string(),
+                            element: element_name.local_name.to_string(),
+                        });
+                    }
+                }
+            } else {
+                None
+            };
+        let patch = if let Some(patch) = optional_attribute(attributes, PATCH_ATTR) {
+            Some(
+                parse_as_xml_boolean(&patch).ok_or_else(|| XmlReadError::InvalidParseError {
+                    value: patch.to_string(),
+                    data_type: "xs:boolean".to_string(),
+                    element: element_name.local_name.to_string(),
+                })?,
+            )
+        } else {
+            None
+        };
+        let mut text: Option<AttachedText> = None;
+        let mut url: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(SWID_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == TEXT_TAG => {
+                    text = Some(AttachedText::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                    url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            tag_id,
+            name,
+            version,
+            tag_version,
+            patch,
+            text,
+            url,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct Cpe(String);
 
@@ -437,6 +731,19 @@ impl ToXml for Cpe {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         write_simple_tag(writer, CPE_TAG, &self.0)
+    }
+}
+
+impl FromXml for Cpe {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_simple_tag(event_reader, element_name).map(Cpe)
     }
 }
 
@@ -495,6 +802,56 @@ impl ToXml for ComponentEvidence {
 
     fn will_write(&self) -> bool {
         self.licenses.is_some() || self.copyright.is_some()
+    }
+}
+
+impl FromXml for ComponentEvidence {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut licenses: Option<Licenses> = None;
+        let mut copyright: Option<CopyrightTexts> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(EVIDENCE_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == LICENSES_TAG => {
+                    licenses = Some(Licenses::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == COPYRIGHT_TAG => {
+                    copyright = Some(CopyrightTexts::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            licenses,
+            copyright,
+        })
     }
 }
 
@@ -597,6 +954,89 @@ impl ToXml for Pedigree {
     }
 }
 
+const COMMITS_TAG: &str = "commits";
+const PATCHES_TAG: &str = "patches";
+
+impl FromXml for Pedigree {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut ancestors: Option<Components> = None;
+        let mut descendants: Option<Components> = None;
+        let mut variants: Option<Components> = None;
+        let mut commits: Option<Commits> = None;
+        let mut patches: Option<Patches> = None;
+        let mut notes: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(PEDIGREE_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == ANCESTORS_TAG => {
+                    ancestors = Some(Components::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == DESCENDANTS_TAG => {
+                    descendants = Some(Components::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == VARIANTS_TAG => {
+                    variants = Some(Components::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == COMMITS_TAG => {
+                    commits = Some(Commits::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == PATCHES_TAG => {
+                    patches = Some(Patches::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NOTES_TAG => {
+                    notes = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            ancestors,
+            descendants,
+            variants,
+            commits,
+            patches,
+            notes,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct Copyright {
     text: String,
@@ -632,6 +1072,19 @@ impl ToXml for Copyright {
             .map_err(to_xml_write_error(TEXT_TAG))?;
 
         Ok(())
+    }
+}
+
+impl FromXml for Copyright {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_simple_tag(event_reader, element_name).map(|text| Self { text })
     }
 }
 
@@ -671,6 +1124,19 @@ impl ToXml for CopyrightTexts {
     }
 }
 
+impl FromXml for CopyrightTexts {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, TEXT_TAG).map(CopyrightTexts)
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct MimeType(String);
 
@@ -702,7 +1168,7 @@ pub(crate) mod test {
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
         },
-        xml::test::write_element_to_string,
+        xml::test::{read_element_from_string, write_element_to_string},
     };
 
     use super::*;
@@ -871,5 +1337,114 @@ pub(crate) mod test {
     fn it_should_write_xml_full() {
         let xml_output = write_element_to_string(example_components());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<components>
+  <component type="component type" mime-type="mime type" bom-ref="bom ref">
+    <supplier>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </supplier>
+    <author>author</author>
+    <publisher>publisher</publisher>
+    <group>group</group>
+    <name>name</name>
+    <version>version</version>
+    <description>description</description>
+    <scope>scope</scope>
+    <hashes>
+      <hash alg="algorithm">hash value</hash>
+    </hashes>
+    <licenses>
+      <expression>expression</expression>
+    </licenses>
+    <copyright>copyright</copyright>
+    <cpe>cpe</cpe>
+    <purl>purl</purl>
+    <swid tagId="tag id" name="name" version="version" tagVersion="1" patch="true">
+      <text content-type="content type" encoding="encoding">content</text>
+      <url>url</url>
+    </swid>
+    <modified>true</modified>
+    <pedigree>
+      <ancestors />
+      <descendants />
+      <variants />
+      <commits>
+        <commit>
+          <uid>uid</uid>
+          <url>url</url>
+          <author>
+            <timestamp>timestamp</timestamp>
+            <name>name</name>
+            <email>email</email>
+          </author>
+          <committer>
+            <timestamp>timestamp</timestamp>
+            <name>name</name>
+            <email>email</email>
+          </committer>
+          <message>message</message>
+        </commit>
+      </commits>
+      <patches>
+        <patch type="patch type">
+          <diff>
+            <text content-type="content type" encoding="encoding">content</text>
+            <url>url</url>
+          </diff>
+          <resolves>
+            <issue type="issue type">
+              <id>id</id>
+              <name>name</name>
+              <description>description</description>
+              <source>
+                <name>name</name>
+                <url>url</url>
+              </source>
+              <references>
+                <url>reference</url>
+              </references>
+            </issue>
+          </resolves>
+        </patch>
+      </patches>
+      <notes>notes</notes>
+    </pedigree>
+    <externalReferences>
+      <reference type="external reference type">
+        <url>url</url>
+        <comment>comment</comment>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </reference>
+    </externalReferences>
+    <properties>
+      <property name="name">value</property>
+    </properties>
+    <components />
+    <evidence>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <copyright>
+        <text><![CDATA[copyright]]></text>
+      </copyright>
+    </evidence>
+  </component>
+</components>
+"#;
+        let actual: Components = read_element_from_string(input);
+        let expected = example_components();
+        assert_eq!(actual, expected);
     }
 }

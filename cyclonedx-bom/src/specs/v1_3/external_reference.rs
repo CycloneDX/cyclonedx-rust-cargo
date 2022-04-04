@@ -17,8 +17,12 @@
  */
 
 use crate::{
+    errors::XmlReadError,
     external_models::uri::Uri,
-    xml::{write_simple_tag, ToXml},
+    xml::{
+        attribute_or_error, read_list_tag, read_simple_tag, to_xml_read_error,
+        unexpected_element_error, write_simple_tag, FromXml, ToXml,
+    },
 };
 use crate::{
     models,
@@ -26,7 +30,7 @@ use crate::{
 };
 use crate::{specs::v1_3::hash::Hashes, xml::to_xml_write_error};
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::{reader, writer::XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -63,6 +67,19 @@ impl ToXml for ExternalReferences {
             .write(XmlEvent::end_element())
             .map_err(to_xml_write_error(EXTERNAL_REFERENCES_TAG))?;
         Ok(())
+    }
+}
+
+impl FromXml for ExternalReferences {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, REFERENCE_TAG).map(ExternalReferences)
     }
 }
 
@@ -138,12 +155,66 @@ impl ToXml for ExternalReference {
     }
 }
 
+const HASHES_TAG: &str = "hashes";
+
+impl FromXml for ExternalReference {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let reference_type = attribute_or_error(element_name, attributes, TYPE_ATTR)?;
+        let mut url: Option<String> = None;
+        let mut comment: Option<String> = None;
+        let mut hashes: Option<Hashes> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(REFERENCE_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                    url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == COMMENT_TAG => {
+                    comment = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == HASHES_TAG => {
+                    hashes = Some(Hashes::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        let url = url.ok_or_else(|| XmlReadError::RequiredDataMissing {
+            required_field: URL_TAG.to_string(),
+            element: element_name.local_name.to_string(),
+        })?;
+
+        Ok(Self {
+            external_reference_type: reference_type,
+            url,
+            comment,
+            hashes,
+        })
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
     use crate::{
         specs::v1_3::hash::test::{corresponding_hashes, example_hashes},
-        xml::test::write_element_to_string,
+        xml::test::{read_element_from_string, write_element_to_string},
     };
 
     pub(crate) fn example_external_references() -> ExternalReferences {
@@ -181,5 +252,23 @@ pub(crate) mod test {
     fn it_should_write_xml_full() {
         let xml_output = write_element_to_string(example_external_references());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<externalReferences>
+  <reference type="external reference type">
+    <url>url</url>
+    <comment>comment</comment>
+    <hashes>
+      <hash alg="algorithm">hash value</hash>
+    </hashes>
+  </reference>
+</externalReferences>
+"#;
+        let actual: ExternalReferences = read_element_from_string(input);
+        let expected = example_external_references();
+        assert_eq!(actual, expected);
     }
 }

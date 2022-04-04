@@ -17,12 +17,17 @@
  */
 
 use crate::{
+    errors::XmlReadError,
     models,
     utilities::{convert_optional_vec, convert_vec},
-    xml::{to_xml_write_error, write_simple_tag, ToInnerXml, ToXml},
+    xml::{
+        attribute_or_error, closing_tag_or_error, read_list_tag, read_simple_tag,
+        to_xml_read_error, to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml,
+        ToInnerXml, ToXml,
+    },
 };
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::{reader, writer::XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -59,6 +64,19 @@ impl ToXml for Compositions {
             .write(XmlEvent::end_element())
             .map_err(to_xml_write_error(COMPOSITIONS_TAG))?;
         Ok(())
+    }
+}
+
+impl FromXml for Compositions {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, COMPOSITION_TAG).map(Compositions)
     }
 }
 
@@ -146,6 +164,58 @@ impl ToXml for Composition {
     }
 }
 
+impl FromXml for Composition {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut aggregate: Option<String> = None;
+        let mut assemblies: Option<Vec<BomReference>> = None;
+        let mut dependencies: Option<Vec<BomReference>> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(COMPOSITION_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == AGGREGATE_TAG => {
+                    aggregate = Some(read_simple_tag(event_reader, &name)?);
+                }
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == ASSEMBLIES_TAG =>
+                {
+                    assemblies = Some(read_list_tag(event_reader, &name, ASSEMBLY_TAG)?)
+                }
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == DEPENDENCIES_TAG =>
+                {
+                    dependencies = Some(read_list_tag(event_reader, &name, DEPENDENCY_TAG)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        let aggregate = aggregate.ok_or_else(|| XmlReadError::RequiredDataMissing {
+            required_field: AGGREGATE_TAG.to_string(),
+            element: COMPOSITION_TAG.to_string(),
+        })?;
+
+        Ok(Self {
+            aggregate,
+            assemblies,
+            dependencies,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct BomReference(String);
 
@@ -181,9 +251,28 @@ impl ToInnerXml for BomReference {
     }
 }
 
+impl FromXml for BomReference {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let reference = attribute_or_error(element_name, attributes, REF_ATTR)?;
+        event_reader
+            .next()
+            .map_err(to_xml_read_error(&element_name.local_name))
+            .and_then(closing_tag_or_error(element_name))?;
+
+        Ok(Self(reference))
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::xml::test::write_element_to_string;
+    use crate::xml::test::{read_element_from_string, write_element_to_string};
 
     use super::*;
 
@@ -221,5 +310,25 @@ pub(crate) mod test {
     fn it_should_write_xml_full() {
         let xml_output = write_element_to_string(example_compositions());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<compositions>
+  <composition>
+    <aggregate>aggregate</aggregate>
+    <assemblies>
+      <assembly ref="assembly" />
+    </assemblies>
+    <dependencies>
+      <dependency ref="dependency" />
+    </dependencies>
+  </composition>
+</compositions>
+"#;
+        let actual: Compositions = read_element_from_string(input);
+        let expected = example_compositions();
+        assert_eq!(actual, expected);
     }
 }

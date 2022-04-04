@@ -21,10 +21,13 @@ use crate::{
     external_models::{normalized_string::NormalizedString, uri::Uri},
     models,
     utilities::convert_optional_vec,
-    xml::{to_xml_write_error, write_simple_tag, ToInnerXml},
+    xml::{
+        read_simple_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
+        write_simple_tag, FromXml, ToInnerXml,
+    },
 };
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::{reader, writer::XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -92,6 +95,49 @@ impl ToInnerXml for OrganizationalContact {
 
     fn will_write(&self) -> bool {
         self.name.is_some() || self.email.is_some() || self.phone.is_some()
+    }
+}
+
+impl FromXml for OrganizationalContact {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut contact_name: Option<String> = None;
+        let mut email: Option<String> = None;
+        let mut phone: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    contact_name = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == EMAIL_TAG => {
+                    email = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == PHONE_TAG => {
+                    phone = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            name: contact_name,
+            email,
+            phone,
+        })
     }
 }
 
@@ -171,9 +217,61 @@ impl ToInnerXml for OrganizationalEntity {
     }
 }
 
+impl FromXml for OrganizationalEntity {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut contact_name: Option<String> = None;
+        let mut url: Option<Vec<String>> = None;
+        let mut contact: Option<Vec<OrganizationalContact>> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    contact_name = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                    url.get_or_insert(Vec::new())
+                        .push(read_simple_tag(event_reader, &name)?);
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == CONTACT_TAG => {
+                    contact
+                        .get_or_insert(Vec::new())
+                        .push(OrganizationalContact::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            name: contact_name,
+            url,
+            contact,
+        })
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::xml::test::write_named_element_to_string;
+    use crate::xml::test::{read_element_from_string, write_named_element_to_string};
 
     use super::*;
 
@@ -243,5 +341,51 @@ pub(crate) mod test {
             "supplier",
         );
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<supplier>
+  <name>name</name>
+  <url>url</url>
+  <contact>
+    <name>name</name>
+    <email>email</email>
+    <phone>phone</phone>
+  </contact>
+</supplier>
+"#;
+        let actual: OrganizationalEntity = read_element_from_string(input);
+        let expected = example_entity();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_xml_multiple_urls_contacts() {
+        let input = r#"
+<supplier>
+  <name>name</name>
+  <url>url</url>
+  <url>url</url>
+  <contact>
+    <name>name</name>
+    <email>email</email>
+    <phone>phone</phone>
+  </contact>
+  <contact>
+    <name>name</name>
+    <email>email</email>
+    <phone>phone</phone>
+  </contact>
+</supplier>
+"#;
+        let actual: OrganizationalEntity = read_element_from_string(input);
+        let expected = OrganizationalEntity {
+            name: Some("name".to_string()),
+            url: Some(vec!["url".to_string(), "url".to_string()]),
+            contact: Some(vec![example_contact(), example_contact()]),
+        };
+        assert_eq!(actual, expected);
     }
 }
