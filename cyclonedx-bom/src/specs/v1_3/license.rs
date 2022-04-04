@@ -17,14 +17,18 @@
  */
 
 use crate::{
+    errors::XmlReadError,
     external_models::{normalized_string::NormalizedString, spdx::SpdxIdentifier, uri::Uri},
     models,
-    xml::{to_xml_write_error, ToInnerXml, ToXml},
+    xml::{
+        closing_tag_or_error, inner_text_or_error, read_simple_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, FromXml, ToInnerXml, ToXml,
+    },
 };
 use crate::{specs::v1_3::attached_text::AttachedText, utilities::convert_optional};
 use crate::{utilities::convert_vec, xml::write_simple_tag};
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::{name::OwnedName, reader, writer};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -50,7 +54,7 @@ impl ToXml for Licenses {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(LICENSES_TAG))
+            .write(writer::XmlEvent::start_element(LICENSES_TAG))
             .map_err(to_xml_write_error(LICENSES_TAG))?;
 
         for license in &self.0 {
@@ -58,9 +62,46 @@ impl ToXml for Licenses {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(LICENSES_TAG))?;
         Ok(())
+    }
+}
+
+impl FromXml for Licenses {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut licenses = Vec::new();
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(LICENSES_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == LICENSE_TAG || name.local_name == EXPRESSION_TAG => {
+                    licenses.push(LicenseChoice::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Licenses(licenses))
     }
 }
 
@@ -109,6 +150,33 @@ impl ToXml for LicenseChoice {
     }
 }
 
+impl FromXml for LicenseChoice {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        match element_name.local_name.as_ref() {
+            LICENSE_TAG => Ok(Self::License(License::read_xml_element(
+                event_reader,
+                element_name,
+                attributes,
+            )?)),
+            EXPRESSION_TAG => Ok(Self::Expression(read_simple_tag(
+                event_reader,
+                element_name,
+            )?)),
+            unexpected => Err(XmlReadError::UnexpectedElementReadError {
+                error: format!("Got unexpected element {:?}", unexpected),
+                element: "LicenseChoice".to_string(),
+            }),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct License {
@@ -150,7 +218,7 @@ impl ToXml for License {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(LICENSE_TAG))
+            .write(writer::XmlEvent::start_element(LICENSE_TAG))
             .map_err(to_xml_write_error(LICENSE_TAG))?;
 
         self.license_identifier.write_xml_element(writer)?;
@@ -164,10 +232,69 @@ impl ToXml for License {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(LICENSE_TAG))?;
 
         Ok(())
+    }
+}
+
+impl FromXml for License {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut license_identifier: Option<LicenseIdentifier> = None;
+        let mut text: Option<AttachedText> = None;
+        let mut url: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(LICENSE_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == ID_TAG || name.local_name == NAME_TAG => {
+                    license_identifier = Some(LicenseIdentifier::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == TEXT_TAG => {
+                    text = Some(AttachedText::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                    url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+        let license_identifier =
+            license_identifier.ok_or_else(|| XmlReadError::RequiredDataMissing {
+                required_field: format!("{} or {}", ID_TAG, NAME_TAG),
+                element: LICENSE_TAG.to_string(),
+            })?;
+        Ok(Self {
+            license_identifier,
+            text,
+            url,
+        })
     }
 }
 
@@ -218,11 +345,55 @@ impl ToXml for LicenseIdentifier {
     }
 }
 
+impl FromXml for LicenseIdentifier {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        match name.local_name.as_str() {
+            ID_TAG => {
+                let id = event_reader
+                    .next()
+                    .map_err(to_xml_read_error(ID_TAG))
+                    .and_then(inner_text_or_error(ID_TAG))?;
+
+                event_reader
+                    .next()
+                    .map_err(to_xml_read_error(ID_TAG))
+                    .and_then(closing_tag_or_error(name))?;
+
+                Ok(Self::SpdxId(id))
+            }
+            NAME_TAG => {
+                let license_name = event_reader
+                    .next()
+                    .map_err(to_xml_read_error(NAME_TAG))
+                    .and_then(inner_text_or_error(NAME_TAG))?;
+
+                event_reader
+                    .next()
+                    .map_err(to_xml_read_error(ID_TAG))
+                    .and_then(closing_tag_or_error(name))?;
+
+                Ok(Self::Name(license_name))
+            }
+            other => Err(XmlReadError::UnexpectedElementReadError {
+                error: format!("Got {} instead of \"name\" or \"id\"", other),
+                element: "license identifier".to_string(),
+            }),
+        }
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
         specs::v1_3::attached_text::test::{corresponding_attached_text, example_attached_text},
-        xml::test::write_element_to_string,
+        xml::test::{read_element_from_string, write_element_to_string},
     };
 
     use super::*;
@@ -302,5 +473,31 @@ pub(crate) mod test {
             example_license_expression(),
         ]));
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<licenses>
+  <license>
+    <id>spdx id</id>
+    <text content-type="content type" encoding="encoding">content</text>
+    <url>url</url>
+  </license>
+  <license>
+    <name>name</name>
+    <text content-type="content type" encoding="encoding">content</text>
+    <url>url</url>
+  </license>
+  <expression>expression</expression>
+</licenses>
+"#;
+        let actual: Licenses = read_element_from_string(input);
+        let expected = Licenses(vec![
+            example_spdx_license(),
+            example_named_license(),
+            example_license_expression(),
+        ]);
+        assert_eq!(actual, expected);
     }
 }

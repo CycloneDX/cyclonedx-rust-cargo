@@ -17,12 +17,13 @@
  */
 
 use crate::{
+    errors::XmlReadError,
     models,
     utilities::convert_vec,
-    xml::{to_xml_write_error, ToXml},
+    xml::{attribute_or_error, read_list_tag, read_simple_tag, to_xml_write_error, FromXml, ToXml},
 };
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::writer;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -48,7 +49,7 @@ impl ToXml for Hashes {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(HASHES_TAG))
+            .write(writer::XmlEvent::start_element(HASHES_TAG))
             .map_err(to_xml_write_error(HASHES_TAG))?;
 
         for hash in &self.0 {
@@ -56,9 +57,22 @@ impl ToXml for Hashes {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(HASHES_TAG))?;
         Ok(())
+    }
+}
+
+impl FromXml for Hashes {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, HASH_TAG).map(Hashes)
     }
 }
 
@@ -96,17 +110,36 @@ impl ToXml for Hash {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(HASH_TAG).attr(ALG_ATTR, &self.alg))
+            .write(writer::XmlEvent::start_element(HASH_TAG).attr(ALG_ATTR, &self.alg))
             .map_err(to_xml_write_error(HASH_TAG))?;
 
         writer
-            .write(XmlEvent::characters(&self.content.0))
+            .write(writer::XmlEvent::characters(&self.content.0))
             .map_err(to_xml_write_error(HASH_TAG))?;
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(HASH_TAG))?;
         Ok(())
+    }
+}
+
+impl FromXml for Hash {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let alg = attribute_or_error(element_name, attributes, ALG_ATTR)?;
+        let value = read_simple_tag(event_reader, element_name)?;
+
+        Ok(Self {
+            alg,
+            content: HashValue(value),
+        })
     }
 }
 
@@ -127,7 +160,7 @@ impl From<HashValue> for models::hash::HashValue {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::xml::test::write_element_to_string;
+    use crate::xml::test::{read_element_from_string, write_element_to_string};
 
     use super::*;
 
@@ -157,5 +190,17 @@ pub(crate) mod test {
     fn it_should_write_xml_full() {
         let xml_output = write_element_to_string(example_hashes());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<hashes>
+  <hash alg="algorithm">hash value</hash>
+</hashes>
+"#;
+        let actual: Hashes = read_element_from_string(input);
+        let expected = example_hashes();
+        assert_eq!(actual, expected);
     }
 }

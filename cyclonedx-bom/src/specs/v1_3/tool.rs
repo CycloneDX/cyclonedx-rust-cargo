@@ -17,14 +17,18 @@
  */
 
 use crate::{
+    errors::XmlReadError,
     external_models::normalized_string::NormalizedString,
     specs::v1_3::hash::Hashes,
     utilities::convert_vec,
-    xml::{to_xml_write_error, write_simple_tag, ToXml},
+    xml::{
+        read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
+        unexpected_element_error, write_simple_tag, FromXml, ToXml,
+    },
 };
 use crate::{models, utilities::convert_optional};
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::{reader, writer};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -50,7 +54,7 @@ impl ToXml for Tools {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(TOOLS_TAG))
+            .write(writer::XmlEvent::start_element(TOOLS_TAG))
             .map_err(to_xml_write_error(TOOLS_TAG))?;
 
         for tool in &self.0 {
@@ -58,9 +62,22 @@ impl ToXml for Tools {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(TOOLS_TAG))?;
         Ok(())
+    }
+}
+
+impl FromXml for Tools {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, TOOL_TAG).map(Tools)
     }
 }
 
@@ -110,7 +127,7 @@ impl ToXml for Tool {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(TOOL_TAG))
+            .write(writer::XmlEvent::start_element(TOOL_TAG))
             .map_err(to_xml_write_error(TOOL_TAG))?;
 
         if let Some(vendor) = &self.vendor {
@@ -132,7 +149,7 @@ impl ToXml for Tool {
         }
 
         writer
-            .write(XmlEvent::end_element())
+            .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(TOOL_TAG))?;
 
         Ok(())
@@ -146,11 +163,61 @@ impl ToXml for Tool {
     }
 }
 
+const HASHES_TAG: &str = "hashes";
+
+impl FromXml for Tool {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut vendor: Option<String> = None;
+        let mut tool_name: Option<String> = None;
+        let mut version: Option<String> = None;
+        let mut hashes: Option<Hashes> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(TOOL_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == VENDOR_TAG => {
+                    vendor = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    tool_name = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == VERSION_TAG => {
+                    version = Some(read_simple_tag(event_reader, &name)?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == HASHES_TAG => {
+                    hashes = Some(Hashes::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            vendor,
+            name: tool_name,
+            version,
+            hashes,
+        })
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
         specs::v1_3::hash::test::{corresponding_hashes, example_hashes},
-        xml::test::write_element_to_string,
+        xml::test::{read_element_from_string, write_element_to_string},
     };
 
     use super::*;
@@ -185,5 +252,24 @@ pub(crate) mod test {
     fn it_should_write_xml_full() {
         let xml_output = write_element_to_string(example_tools());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<tools>
+  <tool>
+    <vendor>vendor</vendor>
+    <name>name</name>
+    <version>version</version>
+    <hashes>
+      <hash alg="algorithm">hash value</hash>
+    </hashes>
+  </tool>
+</tools>
+"#;
+        let actual: Tools = read_element_from_string(input);
+        let expected = example_tools();
+        assert_eq!(actual, expected);
     }
 }

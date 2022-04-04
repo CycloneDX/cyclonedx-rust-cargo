@@ -1,12 +1,11 @@
 ---
 source: cyclonedx-bom/src/specs/v1_3/bom.rs
-assertion_line: 144
+assertion_line: 416
 expression: actual
-
 ---
 {
   "bomFormat": "CycloneDX",
-  "specVersion": "1.4",
+  "specVersion": "1.3",
   "version": 1,
   "serialNumber": "fake-uuid",
   "metadata": {

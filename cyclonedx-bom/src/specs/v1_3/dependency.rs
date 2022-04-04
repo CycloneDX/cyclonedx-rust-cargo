@@ -19,12 +19,15 @@
 use std::collections::HashSet;
 
 use crate::{
-    errors::XmlWriteError,
+    errors::{XmlReadError, XmlWriteError},
     models,
-    xml::{to_xml_write_error, ToXml},
+    xml::{
+        attribute_or_error, closing_tag_or_error, read_list_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, FromXml, ToXml,
+    },
 };
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::{reader, writer::XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub(crate) struct Dependencies(Vec<Dependency>);
@@ -86,6 +89,19 @@ impl ToXml for Dependencies {
     }
 }
 
+impl FromXml for Dependencies {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, DEPENDENCY_TAG).map(Dependencies)
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Dependency {
@@ -111,6 +127,7 @@ impl From<Dependency> for models::dependency::Dependency {
 }
 
 const DEPENDENCY_TAG: &str = "dependency";
+const REF_ATTR: &str = "ref";
 
 impl ToXml for Dependency {
     fn write_xml_element<W: std::io::Write>(
@@ -118,12 +135,12 @@ impl ToXml for Dependency {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), XmlWriteError> {
         writer
-            .write(XmlEvent::start_element(DEPENDENCY_TAG).attr("ref", &self.dependency_ref))
+            .write(XmlEvent::start_element(DEPENDENCY_TAG).attr(REF_ATTR, &self.dependency_ref))
             .map_err(to_xml_write_error(DEPENDENCY_TAG))?;
 
         for dependency in &self.depends_on {
             writer
-                .write(XmlEvent::start_element(DEPENDENCY_TAG).attr("ref", dependency))
+                .write(XmlEvent::start_element(DEPENDENCY_TAG).attr(REF_ATTR, dependency))
                 .map_err(to_xml_write_error(DEPENDENCY_TAG))?;
 
             writer
@@ -139,10 +156,52 @@ impl ToXml for Dependency {
     }
 }
 
+impl FromXml for Dependency {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let dependency_ref = attribute_or_error(element_name, attributes, REF_ATTR)?;
+        let mut depends_on: Vec<String> = Vec::new();
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(DEPENDENCY_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == DEPENDENCY_TAG => {
+                    let dep_ref = attribute_or_error(&name, &attributes, REF_ATTR)?;
+                    event_reader
+                        .next()
+                        .map_err(to_xml_read_error(DEPENDENCY_TAG))
+                        .and_then(closing_tag_or_error(&name))?;
+                    depends_on.push(dep_ref);
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self {
+            dependency_ref,
+            depends_on,
+        })
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
-    use crate::xml::test::write_element_to_string;
+    use crate::xml::test::{read_element_from_string, write_element_to_string};
 
     pub(crate) fn example_dependencies() -> Dependencies {
         Dependencies(vec![Dependency {
@@ -246,5 +305,44 @@ pub(crate) mod test {
             depends_on: Vec::new(),
         }]));
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<dependencies>
+  <dependency ref="ref">
+    <dependency ref="depends on" />
+  </dependency>
+</dependencies>
+"#;
+        let actual: Dependencies = read_element_from_string(input);
+        let expected = example_dependencies();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_xml_empty_dependencies() {
+        let input = r#"
+<dependencies/>
+"#;
+        let actual: Dependencies = read_element_from_string(input);
+        let expected = Dependencies(Vec::new());
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_xml_dependencies_with_no_children() {
+        let input = r#"
+<dependencies>
+  <dependency ref="dependency" />
+</dependencies>
+"#;
+        let actual: Dependencies = read_element_from_string(input);
+        let expected = Dependencies(vec![Dependency {
+            dependency_ref: "dependency".to_string(),
+            depends_on: Vec::new(),
+        }]);
+        assert_eq!(actual, expected);
     }
 }

@@ -17,9 +17,13 @@
  */
 
 use crate::{
+    errors::XmlReadError,
     models::{self},
     utilities::convert_optional,
-    xml::to_xml_write_error,
+    xml::{
+        expected_namespace_or_error, optional_attribute, to_xml_read_error, to_xml_write_error,
+        unexpected_element_error, FromXml, FromXmlDocument,
+    },
 };
 use crate::{
     specs::v1_3::{
@@ -30,7 +34,7 @@ use crate::{
     xml::ToXml,
 };
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
+use xml::{reader, writer::XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -59,7 +63,7 @@ impl From<models::bom::Bom> for Bom {
     fn from(other: models::bom::Bom) -> Self {
         Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.4".to_string(),
+            spec_version: "1.3".to_string(),
             version: Some(other.version),
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
@@ -150,6 +154,165 @@ impl ToXml for Bom {
     }
 }
 
+const METADATA_TAG: &str = "metadata";
+const COMPONENTS_TAG: &str = "components";
+const SERVICES_TAG: &str = "services";
+const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
+const DEPENDENCIES_TAG: &str = "dependencies";
+const COMPOSITIONS_TAG: &str = "compositions";
+const PROPERTIES_TAG: &str = "properties";
+
+impl FromXmlDocument for Bom {
+    fn read_xml_document<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        event_reader
+            .next()
+            .map_err(to_xml_read_error(BOM_TAG))
+            .and_then(|event| match event {
+                reader::XmlEvent::StartDocument { .. } => Ok(()),
+                unexpected => Err(unexpected_element_error(BOM_TAG, unexpected)),
+            })?;
+
+        let (version, serial_number) = event_reader
+            .next()
+            .map_err(to_xml_read_error(BOM_TAG))
+            .and_then(|event| match event {
+                reader::XmlEvent::StartElement {
+                    name,
+                    attributes,
+                    namespace,
+                } if name.local_name == BOM_TAG => {
+                    expected_namespace_or_error("1.3", &namespace)?;
+                    let version =
+                        if let Some(version) = optional_attribute(&attributes, VERSION_ATTR) {
+                            let version: u32 =
+                                version
+                                    .parse()
+                                    .map_err(|_| XmlReadError::InvalidParseError {
+                                        value: version,
+                                        data_type: "xs:integer".to_string(),
+                                        element: BOM_TAG.to_string(),
+                                    })?;
+                            Some(version)
+                        } else {
+                            None
+                        };
+                    let serial_number =
+                        optional_attribute(&attributes, SERIAL_NUMBER_ATTR).map(UrnUuid);
+                    Ok((version, serial_number))
+                }
+                unexpected => Err(unexpected_element_error(BOM_TAG, unexpected)),
+            })?;
+
+        let mut metadata: Option<Metadata> = None;
+        let mut components: Option<Components> = None;
+        let mut services: Option<Services> = None;
+        let mut external_references: Option<ExternalReferences> = None;
+        let mut dependencies: Option<Dependencies> = None;
+        let mut compositions: Option<Compositions> = None;
+        let mut properties: Option<Properties> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(BOM_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == METADATA_TAG => {
+                    metadata = Some(Metadata::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == COMPONENTS_TAG => {
+                    components = Some(Components::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SERVICES_TAG => {
+                    services = Some(Services::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == EXTERNAL_REFERENCES_TAG => {
+                    external_references = Some(ExternalReferences::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == DEPENDENCIES_TAG => {
+                    dependencies = Some(Dependencies::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == COMPOSITIONS_TAG => {
+                    compositions = Some(Compositions::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == PROPERTIES_TAG => {
+                    properties = Some(Properties::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+                reader::XmlEvent::EndElement { name } if name.local_name == BOM_TAG => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(BOM_TAG, unexpected)),
+            }
+        }
+
+        event_reader
+            .next()
+            .map_err(to_xml_read_error(BOM_TAG))
+            .and_then(|event| match event {
+                reader::XmlEvent::EndDocument => Ok(()),
+                unexpected => Err(unexpected_element_error(BOM_TAG, unexpected)),
+            })?;
+        Ok(Self {
+            bom_format: BomFormat::CycloneDX,
+            spec_version: "1.3".to_string(),
+            version,
+            serial_number,
+            metadata,
+            components,
+            services,
+            external_references,
+            dependencies,
+            compositions,
+            properties,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 enum BomFormat {
     CycloneDX,
@@ -184,10 +347,56 @@ pub(crate) mod test {
             property::test::{corresponding_properties, example_properties},
             service::test::{corresponding_services, example_services},
         },
-        xml::test::write_element_to_string,
+        xml::test::{read_document_from_string, write_element_to_string},
     };
 
     use super::*;
+
+    pub(crate) fn minimal_bom_example() -> Bom {
+        Bom {
+            bom_format: BomFormat::CycloneDX,
+            spec_version: "1.3".to_string(),
+            version: Some(1),
+            serial_number: Some(UrnUuid("fake-uuid".to_string())),
+            metadata: None,
+            components: None,
+            services: None,
+            external_references: None,
+            dependencies: None,
+            compositions: None,
+            properties: None,
+        }
+    }
+
+    pub(crate) fn full_bom_example() -> Bom {
+        Bom {
+            bom_format: BomFormat::CycloneDX,
+            spec_version: "1.3".to_string(),
+            version: Some(1),
+            serial_number: Some(UrnUuid("fake-uuid".to_string())),
+            metadata: Some(example_metadata()),
+            components: Some(example_components()),
+            services: Some(example_services()),
+            external_references: Some(example_external_references()),
+            dependencies: Some(example_dependencies()),
+            compositions: Some(example_compositions()),
+            properties: Some(example_properties()),
+        }
+    }
+
+    pub(crate) fn corresponding_internal_model() -> models::bom::Bom {
+        models::bom::Bom {
+            version: 1,
+            serial_number: Some(models::bom::UrnUuid("fake-uuid".to_string())),
+            metadata: Some(corresponding_metadata()),
+            components: Some(corresponding_components()),
+            services: Some(corresponding_services()),
+            external_references: Some(corresponding_external_references()),
+            dependencies: Some(corresponding_dependencies()),
+            compositions: Some(corresponding_compositions()),
+            properties: Some(corresponding_properties()),
+        }
+    }
 
     #[test]
     fn it_should_serialize_to_json() {
@@ -227,49 +436,337 @@ pub(crate) mod test {
         assert_eq!(spec, full_bom_example());
     }
 
-    pub(crate) fn minimal_bom_example() -> Bom {
-        Bom {
-            bom_format: BomFormat::CycloneDX,
-            spec_version: "1.3".to_string(),
-            version: Some(1),
-            serial_number: Some(UrnUuid("fake-uuid".to_string())),
-            metadata: None,
-            components: None,
-            services: None,
-            external_references: None,
-            dependencies: None,
-            compositions: None,
-            properties: None,
-        }
+    #[test]
+    fn it_should_deserialize_from_xml() {
+        let input = r#"
+<?xml version="1.0" encoding="utf-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.3" serialNumber="fake-uuid" version="1" />
+"#;
+        let actual: Bom = read_document_from_string(input);
+        let expected = minimal_bom_example();
+        assert_eq!(actual, expected);
     }
 
-    pub(crate) fn full_bom_example() -> Bom {
-        Bom {
-            bom_format: BomFormat::CycloneDX,
-            spec_version: "1.4".to_string(),
-            version: Some(1),
-            serial_number: Some(UrnUuid("fake-uuid".to_string())),
-            metadata: Some(example_metadata()),
-            components: Some(example_components()),
-            services: Some(example_services()),
-            external_references: Some(example_external_references()),
-            dependencies: Some(example_dependencies()),
-            compositions: Some(example_compositions()),
-            properties: Some(example_properties()),
-        }
-    }
-
-    pub(crate) fn corresponding_internal_model() -> models::bom::Bom {
-        models::bom::Bom {
-            version: 1,
-            serial_number: Some(models::bom::UrnUuid("fake-uuid".to_string())),
-            metadata: Some(corresponding_metadata()),
-            components: Some(corresponding_components()),
-            services: Some(corresponding_services()),
-            external_references: Some(corresponding_external_references()),
-            dependencies: Some(corresponding_dependencies()),
-            compositions: Some(corresponding_compositions()),
-            properties: Some(corresponding_properties()),
-        }
+    #[test]
+    fn it_should_deserialize_a_complex_example_from_xml() {
+        let input = r#"
+<?xml version="1.0" encoding="utf-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.3" serialNumber="fake-uuid" version="1">
+  <metadata>
+    <timestamp>timestamp</timestamp>
+    <tools>
+      <tool>
+        <vendor>vendor</vendor>
+        <name>name</name>
+        <version>version</version>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </tool>
+    </tools>
+    <authors>
+      <author>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </author>
+    </authors>
+    <component type="component type" mime-type="mime type" bom-ref="bom ref">
+      <supplier>
+        <name>name</name>
+        <url>url</url>
+        <contact>
+          <name>name</name>
+          <email>email</email>
+          <phone>phone</phone>
+        </contact>
+      </supplier>
+      <author>author</author>
+      <publisher>publisher</publisher>
+      <group>group</group>
+      <name>name</name>
+      <version>version</version>
+      <description>description</description>
+      <scope>scope</scope>
+      <hashes>
+        <hash alg="algorithm">hash value</hash>
+      </hashes>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <copyright>copyright</copyright>
+      <cpe>cpe</cpe>
+      <purl>purl</purl>
+      <swid tagId="tag id" name="name" version="version" tagVersion="1" patch="true">
+        <text content-type="content type" encoding="encoding">content</text>
+        <url>url</url>
+      </swid>
+      <modified>true</modified>
+      <pedigree>
+        <ancestors />
+        <descendants />
+        <variants />
+        <commits>
+          <commit>
+            <uid>uid</uid>
+            <url>url</url>
+            <author>
+              <timestamp>timestamp</timestamp>
+              <name>name</name>
+              <email>email</email>
+            </author>
+            <committer>
+              <timestamp>timestamp</timestamp>
+              <name>name</name>
+              <email>email</email>
+            </committer>
+            <message>message</message>
+          </commit>
+        </commits>
+        <patches>
+          <patch type="patch type">
+            <diff>
+              <text content-type="content type" encoding="encoding">content</text>
+              <url>url</url>
+            </diff>
+            <resolves>
+              <issue type="issue type">
+                <id>id</id>
+                <name>name</name>
+                <description>description</description>
+                <source>
+                  <name>name</name>
+                  <url>url</url>
+                </source>
+                <references>
+                  <url>reference</url>
+                </references>
+              </issue>
+            </resolves>
+          </patch>
+        </patches>
+        <notes>notes</notes>
+      </pedigree>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+      <components />
+      <evidence>
+        <licenses>
+          <expression>expression</expression>
+        </licenses>
+        <copyright>
+          <text><![CDATA[copyright]]></text>
+        </copyright>
+      </evidence>
+    </component>
+    <manufacture>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </manufacture>
+    <supplier>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </supplier>
+    <licenses>
+      <expression>expression</expression>
+    </licenses>
+    <properties>
+      <property name="name">value</property>
+    </properties>
+  </metadata>
+  <components>
+    <component type="component type" mime-type="mime type" bom-ref="bom ref">
+      <supplier>
+        <name>name</name>
+        <url>url</url>
+        <contact>
+          <name>name</name>
+          <email>email</email>
+          <phone>phone</phone>
+        </contact>
+      </supplier>
+      <author>author</author>
+      <publisher>publisher</publisher>
+      <group>group</group>
+      <name>name</name>
+      <version>version</version>
+      <description>description</description>
+      <scope>scope</scope>
+      <hashes>
+        <hash alg="algorithm">hash value</hash>
+      </hashes>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <copyright>copyright</copyright>
+      <cpe>cpe</cpe>
+      <purl>purl</purl>
+      <swid tagId="tag id" name="name" version="version" tagVersion="1" patch="true">
+        <text content-type="content type" encoding="encoding">content</text>
+        <url>url</url>
+      </swid>
+      <modified>true</modified>
+      <pedigree>
+        <ancestors />
+        <descendants />
+        <variants />
+        <commits>
+          <commit>
+            <uid>uid</uid>
+            <url>url</url>
+            <author>
+              <timestamp>timestamp</timestamp>
+              <name>name</name>
+              <email>email</email>
+            </author>
+            <committer>
+              <timestamp>timestamp</timestamp>
+              <name>name</name>
+              <email>email</email>
+            </committer>
+            <message>message</message>
+          </commit>
+        </commits>
+        <patches>
+          <patch type="patch type">
+            <diff>
+              <text content-type="content type" encoding="encoding">content</text>
+              <url>url</url>
+            </diff>
+            <resolves>
+              <issue type="issue type">
+                <id>id</id>
+                <name>name</name>
+                <description>description</description>
+                <source>
+                  <name>name</name>
+                  <url>url</url>
+                </source>
+                <references>
+                  <url>reference</url>
+                </references>
+              </issue>
+            </resolves>
+          </patch>
+        </patches>
+        <notes>notes</notes>
+      </pedigree>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+      <components />
+      <evidence>
+        <licenses>
+          <expression>expression</expression>
+        </licenses>
+        <copyright>
+          <text><![CDATA[copyright]]></text>
+        </copyright>
+      </evidence>
+    </component>
+  </components>
+  <services>
+    <service bom-ref="bom-ref">
+      <provider>
+        <name>name</name>
+        <url>url</url>
+        <contact>
+          <name>name</name>
+          <email>email</email>
+          <phone>phone</phone>
+        </contact>
+      </provider>
+      <group>group</group>
+      <name>name</name>
+      <version>version</version>
+      <description>description</description>
+      <endpoints>
+        <endpoint>endpoint</endpoint>
+      </endpoints>
+      <authenticated>true</authenticated>
+      <x-trust-boundary>true</x-trust-boundary>
+      <data>
+        <classification flow="flow">classification</classification>
+      </data>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+      <services />
+    </service>
+  </services>
+  <externalReferences>
+    <reference type="external reference type">
+      <url>url</url>
+      <comment>comment</comment>
+      <hashes>
+        <hash alg="algorithm">hash value</hash>
+      </hashes>
+    </reference>
+  </externalReferences>
+  <dependencies>
+    <dependency ref="ref">
+      <dependency ref="depends on" />
+    </dependency>
+  </dependencies>
+  <compositions>
+    <composition>
+      <aggregate>aggregate</aggregate>
+      <assemblies>
+        <assembly ref="assembly" />
+      </assemblies>
+      <dependencies>
+        <dependency ref="dependency" />
+      </dependencies>
+    </composition>
+  </compositions>
+  <properties>
+    <property name="name">value</property>
+  </properties>
+</bom>
+"#;
+        let actual: Bom = read_document_from_string(input);
+        let expected = full_bom_example();
+        assert_eq!(actual, expected);
     }
 }
