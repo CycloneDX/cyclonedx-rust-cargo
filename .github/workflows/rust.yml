@@ -36,7 +36,7 @@ jobs:
             continue-on-error: false
           - # test with the MSRV version
             test-arm: 'Minimum Supported Rust Version'
-            rust-version: '1.56.1'
+            rust-version: '1.58.1'
             continue-on-error: false
           - # test with the current nightly version (allowed to fail)
             test-arm: 'Nightly'
