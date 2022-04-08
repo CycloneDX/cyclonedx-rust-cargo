@@ -24,7 +24,9 @@ use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 use thiserror::Error;
 
-pub fn config_from_toml(value: Option<&toml::Value>) -> Result<SbomConfig, ConfigError> {
+pub fn config_from_toml(
+    value: Option<&toml_edit::easy::value::Value>,
+) -> Result<SbomConfig, ConfigError> {
     if let Some(value) = value {
         let wrapper: ConfigWrapper = value
             .clone()
@@ -220,7 +222,7 @@ included_dependencies = "top-level"
 output_options = { cdx = true, pattern = "bom", prefix = "tacos" }
 "#;
 
-        let actual: ConfigWrapper = toml::from_str(toml).expect("Failed to parse toml");
+        let actual: ConfigWrapper = toml_edit::de::from_str(toml).expect("Failed to parse toml");
 
         let expected = TomlConfig {
             format: Some(Format::Json),
@@ -285,7 +287,7 @@ included_dependencies = "top-level"
 output_options = { cdx = true, pattern = "bom", prefix = "" }
 "#;
 
-        let actual: ConfigWrapper = toml::from_str(toml).expect("Failed to parse toml");
+        let actual: ConfigWrapper = toml_edit::de::from_str(toml).expect("Failed to parse toml");
 
         assert_eq!(actual.cyclonedx, None);
     }
