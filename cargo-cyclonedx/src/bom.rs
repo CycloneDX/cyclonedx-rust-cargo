@@ -35,7 +35,7 @@ enum BomFormat {
 }
 
 fn uuid_to_urn<S: Serializer>(uuid: &Uuid, serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.collect_str(&uuid.to_urn())
+    serializer.collect_str(&uuid.as_urn())
 }
 
 /// A software bill of materials for a Rust crate.
@@ -81,7 +81,7 @@ impl ToXml for Bom {
         let namespace = format!("http://cyclonedx.org/schema/bom/{}", SPEC_VERSION);
         xml.dtd("UTF-8")?;
         xml.begin_elem("bom")?;
-        xml.attr("serialNumber", &self.serial_number.to_urn().to_string())?;
+        xml.attr("serialNumber", &self.serial_number.as_urn().to_string())?;
         xml.attr("version", "1")?;
         xml.attr("xmlns", namespace.as_str())?;
 
