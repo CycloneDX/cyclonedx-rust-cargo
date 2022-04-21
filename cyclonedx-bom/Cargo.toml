@@ -22,7 +22,7 @@ serde_json = "1.0.79"
 thiserror = "1.0.30"
 time = "0.3.9"
 url = "2.2.2"
-uuid = "0.8.2"
+uuid = "1.0.0"
 xml-rs = "0.8.4"
 
 [dev-dependencies]
