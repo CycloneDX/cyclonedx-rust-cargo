@@ -21,7 +21,7 @@ path = "src/main.rs"
 lto = true
 
 [dependencies]
-anyhow = "1.0.56"
+anyhow = "1.0.57"
 cargo = "0.61.1"
 cargo_metadata = "0.14.2"
 clap = { version = "3.1.10", features = ["derive"] }
