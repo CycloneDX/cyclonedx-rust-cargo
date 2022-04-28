@@ -29,8 +29,9 @@ use crate::{
     },
     xml::{
         attribute_or_error, optional_attribute, parse_as_xml_boolean, read_boolean_tag,
-        read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
-        unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
+        read_lax_validation_list_tag, read_lax_validation_tag, read_list_tag, read_simple_tag,
+        to_xml_read_error, to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml,
+        ToInnerXml, ToXml,
     },
 };
 use crate::{
@@ -98,7 +99,7 @@ impl FromXml for Components {
     where
         Self: Sized,
     {
-        read_list_tag(event_reader, element_name, COMPONENT_TAG).map(Components)
+        read_lax_validation_list_tag(event_reader, element_name, COMPONENT_TAG).map(Components)
     }
 }
 
@@ -490,6 +491,10 @@ impl FromXml for Component {
                         &attributes,
                     )?)
                 }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
+                }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -688,6 +693,10 @@ impl FromXml for Swid {
                 }
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
                     url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
@@ -1018,6 +1027,10 @@ impl FromXml for Pedigree {
                 }
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == NOTES_TAG => {
                     notes = Some(read_simple_tag(event_reader, &name)?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;

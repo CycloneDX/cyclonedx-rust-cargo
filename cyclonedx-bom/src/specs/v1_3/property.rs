@@ -20,7 +20,10 @@ use crate::{
     errors::XmlWriteError,
     external_models::normalized_string::NormalizedString,
     models,
-    xml::{attribute_or_error, read_list_tag, read_simple_tag, to_xml_write_error, FromXml, ToXml},
+    xml::{
+        attribute_or_error, read_lax_validation_list_tag, read_simple_tag, to_xml_write_error,
+        FromXml, ToXml,
+    },
 };
 use serde::{Deserialize, Serialize};
 use xml::writer::XmlEvent;
@@ -72,7 +75,7 @@ impl FromXml for Properties {
     where
         Self: Sized,
     {
-        read_list_tag(event_reader, element_name, PROPERTY_TAG).map(Properties)
+        read_lax_validation_list_tag(event_reader, element_name, PROPERTY_TAG).map(Properties)
     }
 }
 

@@ -245,6 +245,67 @@ pub(crate) fn read_list_tag<R: Read, X: FromXml>(
     Ok(items)
 }
 
+pub(crate) fn read_lax_validation_tag<R: Read>(
+    event_reader: &mut EventReader<R>,
+    element: &OwnedName,
+) -> Result<(), XmlReadError> {
+    let mut got_end_tag = false;
+    while !got_end_tag {
+        let next_element = event_reader
+            .next()
+            .map_err(to_xml_read_error(&element.local_name))?;
+
+        match next_element {
+            reader::XmlEvent::StartElement { name, .. } => {
+                read_lax_validation_tag(event_reader, &name)?
+            }
+            reader::XmlEvent::EndElement { name } if &name == element => {
+                got_end_tag = true;
+            }
+            unexpected @ reader::XmlEvent::EndDocument => {
+                return Err(unexpected_element_error(element, unexpected))
+            }
+            unexpected @ reader::XmlEvent::EndElement { .. } => {
+                return Err(unexpected_element_error(element, unexpected))
+            }
+            _unknown => (),
+        }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn read_lax_validation_list_tag<R: Read, X: FromXml>(
+    event_reader: &mut EventReader<R>,
+    element_name: &OwnedName,
+    inner_element_tag: &str,
+) -> Result<Vec<X>, XmlReadError> {
+    let mut items = Vec::new();
+
+    let mut got_end_tag = false;
+    while !got_end_tag {
+        let next_element = event_reader
+            .next()
+            .map_err(to_xml_read_error(&element_name.local_name))?;
+        match next_element {
+            reader::XmlEvent::StartElement {
+                name, attributes, ..
+            } if name.local_name == inner_element_tag => {
+                items.push(X::read_xml_element(event_reader, &name, &attributes)?);
+            }
+            reader::XmlEvent::StartElement { name, .. } => {
+                read_lax_validation_tag(event_reader, &name)?
+            }
+            reader::XmlEvent::EndElement { name } if &name == element_name => {
+                got_end_tag = true;
+            }
+            unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+        }
+    }
+
+    Ok(items)
+}
+
 pub(crate) fn unexpected_element_error(
     element: impl ToString,
     unexpected: reader::XmlEvent,
@@ -340,5 +401,37 @@ pub(crate) mod test {
         }
 
         output
+    }
+
+    #[test]
+    fn it_should_handle_invalid_lax_xml() {
+        let input = r#"
+<recursiveTag>
+  <innerTag>
+    <recursiveTag>
+      Text
+    </recursiveTag>
+  </innerTag>
+"#;
+        let mut event_reader = EventReader::new_with_config(input.as_bytes(), parser_config());
+
+        let start_document = event_reader.next().expect("Expected to start the document");
+
+        match start_document {
+            reader::XmlEvent::StartDocument { .. } => (),
+            other => panic!("Expected to start a document, but got {:?}", other),
+        }
+
+        let start_lax_element = event_reader.next().expect("Expected to start the document");
+
+        match start_lax_element {
+            reader::XmlEvent::StartElement { name, .. } => {
+                read_lax_validation_tag(&mut event_reader, &name)
+                    .expect_err("Should have failed to parse invalid input");
+            }
+            other => panic!("Expected to start an element, but got {:?}", other),
+        }
+
+        // no end document, because it returns an error during the read_lax_validation_tag call
     }
 }

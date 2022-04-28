@@ -21,8 +21,8 @@ use crate::{
     models::{self},
     utilities::convert_optional,
     xml::{
-        expected_namespace_or_error, optional_attribute, to_xml_read_error, to_xml_write_error,
-        unexpected_element_error, FromXml, FromXmlDocument,
+        expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
+        to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, FromXmlDocument,
     },
 };
 use crate::{
@@ -283,6 +283,10 @@ impl FromXmlDocument for Bom {
                         &attributes,
                     )?)
                 }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
+                }
                 reader::XmlEvent::EndElement { name } if name.local_name == BOM_TAG => {
                     got_end_tag = true;
                 }
@@ -451,7 +455,7 @@ pub(crate) mod test {
     fn it_should_deserialize_a_complex_example_from_xml() {
         let input = r#"
 <?xml version="1.0" encoding="utf-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.3" serialNumber="fake-uuid" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.3" xmlns:example="https://example.com" serialNumber="fake-uuid" version="1">
   <metadata>
     <timestamp>timestamp</timestamp>
     <tools>
@@ -763,6 +767,9 @@ pub(crate) mod test {
   <properties>
     <property name="name">value</property>
   </properties>
+  <example:laxValidation>
+    <example:innerElement id="test" />
+  </example:laxValidation>
 </bom>
 "#;
         let actual: Bom = read_document_from_string(input);

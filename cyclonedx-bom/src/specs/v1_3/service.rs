@@ -22,9 +22,9 @@ use crate::{
     models,
     utilities::{convert_optional, convert_optional_vec, convert_vec},
     xml::{
-        attribute_or_error, optional_attribute, read_boolean_tag, read_list_tag, read_simple_tag,
-        to_xml_read_error, to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml,
-        ToInnerXml, ToXml,
+        attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
+        read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -82,7 +82,7 @@ impl FromXml for Services {
     where
         Self: Sized,
     {
-        read_list_tag(event_reader, element_name, SERVICE_TAG).map(Services)
+        read_lax_validation_list_tag(event_reader, element_name, SERVICE_TAG).map(Services)
     }
 }
 
@@ -379,6 +379,10 @@ impl FromXml for Service {
                         &name,
                         &attributes,
                     )?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
