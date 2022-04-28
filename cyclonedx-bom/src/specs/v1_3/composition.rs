@@ -21,7 +21,7 @@ use crate::{
     models,
     utilities::{convert_optional_vec, convert_vec},
     xml::{
-        attribute_or_error, closing_tag_or_error, read_list_tag, read_simple_tag,
+        attribute_or_error, closing_tag_or_error, read_lax_validation_list_tag, read_simple_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml,
         ToInnerXml, ToXml,
     },
@@ -76,7 +76,7 @@ impl FromXml for Compositions {
     where
         Self: Sized,
     {
-        read_list_tag(event_reader, element_name, COMPOSITION_TAG).map(Compositions)
+        read_lax_validation_list_tag(event_reader, element_name, COMPOSITION_TAG).map(Compositions)
     }
 }
 
@@ -189,12 +189,20 @@ impl FromXml for Composition {
                 reader::XmlEvent::StartElement { name, .. }
                     if name.local_name == ASSEMBLIES_TAG =>
                 {
-                    assemblies = Some(read_list_tag(event_reader, &name, ASSEMBLY_TAG)?)
+                    assemblies = Some(read_lax_validation_list_tag(
+                        event_reader,
+                        &name,
+                        ASSEMBLY_TAG,
+                    )?)
                 }
                 reader::XmlEvent::StartElement { name, .. }
                     if name.local_name == DEPENDENCIES_TAG =>
                 {
-                    dependencies = Some(read_list_tag(event_reader, &name, DEPENDENCY_TAG)?)
+                    dependencies = Some(read_lax_validation_list_tag(
+                        event_reader,
+                        &name,
+                        DEPENDENCY_TAG,
+                    )?)
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;

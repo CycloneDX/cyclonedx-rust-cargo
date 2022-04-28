@@ -22,8 +22,8 @@ use crate::{
     specs::v1_3::hash::Hashes,
     utilities::convert_vec,
     xml::{
-        read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
-        unexpected_element_error, write_simple_tag, FromXml, ToXml,
+        read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToXml,
     },
 };
 use crate::{models, utilities::convert_optional};
@@ -196,6 +196,10 @@ impl FromXml for Tool {
                     name, attributes, ..
                 } if name.local_name == HASHES_TAG => {
                     hashes = Some(Hashes::read_xml_element(event_reader, &name, &attributes)?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;

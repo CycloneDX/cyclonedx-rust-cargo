@@ -25,8 +25,8 @@ use crate::{
     },
     utilities::{convert_optional, convert_optional_vec},
     xml::{
-        read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
-        unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
+        read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -246,6 +246,10 @@ impl FromXml for Metadata {
                         &name,
                         &attributes,
                     )?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;

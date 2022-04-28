@@ -23,8 +23,9 @@ use crate::{
     specs::v1_3::attached_text::AttachedText,
     utilities::{convert_optional, convert_optional_vec, convert_vec},
     xml::{
-        attribute_or_error, read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
-        unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
+        attribute_or_error, read_lax_validation_list_tag, read_lax_validation_tag, read_list_tag,
+        read_simple_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
+        write_simple_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -77,7 +78,7 @@ impl FromXml for Commits {
     where
         Self: Sized,
     {
-        read_list_tag(event_reader, element_name, COMMIT_TAG).map(Commits)
+        read_lax_validation_list_tag(event_reader, element_name, COMMIT_TAG).map(Commits)
     }
 }
 
@@ -210,6 +211,9 @@ impl FromXml for Commit {
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == MESSAGE_TAG => {
                     message = Some(read_simple_tag(event_reader, &name)?)
                 }
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
+                }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -320,6 +324,10 @@ impl FromXml for IdentifiableAction {
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == EMAIL_TAG => {
                     email = Some(read_simple_tag(event_reader, &name)?)
                 }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
+                }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -382,7 +390,7 @@ impl FromXml for Patches {
     where
         Self: Sized,
     {
-        read_list_tag(event_reader, element_name, PATCH_TAG).map(Patches)
+        read_lax_validation_list_tag(event_reader, element_name, PATCH_TAG).map(Patches)
     }
 }
 
@@ -481,6 +489,10 @@ impl FromXml for Patch {
                 }
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == RESOLVES_TAG => {
                     resolves = Some(read_list_tag(event_reader, &name, ISSUE_TAG)?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
@@ -583,6 +595,10 @@ impl FromXml for Diff {
                 }
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
                     url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
@@ -736,6 +752,10 @@ impl FromXml for Issue {
                     if name.local_name == REFERENCES_TAG =>
                 {
                     references = Some(read_list_tag(event_reader, &name, URL_TAG)?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;

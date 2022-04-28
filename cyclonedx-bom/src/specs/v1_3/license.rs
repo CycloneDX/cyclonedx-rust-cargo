@@ -21,8 +21,9 @@ use crate::{
     external_models::{normalized_string::NormalizedString, spdx::SpdxIdentifier, uri::Uri},
     models,
     xml::{
-        closing_tag_or_error, inner_text_or_error, read_simple_tag, to_xml_read_error,
-        to_xml_write_error, unexpected_element_error, FromXml, ToInnerXml, ToXml,
+        closing_tag_or_error, inner_text_or_error, read_lax_validation_tag, read_simple_tag,
+        to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, ToInnerXml,
+        ToXml,
     },
 };
 use crate::{specs::v1_3::attached_text::AttachedText, utilities::convert_optional};
@@ -278,6 +279,10 @@ impl FromXml for License {
                 }
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
                     url = Some(read_simple_tag(event_reader, &name)?)
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
