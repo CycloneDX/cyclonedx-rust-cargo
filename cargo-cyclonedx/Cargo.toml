@@ -24,7 +24,7 @@ lto = true
 anyhow = "1.0.57"
 cargo = "0.61.1"
 cargo_metadata = "0.14.2"
-clap = { version = "3.1.12", features = ["derive"] }
+clap = { version = "3.1.14", features = ["derive"] }
 env_logger = "0.9.0"
 lazy_static = "1.4.0"
 log = "0.4.16"
