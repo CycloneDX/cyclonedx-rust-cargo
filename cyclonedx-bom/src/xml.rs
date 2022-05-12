@@ -160,9 +160,52 @@ pub(crate) trait FromXmlType
 where
     Self: Sized,
 {
-    fn xml_type_display() -> &'static str;
+    fn xml_type_display() -> String;
 
-    fn convert(value: impl AsRef<str>) -> Option<Self>;
+    fn from_xml_value(element: impl ToString, value: impl AsRef<str>)
+        -> Result<Self, XmlReadError>;
+}
+
+impl FromXmlType for bool {
+    fn xml_type_display() -> String {
+        "xs:boolean".to_string()
+    }
+
+    fn from_xml_value(
+        element: impl ToString,
+        value: impl AsRef<str>,
+    ) -> Result<Self, XmlReadError> {
+        let value = value.as_ref();
+        match value {
+            "true" | "1" => Ok(true),
+            "false" | "0" => Ok(false),
+            _ => Err(XmlReadError::InvalidParseError {
+                value: value.to_string(),
+                data_type: Self::xml_type_display(),
+                element: element.to_string(),
+            }),
+        }
+    }
+}
+
+impl FromXmlType for u32 {
+    fn xml_type_display() -> String {
+        "xs:integer".to_string()
+    }
+
+    fn from_xml_value(
+        element: impl ToString,
+        value: impl AsRef<str>,
+    ) -> Result<Self, XmlReadError> {
+        let value = value.as_ref();
+        let value: u32 = value.parse().map_err(|_| XmlReadError::InvalidParseError {
+            value: value.to_string(),
+            data_type: Self::xml_type_display(),
+            element: element.to_string(),
+        })?;
+
+        Ok(value)
+    }
 }
 
 pub(crate) fn read_simple_tag<R: Read>(
@@ -187,21 +230,8 @@ pub(crate) fn read_boolean_tag<R: Read>(
     event_reader: &mut EventReader<R>,
     element: &OwnedName,
 ) -> Result<bool, XmlReadError> {
-    read_simple_tag(event_reader, element).and_then(|modified| {
-        parse_as_xml_boolean(&modified).ok_or_else(|| XmlReadError::InvalidParseError {
-            value: modified.to_string(),
-            data_type: "xs:boolean".to_string(),
-            element: element.local_name.to_string(),
-        })
-    })
-}
-
-pub(crate) fn parse_as_xml_boolean(value: impl AsRef<str>) -> Option<bool> {
-    match value.as_ref() {
-        "true" | "1" => Some(true),
-        "false" | "0" => Some(false),
-        _ => None,
-    }
+    read_simple_tag(event_reader, element)
+        .and_then(|modified| bool::from_xml_value(element, &modified))
 }
 
 impl FromXml for String {
