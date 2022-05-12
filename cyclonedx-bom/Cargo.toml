@@ -3,6 +3,7 @@ name = "cyclonedx-bom"
 version = "0.3.1"
 license = "Apache-2.0"
 edition = "2018"
+rust-version = "1.52.1"
 
 description = "CycloneDX Software Bill of Materials Library"
 homepage = "https://cyclonedx.org/"
@@ -22,7 +23,7 @@ serde_json = "1.0.81"
 thiserror = "1.0.31"
 time = "0.3.9"
 url = "2.2.2"
-uuid = "1.0.0"
+uuid = { version = "1.0.0", features = ["v4"] }
 xml-rs = "0.8.4"
 
 [dev-dependencies]
