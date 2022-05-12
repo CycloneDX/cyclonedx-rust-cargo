@@ -28,9 +28,9 @@ use crate::{
         organization::OrganizationalEntity, property::Properties,
     },
     xml::{
-        attribute_or_error, optional_attribute, parse_as_xml_boolean, read_boolean_tag,
-        read_lax_validation_list_tag, read_lax_validation_tag, read_list_tag, read_simple_tag,
-        to_xml_read_error, to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml,
+        attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
+        read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, FromXmlType,
         ToInnerXml, ToXml,
     },
 };
@@ -39,7 +39,6 @@ use crate::{
     utilities::{convert_optional, convert_vec},
 };
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use xml::{reader, writer::XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -651,27 +650,14 @@ impl FromXml for Swid {
         let version = optional_attribute(attributes, VERSION_ATTR);
         let tag_version =
             if let Some(tag_version) = optional_attribute(attributes, TAG_VERSION_ATTR) {
-                match u32::from_str(&tag_version) {
-                    Ok(tag_version) => Some(tag_version),
-                    Err(_) => {
-                        return Err(XmlReadError::InvalidParseError {
-                            value: tag_version.to_string(),
-                            data_type: "xs:integer".to_string(),
-                            element: element_name.local_name.to_string(),
-                        });
-                    }
-                }
+                let tag_version = u32::from_xml_value(TAG_VERSION_ATTR, &tag_version)?;
+                Some(tag_version)
             } else {
                 None
             };
         let patch = if let Some(patch) = optional_attribute(attributes, PATCH_ATTR) {
-            Some(
-                parse_as_xml_boolean(&patch).ok_or_else(|| XmlReadError::InvalidParseError {
-                    value: patch.to_string(),
-                    data_type: "xs:boolean".to_string(),
-                    element: element_name.local_name.to_string(),
-                })?,
-            )
+            let patch = bool::from_xml_value(PATCH_ATTR, patch)?;
+            Some(patch)
         } else {
             None
         };

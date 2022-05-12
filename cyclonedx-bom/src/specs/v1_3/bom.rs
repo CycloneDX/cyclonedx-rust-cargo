@@ -17,12 +17,12 @@
  */
 
 use crate::{
-    errors::XmlReadError,
     models::{self},
     utilities::convert_optional,
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, FromXmlDocument,
+        FromXmlType,
     },
 };
 use crate::{
@@ -189,14 +189,7 @@ impl FromXmlDocument for Bom {
                     expected_namespace_or_error("1.3", &namespace)?;
                     let version =
                         if let Some(version) = optional_attribute(&attributes, VERSION_ATTR) {
-                            let version: u32 =
-                                version
-                                    .parse()
-                                    .map_err(|_| XmlReadError::InvalidParseError {
-                                        value: version,
-                                        data_type: "xs:integer".to_string(),
-                                        element: BOM_TAG.to_string(),
-                                    })?;
+                            let version = u32::from_xml_value(VERSION_ATTR, version)?;
                             Some(version)
                         } else {
                             None
