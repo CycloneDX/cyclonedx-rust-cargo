@@ -20,10 +20,10 @@
 #![deny(warnings)]
 
 pub mod errors;
-pub mod models;
-
 pub mod external_models;
+pub mod models;
+pub mod validation;
+
 mod specs;
 mod utilities;
-mod validation;
 mod xml;

@@ -16,8 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::collections::HashSet;
-
 use crate::{
     errors::{XmlReadError, XmlWriteError},
     models,
@@ -34,29 +32,7 @@ pub(crate) struct Dependencies(Vec<Dependency>);
 
 impl From<models::dependency::Dependencies> for Dependencies {
     fn from(other: models::dependency::Dependencies) -> Self {
-        let mut dependencies_to_process = other.0;
-        let mut flat_dependencies = HashSet::new();
-
-        while let Some(dependency) = dependencies_to_process.pop() {
-            flat_dependencies.insert(Dependency {
-                dependency_ref: dependency.dependency_ref,
-                depends_on: dependency
-                    .dependencies
-                    .iter()
-                    .map(|d| d.dependency_ref.clone())
-                    .collect(),
-            });
-            for sub_dependency in dependency.dependencies {
-                if !sub_dependency.dependencies.is_empty() {
-                    dependencies_to_process.push(sub_dependency)
-                }
-            }
-        }
-
-        let mut flat_dependencies: Vec<_> = flat_dependencies.into_iter().collect();
-        flat_dependencies.sort_by_key(|d| d.dependency_ref.clone());
-
-        Self(flat_dependencies)
+        Self(other.0.into_iter().map(std::convert::Into::into).collect())
     }
 }
 
@@ -114,14 +90,16 @@ impl From<Dependency> for models::dependency::Dependency {
     fn from(other: Dependency) -> Self {
         Self {
             dependency_ref: other.dependency_ref,
-            dependencies: other
-                .depends_on
-                .into_iter()
-                .map(|d| models::dependency::Dependency {
-                    dependency_ref: d,
-                    dependencies: Vec::new(),
-                })
-                .collect(),
+            dependencies: other.depends_on,
+        }
+    }
+}
+
+impl From<models::dependency::Dependency> for Dependency {
+    fn from(other: models::dependency::Dependency) -> Self {
+        Self {
+            dependency_ref: other.dependency_ref,
+            depends_on: other.dependencies,
         }
     }
 }
@@ -213,10 +191,7 @@ pub(crate) mod test {
     pub(crate) fn corresponding_dependencies() -> models::dependency::Dependencies {
         models::dependency::Dependencies(vec![models::dependency::Dependency {
             dependency_ref: "ref".to_string(),
-            dependencies: vec![models::dependency::Dependency {
-                dependency_ref: "depends on".to_string(),
-                dependencies: Vec::new(),
-            }],
+            dependencies: vec!["depends on".to_string()],
         }])
     }
 
@@ -225,64 +200,13 @@ pub(crate) mod test {
         let actual: Dependencies =
             models::dependency::Dependencies(vec![models::dependency::Dependency {
                 dependency_ref: "a".to_string(),
-                dependencies: vec![
-                    models::dependency::Dependency {
-                        dependency_ref: "b".to_string(),
-                        dependencies: Vec::new(),
-                    },
-                    models::dependency::Dependency {
-                        dependency_ref: "c".to_string(),
-                        dependencies: Vec::new(),
-                    },
-                ],
+                dependencies: vec!["b".to_string(), "c".to_string()],
             }])
             .into();
         let expected = Dependencies(vec![Dependency {
             dependency_ref: "a".to_string(),
             depends_on: vec!["b".to_string(), "c".to_string()],
         }]);
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn it_deduplicates_when_flattening_dependencies() {
-        let actual: Dependencies = models::dependency::Dependencies(vec![
-            models::dependency::Dependency {
-                dependency_ref: "a".to_string(),
-                dependencies: vec![models::dependency::Dependency {
-                    dependency_ref: "common".to_string(),
-                    dependencies: vec![models::dependency::Dependency {
-                        dependency_ref: "common_transitive".to_string(),
-                        dependencies: Vec::new(),
-                    }],
-                }],
-            },
-            models::dependency::Dependency {
-                dependency_ref: "b".to_string(),
-                dependencies: vec![models::dependency::Dependency {
-                    dependency_ref: "common".to_string(),
-                    dependencies: vec![models::dependency::Dependency {
-                        dependency_ref: "common_transitive".to_string(),
-                        dependencies: Vec::new(),
-                    }],
-                }],
-            },
-        ])
-        .into();
-        let expected = Dependencies(vec![
-            Dependency {
-                dependency_ref: "a".to_string(),
-                depends_on: vec!["common".to_string()],
-            },
-            Dependency {
-                dependency_ref: "b".to_string(),
-                depends_on: vec!["common".to_string()],
-            },
-            Dependency {
-                dependency_ref: "common".to_string(),
-                depends_on: vec!["common_transitive".to_string()],
-            },
-        ]);
         assert_eq!(actual, expected);
     }
 

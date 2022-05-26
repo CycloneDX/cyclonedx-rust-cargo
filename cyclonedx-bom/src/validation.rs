@@ -36,20 +36,32 @@ impl ValidationContext {
         extended_context.extend(components);
         Self(extended_context)
     }
+
+    pub(crate) fn extend_context_with_struct_field(
+        &self,
+        struct_name: impl ToString,
+        field_name: impl ToString,
+    ) -> Self {
+        let component = vec![ValidationPathComponent::Struct {
+            struct_name: struct_name.to_string(),
+            field_name: field_name.to_string(),
+        }];
+
+        self.extend_context(component)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-#[allow(unused)] // TODO: remove
 pub enum ValidationPathComponent {
-    StructComponent {
+    Struct {
         struct_name: String,
         field_name: String,
     },
-    ArrayComponent {
-        index: u32,
+    Array {
+        index: usize,
     },
-    TupleComponent {
-        index: u32,
+    EnumVariant {
+        variant_name: String,
     },
 }
 
@@ -59,7 +71,34 @@ pub enum ValidationResult {
     Failed { reasons: Vec<FailureReason> },
 }
 
+impl ValidationResult {
+    pub fn merge(self, other: Self) -> Self {
+        match (self, other) {
+            (Self::Passed, Self::Passed) => Self::Passed,
+            (Self::Passed, Self::Failed { reasons }) => Self::Failed { reasons },
+            (Self::Failed { reasons }, Self::Passed) => Self::Failed { reasons },
+            (
+                Self::Failed {
+                    reasons: mut left_reasons,
+                },
+                Self::Failed {
+                    reasons: mut right_reasons,
+                },
+            ) => {
+                left_reasons.append(&mut right_reasons);
+                Self::Failed {
+                    reasons: left_reasons,
+                }
+            }
+        }
+    }
+}
 
+impl Default for ValidationResult {
+    fn default() -> Self {
+        Self::Passed
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FailureReason {

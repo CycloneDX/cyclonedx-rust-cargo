@@ -16,13 +16,100 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::external_models::normalized_string::NormalizedString;
+use crate::{
+    external_models::normalized_string::NormalizedString,
+    validation::{
+        Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
+    },
+};
 
 #[derive(Debug, PartialEq)]
 pub struct Properties(pub(crate) Vec<Property>);
+
+impl Validate for Properties {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        for (index, property) in self.0.iter().enumerate() {
+            let property_context =
+                context.extend_context(vec![ValidationPathComponent::Array { index }]);
+            results.push(property.validate_with_context(property_context)?);
+        }
+
+        Ok(results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Property {
     pub name: String,
     pub value: NormalizedString,
+}
+
+impl Validate for Property {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        let value_context = context.extend_context_with_struct_field("Property", "value");
+
+        results.push(self.value.validate_with_context(value_context)?);
+
+        Ok(results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use crate::validation::FailureReason;
+
+    #[test]
+    fn it_should_pass_validation() {
+        let validation_result = Properties(vec![Property {
+            name: "property name".to_string(),
+            value: NormalizedString("property value".to_string()),
+        }])
+        .validate()
+        .expect("Error while validating");
+
+        assert_eq!(validation_result, ValidationResult::Passed);
+    }
+
+    #[test]
+    fn it_should_fail_validation() {
+        let validation_result = Properties(vec![Property {
+            name: "property name".to_string(),
+            value: NormalizedString("spaces and \ttabs".to_string()),
+        }])
+        .validate()
+        .expect("Error while validating");
+
+        assert_eq!(
+            validation_result,
+            ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                        .to_string(),
+                    context: ValidationContext(vec![
+                        ValidationPathComponent::Array { index: 0 },
+                        ValidationPathComponent::Struct {
+                            struct_name: "Property".to_string(),
+                            field_name: "value".to_string(),
+                        },
+                    ]),
+                }],
+            }
+        );
+    }
 }

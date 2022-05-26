@@ -22,5 +22,5 @@ pub struct Dependencies(pub(crate) Vec<Dependency>);
 #[derive(Debug, PartialEq)]
 pub struct Dependency {
     pub dependency_ref: String,
-    pub dependencies: Vec<Dependency>,
+    pub dependencies: Vec<String>,
 }

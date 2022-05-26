@@ -18,45 +18,142 @@
 
 use std::convert::TryFrom;
 
+use spdx::Expression;
+
+use crate::validation::{FailureReason, Validate, ValidationResult};
+
 #[derive(Debug, PartialEq)]
 pub struct SpdxIdentifier(pub(crate) String);
 
-impl TryFrom<String> for SpdxIdentifier {
-    type Error = SpdxIdentifierError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match license_exprs::validate_license_expr(&value) {
-            Ok(()) => Ok(Self(value)),
-            Err(e) => Err(SpdxIdentifierError::InvalidSpdxExpression(format!("{}", e))),
+impl Validate for SpdxIdentifier {
+    fn validate_with_context(
+        &self,
+        context: crate::validation::ValidationContext,
+    ) -> Result<ValidationResult, crate::validation::ValidationError> {
+        match spdx::license_id(&self.0) {
+            Some(_) => Ok(ValidationResult::Passed),
+            None => Ok(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "SPDX identifier is not valid".to_string(),
+                    context,
+                }],
+            }),
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub enum SpdxIdentifierError {
+pub struct SpdxExpression(pub(crate) String);
+
+impl TryFrom<String> for SpdxExpression {
+    type Error = SpdxExpressionError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match Expression::parse(&value) {
+            Ok(_) => Ok(Self(value)),
+            Err(e) => Err(SpdxExpressionError::InvalidSpdxExpression(format!(
+                "{}",
+                e.reason
+            ))),
+        }
+    }
+}
+
+impl Validate for SpdxExpression {
+    fn validate_with_context(
+        &self,
+        context: crate::validation::ValidationContext,
+    ) -> Result<crate::validation::ValidationResult, crate::validation::ValidationError> {
+        match SpdxExpression::try_from(self.0.clone()) {
+            Ok(_) => Ok(ValidationResult::Passed),
+            Err(_) => Ok(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "SPDX expression is not valid".to_string(),
+                    context,
+                }],
+            }),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum SpdxExpressionError {
     InvalidSpdxExpression(String),
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
+    use crate::validation::{FailureReason, ValidationContext, ValidationResult};
+
     use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn valid_spdx_identifiers_should_pass_validation() {
+        let validation_result = SpdxIdentifier("MIT".to_string())
+            .validate_with_context(ValidationContext::default())
+            .expect("Error while validating");
+
+        assert_eq!(validation_result, ValidationResult::Passed);
+    }
+
+    #[test]
+    fn invalid_spdx_identifiers_should_fail_validation() {
+        let validation_result = SpdxIdentifier("MIT OR Apache-2.0".to_string())
+            .validate_with_context(ValidationContext::default())
+            .expect("Error while validating");
+
+        assert_eq!(
+            validation_result,
+            ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "SPDX identifier is not valid".to_string(),
+                    context: ValidationContext::default()
+                }]
+            }
+        );
+    }
 
     #[test]
     fn it_should_succeed_in_converting_an_spdx_expression() {
-        let actual = SpdxIdentifier::try_from("MIT OR Apache-2.0".to_string())
+        let actual = SpdxExpression::try_from("MIT OR Apache-2.0".to_string())
             .expect("Failed to parse as a license");
-        assert_eq!(actual, SpdxIdentifier("MIT OR Apache-2.0".to_string()));
+        assert_eq!(actual, SpdxExpression("MIT OR Apache-2.0".to_string()));
     }
 
     #[test]
     fn it_should_fail_to_convert_an_invalid_spdx_expression() {
-        let actual = SpdxIdentifier::try_from("not a real license".to_string())
+        let actual = SpdxExpression::try_from("not a real license".to_string())
             .expect_err("Should have failed to parse as a license");
         assert_eq!(
             actual,
-            SpdxIdentifierError::InvalidSpdxExpression(
-                "unknown license or other term: not".to_string()
-            )
+            SpdxExpressionError::InvalidSpdxExpression("unknown term".to_string())
+        );
+    }
+
+    #[test]
+    fn valid_spdx_expressions_should_pass_validation() {
+        let validation_result = SpdxExpression("MIT OR Apache-2.0".to_string())
+            .validate_with_context(ValidationContext::default())
+            .expect("Error while validating");
+
+        assert_eq!(validation_result, ValidationResult::Passed);
+    }
+
+    #[test]
+    fn invalid_spdx_expressions_should_fail_validation() {
+        let validation_result = SpdxExpression("not a real license".to_string())
+            .validate_with_context(ValidationContext::default())
+            .expect("Error while validating");
+
+        assert_eq!(
+            validation_result,
+            ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "SPDX expression is not valid".to_string(),
+                    context: ValidationContext::default()
+                }]
+            }
         );
     }
 }
