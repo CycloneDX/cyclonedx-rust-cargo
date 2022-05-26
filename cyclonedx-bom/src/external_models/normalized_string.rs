@@ -18,6 +18,10 @@
 
 /// A string that does not contain carriage return, line feed, or tab characters.
 /// Defined via the [XML schema](https://www.w3.org/TR/xmlschema-2/#normalizedString)
+use crate::validation::{
+    FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
+};
+
 #[derive(Debug, Default, PartialEq)]
 pub struct NormalizedString(pub(crate) String);
 
@@ -43,8 +47,33 @@ impl ToString for NormalizedString {
     }
 }
 
+impl Validate for NormalizedString {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        if self.0.contains("\r\n")
+            || self.0.contains('\r')
+            || self.0.contains('\n')
+            || self.0.contains('\t')
+        {
+            return Ok(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                        .to_string(),
+                    context: context,
+                }],
+            });
+        }
+
+        Ok(ValidationResult::Passed)
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use crate::validation::FailureReason;
+
     use super::*;
 
     #[test]
@@ -60,6 +89,33 @@ mod test {
         assert_eq!(
             NormalizedString("carriage returns and linefeeds".to_string()),
             NormalizedString::new("carriage\r\nreturns\rand\nlinefeeds")
+        );
+    }
+
+    #[test]
+    fn it_should_pass_validation() {
+        let validation_result = NormalizedString("no_whitespace".to_string())
+            .validate_with_context(ValidationContext::default())
+            .expect("Error while validating");
+
+        assert_eq!(validation_result, ValidationResult::Passed);
+    }
+
+    #[test]
+    fn it_should_fail_validation() {
+        let validation_result = NormalizedString("spaces and\ttabs".to_string())
+            .validate_with_context(ValidationContext::default())
+            .expect("Error while validating");
+
+        assert_eq!(
+            validation_result,
+            ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                        .to_string(),
+                    context: ValidationContext::default()
+                }]
+            }
         );
     }
 }
