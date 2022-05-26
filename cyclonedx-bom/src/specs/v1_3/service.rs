@@ -89,7 +89,7 @@ impl FromXml for Services {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Service {
-    #[serde(rename = "bom-ref")]
+    #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
     bom_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     provider: Option<OrganizationalEntity>,

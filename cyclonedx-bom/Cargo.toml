@@ -18,6 +18,7 @@ base64 = "0.13.0"
 license-exprs = "1.6.0"
 once_cell = "1.12.0"
 packageurl = "0.3.0"
+regex = "1.5.5"
 serde = "1.0.137"
 serde_json = "1.0.81"
 thiserror = "1.0.31"
@@ -27,4 +28,4 @@ uuid = { version = "1.0.0", features = ["v4"] }
 xml-rs = "0.8.4"
 
 [dev-dependencies]
-insta = "1.14.0"
+insta = { version = "1.14.0", features = ["glob"] }
