@@ -16,7 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri};
+use crate::{
+    external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri},
+    validation::{Validate, ValidationContext, ValidationError, ValidationResult},
+};
 
 use super::attached_text::AttachedText;
 
@@ -136,4 +139,13 @@ impl PatchClassification {
 pub struct Source {
     pub name: Option<NormalizedString>,
     pub url: Option<Uri>,
+}
+
+impl Validate for Source {
+    fn validate_with_context(
+        &self,
+        _context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        todo!()
+    }
 }

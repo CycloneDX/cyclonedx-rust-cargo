@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use once_cell::sync::Lazy;
+use regex::Regex;
 use xml::{EmitterConfig, EventReader, EventWriter, ParserConfig};
 
 use crate::models::component::Components;
@@ -25,6 +27,9 @@ use crate::models::external_reference::ExternalReferences;
 use crate::models::metadata::Metadata;
 use crate::models::property::Properties;
 use crate::models::service::Services;
+use crate::validation::{
+    FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
+};
 use crate::xml::{FromXmlDocument, ToXml};
 
 #[derive(Debug, PartialEq)]
@@ -96,3 +101,30 @@ impl Default for Bom {
 
 #[derive(Debug, PartialEq)]
 pub struct UrnUuid(pub(crate) String);
+
+impl Validate for UrnUuid {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        static UUID_REGEX: Lazy<Result<Regex, regex::Error>> = Lazy::new(|| {
+            Regex::new(r"^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+        });
+
+        match UUID_REGEX.as_ref() {
+            Ok(regex) => {
+                if regex.is_match(&self.0) {
+                    Ok(ValidationResult::Passed)
+                } else {
+                    Ok(ValidationResult::Failed {
+                        reasons: vec![FailureReason {
+                            message: "UrnUuid does not match regular expression".to_string(),
+                            context: context,
+                        }],
+                    })
+                }
+            }
+            Err(e) => Err(e.clone().into()),
+        }
+    }
+}
