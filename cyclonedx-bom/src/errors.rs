@@ -17,6 +17,7 @@
  */
 
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum BomError {
     #[error("Failed to serialize BOM to JSON: {0}")]
     JsonSerializationError(#[from] serde_json::Error),
@@ -26,7 +27,18 @@ pub enum BomError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum XmlWriteError {
+#[non_exhaustive]
+pub enum JsonWriteError {
+    #[error("Failed to serialize JSON: {error}")]
+    JsonElementWriteError {
+        #[from]
+        error: serde_json::Error,
+    },
+}
+
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum XmlWriteError {
     #[error("Failed to serialize XML while writing {element}: {error}")]
     XmlElementWriteError {
         #[source]
@@ -36,7 +48,18 @@ pub(crate) enum XmlWriteError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum XmlReadError {
+#[non_exhaustive]
+pub enum JsonReadError {
+    #[error("Failed to deserialize JSON: {error}")]
+    JsonElementWriteError {
+        #[from]
+        error: serde_json::Error,
+    },
+}
+
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum XmlReadError {
     #[error("Failed to deserialize XML while reading {element}: {error}")]
     ElementReadError {
         #[source]

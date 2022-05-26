@@ -419,6 +419,7 @@ dependencies = [
  "license-exprs",
  "once_cell",
  "packageurl",
+ "regex",
  "serde",
  "serde_json",
  "thiserror",
@@ -693,11 +694,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "689960f187c43c01650c805fb6bc6f55ab944499d86d4ffe9474ad78991d8e94"
 dependencies = [
  "console",
+ "globset",
  "once_cell",
  "serde",
  "serde_json",
  "serde_yaml",
  "similar",
+ "walkdir",
 ]
 
 [[package]]

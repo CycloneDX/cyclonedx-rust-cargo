@@ -16,17 +16,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-mod attached_text;
-mod bom;
-mod code;
-mod component;
-mod composition;
-mod dependency;
-mod external_reference;
-mod hash;
-mod license;
-mod metadata;
-mod organization;
-mod property;
-mod service;
-mod tool;
+pub(crate) mod attached_text;
+pub(crate) mod bom;
+pub(crate) mod code;
+pub(crate) mod component;
+pub(crate) mod composition;
+pub(crate) mod dependency;
+pub(crate) mod external_reference;
+pub(crate) mod hash;
+pub(crate) mod license;
+pub(crate) mod metadata;
+pub(crate) mod organization;
+pub(crate) mod property;
+pub(crate) mod service;
+pub(crate) mod tool;
