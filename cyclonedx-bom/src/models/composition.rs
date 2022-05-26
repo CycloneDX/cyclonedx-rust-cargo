@@ -16,6 +16,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::validation::{
+    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
+    ValidationResult,
+};
+
 #[derive(Debug, PartialEq)]
 pub struct Composition {
     pub aggregate: AggregateType,
@@ -23,8 +28,45 @@ pub struct Composition {
     pub dependencies: Option<Vec<BomReference>>,
 }
 
+impl Validate for Composition {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        let aggregate_context =
+            context.extend_context_with_struct_field("Composition", "aggregate");
+
+        results.push(self.aggregate.validate_with_context(aggregate_context)?);
+
+        Ok(results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Compositions(pub Vec<Composition>);
+
+impl Validate for Compositions {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        for (index, composition) in self.0.iter().enumerate() {
+            let composition_context =
+                context.extend_context(vec![ValidationPathComponent::Array { index }]);
+            results.push(composition.validate_with_context(composition_context)?);
+        }
+
+        Ok(results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum AggregateType {
@@ -67,5 +109,68 @@ impl AggregateType {
     }
 }
 
+impl Validate for AggregateType {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        match self {
+            AggregateType::UnknownAggregateType(_) => Ok(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "Unknown aggregate type".to_string(),
+                    context,
+                }],
+            }),
+            _ => Ok(ValidationResult::Passed),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct BomReference(pub(crate) String);
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn it_should_pass_validation() {
+        let validation_result = Compositions(vec![Composition {
+            aggregate: AggregateType::Complete,
+            assemblies: Some(vec![BomReference("reference".to_string())]),
+            dependencies: Some(vec![BomReference("reference".to_string())]),
+        }])
+        .validate()
+        .expect("Error while validating");
+
+        assert_eq!(validation_result, ValidationResult::Passed);
+    }
+
+    #[test]
+    fn it_should_fail_validation() {
+        let validation_result = Compositions(vec![Composition {
+            aggregate: AggregateType::UnknownAggregateType("unknown aggregate type".to_string()),
+            assemblies: Some(vec![BomReference("reference".to_string())]),
+            dependencies: Some(vec![BomReference("reference".to_string())]),
+        }])
+        .validate()
+        .expect("Error while validating");
+
+        assert_eq!(
+            validation_result,
+            ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "Unknown aggregate type".to_string(),
+                    context: ValidationContext(vec![
+                        ValidationPathComponent::Array { index: 0 },
+                        ValidationPathComponent::Struct {
+                            struct_name: "Composition".to_string(),
+                            field_name: "aggregate".to_string()
+                        }
+                    ])
+                }]
+            }
+        );
+    }
+}

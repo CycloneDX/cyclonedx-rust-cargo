@@ -18,6 +18,10 @@
 
 use crate::external_models::uri::Uri;
 use crate::models::hash::Hashes;
+use crate::validation::{
+    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
+    ValidationResult,
+};
 
 #[derive(Debug, PartialEq)]
 pub struct ExternalReference {
@@ -27,8 +31,57 @@ pub struct ExternalReference {
     pub hashes: Option<Hashes>,
 }
 
+impl Validate for ExternalReference {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        let external_reference_type_context = context
+            .extend_context_with_struct_field("ExternalReference", "external_reference_type");
+
+        results.push(
+            self.external_reference_type
+                .validate_with_context(external_reference_type_context)?,
+        );
+
+        let url_context = context.extend_context_with_struct_field("ExternalReference", "url");
+
+        results.push(self.url.validate_with_context(url_context)?);
+
+        if let Some(hashes) = &self.hashes {
+            let context = context.extend_context_with_struct_field("ExternalReference", "hashes");
+
+            results.push(hashes.validate_with_context(context)?);
+        }
+
+        Ok(results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ExternalReferences(pub Vec<ExternalReference>);
+
+impl Validate for ExternalReferences {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        for (index, external_reference) in self.0.iter().enumerate() {
+            let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
+            results.push(external_reference.validate_with_context(context)?);
+        }
+
+        Ok(results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum ExternalReferenceType {
@@ -95,5 +148,107 @@ impl ExternalReferenceType {
             "other" => Self::Other,
             unknown => Self::UnknownExternalReferenceType(unknown.to_string()),
         }
+    }
+}
+
+impl Validate for ExternalReferenceType {
+    fn validate_with_context(
+        &self,
+        context: ValidationContext,
+    ) -> Result<ValidationResult, ValidationError> {
+        match self {
+            ExternalReferenceType::UnknownExternalReferenceType(_) => {
+                Ok(ValidationResult::Failed {
+                    reasons: vec![FailureReason {
+                        message: "Unknown external reference type".to_string(),
+                        context,
+                    }],
+                })
+            }
+            _ => Ok(ValidationResult::Passed),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::models::hash::{Hash, HashValue};
+    use crate::validation::{FailureReason, ValidationPathComponent};
+
+    use super::*;
+    use pretty_assertions::assert_eq;
+    
+    #[test]
+    fn it_should_pass_validation() {
+        let validation_result = ExternalReferences(vec![ExternalReference {
+            external_reference_type: ExternalReferenceType::Bom,
+            url: Uri("https://example.com".to_string()),
+            comment: Some("Comment".to_string()),
+            hashes: Some(Hashes(vec![])),
+        }])
+        .validate()
+        .expect("Error while validating");
+
+        assert_eq!(validation_result, ValidationResult::Passed);
+    }
+
+    #[test]
+    fn it_should_fail_validation() {
+        let validation_result = ExternalReferences(vec![ExternalReference {
+            external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
+                "unknown reference type".to_string(),
+            ),
+            url: Uri("invalid uri".to_string()),
+            comment: Some("Comment".to_string()),
+            hashes: Some(Hashes(vec![Hash {
+                alg: crate::models::hash::HashAlgorithm::MD5,
+                content: HashValue("invalid hash".to_string()),
+            }])),
+        }])
+        .validate()
+        .expect("Error while validating");
+
+        assert_eq!(
+            validation_result,
+            ValidationResult::Failed {
+                reasons: vec![
+                    FailureReason {
+                        message: "Unknown external reference type".to_string(),
+                        context: ValidationContext(vec![
+                            ValidationPathComponent::Array { index: 0 },
+                            ValidationPathComponent::Struct {
+                                struct_name: "ExternalReference".to_string(),
+                                field_name: "external_reference_type".to_string()
+                            }
+                        ])
+                    },
+                    FailureReason {
+                        message: "Uri does not conform to RFC 3986".to_string(),
+                        context: ValidationContext(vec![
+                            ValidationPathComponent::Array { index: 0 },
+                            ValidationPathComponent::Struct {
+                                struct_name: "ExternalReference".to_string(),
+                                field_name: "url".to_string()
+                            }
+                        ])
+                    },
+                    FailureReason {
+                        message: "HashValue does not match regular expression".to_string(),
+                        context: ValidationContext(vec![
+                            ValidationPathComponent::Array { index: 0 },
+                            ValidationPathComponent::Struct {
+                                struct_name: "ExternalReference".to_string(),
+                                field_name: "hashes".to_string()
+                            },
+                            ValidationPathComponent::Array { index: 0 },
+                            ValidationPathComponent::Struct {
+                                struct_name: "Hash".to_string(),
+                                field_name: "content".to_string()
+                            },
+                        ])
+                    },
+                ]
+            }
+        );
     }
 }

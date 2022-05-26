@@ -18,7 +18,11 @@
 
 use crate::{
     errors::XmlReadError,
-    external_models::{normalized_string::NormalizedString, spdx::SpdxIdentifier, uri::Uri},
+    external_models::{
+        normalized_string::NormalizedString,
+        spdx::{SpdxExpression, SpdxIdentifier},
+        uri::Uri,
+    },
     models,
     xml::{
         closing_tag_or_error, inner_text_or_error, read_lax_validation_tag, read_simple_tag,
@@ -117,7 +121,7 @@ impl From<models::license::LicenseChoice> for LicenseChoice {
     fn from(other: models::license::LicenseChoice) -> Self {
         match other {
             models::license::LicenseChoice::License(l) => Self::License(l.into()),
-            models::license::LicenseChoice::Expression(e) => Self::Expression(e.to_string()),
+            models::license::LicenseChoice::Expression(e) => Self::Expression(e.0),
         }
     }
 }
@@ -126,7 +130,7 @@ impl From<LicenseChoice> for models::license::LicenseChoice {
     fn from(other: LicenseChoice) -> Self {
         match other {
             LicenseChoice::License(l) => Self::License(l.into()),
-            LicenseChoice::Expression(e) => Self::Expression(NormalizedString::new_unchecked(e)),
+            LicenseChoice::Expression(e) => Self::Expression(SpdxExpression(e)),
         }
     }
 }
@@ -397,6 +401,7 @@ impl FromXml for LicenseIdentifier {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
+        external_models::spdx::SpdxExpression,
         specs::v1_3::attached_text::test::{corresponding_attached_text, example_attached_text},
         xml::test::{read_element_from_string, write_element_to_string},
     };
@@ -454,9 +459,7 @@ pub(crate) mod test {
     }
 
     pub(crate) fn corresponding_license_expression() -> models::license::LicenseChoice {
-        models::license::LicenseChoice::Expression(NormalizedString::new_unchecked(
-            "expression".to_string(),
-        ))
+        models::license::LicenseChoice::Expression(SpdxExpression("expression".to_string()))
     }
 
     #[test]

@@ -381,7 +381,7 @@ fn get_external_references_cm(package: &cargo_metadata::Package) -> Option<Vec<E
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::*;
 
     #[test]
