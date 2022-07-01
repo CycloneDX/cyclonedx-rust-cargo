@@ -41,7 +41,7 @@ pub struct Metadata {
     pub component: Option<Component>,
 }
 
-impl<'a> Default for Metadata {
+impl Default for Metadata {
     fn default() -> Self {
         Self {
             timestamp: Some(OffsetDateTime::now_utc()),
