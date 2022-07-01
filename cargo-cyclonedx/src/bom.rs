@@ -52,7 +52,7 @@ pub struct Bom {
     components: Vec<Component>,
 }
 
-impl<'a> Default for Bom {
+impl Default for Bom {
     fn default() -> Bom {
         Self {
             bom_format: BomFormat::CycloneDX,
