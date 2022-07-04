@@ -22,7 +22,7 @@ regex = "1.5.5"
 serde = "1.0.137"
 serde_json = "1.0.82"
 thiserror = "1.0.31"
-time = "0.3.9"
+time = "0.3.11"
 url = "2.2.2"
 uuid = { version = "1.1.2", features = ["v4"] }
 xml-rs = "0.8.4"
