@@ -4,7 +4,7 @@ version = "0.3.5"
 authors = [ "Steve Springett <steve.springett@owasp.org>" ]
 license = "Apache-2.0"
 edition = "2018"
-rust-version = "1.59.0"
+rust-version = "1.60.0"
 
 description = "CycloneDX Software Bill of Materials (SBOM) for Rust Crates"
 homepage = "https://cyclonedx.org/"
@@ -30,8 +30,8 @@ env_logger = "0.9.0"
 lazy_static = "1.4.0"
 log = "0.4.17"
 packageurl = "0.3.0"
-regex = "1.5.6"
-serde = { version = "1.0.137", features = ["derive"] }
+regex = "1.6.0"
+serde = { version = "1.0.139", features = ["derive"] }
 serde_json = "1.0.82"
 thiserror = "1.0.31"
 time = { version = "0.3.9", features = ["serde", "serde-well-known"] }
