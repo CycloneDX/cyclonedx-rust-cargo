@@ -73,8 +73,8 @@ impl Validate for NormalizedString {
 #[cfg(test)]
 mod test {
     use super::*;
-    use pretty_assertions::assert_eq;
     use crate::validation::FailureReason;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn it_should_normalize_strings() {

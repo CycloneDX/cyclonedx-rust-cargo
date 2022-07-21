@@ -51,8 +51,8 @@ impl ToString for DateTime {
 #[cfg(test)]
 mod test {
     use super::*;
-    use pretty_assertions::assert_eq;
     use crate::validation::FailureReason;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn valid_datetimes_should_pass_validation() {
