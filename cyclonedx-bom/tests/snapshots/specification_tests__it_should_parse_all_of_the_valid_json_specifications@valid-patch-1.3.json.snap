@@ -32,7 +32,7 @@ input_file: cyclonedx-bom/tests/data/1.3/valid-patch-1.3.json
                 "encoding": "base64",
                 "content": "blah"
               },
-              "url": "uri/to/changes.diff"
+              "url": "http://uri/to/changes.diff"
             },
             "resolves": [
               {
@@ -54,7 +54,7 @@ input_file: cyclonedx-bom/tests/data/1.3/valid-patch-1.3.json
                 "encoding": "base64",
                 "content": "blah"
               },
-              "url": "uri/to/changes.diff"
+              "url": "http://uri/to/changes.diff"
             },
             "resolves": [
               {

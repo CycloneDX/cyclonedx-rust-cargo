@@ -132,7 +132,7 @@ mod test {
 
     use super::*;
     use pretty_assertions::assert_eq;
-    
+
     #[test]
     fn it_should_construct_attached_text() {
         let actual = AttachedText::new(

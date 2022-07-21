@@ -4,9 +4,10 @@ use cyclonedx_bom::validation::{Validate, ValidationResult};
 #[test]
 fn it_should_parse_all_of_the_valid_xml_specifications() {
     insta::glob!("data/1.3/valid*.xml", |path| {
-        let file = std::fs::File::open(path).expect("Failed to read file: {path:?}");
-        let bom = Bom::parse_from_xml_v1_3(file)
-            .expect("Failed to parse the document as an SBOM: {path:?}");
+        let file = std::fs::File::open(path).expect(&format!("Failed to read file: {path:?}"));
+        let bom = Bom::parse_from_xml_v1_3(file).expect(&format!(
+            "Failed to parse the document as an SBOM: {path:?}"
+        ));
 
         let validation_result = bom.validate().expect("Failed to validate BOM");
         assert_eq!(
@@ -17,7 +18,7 @@ fn it_should_parse_all_of_the_valid_xml_specifications() {
 
         let mut output = Vec::new();
         bom.output_as_xml_v1_3(&mut output)
-            .expect("Failed to output the file: {path:?}");
+            .expect(&format!("Failed to output the file: {path:?}"));
         let bom_output = String::from_utf8_lossy(&output).to_string();
 
         insta::assert_snapshot!(bom_output);
@@ -27,9 +28,10 @@ fn it_should_parse_all_of_the_valid_xml_specifications() {
 #[test]
 fn it_should_parse_all_of_the_valid_json_specifications() {
     insta::glob!("data/1.3/valid*.json", |path| {
-        let file = std::fs::File::open(path).expect("Failed to read file: {path:?}");
-        let bom = Bom::parse_from_json_v1_3(file)
-            .expect("Failed to parse the document as an SBOM: {path:?}");
+        let file = std::fs::File::open(path).expect(&format!("Failed to read file: {path:?}"));
+        let bom = Bom::parse_from_json_v1_3(file).expect(&format!(
+            "Failed to parse the document as an SBOM: {path:?}"
+        ));
 
         let validation_result = bom.validate().expect("Failed to validate BOM");
         assert_eq!(
@@ -40,7 +42,7 @@ fn it_should_parse_all_of_the_valid_json_specifications() {
 
         let mut output = Vec::new();
         bom.output_as_json_v1_3(&mut output)
-            .expect("Failed to output the file: {path:?}");
+            .expect(&format!("Failed to output the file: {path:?}"));
         let bom_output = String::from_utf8_lossy(&output).to_string();
 
         insta::assert_snapshot!(bom_output);
@@ -50,31 +52,29 @@ fn it_should_parse_all_of_the_valid_json_specifications() {
 #[test]
 fn it_should_fail_to_parse_all_of_the_invalid_xml_specifications() {
     insta::glob!("data/1.3/invalid*.xml", |path| {
-        let file = std::fs::File::open(path).expect("Failed to read file: {path:?}");
-        let bom = Bom::parse_from_xml_v1_3(file)
-            .expect("Failed to parse the document as an SBOM: {path:?}");
-
-        let validation_result = bom.validate().expect("Failed to validate BOM");
-        assert_ne!(
-            validation_result,
-            ValidationResult::Passed,
-            "{path:?} unexpectedly passed validation"
-        );
+        let file = std::fs::File::open(path).expect(&format!("Failed to read file: {path:?}"));
+        if let Ok(bom) = Bom::parse_from_xml_v1_3(file) {
+            let validation_result = bom.validate().expect("Failed to validate BOM");
+            assert_ne!(
+                validation_result,
+                ValidationResult::Passed,
+                "{path:?} unexpectedly passed validation"
+            );
+        }
     });
 }
 
 #[test]
 fn it_should_fail_to_parse_all_of_the_invalid_json_specifications() {
     insta::glob!("data/1.3/invalid*.json", |path| {
-        let file = std::fs::File::open(path).expect("Failed to read file: {path:?}");
-        let bom = Bom::parse_from_json_v1_3(file)
-            .expect("Failed to parse the document as an SBOM: {path:?}");
-
-        let validation_result = bom.validate().expect("Failed to validate BOM");
-        assert_ne!(
-            validation_result,
-            ValidationResult::Passed,
-            "{path:?} unexpectedly passed validation"
-        );
+        let file = std::fs::File::open(path).expect(&format!("Failed to read file: {path:?}"));
+        if let Ok(bom) = Bom::parse_from_json_v1_3(file) {
+            let validation_result = bom.validate().expect("Failed to validate BOM");
+            assert_ne!(
+                validation_result,
+                ValidationResult::Passed,
+                "{path:?} unexpectedly passed validation"
+            );
+        }
     });
 }

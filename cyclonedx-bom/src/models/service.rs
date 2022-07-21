@@ -44,6 +44,27 @@ pub struct Service {
     pub services: Option<Services>,
 }
 
+impl Service {
+    pub fn new(name: NormalizedString, bom_ref: Option<String>) -> Self {
+        Self {
+            name,
+            bom_ref,
+            provider: None,
+            group: None,
+            version: None,
+            description: None,
+            endpoints: None,
+            authenticated: None,
+            x_trust_boundary: None,
+            data: None,
+            licenses: None,
+            external_references: None,
+            properties: None,
+            services: None,
+        }
+    }
+}
+
 impl Validate for Service {
     fn validate_with_context(
         &self,
@@ -253,7 +274,7 @@ mod test {
 
     use super::*;
     use pretty_assertions::assert_eq;
-    
+
     #[test]
     fn valid_services_should_pass_validation() {
         let validation_result = Services(vec![Service {

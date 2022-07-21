@@ -62,6 +62,41 @@ pub struct Component {
     pub evidence: Option<ComponentEvidence>,
 }
 
+impl Component {
+    pub fn new(
+        component_type: Classification,
+        name: NormalizedString,
+        version: NormalizedString,
+        bom_ref: Option<String>,
+    ) -> Self {
+        Self {
+            component_type,
+            name,
+            version,
+            bom_ref,
+            mime_type: None,
+            supplier: None,
+            author: None,
+            publisher: None,
+            group: None,
+            description: None,
+            scope: None,
+            hashes: None,
+            licenses: None,
+            copyright: None,
+            cpe: None,
+            purl: None,
+            swid: None,
+            modified: None,
+            pedigree: None,
+            external_references: None,
+            properties: None,
+            components: None,
+            evidence: None,
+        }
+    }
+}
+
 impl Validate for Component {
     fn validate_with_context(
         &self,
@@ -565,7 +600,7 @@ mod test {
 
     use super::*;
     use pretty_assertions::assert_eq;
-    
+
     #[test]
     fn valid_components_should_pass_validation() {
         let validation_result = Components(vec![Component {

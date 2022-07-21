@@ -107,7 +107,6 @@ input_file: cyclonedx-bom/tests/data/1.3/valid-bom-1.3.json
             "id": "Apache-2.0",
             "text": {
               "contentType": "text/plain",
-              "encoding": "base64",
               "content": "License text here"
             },
             "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
@@ -135,7 +134,7 @@ input_file: cyclonedx-bom/tests/data/1.3/valid-bom-1.3.json
         "commits": [
           {
             "uid": "123",
-            "url": "",
+            "url": "https://example.com",
             "author": {
               "timestamp": "2018-11-13T20:20:39+00:00",
               "name": "",
