@@ -207,7 +207,7 @@ impl Validate for Bom {
                             reasons: vec![FailureReason {
                                 message: "Dependency reference does not exist in the BOM"
                                     .to_string(),
-                                context: context,
+                                context,
                             }],
                         })
                     }
@@ -326,7 +326,7 @@ fn validate_component_bom_refs(
 
     if let Some(components) = &component.components {
         let context = context.extend_context_with_struct_field("Component", "components");
-        validate_components(&components, bom_refs, &context, results);
+        validate_components(components, bom_refs, &context, results);
     }
 }
 
@@ -367,7 +367,7 @@ fn validate_service_bom_refs(
 
     if let Some(services) = &service.services {
         let context = context.extend_context_with_struct_field("Service", "services");
-        validate_services(&services, bom_refs, &context, results);
+        validate_services(services, bom_refs, &context, results);
     }
 }
 
