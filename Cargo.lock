@@ -448,7 +448,6 @@ dependencies = [
  "spdx",
  "thiserror",
  "time",
- "url",
  "uuid",
  "xml-rs",
 ]
