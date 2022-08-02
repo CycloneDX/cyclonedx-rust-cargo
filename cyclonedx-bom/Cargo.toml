@@ -23,7 +23,7 @@ serde = "1.0.140"
 serde_json = "1.0.82"
 spdx = "0.8.1"
 thiserror = "1.0.31"
-time = { version = "0.3.9", features = ["formatting", "parsing"] }
+time = { version = "0.3.12", features = ["formatting", "parsing"] }
 uuid = { version = "1.1.2", features = ["v4"] }
 xml-rs = "0.8.4"
 
