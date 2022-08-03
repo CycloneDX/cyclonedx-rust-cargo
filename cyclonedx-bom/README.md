@@ -6,33 +6,12 @@
 [![Group Discussion](https://img.shields.io/badge/discussion-groups.io-blue.svg)](https://groups.io/g/CycloneDX)
 [![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&label=Follow)](https://twitter.com/CycloneDX_Spec)
 
-# CycloneDX Rust (Cargo) Plugin
+# `cyclonedx-bom`
 
-The CycloneDX module for Rust (Cargo) creates a valid CycloneDX Software Bill-of-Material (SBOM) containing an
-aggregate of all project dependencies. CycloneDX is a lightweight SBOM specification that is easily created, human
-and machine readable, and simple to parse.
+The [CycloneDX](https://cyclonedx.org/) library provides JSON and XML serialization and derserialization of Software Bill-of-Materials (SBOM) files.
 
-## Usage
+CycloneDX is a lightweight SBOM specification that is easily created, human and machine readable, and simple to parse.
 
-Execute CycloneDX from within a Rust project directory containing Cargo.toml.
-
-### Installing
-
-```bash
-cargo install cargo-cyclonedx
-```
-
-### Executing binary
-
-```bash
-~/.cargo/bin/cargo-cyclonedx cyclonedx
-```
-
-### Executing from cargo
-
-```bash
-cargo cyclonedx
-```
 
 ## Copyright & License
 
