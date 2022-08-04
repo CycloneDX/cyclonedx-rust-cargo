@@ -15,6 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use crate::author::Authors;
 use crate::config::IncludedDependencies;
 use crate::config::Pattern;
 use crate::config::Prefix;
@@ -22,23 +23,33 @@ use crate::config::SbomConfig;
 use crate::format::Format;
 use crate::toml::config_from_toml;
 use crate::toml::ConfigError;
-use crate::traits::ToXml;
-use crate::Bom;
-use crate::Metadata;
 use cargo::core::dependency::DepKind;
 use cargo::core::Package;
 use cargo::core::PackageSet;
 use cargo::core::Resolve;
 use cargo::core::Workspace;
 use cargo::ops;
-use std::{
-    collections::BTreeSet,
-    fs::File,
-    io::LineWriter,
-    path::{Path, PathBuf},
-};
+
+use cyclonedx_bom::external_models::normalized_string::NormalizedString;
+use cyclonedx_bom::external_models::spdx::SpdxExpression;
+use cyclonedx_bom::external_models::uri::Purl;
+use cyclonedx_bom::external_models::uri::Uri;
+use cyclonedx_bom::models::bom::Bom;
+use cyclonedx_bom::models::component::Scope;
+use cyclonedx_bom::models::component::{Classification, Component, Components};
+use cyclonedx_bom::models::external_reference::ExternalReference;
+use cyclonedx_bom::models::external_reference::ExternalReferenceType;
+use cyclonedx_bom::models::external_reference::ExternalReferences;
+
+use cyclonedx_bom::models::license::LicenseChoice;
+use cyclonedx_bom::models::license::Licenses;
+use cyclonedx_bom::models::metadata::Metadata;
+use cyclonedx_bom::models::organization::OrganizationalContact;
+use cyclonedx_bom::validation::Validate;
+
+use std::convert::TryFrom;
+use std::{collections::BTreeSet, fs::File, path::PathBuf};
 use thiserror::Error;
-use xml_writer::XmlWriter;
 
 pub struct SbomGenerator {}
 
@@ -83,9 +94,9 @@ impl SbomGenerator {
                     top_level_dependencies(&members, &package_ids)?
                 };
 
-            let mut bom: Bom = dependencies.iter().collect();
+            let bom = create_bom(member, dependencies);
 
-            bom.metadata = get_metadata(member.manifest_path());
+            log::debug!("Bom validation: {:?}", &bom.validate());
 
             let generated = GeneratedSbom {
                 bom,
@@ -101,6 +112,183 @@ impl SbomGenerator {
     }
 }
 
+fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Bom {
+    let mut bom = Bom::default();
+
+    let components: Vec<_> = dependencies
+        .into_iter()
+        .map(|package| create_component(&package))
+        .collect();
+
+    bom.components = Some(Components(components));
+
+    let metadata = create_metadata(package);
+
+    bom.metadata = Some(metadata);
+
+    bom
+}
+
+fn create_component(package: &Package) -> Component {
+    let name = package.name().to_owned().trim().to_string();
+    let version = package.version().to_string();
+
+    let purl = match Purl::new("cargo", &name, &version) {
+        Ok(purl) => Some(purl),
+        Err(e) => {
+            log::error!("Package {} has an invalid Purl: {} ", package.name(), e);
+            None
+        }
+    };
+
+    let mut component = Component::new(
+        Classification::Library,
+        NormalizedString::new(&name),
+        NormalizedString::new(&version),
+        purl.clone().map(|p| p.to_string()),
+    );
+
+    component.purl = purl;
+    component.scope = Some(Scope::Required);
+    component.external_references = get_external_references(package);
+    component.licenses = get_licenses(package);
+
+    component.description = package
+        .manifest()
+        .metadata()
+        .description
+        .as_ref()
+        .map(|s| NormalizedString::new(s));
+
+    component
+}
+
+fn get_classification(pkg: &Package) -> Classification {
+    if pkg.targets().iter().any(|tgt| tgt.is_bin()) {
+        return Classification::Application;
+    }
+
+    Classification::Library
+}
+
+fn get_external_references(package: &Package) -> Option<ExternalReferences> {
+    let mut references = Vec::new();
+
+    let metadata = package.manifest().metadata();
+
+    if let Some(documentation) = &metadata.documentation {
+        match Uri::try_from(documentation.to_string()) {
+            Ok(uri) => references.push(ExternalReference::new(
+                ExternalReferenceType::Documentation,
+                uri,
+            )),
+            Err(e) => log::error!(
+                "Package {} has an invalid documentation URI ({}): {} ",
+                package.name(),
+                documentation,
+                e
+            ),
+        }
+    }
+
+    if let Some(website) = &metadata.homepage {
+        match Uri::try_from(website.to_string()) {
+            Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Website, uri)),
+            Err(e) => log::error!(
+                "Package {} has an invalid homepage URI ({}): {} ",
+                package.name(),
+                website,
+                e
+            ),
+        }
+    }
+
+    if let Some(other) = &metadata.links {
+        match Uri::try_from(other.to_string()) {
+            Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Other, uri)),
+            Err(e) => log::error!(
+                "Package {} has an invalid links URI ({}): {} ",
+                package.name(),
+                other,
+                e
+            ),
+        }
+    }
+
+    if let Some(vcs) = &metadata.repository {
+        match Uri::try_from(vcs.to_string()) {
+            Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
+            Err(e) => log::error!(
+                "Package {} has an invalid repository URI ({}): {} ",
+                package.name(),
+                vcs,
+                e
+            ),
+        }
+    }
+
+    if !references.is_empty() {
+        return Some(ExternalReferences(references));
+    }
+
+    None
+}
+
+fn get_licenses(package: &Package) -> Option<Licenses> {
+    let mut licenses = vec![];
+
+    if let Some(license) = package.manifest().metadata().license.as_ref() {
+        match SpdxExpression::try_from(license.to_string()) {
+            Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
+            Err(err) => {
+                log::error!(
+                    "Package {} has an invalid license ({}): {}",
+                    package.name(),
+                    license,
+                    err
+                );
+            }
+        }
+    }
+
+    if licenses.is_empty() {
+        log::trace!("Package {} has no licenses", package.name());
+        return None;
+    }
+
+    Some(Licenses(licenses))
+}
+
+fn create_metadata(package: &Package) -> Metadata {
+    let package_authors = Authors::from(package.clone());
+
+    let mut authors = vec![];
+
+    if let Some(package_authors) = package_authors.0 {
+        package_authors.into_iter().for_each(|author| {
+            authors.push(OrganizationalContact {
+                name: Some(NormalizedString::new(&author.name)),
+                email: author.email.map(|email| NormalizedString::new(&email)),
+                ..Default::default()
+            });
+        });
+    }
+
+    let mut metadata = Metadata::new();
+
+    if !authors.is_empty() {
+        metadata.authors = Some(authors);
+    }
+
+    let mut component = create_component(package);
+
+    component.component_type = get_classification(package);
+
+    metadata.component = Some(component);
+
+    metadata
+}
+
 #[derive(Error, Debug)]
 pub enum GeneratorError {
     #[error("Expected a root package in the cargo config: {config_filepath}")]
@@ -113,9 +301,6 @@ pub enum GeneratorError {
         error: anyhow::Error,
     },
 
-    #[error("Error with Cargo metadata")]
-    CargoMetaDataError(#[from] cargo_metadata::Error),
-
     #[error("Error retrieving package information: {package_id}")]
     PackageError {
         package_id: cargo::core::package_id::PackageId,
@@ -125,30 +310,6 @@ pub enum GeneratorError {
 
     #[error("Error with Cargo custom_metadata")]
     CustomMetadataTomlError(#[from] ConfigError),
-}
-
-/// attempt to treat the Cargo.toml as a simple project to get the metadata
-/// for now, do not attempt to generate metadata about a workspace
-fn get_metadata(toml_file_path: &Path) -> Option<Metadata> {
-    let metadata = cargo_metadata::MetadataCommand::new()
-        .manifest_path(&toml_file_path)
-        .features(cargo_metadata::CargoOpt::AllFeatures)
-        .exec();
-
-    match metadata {
-        Ok(metadata) => metadata
-            .root_package()
-            .map(Metadata::from)
-            .or_else(|| Some(Metadata::default())),
-        Err(e) => {
-            log::error!(
-                "Attempted to get metadata from the cargo config: {}",
-                toml_file_path.to_string_lossy(),
-            );
-            log::debug!("Got error: {}", e);
-            Some(Metadata::default())
-        }
-    }
 }
 
 fn top_level_dependencies(
@@ -219,24 +380,20 @@ pub struct GeneratedSbom {
 
 impl GeneratedSbom {
     /// Writes SBOM to either a JSON or XML file in the same folder as `Cargo.toml` manifest
-    pub fn write_to_file(&self) -> Result<(), SbomWriterError> {
+    pub fn write_to_file(self) -> Result<(), SbomWriterError> {
         let path = self.manifest_path.with_file_name(self.filename());
         log::info!("Outputting {}", path.display());
-        let file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
+        let mut file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
         match self.sbom_config.format() {
             Format::Json => {
-                serde_json::to_writer_pretty(file, &self.bom)?;
+                self.bom
+                    .output_as_json_v1_3(&mut file)
+                    .map_err(SbomWriterError::JsonWriteError)?;
             }
             Format::Xml => {
-                let file = LineWriter::new(file);
-                let mut xml = XmlWriter::new(file);
-
                 self.bom
-                    .to_xml(&mut xml)
-                    .map_err(SbomWriterError::SerializeXmlError)?;
-                xml.close().map_err(SbomWriterError::SerializeXmlError)?;
-                xml.flush().map_err(SbomWriterError::SerializeXmlError)?;
-                let _actual = xml.into_inner();
+                    .output_as_xml_v1_3(&mut file)
+                    .map_err(SbomWriterError::XmlWriteError)?;
             }
         }
 
@@ -265,8 +422,11 @@ pub enum SbomWriterError {
     #[error("Error creating file")]
     FileCreateError(#[source] std::io::Error),
 
-    #[error("Error serializing to JSON")]
-    SerializeJsonError(#[from] serde_json::Error),
+    #[error("Error writing JSON file")]
+    JsonWriteError(#[source] cyclonedx_bom::errors::JsonWriteError),
+
+    #[error("Error writing XML file")]
+    XmlWriteError(#[source] cyclonedx_bom::errors::XmlWriteError),
 
     #[error("Error serializing to XML")]
     SerializeXmlError(#[source] std::io::Error),

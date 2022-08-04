@@ -18,6 +18,7 @@
 
 use std::convert::TryFrom;
 
+use thiserror::Error;
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 
 use crate::validation::{
@@ -41,6 +42,15 @@ use crate::validation::{
 /// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct DateTime(pub(crate) String);
+
+impl DateTime {
+    pub fn now() -> Result<Self, DateTimeError> {
+        let now = OffsetDateTime::now_utc()
+            .format(&Iso8601::DEFAULT)
+            .map_err(|_| DateTimeError::FailedCurrentTime)?;
+        Ok(Self(now))
+    }
+}
 
 impl TryFrom<String> for DateTime {
     type Error = DateTimeError;
@@ -79,9 +89,13 @@ impl ToString for DateTime {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum DateTimeError {
+    #[error("Invalid DateTime: {}", .0)]
     InvalidDateTime(String),
+
+    #[error("Failed to get current time")]
+    FailedCurrentTime,
 }
 
 #[cfg(test)]

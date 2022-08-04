@@ -31,6 +31,17 @@ pub struct ExternalReference {
     pub hashes: Option<Hashes>,
 }
 
+impl ExternalReference {
+    pub fn new(external_reference_type: ExternalReferenceType, url: Uri) -> Self {
+        Self {
+            external_reference_type,
+            url,
+            comment: None,
+            hashes: None,
+        }
+    }
+}
+
 impl Validate for ExternalReference {
     fn validate_with_context(
         &self,

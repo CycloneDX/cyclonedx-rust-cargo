@@ -38,6 +38,21 @@ pub struct Metadata {
     pub properties: Option<Properties>,
 }
 
+impl Metadata {
+    pub fn new() -> Self {
+        Self {
+            timestamp: DateTime::now().ok(),
+            tools: None,
+            authors: None,
+            component: None,
+            manufacture: None,
+            supplier: None,
+            licenses: None,
+            properties: None,
+        }
+    }
+}
+
 impl Validate for Metadata {
     fn validate_with_context(
         &self,

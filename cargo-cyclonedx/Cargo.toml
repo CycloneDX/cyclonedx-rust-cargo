@@ -24,17 +24,14 @@ lto = true
 [dependencies]
 anyhow = "1.0.62"
 cargo = "0.64.0"
-cargo_metadata = "0.15.0"
 clap = { version = "3.2.17", features = ["derive"] }
+cyclonedx-bom = { path = "../cyclonedx-bom" }
 env_logger = "0.9.0"
 lazy_static = "1.4.0"
 log = "0.4.17"
 packageurl = "0.3.0"
 regex = "1.6.0"
 serde = { version = "1.0.144", features = ["derive"] }
-serde_json = "1.0.85"
 thiserror = "1.0.32"
 time = { version = "0.3.14", features = ["serde", "serde-well-known"] }
 toml_edit = { version = "0.14.4", features = ["serde", "easy"] }
-uuid = { version = "1.1.2", features = ["serde", "v4"] }
-xml_writer = "0.4.0"

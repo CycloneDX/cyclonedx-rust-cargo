@@ -19,6 +19,7 @@
 use std::convert::TryFrom;
 
 use spdx::Expression;
+use thiserror::Error;
 
 use crate::validation::{FailureReason, Validate, ValidationResult};
 
@@ -76,8 +77,9 @@ impl Validate for SpdxExpression {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum SpdxExpressionError {
+    #[error("Invalid SPDX expression: {}", .0)]
     InvalidSpdxExpression(String),
 }
 

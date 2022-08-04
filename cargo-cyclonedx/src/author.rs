@@ -16,15 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-use std::{io, str::FromStr};
+use std::str::FromStr;
 
 use lazy_static::lazy_static;
+use log::debug;
 use regex::Regex;
-use serde::Serialize;
 use thiserror::Error;
-use xml_writer::XmlWriter;
-
-use crate::traits::ToXml;
 
 lazy_static! {
     static ref EMAIL_REGEX: Regex = Regex::new(r#"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"#).expect("Could not compile email regex");
@@ -36,11 +33,36 @@ pub enum AuthorParseError {
     Email(String),
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug)]
+pub struct Authors(pub Option<Vec<Author>>);
+
+impl From<cargo::core::Package> for Authors {
+    fn from(other: cargo::core::Package) -> Self {
+        let mut authors = Vec::new();
+        let mut invalid_authors = Vec::new();
+
+        for author in other.authors() {
+            match Author::from_str(author) {
+                Ok(author) => authors.push(author),
+                Err(e) => invalid_authors.push((author, e)),
+            }
+        }
+        invalid_authors
+            .into_iter()
+            .for_each(|(author, error)| debug!("Invalid author {}: {:?}", author, error));
+
+        if !authors.is_empty() {
+            return Authors(Some(authors));
+        }
+
+        Authors(None)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Author {
-    name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    email: Option<String>,
+    pub name: String,
+    pub email: Option<String>,
 }
 
 impl Author {
@@ -52,18 +74,6 @@ impl Author {
         }
 
         Ok(Self { name, email })
-    }
-}
-
-impl ToXml for Vec<Author> {
-    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        xml.begin_elem("authors")?;
-
-        for author in self {
-            author.to_xml(xml)?;
-        }
-
-        xml.end_elem()
     }
 }
 
@@ -86,20 +96,6 @@ impl FromStr for Author {
         } else {
             Self::new(s.to_string(), None)
         }
-    }
-}
-
-impl ToXml for Author {
-    fn to_xml<W: io::Write>(&self, xml: &mut XmlWriter<W>) -> io::Result<()> {
-        xml.begin_elem("author")?;
-
-        xml.elem_text("name", &self.name)?;
-
-        if let Some(email) = &self.email {
-            xml.elem_text("email", email)?;
-        }
-
-        xml.end_elem()
     }
 }
 

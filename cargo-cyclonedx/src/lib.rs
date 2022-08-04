@@ -20,18 +20,9 @@
 #![deny(warnings)]
 
 pub mod author;
-pub mod bom;
-pub mod component;
 pub mod config;
 pub mod format;
 pub mod generator;
-pub mod license;
-pub mod metadata;
-pub mod reference;
 pub mod toml;
-pub mod traits;
 
-pub use crate::{
-    author::Author, bom::Bom, component::*, generator::*, license::License, metadata::Metadata,
-    reference::ExternalReference, traits::*,
-};
+pub use crate::{author::Author, generator::*};
