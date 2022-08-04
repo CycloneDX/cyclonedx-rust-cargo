@@ -628,7 +628,7 @@ mod test {
             ))])),
             copyright: Some(NormalizedString::new("copyright")),
             cpe: Some(Cpe("cpe:/a:example:mylibrary:1.0.0".to_string())),
-            purl: Some(Purl(Uri("pkg:cargo/cyclonedx-bom@0.3.1".to_string()))),
+            purl: Some(Purl("pkg:cargo/cyclonedx-bom@0.3.1".to_string())),
             swid: Some(Swid {
                 tag_id: "tag ID".to_string(),
                 name: "name".to_string(),
@@ -712,7 +712,7 @@ mod test {
             ))])),
             copyright: Some(NormalizedString("invalid\tcopyright".to_string())),
             cpe: Some(Cpe("invalid cpe".to_string())),
-            purl: Some(Purl(Uri("invalid purl".to_string()))),
+            purl: Some(Purl("invalid purl".to_string())),
             swid: Some(Swid {
                 tag_id: "tag ID".to_string(),
                 name: "name".to_string(),
