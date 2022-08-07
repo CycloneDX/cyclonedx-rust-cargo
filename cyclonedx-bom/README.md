@@ -12,6 +12,73 @@ The [CycloneDX](https://cyclonedx.org/) library provides JSON and XML serializat
 
 CycloneDX is a lightweight SBOM specification that is easily created, human and machine readable, and simple to parse.
 
+## Usage
+
+### Read and validate an SBOM
+
+```rust
+use cyclonedx_bom::models::bom::Bom;
+use cyclonedx_bom::validation::{Validate, ValidationResult};
+
+let bom_json = r#"{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.3",
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "version": 1
+}"#;
+let bom = Bom::parse_from_json_v1_3(bom_json.as_bytes()).expect("Failed to parse BOM");
+
+let validation_result = bom.validate().expect("Failed to validate BOM");
+assert_eq!(validation_result, ValidationResult::Passed);
+```
+
+### Create and output an SBOM
+
+```rust
+use cyclonedx_bom::external_models::normalized_string::NormalizedString;
+use cyclonedx_bom::models::{
+    bom::{Bom, UrnUuid},
+    metadata::Metadata,
+    tool::{Tool, Tools},
+};
+
+let bom = Bom {
+    serial_number: Some(
+        UrnUuid::new("urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79".to_string())
+            .expect("Failed to create UrnUuid"),
+    ),
+    metadata: Some(Metadata {
+        tools: Some(Tools(vec![Tool {
+            name: Some(NormalizedString::new("my_tool")),
+            ..Tool::default()
+        }])),
+        ..Metadata::default()
+    }),
+    ..Bom::default()
+};
+
+let mut output = Vec::<u8>::new();
+
+bom.output_as_json_v1_3(&mut output)
+    .expect("Failed to write BOM");
+let output = String::from_utf8(output).expect("Failed to read output as a string");
+assert_eq!(
+    output,
+    r#"{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.3",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "metadata": {
+    "tools": [
+      {
+        "name": "my_tool"
+      }
+    ]
+  }
+}"#
+);
+```
 
 ## Copyright & License
 
