@@ -26,7 +26,7 @@ use crate::validation::{
     Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Metadata {
     pub timestamp: Option<DateTime>,
     pub tools: Option<Tools>,

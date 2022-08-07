@@ -90,7 +90,7 @@ impl Default for Bom {
     fn default() -> Self {
         Self {
             version: 1,
-            serial_number: Some(UrnUuid(format!("urn:uuid:{}", uuid::Uuid::new_v4()))),
+            serial_number: Some(UrnUuid::generate()),
             metadata: None,
             components: None,
             services: None,
@@ -390,31 +390,59 @@ fn validate_services(
 #[derive(Debug, PartialEq, Eq)]
 pub struct UrnUuid(pub(crate) String);
 
+impl UrnUuid {
+    pub fn new(value: String) -> Result<Self, UrnUuidError> {
+        match matches_urn_uuid_regex(&value) {
+            Ok(true) => Ok(Self(value)),
+            Ok(false) | Err(_) => Err(UrnUuidError::InvalidUrnUuid(
+                "UrnUuid does not match regular expression".to_string(),
+            )),
+        }
+    }
+
+    pub fn generate() -> Self {
+        Self::from(uuid::Uuid::new_v4())
+    }
+}
+
+impl From<uuid::Uuid> for UrnUuid {
+    fn from(uuid: uuid::Uuid) -> Self {
+        Self(format!("urn:uuid:{}", uuid))
+    }
+}
+
 impl Validate for UrnUuid {
     fn validate_with_context(
         &self,
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
-        static UUID_REGEX: Lazy<Result<Regex, regex::Error>> = Lazy::new(|| {
-            Regex::new(r"^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
-        });
-
-        match UUID_REGEX.as_ref() {
-            Ok(regex) => {
-                if regex.is_match(&self.0) {
-                    Ok(ValidationResult::Passed)
-                } else {
-                    Ok(ValidationResult::Failed {
-                        reasons: vec![FailureReason {
-                            message: "UrnUuid does not match regular expression".to_string(),
-                            context,
-                        }],
-                    })
-                }
-            }
+        match matches_urn_uuid_regex(&self.0) {
+            Ok(true) => Ok(ValidationResult::Passed),
+            Ok(false) => Ok(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "UrnUuid does not match regular expression".to_string(),
+                    context,
+                }],
+            }),
             Err(e) => Err(e.clone().into()),
         }
     }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum UrnUuidError {
+    InvalidUrnUuid(String),
+}
+
+fn matches_urn_uuid_regex(value: &str) -> Result<bool, regex::Error> {
+    static UUID_REGEX: Lazy<Result<Regex, regex::Error>> = Lazy::new(|| {
+        Regex::new(r"^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+    });
+
+    UUID_REGEX
+        .as_ref()
+        .map(|regex| regex.is_match(value))
+        .map_err(Clone::clone)
 }
 
 #[cfg(test)]
