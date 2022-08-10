@@ -78,19 +78,6 @@ jobs:
     name: Cargo Minimum Supported Rust Version
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - # test cyclonedx-bom
-            test-arm: 'cyclonedx-bom Library'
-            package-folder: 'cyclonedx-bom'
-            continue-on-error: false
-          - # test cyclonedx-bom
-            test-arm: 'cargo-cyclonedx CLI Tool'
-            package-folder: 'cargo-cyclonedx'
-            continue-on-error: false
-
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust Toolchain
@@ -99,5 +86,5 @@ jobs:
     - name: Install cargo-msrv
       run: cargo install cargo-msrv
     - name: Check MSRV
-      run: cargo msrv --path ${{ matrix.package-folder }} verify
+      run: cargo msrv verify
 
