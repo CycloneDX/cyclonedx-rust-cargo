@@ -24,7 +24,7 @@ use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Purl(pub(crate) Uri);
 
 impl Validate for Purl {
@@ -44,7 +44,7 @@ impl Validate for Purl {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Uri(pub(crate) String);
 
 impl Validate for Uri {

@@ -23,7 +23,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Properties(pub(crate) Vec<Property>);
 
 impl Validate for Properties {
@@ -45,7 +45,7 @@ impl Validate for Properties {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Property {
     pub name: String,
     pub value: NormalizedString,

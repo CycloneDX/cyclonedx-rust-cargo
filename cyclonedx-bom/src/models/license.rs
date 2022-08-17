@@ -26,7 +26,7 @@ use crate::validation::{
     Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum LicenseChoice {
     License(License),
     Expression(SpdxExpression),
@@ -58,7 +58,7 @@ impl Validate for LicenseChoice {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct License {
     pub license_identifier: LicenseIdentifier,
     pub text: Option<AttachedText>,
@@ -98,7 +98,7 @@ impl Validate for License {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Licenses(pub Vec<LicenseChoice>);
 
 impl Validate for Licenses {
@@ -120,7 +120,7 @@ impl Validate for Licenses {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum LicenseIdentifier {
     SpdxId(SpdxIdentifier),
     Name(NormalizedString),

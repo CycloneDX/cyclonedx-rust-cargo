@@ -23,7 +23,7 @@ use crate::validation::{
     ValidationResult,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ExternalReference {
     pub external_reference_type: ExternalReferenceType,
     pub url: Uri,
@@ -62,7 +62,7 @@ impl Validate for ExternalReference {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ExternalReferences(pub Vec<ExternalReference>);
 
 impl Validate for ExternalReferences {
@@ -83,7 +83,7 @@ impl Validate for ExternalReferences {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ExternalReferenceType {
     Vcs,
     IssueTracker,

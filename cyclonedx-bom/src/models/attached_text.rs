@@ -21,7 +21,7 @@ use crate::{
     validation::{FailureReason, Validate, ValidationContext, ValidationError, ValidationResult},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AttachedText {
     pub(crate) content_type: Option<NormalizedString>,
     pub(crate) encoding: Option<Encoding>,
@@ -84,7 +84,7 @@ impl Validate for AttachedText {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Encoding {
     Base64,
     #[doc(hidden)]

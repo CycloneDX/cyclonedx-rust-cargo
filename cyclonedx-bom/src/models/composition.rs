@@ -21,7 +21,7 @@ use crate::validation::{
     ValidationResult,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Composition {
     pub aggregate: AggregateType,
     pub assemblies: Option<Vec<BomReference>>,
@@ -46,7 +46,7 @@ impl Validate for Composition {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Compositions(pub Vec<Composition>);
 
 impl Validate for Compositions {
@@ -68,7 +68,7 @@ impl Validate for Compositions {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AggregateType {
     Complete,
     Incomplete,
@@ -126,7 +126,7 @@ impl Validate for AggregateType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BomReference(pub(crate) String);
 
 #[cfg(test)]

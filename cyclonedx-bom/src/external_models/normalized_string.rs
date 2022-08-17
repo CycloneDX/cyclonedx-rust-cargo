@@ -22,7 +22,7 @@ use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
 };
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct NormalizedString(pub(crate) String);
 
 impl NormalizedString {
