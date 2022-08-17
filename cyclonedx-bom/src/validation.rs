@@ -27,7 +27,7 @@ pub trait Validate {
     ) -> Result<ValidationResult, ValidationError>;
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ValidationContext(pub(crate) Vec<ValidationPathComponent>);
 
 impl ValidationContext {
@@ -51,7 +51,7 @@ impl ValidationContext {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ValidationPathComponent {
     Struct {
         struct_name: String,
@@ -65,7 +65,7 @@ pub enum ValidationPathComponent {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ValidationResult {
     Passed,
     Failed { reasons: Vec<FailureReason> },
@@ -100,7 +100,7 @@ impl Default for ValidationResult {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FailureReason {
     pub message: String,
     pub context: ValidationContext,

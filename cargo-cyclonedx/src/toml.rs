@@ -40,7 +40,7 @@ pub fn config_from_toml(
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Eq)]
 struct ConfigWrapper {
     pub cyclonedx: Option<TomlConfig>,
 }
@@ -56,7 +56,7 @@ impl TryFrom<ConfigWrapper> for SbomConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Eq)]
 pub struct TomlConfig {
     pub format: Option<Format>,
     pub included_dependencies: Option<IncludedDependencies>,
@@ -90,7 +90,7 @@ impl TryFrom<TomlConfig> for SbomConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 pub enum IncludedDependencies {
     #[serde(rename(deserialize = "top-level"))]
     TopLevelDependencies,
@@ -125,7 +125,7 @@ impl From<IncludedDependencies> for config::IncludedDependencies {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct OutputOptions {
     #[serde(rename(deserialize = "cdx"))]
     pub cdx_extension: Option<bool>,
@@ -163,7 +163,7 @@ impl TryFrom<OutputOptions> for config::OutputOptions {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 #[serde(rename_all(deserialize = "lowercase"))]
 pub enum Pattern {
     Bom,
@@ -197,7 +197,7 @@ impl From<Pattern> for config::Pattern {
     }
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum ConfigError {
     #[error("Failed to deserialize configuration from Toml: {0}")]
     TomlError(String),

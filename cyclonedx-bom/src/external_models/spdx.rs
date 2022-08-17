@@ -22,7 +22,7 @@ use spdx::Expression;
 
 use crate::validation::{FailureReason, Validate, ValidationResult};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SpdxIdentifier(pub(crate) String);
 
 impl Validate for SpdxIdentifier {
@@ -42,7 +42,7 @@ impl Validate for SpdxIdentifier {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SpdxExpression(pub(crate) String);
 
 impl TryFrom<String> for SpdxExpression {
@@ -76,7 +76,7 @@ impl Validate for SpdxExpression {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum SpdxExpressionError {
     InvalidSpdxExpression(String),
 }

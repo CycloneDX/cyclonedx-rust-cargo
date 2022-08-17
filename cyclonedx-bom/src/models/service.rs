@@ -26,7 +26,7 @@ use crate::validation::{
     ValidationResult,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Service {
     pub bom_ref: Option<String>,
     pub provider: Option<OrganizationalEntity>,
@@ -157,7 +157,7 @@ impl Validate for Service {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Services(pub Vec<Service>);
 
 impl Validate for Services {
@@ -178,7 +178,7 @@ impl Validate for Services {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DataClassification {
     pub flow: DataFlowType,
     pub classification: NormalizedString,
@@ -209,7 +209,7 @@ impl Validate for DataClassification {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum DataFlowType {
     Inbound,
     Outbound,

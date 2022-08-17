@@ -104,7 +104,7 @@ impl Args {
     }
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum ArgsError {
     #[error("Invalid prefix from CLI")]
     CustomPrefixError(#[from] PrefixError),

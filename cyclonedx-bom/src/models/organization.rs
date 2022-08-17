@@ -23,7 +23,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OrganizationalContact {
     pub name: Option<NormalizedString>,
     pub email: Option<NormalizedString>,
@@ -63,7 +63,7 @@ impl Validate for OrganizationalContact {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OrganizationalEntity {
     pub name: Option<NormalizedString>,
     pub url: Option<Vec<Uri>>,

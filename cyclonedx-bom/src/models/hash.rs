@@ -24,7 +24,7 @@ use crate::validation::{
     ValidationResult,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Hash {
     pub alg: HashAlgorithm,
     pub content: HashValue,
@@ -51,7 +51,7 @@ impl Validate for Hash {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Hashes(pub Vec<Hash>);
 
 impl Validate for Hashes {
@@ -74,7 +74,7 @@ impl Validate for Hashes {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum HashAlgorithm {
     MD5,
     SHA1,
@@ -150,7 +150,7 @@ impl Validate for HashAlgorithm {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct HashValue(pub(crate) String);
 
 impl Validate for HashValue {

@@ -21,7 +21,7 @@ use thiserror::Error;
  */
 use crate::format::Format;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SbomConfig {
     pub format: Option<Format>,
     pub included_dependencies: Option<IncludedDependencies>,
@@ -61,7 +61,7 @@ impl SbomConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IncludedDependencies {
     TopLevelDependencies,
     AllDependencies,
@@ -85,7 +85,7 @@ impl FromStr for IncludedDependencies {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OutputOptions {
     pub cdx_extension: CdxExtension,
     pub prefix: Prefix,
@@ -100,7 +100,7 @@ impl Default for OutputOptions {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CdxExtension {
     Included,
     NotIncluded,
@@ -121,7 +121,7 @@ impl Default for CdxExtension {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prefix {
     Pattern(Pattern),
     Custom(CustomPrefix),
@@ -133,7 +133,7 @@ impl Default for Prefix {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pattern {
     Bom,
     Package,
@@ -157,7 +157,7 @@ impl FromStr for Pattern {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CustomPrefix(String);
 
 impl CustomPrefix {
@@ -180,7 +180,7 @@ impl ToString for CustomPrefix {
     }
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum PrefixError {
     #[error("Illegal characters in custom prefix string: {0}")]
     CustomPrefixError(String),

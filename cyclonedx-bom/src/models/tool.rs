@@ -22,7 +22,7 @@ use crate::validation::{
     Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Tool {
     pub vendor: Option<NormalizedString>,
     pub name: Option<NormalizedString>,
@@ -67,7 +67,7 @@ impl Validate for Tool {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Tools(pub Vec<Tool>);
 
 impl Validate for Tools {

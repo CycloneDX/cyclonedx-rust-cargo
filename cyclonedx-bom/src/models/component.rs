@@ -35,7 +35,7 @@ use crate::{
     validation::{Validate, ValidationContext, ValidationError, ValidationResult},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Component {
     pub component_type: Classification,
     pub mime_type: Option<MimeType>,
@@ -235,7 +235,7 @@ impl Validate for Component {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Components(pub Vec<Component>);
 
 impl Validate for Components {
@@ -256,7 +256,7 @@ impl Validate for Components {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Classification {
     Application,
     Framework,
@@ -320,7 +320,7 @@ impl Validate for Classification {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Scope {
     Required,
     Optional,
@@ -369,7 +369,7 @@ impl Validate for Scope {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct MimeType(pub(crate) String);
 
 impl Validate for MimeType {
@@ -398,7 +398,7 @@ impl Validate for MimeType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Swid {
     pub tag_id: String,
     pub name: String,
@@ -434,7 +434,7 @@ impl Validate for Swid {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Cpe(pub(crate) String);
 impl Validate for Cpe {
     fn validate_with_context(
@@ -465,7 +465,7 @@ impl Validate for Cpe {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ComponentEvidence {
     pub licenses: Option<Licenses>,
     pub copyright: Option<CopyrightTexts>,
@@ -497,7 +497,7 @@ impl Validate for ComponentEvidence {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Pedigree {
     pub ancestors: Option<Components>,
     pub descendants: Option<Components>,
@@ -550,7 +550,7 @@ impl Validate for Pedigree {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Copyright(pub String);
 
 impl Validate for Copyright {
@@ -562,7 +562,7 @@ impl Validate for Copyright {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
 
 impl Validate for CopyrightTexts {

@@ -35,7 +35,7 @@ use crate::validation::{
 };
 use crate::xml::{FromXmlDocument, ToXml};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Bom {
     pub version: u32,
     pub serial_number: Option<UrnUuid>,
@@ -387,7 +387,7 @@ fn validate_services(
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct UrnUuid(pub(crate) String);
 
 impl Validate for UrnUuid {
