@@ -49,6 +49,7 @@ pub struct Bom {
 }
 
 impl Bom {
+    /// Parse the input as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
     pub fn parse_from_json_v1_3<R: std::io::Read>(
         mut reader: R,
     ) -> Result<Self, crate::errors::JsonReadError> {
@@ -56,6 +57,7 @@ impl Bom {
         Ok(bom.into())
     }
 
+    /// Parse the input as an XML document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/xml/)
     pub fn parse_from_xml_v1_3<R: std::io::Read>(
         reader: R,
     ) -> Result<Self, crate::errors::XmlReadError> {
@@ -65,6 +67,7 @@ impl Bom {
         Ok(bom.into())
     }
 
+    /// Output as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
     pub fn output_as_json_v1_3<W: std::io::Write>(
         self,
         writer: &mut W,
@@ -73,7 +76,7 @@ impl Bom {
         serde_json::to_writer_pretty(writer, &bom)?;
         Ok(())
     }
-
+    /// Output as an XML document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/xml/)
     pub fn output_as_xml_v1_3<W: std::io::Write>(
         self,
         writer: &mut W,
@@ -87,6 +90,7 @@ impl Bom {
 }
 
 impl Default for Bom {
+    /// Construct a BOM with a default `version` of `1` and `serial_number` with a random UUID
     fn default() -> Self {
         Self {
             version: 1,

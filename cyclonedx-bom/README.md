@@ -12,6 +12,12 @@ The [CycloneDX](https://cyclonedx.org/) library provides JSON and XML serializat
 
 CycloneDX is a lightweight SBOM specification that is easily created, human and machine readable, and simple to parse.
 
+The library is intended to enable developers to:
+
+- Construct SBOM documents that conform the CycloneDX specification
+- Parse and validate JSON and XML SBOM documents
+- Perform modifications to BOM documents (e.g. merging multiple BOMs using a variety of algorithms)
+
 ## Usage
 
 ### Read and validate an SBOM

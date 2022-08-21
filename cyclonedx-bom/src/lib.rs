@@ -19,11 +19,19 @@
 #![deny(clippy::all)]
 #![deny(warnings)]
 
-//! The [CycloneDX](https://cyclonedx.org/) library provides JSON and XML serialization and derserialization of Software Bill-of-Materials (SBOM) files.
+//! The `cyclonedx-bom` library provides JSON and XML serialization and derserialization of Software Bill-of-Materials (SBOM) files.
 //!
-//! CycloneDX is a lightweight SBOM specification that is easily created, human and machine readable, and simple to parse.
+//! [CycloneDX](https://cyclonedx.org/) is a lightweight SBOM specification that is easily created, human and machine readable, and simple to parse.
+//!
+//! The library is intended to enable developers to:
+//!
+//! - Construct SBOM documents that conform the CycloneDX specification
+//! - Parse and validate JSON and XML SBOM documents
+//! - Perform modifications to BOM documents (e.g. merging multiple BOMs using a variety of algorithms)
 //!
 //! ## Read and validate an SBOM
+//!
+//! Given an input implements [std::io::Read], parse the value into a [`Bom`](crate::models::bom::Bom) and then use the [`Validate`](crate::validation::Validate) trait to ensure that it is a valid BOM.
 //!
 //! ```rust
 //! use cyclonedx_bom::models::bom::Bom;
@@ -42,6 +50,8 @@
 //! ```
 //!
 //! ## Create and output an SBOM
+//!
+//! Given an output implements [std::io::Write], output the [`Bom`](crate::models::bom::Bom) as JSON.
 //!
 //! ```rust
 //! use cyclonedx_bom::external_models::normalized_string::NormalizedString;
