@@ -428,12 +428,12 @@ impl Validate for UrnUuid {
                     context,
                 }],
             }),
-            Err(e) => Err(e.clone().into()),
+            Err(e) => Err(e.into()),
         }
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum UrnUuidError {
     InvalidUrnUuid(String),
 }
