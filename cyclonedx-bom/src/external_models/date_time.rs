@@ -16,14 +16,45 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::convert::TryFrom;
+
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
 };
 
+/// For the purposes of CycloneDX SBOM documents, `DateTime` is a ISO6801/RFC3339 formatted timestamp
+///
+/// The corresponding CycloneDX XML schema definition is the [`xs` namespace](https://cyclonedx.org/docs/1.3/xml/#ns_xs), which defines the [`dateTime`](https://www.w3.org/TR/xmlschema11-2/#dateTime)) format.
+///
+/// A valid timestamp can be created from a [`String`](std::string::String) using the [`TryFrom`](std::convert::TryFrom) / [`TryInto`](std::convert::TryInto) traits.
+///
+/// ```
+/// use cyclonedx_bom::external_models::date_time::DateTime;
+/// use std::convert::TryInto;
+///
+/// let timestamp = String::from("1970-01-01T00:00:00Z");
+/// let date_time: DateTime = timestamp.clone().try_into().expect("Failed to parse as DateTime");
+///
+/// assert_eq!(date_time.to_string(), timestamp);
+/// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct DateTime(pub(crate) String);
+
+impl TryFrom<String> for DateTime {
+    type Error = DateTimeError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match OffsetDateTime::parse(&value, &Rfc3339) {
+            Ok(_) => Ok(Self(value)),
+            Err(e) => Err(DateTimeError::InvalidDateTime(format!(
+                "DateTime does not conform to RFC 3339: {}",
+                e
+            ))),
+        }
+    }
+}
 
 impl Validate for DateTime {
     fn validate_with_context(
@@ -46,6 +77,11 @@ impl ToString for DateTime {
     fn to_string(&self) -> String {
         self.0.clone()
     }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DateTimeError {
+    InvalidDateTime(String),
 }
 
 #[cfg(test)]

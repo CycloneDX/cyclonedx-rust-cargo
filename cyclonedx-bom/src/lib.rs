@@ -19,19 +19,24 @@
 #![deny(clippy::all)]
 #![deny(warnings)]
 
-//! The `cyclonedx-bom` library provides JSON and XML serialization and derserialization of Software Bill-of-Materials (SBOM) files.
+//! The `cyclonedx-bom` library provides JSON and XML serialization and derserialization of Software
+//! Bill-of-Materials (SBOM) files.
 //!
-//! [CycloneDX](https://cyclonedx.org/) is a lightweight SBOM specification that is easily created, human and machine readable, and simple to parse.
+//! [CycloneDX](https://cyclonedx.org/) is a lightweight SBOM specification that is easily created,
+//! human and machine readable, and simple to parse.
 //!
 //! The library is intended to enable developers to:
 //!
 //! - Construct SBOM documents that conform the CycloneDX specification
 //! - Parse and validate JSON and XML SBOM documents
-//! - Perform modifications to BOM documents (e.g. merging multiple BOMs using a variety of algorithms)
+//! - Perform modifications to BOM documents (e.g. merging multiple BOMs using a variety of
+//!   algorithms)
 //!
 //! ## Read and validate an SBOM
 //!
-//! Given an input implements [std::io::Read], parse the value into a [`Bom`](crate::models::bom::Bom) and then use the [`Validate`](crate::validation::Validate) trait to ensure that it is a valid BOM.
+//! Given an input implements [std::io::Read], parse the value into a
+//! [`Bom`](crate::models::bom::Bom) and then use the [`Validate`](crate::validation::Validate)
+//! trait to ensure that it is a valid BOM.
 //!
 //! ```rust
 //! use cyclonedx_bom::models::bom::Bom;
@@ -51,7 +56,8 @@
 //!
 //! ## Create and output an SBOM
 //!
-//! Given an output implements [std::io::Write], output the [`Bom`](crate::models::bom::Bom) as JSON.
+//! Given an output implements [std::io::Write], output the [`Bom`](crate::models::bom::Bom) as
+//! JSON.
 //!
 //! ```rust
 //! use cyclonedx_bom::external_models::normalized_string::NormalizedString;
@@ -98,6 +104,21 @@
 //! }"#
 //! );
 //! ```
+//!
+//! ## Library design notes
+//!
+//! ### Correctness
+//!
+//! The library is designed to perform a "best-effort" processing of CycloneDX SBOM documents. This
+//! is accomplished by having a library-facing interface that does not allow the programmer to
+//! construct invalid documents, but does have a more lax internal representation to accommodate
+//! invalid SBOM documents from other sources that are parsed by the library. The enums in the
+//! `models` module demonstrate this pattern. They include an `Unknown-X` variant, which should not
+//! be created manually, but might occur as a result of parsing a SBOM.
+//!
+//! In order to be confident that you are working with valid data, the library provides a
+//! [`Validate`](crate::validation::Validate) trait to enable you to find invalid data in a parsed
+//! SBOM. An example of this can be seen in the "Read and validate an SBOM" code snippet.
 
 pub mod errors;
 pub mod external_models;
