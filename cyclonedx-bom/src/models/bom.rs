@@ -699,7 +699,7 @@ mod test {
                         }])
                     },
                     FailureReason {
-                        message: "DateTime does not conform to RFC 3339".to_string(),
+                        message: "DateTime does not conform to ISO 8601".to_string(),
                         context: ValidationContext(vec![
                             ValidationPathComponent::Struct {
                                 struct_name: "Bom".to_string(),

@@ -56,7 +56,7 @@ impl Validate for Uri {
             Ok(_) => Ok(ValidationResult::Passed),
             Err(_) => Ok(ValidationResult::Failed {
                 reasons: vec![FailureReason {
-                    message: "Uri does not conform to RFC 3986".to_string(),
+                    message: "Uri does not conform to ISO 8601".to_string(),
                     context,
                 }],
             }),
@@ -122,7 +122,7 @@ mod test {
             validation_result,
             ValidationResult::Failed {
                 reasons: vec![FailureReason {
-                    message: "Uri does not conform to RFC 3986".to_string(),
+                    message: "Uri does not conform to ISO 8601".to_string(),
                     context: ValidationContext::default()
                 }]
             }
