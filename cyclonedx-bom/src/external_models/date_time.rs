@@ -18,13 +18,13 @@
 
 use std::convert::TryFrom;
 
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{format_description::well_known::Iso8601, OffsetDateTime};
 
 use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
 };
 
-/// For the purposes of CycloneDX SBOM documents, `DateTime` is a ISO6801/RFC3339 formatted timestamp
+/// For the purposes of CycloneDX SBOM documents, `DateTime` is a ISO8601 formatted timestamp
 ///
 /// The corresponding CycloneDX XML schema definition is the [`xs` namespace](https://cyclonedx.org/docs/1.3/xml/#ns_xs), which defines the [`dateTime`](https://www.w3.org/TR/xmlschema11-2/#dateTime)) format.
 ///
@@ -46,10 +46,10 @@ impl TryFrom<String> for DateTime {
     type Error = DateTimeError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        match OffsetDateTime::parse(&value, &Rfc3339) {
+        match OffsetDateTime::parse(&value, &Iso8601::DEFAULT) {
             Ok(_) => Ok(Self(value)),
             Err(e) => Err(DateTimeError::InvalidDateTime(format!(
-                "DateTime does not conform to RFC 3339: {}",
+                "DateTime does not conform to ISO 8601: {}",
                 e
             ))),
         }
@@ -61,11 +61,11 @@ impl Validate for DateTime {
         &self,
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
-        match OffsetDateTime::parse(&self.0.to_string(), &Rfc3339) {
+        match OffsetDateTime::parse(&self.0.to_string(), &Iso8601::DEFAULT) {
             Ok(_) => Ok(ValidationResult::Passed),
             Err(_) => Ok(ValidationResult::Failed {
                 reasons: vec![FailureReason {
-                    message: "DateTime does not conform to RFC 3339".to_string(),
+                    message: "DateTime does not conform to ISO 8601".to_string(),
                     context,
                 }],
             }),
@@ -109,7 +109,7 @@ mod test {
             validation_result,
             ValidationResult::Failed {
                 reasons: vec![FailureReason {
-                    message: "DateTime does not conform to RFC 3339".to_string(),
+                    message: "DateTime does not conform to ISO 8601".to_string(),
                     context: ValidationContext::default()
                 }]
             }
