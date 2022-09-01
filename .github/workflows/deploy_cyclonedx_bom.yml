@@ -28,8 +28,6 @@ jobs:
         run: |
           echo "::set-output name=CARGO_VERSION::$(cargo metadata | jq -r '.packages[] | select(.name == "cyclonedx-bom") | .version')"
         id: version
-      - name: Upgrade the cyclonedx-bom dependency for cargo-cyclonedx
-        run: cargo upgrade --manifest-path cargo-cyclonedx/Cargo.toml cyclonedx-bom@${{steps.version.outputs.CARGO_VERSION}}
       - name: Build one time, for sanity
         run: cargo build
       - uses: katyo/publish-crates@v1
