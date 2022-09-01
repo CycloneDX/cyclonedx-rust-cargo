@@ -25,7 +25,7 @@ lto = true
 anyhow = "1.0.63"
 cargo = "0.64.0"
 clap = { version = "3.2.19", features = ["derive"] }
-cyclonedx-bom = { path = "../cyclonedx-bom" }
+cyclonedx-bom = { version = "0.3.3", path = "../cyclonedx-bom" }
 env_logger = "0.9.0"
 lazy_static = "1.4.0"
 log = "0.4.17"
