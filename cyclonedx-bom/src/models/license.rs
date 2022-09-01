@@ -65,6 +65,16 @@ pub struct License {
     pub url: Option<Uri>,
 }
 
+impl License {
+    pub fn named_license(license: &str) -> Self {
+        Self {
+            license_identifier: LicenseIdentifier::Name(NormalizedString::new(license)),
+            text: None,
+            url: None,
+        }
+    }
+}
+
 impl Validate for License {
     fn validate_with_context(
         &self,
