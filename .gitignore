@@ -1,3 +1,5 @@
 /target
-bom.xml
-bom.json
+**/bom.xml
+**/*.cdx.xml
+**/bom.json
+**/*.cdx.json

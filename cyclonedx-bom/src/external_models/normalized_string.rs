@@ -16,16 +16,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/// A string that does not contain carriage return, line feed, or tab characters.
-/// Defined via the [XML schema](https://www.w3.org/TR/xmlschema-2/#normalizedString)
 use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
 };
 
+/// A string that does not contain carriage return, line feed, or tab characters
+///
+/// Defined via the [XML schema](https://www.w3.org/TR/xmlschema-2/#normalizedString)
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct NormalizedString(pub(crate) String);
 
 impl NormalizedString {
+    /// Construct a `NormalizedString` by replacing all of the invalid characters with spaces
+    /// ```
+    /// use cyclonedx_bom::external_models::normalized_string::NormalizedString;
+    ///
+    /// let normalized_string = NormalizedString::new("A\r\nstring\rwith\ninvalid\tcharacters");
+    /// assert_eq!(normalized_string.to_string(), "A string with invalid characters".to_string());
+    /// ```
     pub fn new(value: &str) -> Self {
         let value = value
             .replace("\r\n", " ")

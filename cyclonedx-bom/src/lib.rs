@@ -39,8 +39,7 @@
 //! trait to ensure that it is a valid BOM.
 //!
 //! ```rust
-//! use cyclonedx_bom::models::bom::Bom;
-//! use cyclonedx_bom::validation::{Validate, ValidationResult};
+//! use cyclonedx_bom::prelude::*;
 //!
 //! let bom_json = r#"{
 //!   "bomFormat": "CycloneDX",
@@ -60,10 +59,8 @@
 //! JSON.
 //!
 //! ```rust
-//! use cyclonedx_bom::external_models::normalized_string::NormalizedString;
+//! use cyclonedx_bom::prelude::*;
 //! use cyclonedx_bom::models::{
-//!     bom::{Bom, UrnUuid},
-//!     metadata::Metadata,
 //!     tool::{Tool, Tools},
 //! };
 //!
@@ -119,10 +116,19 @@
 //! In order to be confident that you are working with valid data, the library provides a
 //! [`Validate`](crate::validation::Validate) trait to enable you to find invalid data in a parsed
 //! SBOM. An example of this can be seen in the "Read and validate an SBOM" code snippet.
+//!
+//! ### Prelude
+//!
+//! The library provides a prelude (similar to the [Rust Standard Library's prelude](https://doc.rust-lang.org/std/prelude/index.html)) to make it easier to use the code. The prelude contains commonly used types and traits. To use this in your library, include the following code snippet:
+//!
+//! ```
+//! use cyclonedx_bom::prelude::*;
+//! ```
 
 pub mod errors;
 pub mod external_models;
 pub mod models;
+pub mod prelude;
 pub mod validation;
 
 mod specs;
