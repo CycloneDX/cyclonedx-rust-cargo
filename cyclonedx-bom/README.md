@@ -23,8 +23,7 @@ The library is intended to enable developers to:
 ### Read and validate an SBOM
 
 ```rust
-use cyclonedx_bom::models::bom::Bom;
-use cyclonedx_bom::validation::{Validate, ValidationResult};
+use cyclonedx_bom::prelude::*;
 
 let bom_json = r#"{
   "bomFormat": "CycloneDX",
@@ -41,10 +40,8 @@ assert_eq!(validation_result, ValidationResult::Passed);
 ### Create and output an SBOM
 
 ```rust
-use cyclonedx_bom::external_models::normalized_string::NormalizedString;
+use cyclonedx_bom::prelude::*;
 use cyclonedx_bom::models::{
-    bom::{Bom, UrnUuid},
-    metadata::Metadata,
     tool::{Tool, Tools},
 };
 
