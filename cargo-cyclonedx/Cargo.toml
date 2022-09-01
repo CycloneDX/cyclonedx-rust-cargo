@@ -22,7 +22,7 @@ path = "src/main.rs"
 lto = true
 
 [dependencies]
-anyhow = "1.0.62"
+anyhow = "1.0.63"
 cargo = "0.64.0"
 clap = { version = "3.2.19", features = ["derive"] }
 cyclonedx-bom = { path = "../cyclonedx-bom" }
