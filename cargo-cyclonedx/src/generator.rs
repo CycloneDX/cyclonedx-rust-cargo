@@ -38,7 +38,7 @@ use cyclonedx_bom::models::component::{Classification, Component, Components, Sc
 use cyclonedx_bom::models::external_reference::{
     ExternalReference, ExternalReferenceType, ExternalReferences,
 };
-use cyclonedx_bom::models::license::{LicenseChoice, Licenses};
+use cyclonedx_bom::models::license::{License, LicenseChoice, Licenses};
 use cyclonedx_bom::models::metadata::Metadata;
 use cyclonedx_bom::models::organization::OrganizationalContact;
 use cyclonedx_bom::models::tool::{Tool, Tools};
@@ -239,11 +239,25 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
             Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
             Err(err) => {
                 log::error!(
-                    "Package {} has an invalid license ({}): {}",
+                    "Package {} has an invalid license expression, trying lax parsing ({}): {}",
                     package.name(),
                     license,
                     err
                 );
+
+                match SpdxExpression::parse_lax(license.to_string()) {
+                    Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
+                    Err(err) => {
+                        log::error!(
+                        "Package {} has an invalid license expression that could not be converted to a valid expression, using named license ({}): {}",
+                        package.name(),
+                        license,
+                        err
+                    );
+
+                        licenses.push(LicenseChoice::License(License::named_license(license)))
+                    }
+                }
             }
         }
     }

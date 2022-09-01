@@ -18,7 +18,7 @@
 
 use std::convert::TryFrom;
 
-use spdx::Expression;
+use spdx::{Expression, ParseMode};
 use thiserror::Error;
 
 use crate::validation::{FailureReason, Validate, ValidationResult};
@@ -45,6 +45,30 @@ impl Validate for SpdxIdentifier {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct SpdxExpression(pub(crate) String);
+
+impl SpdxExpression {
+    pub fn parse_lax(value: String) -> Result<Self, SpdxExpressionError> {
+        match Expression::parse_mode(&value, ParseMode::LAX) {
+            Ok(_) => Self(value).convert_lax(),
+            Err(e) => Err(SpdxExpressionError::InvalidLaxSpdxExpression(format!(
+                "{}",
+                e.reason
+            ))),
+        }
+    }
+
+    fn convert_lax(self) -> Result<Self, SpdxExpressionError> {
+        let converted = self.0.replace('/', " OR ");
+
+        match Self::try_from(converted) {
+            Ok(converted) => Ok(converted),
+            Err(e) => Err(SpdxExpressionError::InvalidLaxSpdxExpression(format!(
+                "{}",
+                e
+            ))),
+        }
+    }
+}
 
 impl TryFrom<String> for SpdxExpression {
     type Error = SpdxExpressionError;
@@ -81,6 +105,9 @@ impl Validate for SpdxExpression {
 pub enum SpdxExpressionError {
     #[error("Invalid SPDX expression: {}", .0)]
     InvalidSpdxExpression(String),
+
+    #[error("Invalid Lax SPDX expression: {}", .0)]
+    InvalidLaxSpdxExpression(String),
 }
 
 #[cfg(test)]
@@ -119,6 +146,13 @@ mod test {
     #[test]
     fn it_should_succeed_in_converting_an_spdx_expression() {
         let actual = SpdxExpression::try_from("MIT OR Apache-2.0".to_string())
+            .expect("Failed to parse as a license");
+        assert_eq!(actual, SpdxExpression("MIT OR Apache-2.0".to_string()));
+    }
+
+    #[test]
+    fn it_should_succeed_in_converting_a_partially_valid_spdx_expression() {
+        let actual = SpdxExpression::parse_lax("MIT/Apache-2.0".to_string())
             .expect("Failed to parse as a license");
         assert_eq!(actual, SpdxExpression("MIT OR Apache-2.0".to_string()));
     }
