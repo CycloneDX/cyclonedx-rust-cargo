@@ -30,6 +30,17 @@ pub struct Tool {
     pub hashes: Option<Hashes>,
 }
 
+impl Tool {
+    pub fn new(vendor: &str, name: &str, version: &str) -> Self {
+        Self {
+            vendor: Some(NormalizedString::new(vendor)),
+            name: Some(NormalizedString::new(name)),
+            version: Some(NormalizedString::new(version)),
+            hashes: None,
+        }
+    }
+}
+
 impl Validate for Tool {
     fn validate_with_context(
         &self,
