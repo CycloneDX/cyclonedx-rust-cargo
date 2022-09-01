@@ -32,19 +32,16 @@ use cargo::ops;
 
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
-use cyclonedx_bom::external_models::uri::Purl;
-use cyclonedx_bom::external_models::uri::Uri;
+use cyclonedx_bom::external_models::uri::{Purl, Uri};
 use cyclonedx_bom::models::bom::Bom;
-use cyclonedx_bom::models::component::Scope;
-use cyclonedx_bom::models::component::{Classification, Component, Components};
-use cyclonedx_bom::models::external_reference::ExternalReference;
-use cyclonedx_bom::models::external_reference::ExternalReferenceType;
-use cyclonedx_bom::models::external_reference::ExternalReferences;
-
-use cyclonedx_bom::models::license::LicenseChoice;
-use cyclonedx_bom::models::license::Licenses;
+use cyclonedx_bom::models::component::{Classification, Component, Components, Scope};
+use cyclonedx_bom::models::external_reference::{
+    ExternalReference, ExternalReferenceType, ExternalReferences,
+};
+use cyclonedx_bom::models::license::{LicenseChoice, Licenses};
 use cyclonedx_bom::models::metadata::Metadata;
 use cyclonedx_bom::models::organization::OrganizationalContact;
+use cyclonedx_bom::models::tool::{Tool, Tools};
 use cyclonedx_bom::validation::Validate;
 
 use std::convert::TryFrom;
@@ -285,6 +282,10 @@ fn create_metadata(package: &Package) -> Metadata {
     component.component_type = get_classification(package);
 
     metadata.component = Some(component);
+
+    let tool = Tool::new("CycloneDX", "cargo-cyclonedx", env!("CARGO_PKG_VERSION"));
+
+    metadata.tools = Some(Tools(vec![tool]));
 
     metadata
 }
