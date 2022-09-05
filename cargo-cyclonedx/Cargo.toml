@@ -32,6 +32,6 @@ log = "0.4.17"
 packageurl = "0.3.0"
 regex = "1.6.0"
 serde = { version = "1.0.144", features = ["derive"] }
-thiserror = "1.0.33"
+thiserror = "1.0.34"
 time = { version = "0.3.14", features = ["serde", "serde-well-known"] }
 toml_edit = { version = "0.14.4", features = ["serde", "easy"] }
