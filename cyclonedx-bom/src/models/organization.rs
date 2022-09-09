@@ -30,6 +30,16 @@ pub struct OrganizationalContact {
     pub phone: Option<NormalizedString>,
 }
 
+impl OrganizationalContact {
+    pub fn new(name: &str, email: Option<&str>) -> Self {
+        Self {
+            name: Some(NormalizedString::new(name)),
+            email: email.map(NormalizedString::new),
+            phone: None,
+        }
+    }
+}
+
 impl Validate for OrganizationalContact {
     fn validate_with_context(
         &self,

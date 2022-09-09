@@ -15,7 +15,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-use crate::author::Authors;
 use crate::config::IncludedDependencies;
 use crate::config::Pattern;
 use crate::config::Prefix;
@@ -30,6 +29,7 @@ use cargo::core::Resolve;
 use cargo::core::Workspace;
 use cargo::ops;
 
+use clap::__macro_refs::once_cell::sync::Lazy;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
 use cyclonedx_bom::external_models::uri::{Purl, Uri};
@@ -43,10 +43,12 @@ use cyclonedx_bom::models::metadata::Metadata;
 use cyclonedx_bom::models::organization::OrganizationalContact;
 use cyclonedx_bom::models::tool::{Tool, Tools};
 use cyclonedx_bom::validation::Validate;
+use regex::Regex;
 
 use std::convert::TryFrom;
 use std::{collections::BTreeSet, fs::File, path::PathBuf};
 use thiserror::Error;
+use validator::validate_email;
 
 pub struct SbomGenerator {}
 
@@ -271,19 +273,7 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
 }
 
 fn create_metadata(package: &Package) -> Metadata {
-    let package_authors = Authors::from(package.clone());
-
-    let mut authors = vec![];
-
-    if let Some(package_authors) = package_authors.0 {
-        package_authors.into_iter().for_each(|author| {
-            authors.push(OrganizationalContact {
-                name: Some(NormalizedString::new(&author.name)),
-                email: author.email.map(|email| NormalizedString::new(&email)),
-                ..Default::default()
-            });
-        });
-    }
+    let authors = create_authors(package);
 
     let mut metadata = Metadata::new();
 
@@ -302,6 +292,51 @@ fn create_metadata(package: &Package) -> Metadata {
     metadata.tools = Some(Tools(vec![tool]));
 
     metadata
+}
+
+fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
+    let mut authors = vec![];
+    let mut invalid_authors = vec![];
+
+    for author in &package.manifest().metadata().authors {
+        match parse_author(author) {
+            Ok(author) => authors.push(author),
+            Err(e) => invalid_authors.push((author, e)),
+        }
+    }
+
+    invalid_authors
+        .into_iter()
+        .for_each(|(author, error)| log::error!("Invalid author {}: {:?}", author, error));
+
+    authors
+}
+
+fn parse_author(author: &str) -> Result<OrganizationalContact, GeneratorError> {
+    static AUTHORS_REGEX: Lazy<Result<Regex, regex::Error>> =
+        Lazy::new(|| Regex::new(r"^(?P<author>[^<]+)\s*(<(?P<email>[^>]+)>)?$"));
+
+    match AUTHORS_REGEX
+        .as_ref()
+        .map_err(|e| GeneratorError::InvalidRegexError(e.to_owned()))?
+        .captures(author)
+    {
+        Some(captures) => {
+            let name = captures.name("author").map_or("", |m| m.as_str().trim());
+            let email = captures.name("email").map(|m| m.as_str());
+
+            if let Some(email) = email {
+                if !validate_email(email) {
+                    return Err(GeneratorError::AuthorParseError(
+                        "Invalid email, does not conform to HTML5 spec".to_string(),
+                    ));
+                }
+            }
+
+            Ok(OrganizationalContact::new(name, email))
+        }
+        None => Ok(OrganizationalContact::new(author, None)),
+    }
 }
 
 #[derive(Error, Debug)]
@@ -325,6 +360,12 @@ pub enum GeneratorError {
 
     #[error("Error with Cargo custom_metadata")]
     CustomMetadataTomlError(#[from] ConfigError),
+
+    #[error("Could not parse author string: {}", .0)]
+    AuthorParseError(String),
+
+    #[error("Invalid regular expression")]
+    InvalidRegexError(#[source] regex::Error),
 }
 
 fn top_level_dependencies(
@@ -445,4 +486,46 @@ pub enum SbomWriterError {
 
     #[error("Error serializing to XML")]
     SerializeXmlError(#[source] std::io::Error),
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn it_should_parse_author_and_email() {
+        let actual = parse_author("First Last <user@domain.tld>").expect("Failed to parse author");
+        let expected = OrganizationalContact::new("First Last", Some("user@domain.tld"));
+
+        assert_eq!(actual, expected);
+    }
+    #[test]
+    fn it_should_parse_author_only() {
+        let actual = parse_author("First Last").expect("Failed to parse author");
+        let expected = OrganizationalContact::new("First Last", None);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_fail_to_parse_invalid_email() {
+        let actual =
+            parse_author("First Last <userdomain.tld>").expect_err("Failed to throw error");
+
+        match actual {
+            GeneratorError::AuthorParseError(e) => assert_eq!(
+                e,
+                "Invalid email, does not conform to HTML5 spec".to_string()
+            ),
+            e => panic!("Expected AuthorParse error got: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn it_should_parse_author_inside_brackets() {
+        let actual = parse_author("<First Last user@domain.tld>").expect("Failed to parse author");
+        let expected = OrganizationalContact::new("<First Last user@domain.tld>", None);
+
+        assert_eq!(actual, expected);
+    }
 }
