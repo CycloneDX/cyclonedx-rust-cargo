@@ -160,13 +160,11 @@ dependencies = [
  "clap",
  "cyclonedx-bom",
  "env_logger",
- "lazy_static",
  "log",
- "packageurl",
+ "once_cell",
  "regex",
  "serde",
  "thiserror",
- "time",
  "toml_edit",
  "validator",
 ]
@@ -1365,7 +1363,6 @@ dependencies = [
  "itoa",
  "libc",
  "num_threads",
- "serde",
 ]
 
 [[package]]
