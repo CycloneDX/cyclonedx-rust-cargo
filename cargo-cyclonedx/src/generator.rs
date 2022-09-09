@@ -29,7 +29,6 @@ use cargo::core::Resolve;
 use cargo::core::Workspace;
 use cargo::ops;
 
-use clap::__macro_refs::once_cell::sync::Lazy;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
 use cyclonedx_bom::external_models::uri::{Purl, Uri};
@@ -43,6 +42,7 @@ use cyclonedx_bom::models::metadata::Metadata;
 use cyclonedx_bom::models::organization::OrganizationalContact;
 use cyclonedx_bom::models::tool::{Tool, Tools};
 use cyclonedx_bom::validation::Validate;
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 use std::convert::TryFrom;
