@@ -19,10 +19,9 @@
 #![deny(clippy::all)]
 #![deny(warnings)]
 
-pub mod author;
 pub mod config;
 pub mod format;
 pub mod generator;
 pub mod toml;
 
-pub use crate::{author::Author, generator::*};
+pub use crate::generator::*;

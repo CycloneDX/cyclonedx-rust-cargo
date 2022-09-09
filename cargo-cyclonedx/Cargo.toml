@@ -35,3 +35,4 @@ serde = { version = "1.0.144", features = ["derive"] }
 thiserror = "1.0.34"
 time = { version = "0.3.14", features = ["serde", "serde-well-known"] }
 toml_edit = { version = "0.14.4", features = ["serde", "easy"] }
+validator = { version = "0.16.0" }
