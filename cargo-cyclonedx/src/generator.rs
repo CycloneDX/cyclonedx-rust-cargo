@@ -39,6 +39,7 @@ use cyclonedx_bom::models::external_reference::{
 };
 use cyclonedx_bom::models::license::{License, LicenseChoice, Licenses};
 use cyclonedx_bom::models::metadata::Metadata;
+use cyclonedx_bom::models::metadata::MetadataError;
 use cyclonedx_bom::models::organization::OrganizationalContact;
 use cyclonedx_bom::models::tool::{Tool, Tools};
 use cyclonedx_bom::validation::Validate;
@@ -93,7 +94,7 @@ impl SbomGenerator {
                     top_level_dependencies(&members, &package_ids)?
                 };
 
-            let bom = create_bom(member, dependencies);
+            let bom = create_bom(member, dependencies)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
 
@@ -111,7 +112,7 @@ impl SbomGenerator {
     }
 }
 
-fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Bom {
+fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
     let components: Vec<_> = dependencies
@@ -121,11 +122,11 @@ fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Bom {
 
     bom.components = Some(Components(components));
 
-    let metadata = create_metadata(package);
+    let metadata = create_metadata(package)?;
 
     bom.metadata = Some(metadata);
 
-    bom
+    Ok(bom)
 }
 
 fn create_component(package: &Package) -> Component {
@@ -272,11 +273,10 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
     Some(Licenses(licenses))
 }
 
-fn create_metadata(package: &Package) -> Metadata {
+fn create_metadata(package: &Package) -> Result<Metadata, GeneratorError> {
     let authors = create_authors(package);
 
-    let mut metadata = Metadata::new();
-
+    let mut metadata = Metadata::new()?;
     if !authors.is_empty() {
         metadata.authors = Some(authors);
     }
@@ -291,7 +291,7 @@ fn create_metadata(package: &Package) -> Metadata {
 
     metadata.tools = Some(Tools(vec![tool]));
 
-    metadata
+    Ok(metadata)
 }
 
 fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
@@ -360,6 +360,9 @@ pub enum GeneratorError {
 
     #[error("Error with Cargo custom_metadata")]
     CustomMetadataTomlError(#[from] ConfigError),
+
+    #[error("Error creating Metadata")]
+    MetadataError(#[from] MetadataError),
 
     #[error("Could not parse author string: {}", .0)]
     AuthorParseError(String),

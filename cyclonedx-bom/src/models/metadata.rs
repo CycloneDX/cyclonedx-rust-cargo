@@ -16,7 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::external_models::date_time::DateTime;
+use thiserror::Error;
+
+use crate::external_models::date_time::{DateTime, DateTimeError};
 use crate::models::component::Component;
 use crate::models::license::Licenses;
 use crate::models::organization::{OrganizationalContact, OrganizationalEntity};
@@ -39,16 +41,13 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    pub fn new() -> Self {
-        Self {
-            timestamp: DateTime::now().ok(),
-            tools: None,
-            authors: None,
-            component: None,
-            manufacture: None,
-            supplier: None,
-            licenses: None,
-            properties: None,
+    pub fn new() -> Result<Self, MetadataError> {
+        match DateTime::now() {
+            Ok(timestamp) => Ok(Self {
+                timestamp: Some(timestamp),
+                ..Default::default()
+            }),
+            Err(e) => Err(MetadataError::InvalidTimestamp(e)),
         }
     }
 }
@@ -119,6 +118,12 @@ impl Validate for Metadata {
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
     }
+}
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum MetadataError {
+    #[error("Invalid timestamp")]
+    InvalidTimestamp(#[from] DateTimeError),
 }
 
 #[cfg(test)]
