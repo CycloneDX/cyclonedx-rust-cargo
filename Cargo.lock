@@ -153,7 +153,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-cyclonedx"
-version = "0.3.6"
+version = "0.3.7"
 dependencies = [
  "anyhow",
  "cargo",
