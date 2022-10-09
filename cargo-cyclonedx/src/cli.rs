@@ -22,7 +22,7 @@ pub enum Opts {
 #[clap(group(ArgGroup::new("prefix-or-pattern-group").required(false).args(&["output-prefix", "output-pattern"])))]
 pub struct Args {
     /// Path to Cargo.toml
-    #[clap(long = "manifest-path", value_name = "PATH", parse(from_os_str))]
+    #[clap(long = "manifest-path", value_name = "PATH")]
     pub manifest_path: Option<path::PathBuf>,
 
     /// Output BOM format: json, xml
@@ -30,8 +30,8 @@ pub struct Args {
     pub format: Option<Format>,
 
     /// Use verbose output (-vv very verbose/build.rs output)
-    #[clap(long = "verbose", short = 'v', parse(from_occurrences))]
-    pub verbose: u32,
+    #[clap(long = "verbose", short = 'v', action = clap::ArgAction::Count)]
+    pub verbose: u8,
 
     /// No output printed to stdout
     #[clap(long = "quiet", short = 'q')]
@@ -42,7 +42,7 @@ pub struct Args {
     pub all: bool,
 
     /// List only top-level dependencies (default)
-    #[clap(long = "top-level")]
+    #[clap(name = "top-level", long = "top-level")]
     pub top_level: bool,
 
     /// Prepend file extension with .cdx
@@ -50,11 +50,19 @@ pub struct Args {
     pub output_cdx: bool,
 
     /// Prefix patterns to use for the filename: bom, package
-    #[clap(long = "output-pattern", value_name = "PATTERN")]
+    #[clap(
+        name = "output-pattern",
+        long = "output-pattern",
+        value_name = "PATTERN"
+    )]
     pub output_pattern: Option<Pattern>,
 
     /// Custom prefix string to use for the filename
-    #[clap(long = "output-prefix", value_name = "FILENAME_PREFIX")]
+    #[clap(
+        name = "output-prefix",
+        long = "output-prefix",
+        value_name = "FILENAME_PREFIX"
+    )]
     pub output_prefix: Option<String>,
 }
 

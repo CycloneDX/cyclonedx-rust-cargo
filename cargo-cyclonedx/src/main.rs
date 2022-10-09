@@ -110,7 +110,7 @@ fn setup_logging(args: &Args, config: &mut Config) -> anyhow::Result<()> {
 
     // configure logging level of cargo to match what was passed via CLI
     config.configure(
-        args.verbose,
+        args.verbose as u32,
         args.quiet,
         None,
         false,
