@@ -28,6 +28,9 @@ use crate::validation::{
     Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
 };
 
+/// Represents additional information about a BOM
+///
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_metadata)
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Metadata {
     pub timestamp: Option<DateTime>,
@@ -41,6 +44,16 @@ pub struct Metadata {
 }
 
 impl Metadata {
+    /// Constructs a new `Metadata` with a timestamp based on the current time
+    /// ```
+    /// use cyclonedx_bom::models::metadata::{Metadata, MetadataError};
+    ///
+    /// let metadata = Metadata::new()?;
+    /// # Ok::<(), MetadataError>(())
+    /// ```
+    /// # Errors
+    ///
+    /// Returns an error variant if unable to generate a valid timestamp
     pub fn new() -> Result<Self, MetadataError> {
         match DateTime::now() {
             Ok(timestamp) => Ok(Self {
