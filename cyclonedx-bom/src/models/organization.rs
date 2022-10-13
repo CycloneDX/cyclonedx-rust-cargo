@@ -23,6 +23,9 @@ use crate::{
     },
 };
 
+/// Represents the contact information for an organization
+///
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalContact)
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct OrganizationalContact {
     pub name: Option<NormalizedString>,
@@ -31,6 +34,12 @@ pub struct OrganizationalContact {
 }
 
 impl OrganizationalContact {
+    /// Construct an `OrganizationalContact` with name and email
+    /// ```
+    /// use cyclonedx_bom::models::organization::OrganizationalContact;
+    ///
+    /// let organizational_contact = OrganizationalContact::new("Example Support AMER Distribution", Some("support@example.com"));
+    /// ```
     pub fn new(name: &str, email: Option<&str>) -> Self {
         Self {
             name: Some(NormalizedString::new(name)),
@@ -73,6 +82,9 @@ impl Validate for OrganizationalContact {
     }
 }
 
+/// Represents an organization with name, url, and contact information
+///
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalEntity)
 #[derive(Debug, PartialEq, Eq)]
 pub struct OrganizationalEntity {
     pub name: Option<NormalizedString>,
