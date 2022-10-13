@@ -23,6 +23,11 @@ use crate::{
     },
 };
 
+/// Represents a name-value store that can be used to describe additional data about the components, services, or the BOM that
+/// isn’t native to the core specification.
+///
+/// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_propertyType). Please see the
+/// [CycloneDX use case](https://cyclonedx.org/use-cases/#properties--name-value-store) for more information and examples.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Properties(pub(crate) Vec<Property>);
 
@@ -45,10 +50,28 @@ impl Validate for Properties {
     }
 }
 
+/// Represents an individual property with a name and value
+///
+/// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_propertyType)
 #[derive(Debug, PartialEq, Eq)]
 pub struct Property {
     pub name: String,
     pub value: NormalizedString,
+}
+
+impl Property {
+    /// Constructs a `Property` with a name and value
+    /// ```
+    /// use cyclonedx_bom::models::property::Property;
+    ///
+    /// let property = Property::new("Foo", "Bar");
+    /// ```
+    pub fn new(name: impl ToString, value: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            value: NormalizedString::new(value),
+        }
+    }
 }
 
 impl Validate for Property {
