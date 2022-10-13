@@ -795,8 +795,8 @@ mod test {
         let component_builder = |bom_ref: &str| {
             Component::new(
                 Classification::Library,
-                NormalizedString::new("lib-x"),
-                NormalizedString::new("v0.1.0"),
+                "lib-x",
+                "v0.1.0",
                 Some(bom_ref.to_string()),
             )
         };
