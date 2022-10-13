@@ -143,8 +143,8 @@ fn create_component(package: &Package) -> Component {
 
     let mut component = Component::new(
         Classification::Library,
-        NormalizedString::new(&name),
-        NormalizedString::new(&version),
+        &name,
+        &version,
         purl.clone().map(|p| p.to_string()),
     );
 

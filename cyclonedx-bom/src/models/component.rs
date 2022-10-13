@@ -65,14 +65,14 @@ pub struct Component {
 impl Component {
     pub fn new(
         component_type: Classification,
-        name: NormalizedString,
-        version: NormalizedString,
+        name: &str,
+        version: &str,
         bom_ref: Option<String>,
     ) -> Self {
         Self {
             component_type,
-            name,
-            version,
+            name: NormalizedString::new(name),
+            version: NormalizedString::new(version),
             bom_ref,
             mime_type: None,
             supplier: None,
