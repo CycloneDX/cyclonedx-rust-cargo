@@ -22,6 +22,9 @@ use crate::validation::{
     Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
 };
 
+/// Represents the tool used to create the BOM
+///
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_toolType)
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Tool {
     pub vendor: Option<NormalizedString>,
@@ -31,6 +34,12 @@ pub struct Tool {
 }
 
 impl Tool {
+    /// Construct a `Tool` with the vendor, name, and version
+    /// ```
+    /// use cyclonedx_bom::models::tool::Tool;
+    ///
+    /// let tool = Tool::new("CycloneDX", "cargo-cyclonedx", "1.0.0");
+    /// ```
     pub fn new(vendor: &str, name: &str, version: &str) -> Self {
         Self {
             vendor: Some(NormalizedString::new(vendor)),
