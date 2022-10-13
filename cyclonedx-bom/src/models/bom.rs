@@ -805,12 +805,7 @@ mod test {
             "subcomponent-component",
         )]));
 
-        let service_builder = |bom_ref: &str| {
-            Service::new(
-                NormalizedString::new("service-x"),
-                Some(bom_ref.to_string()),
-            )
-        };
+        let service_builder = |bom_ref: &str| Service::new("service-x", Some(bom_ref.to_string()));
         let mut service_with_sub_services = service_builder("subservice-service");
         service_with_sub_services.services =
             Some(Services(vec![service_builder("subservice-service")]));
