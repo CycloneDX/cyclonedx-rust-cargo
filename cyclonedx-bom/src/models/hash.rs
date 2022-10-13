@@ -24,6 +24,9 @@ use crate::validation::{
     ValidationResult,
 };
 
+/// Represents the hash of the component
+///
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashType)
 #[derive(Debug, PartialEq, Eq)]
 pub struct Hash {
     pub alg: HashAlgorithm,
@@ -73,6 +76,9 @@ impl Validate for Hashes {
     }
 }
 
+/// Represents the algorithm used to create the hash
+///
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashAlg)
 #[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum HashAlgorithm {
@@ -150,6 +156,7 @@ impl Validate for HashAlgorithm {
     }
 }
 
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashValue)
 #[derive(Debug, PartialEq, Eq)]
 pub struct HashValue(pub(crate) String);
 
