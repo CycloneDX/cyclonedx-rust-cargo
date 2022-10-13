@@ -26,6 +26,9 @@ use crate::validation::{
     ValidationResult,
 };
 
+/// Represents a service as described in the [CycloneDX use cases](https://cyclonedx.org/use-cases/#service-definition)
+///
+/// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_service)
 #[derive(Debug, PartialEq, Eq)]
 pub struct Service {
     pub bom_ref: Option<String>,
@@ -45,9 +48,15 @@ pub struct Service {
 }
 
 impl Service {
-    pub fn new(name: NormalizedString, bom_ref: Option<String>) -> Self {
+    /// Construct a `Service` with a name and BOM reference
+    /// ```
+    /// use cyclonedx_bom::models::service::Service;
+    ///
+    /// let service = Service::new("service-x", Some("12a34a5b-6780-1bae-2345-67890cfe12a3".to_string()));
+    /// ```
+    pub fn new(name: &str, bom_ref: Option<String>) -> Self {
         Self {
-            name,
+            name: NormalizedString::new(name),
             bom_ref,
             provider: None,
             group: None,
@@ -178,6 +187,9 @@ impl Validate for Services {
     }
 }
 
+/// Represents the data classification and data flow
+///
+/// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_dataClassificationType)
 #[derive(Debug, PartialEq, Eq)]
 pub struct DataClassification {
     pub flow: DataFlowType,
@@ -209,6 +221,9 @@ impl Validate for DataClassification {
     }
 }
 
+/// Represents the flow direction of the data
+///
+/// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_dataFlowType)
 #[derive(Debug, PartialEq, Eq)]
 pub enum DataFlowType {
     Inbound,
