@@ -26,6 +26,9 @@ use crate::validation::{
     Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
 };
 
+/// Represents whether a license is a named license or an SPDX license expression
+///
+/// As defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseChoiceType)
 #[derive(Debug, PartialEq, Eq)]
 pub enum LicenseChoice {
     License(License),
@@ -58,6 +61,9 @@ impl Validate for LicenseChoice {
     }
 }
 
+/// Represents a license with identifier, text, and url
+///
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseType)
 #[derive(Debug, PartialEq, Eq)]
 pub struct License {
     pub license_identifier: LicenseIdentifier,
@@ -66,6 +72,12 @@ pub struct License {
 }
 
 impl License {
+    /// Constructs a `License` with a named license identifier
+    /// ```
+    /// use cyclonedx_bom::models::license::License;
+    ///
+    /// let license = License::named_license("Example License 1.0");
+    /// ```
     pub fn named_license(license: &str) -> Self {
         Self {
             license_identifier: LicenseIdentifier::Name(NormalizedString::new(license)),
@@ -132,7 +144,9 @@ impl Validate for Licenses {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LicenseIdentifier {
+    /// An SPDX license identifier from the list on the [SPDX website](https://spdx.org/licenses/).
     SpdxId(SpdxIdentifier),
+    /// A license that is not in the SPDX license list (eg. a proprietary license or a license not yet recognized by SPDX).
     Name(NormalizedString),
 }
 
