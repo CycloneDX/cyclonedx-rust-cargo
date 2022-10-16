@@ -26,6 +26,26 @@ use crate::validation::{FailureReason, Validate, ValidationResult};
 #[derive(Debug, PartialEq, Eq)]
 pub struct SpdxIdentifier(pub(crate) String);
 
+impl SpdxIdentifier {
+    pub fn imprecise(value: String) -> Result<Self, SpdxIdentifierError> {
+        match spdx::imprecise_license_id(&value) {
+            Some(matched_license) => Ok(Self(matched_license.0.full_name.into())),
+            None => Err(SpdxIdentifierError::InvalidImpreciseSpdxIdentifier(value)),
+        }
+    }
+}
+
+impl TryFrom<String> for SpdxIdentifier {
+    type Error = SpdxIdentifierError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match spdx::license_id(&value) {
+            Some(_) => Ok(Self(value)),
+            None => Err(SpdxIdentifierError::InvalidSpdxIdentifier(value)),
+        }
+    }
+}
+
 impl Validate for SpdxIdentifier {
     fn validate_with_context(
         &self,
@@ -108,6 +128,15 @@ pub enum SpdxExpressionError {
 
     #[error("Invalid Lax SPDX expression: {}", .0)]
     InvalidLaxSpdxExpression(String),
+}
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum SpdxIdentifierError {
+    #[error("Invalid SPDX identifier: {}", .0)]
+    InvalidSpdxIdentifier(String),
+
+    #[error("Invalid Imprecise SPDX identifier: {}", .0)]
+    InvalidImpreciseSpdxIdentifier(String),
 }
 
 #[cfg(test)]
