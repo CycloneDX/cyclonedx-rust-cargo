@@ -29,7 +29,7 @@ use crate::{
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_propertyType). Please see the
 /// [CycloneDX use case](https://cyclonedx.org/use-cases/#properties--name-value-store) for more information and examples.
 #[derive(Debug, PartialEq, Eq)]
-pub struct Properties(pub(crate) Vec<Property>);
+pub struct Properties(pub Vec<Property>);
 
 impl Validate for Properties {
     fn validate_with_context(
