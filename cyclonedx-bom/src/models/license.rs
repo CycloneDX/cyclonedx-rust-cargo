@@ -16,6 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::convert::TryFrom;
+
+use crate::external_models::spdx::SpdxIdentifierError;
 use crate::external_models::{
     normalized_string::NormalizedString,
     spdx::{SpdxExpression, SpdxIdentifier},
@@ -84,6 +87,22 @@ impl License {
             text: None,
             url: None,
         }
+    }
+
+    /// Constructs a `License` with an SPDX license identifier
+    /// ```
+    /// use cyclonedx_bom::models::license::License;
+    ///
+    /// let license = License::license_id("LGPL-3.0-or-later");
+    /// ```
+    pub fn license_id(license: &str) -> Result<Self, SpdxIdentifierError> {
+        Ok(Self {
+            license_identifier: LicenseIdentifier::SpdxId(SpdxIdentifier::try_from(
+                license.to_owned(),
+            )?),
+            text: None,
+            url: None,
+        })
     }
 }
 
