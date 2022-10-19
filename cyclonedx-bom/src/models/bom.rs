@@ -17,6 +17,7 @@
  */
 
 use std::collections::HashSet;
+use std::fmt;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -406,6 +407,12 @@ impl UrnUuid {
 
     pub fn generate() -> Self {
         Self::from(uuid::Uuid::new_v4())
+    }
+}
+
+impl fmt::Display for UrnUuid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
