@@ -1,5 +1,12 @@
+# Rust compilation output
 /target
+
+# SBOM documents
 **/bom.xml
 **/*.cdx.xml
 **/bom.json
 **/*.cdx.json
+
+# Nix Flake
+/.direnv/
+/result
