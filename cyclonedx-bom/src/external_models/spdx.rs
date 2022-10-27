@@ -23,14 +23,39 @@ use thiserror::Error;
 
 use crate::validation::{FailureReason, Validate, ValidationResult};
 
+/// An identifier for a single, specific license
+///
+/// The list of valid SPDX license identifiers can be found on the [SPDX website](https://spdx.org/licenses/)
+/// ```
+/// use cyclonedx_bom::prelude::*;
+/// # use cyclonedx_bom::external_models::spdx::SpdxIdentifierError;
+/// use std::convert::TryFrom;
+///
+/// let identifier = String::from("MIT");
+/// let spdx_identifier = SpdxIdentifier::try_from(identifier.clone())?;
+/// assert_eq!(spdx_identifier.to_string(), identifier);
+/// # Ok::<(), SpdxIdentifierError>(())
+/// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct SpdxIdentifier(pub(crate) String);
 
 impl SpdxIdentifier {
+    /// Attempt to create an `SpdxIdentifier` using a best-effort translation of the license ID
+    ///
+    /// ```
+    /// use cyclonedx_bom::prelude::*;
+    /// # use cyclonedx_bom::external_models::spdx::SpdxIdentifierError;
+    ///
+    /// let spdx_identifier = SpdxIdentifier::imprecise("Apache 2.0".to_string())?;
+    /// assert_eq!(spdx_identifier.to_string(), "Apache-2.0".to_string());
+    /// # Ok::<(), SpdxIdentifierError>(())
+    /// ```
     pub fn imprecise(value: String) -> Result<Self, SpdxIdentifierError> {
         match spdx::imprecise_license_id(&value) {
-            Some(matched_license) => Ok(Self(matched_license.0.full_name.into())),
-            None => Err(SpdxIdentifierError::InvalidImpreciseSpdxIdentifier(value)),
+            Some(matched_license) => Ok(Self(matched_license.0.name.into())),
+            None => Err(SpdxIdentifierError::InvalidImpreciseSpdxIdentifier(
+                format!("Not a valid identifier: {value}"),
+            )),
         }
     }
 }
@@ -41,8 +66,17 @@ impl TryFrom<String> for SpdxIdentifier {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match spdx::license_id(&value) {
             Some(_) => Ok(Self(value)),
-            None => Err(SpdxIdentifierError::InvalidSpdxIdentifier(value)),
+            None => Err(SpdxIdentifierError::InvalidSpdxIdentifier(format!(
+                "Not a valid identifier: {}",
+                value
+            ))),
         }
+    }
+}
+
+impl ToString for SpdxIdentifier {
+    fn to_string(&self) -> String {
+        self.0.clone()
     }
 }
 
@@ -51,9 +85,9 @@ impl Validate for SpdxIdentifier {
         &self,
         context: crate::validation::ValidationContext,
     ) -> Result<ValidationResult, crate::validation::ValidationError> {
-        match spdx::license_id(&self.0) {
-            Some(_) => Ok(ValidationResult::Passed),
-            None => Ok(ValidationResult::Failed {
+        match Self::try_from(self.0.clone()) {
+            Ok(_) => Ok(ValidationResult::Passed),
+            Err(_) => Ok(ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "SPDX identifier is not valid".to_string(),
                     context,
@@ -63,10 +97,46 @@ impl Validate for SpdxIdentifier {
     }
 }
 
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum SpdxIdentifierError {
+    #[error("Invalid SPDX identifier: {}", .0)]
+    InvalidSpdxIdentifier(String),
+
+    #[error("Invalid Imprecise SPDX identifier: {}", .0)]
+    InvalidImpreciseSpdxIdentifier(String),
+}
+
+/// An expression that describes the set of licenses that cover the software
+///
+/// The specification for a valid SPDX license expression can be found on the [SPDX website](https://spdx.github.io/spdx-spec/SPDX-license-expressions/)
+/// ```
+/// use cyclonedx_bom::prelude::*;
+/// # use cyclonedx_bom::external_models::spdx::SpdxExpressionError;
+/// use std::convert::TryFrom;
+///
+/// let expression = String::from("MIT OR Apache-2.0");
+/// let spdx_expression = SpdxExpression::try_from(expression.clone())?;
+/// assert_eq!(spdx_expression.to_string(), expression);
+/// # Ok::<(), SpdxExpressionError>(())
+/// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct SpdxExpression(pub(crate) String);
 
 impl SpdxExpression {
+    /// Parse a mostly-valid SPDX expression into a valid expression
+    ///
+    /// Some Rust repositories have a `license` field of `"MIT/Apache-2.0"`,
+    /// which is interpreted as `"MIT OR Apache-2.0"`. In order to allow
+    /// interoperability, `parse_lax` converts expression with the first form
+    /// into the second.
+    /// ```
+    /// use cyclonedx_bom::prelude::*;
+    /// # use cyclonedx_bom::external_models::spdx::SpdxExpressionError;
+    ///
+    /// let spdx_expression = SpdxExpression::parse_lax("MIT/Apache-2.0".to_string())?;
+    /// assert_eq!(spdx_expression.to_string(), "MIT OR Apache-2.0".to_string());
+    /// # Ok::<(), SpdxExpressionError>(())
+    /// ```
     pub fn parse_lax(value: String) -> Result<Self, SpdxExpressionError> {
         match Expression::parse_mode(&value, ParseMode::LAX) {
             Ok(_) => Self(value).convert_lax(),
@@ -104,6 +174,12 @@ impl TryFrom<String> for SpdxExpression {
     }
 }
 
+impl ToString for SpdxExpression {
+    fn to_string(&self) -> String {
+        self.0.clone()
+    }
+}
+
 impl Validate for SpdxExpression {
     fn validate_with_context(
         &self,
@@ -130,21 +206,54 @@ pub enum SpdxExpressionError {
     InvalidLaxSpdxExpression(String),
 }
 
-#[derive(Debug, Error, PartialEq, Eq)]
-pub enum SpdxIdentifierError {
-    #[error("Invalid SPDX identifier: {}", .0)]
-    InvalidSpdxIdentifier(String),
-
-    #[error("Invalid Imprecise SPDX identifier: {}", .0)]
-    InvalidImpreciseSpdxIdentifier(String),
-}
-
 #[cfg(test)]
 mod test {
     use crate::validation::{FailureReason, ValidationContext, ValidationResult};
 
     use super::*;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn it_should_succeed_in_converting_an_spdx_identifier() {
+        let actual =
+            SpdxIdentifier::try_from("MIT".to_string()).expect("Failed to parse as an identifier");
+
+        assert_eq!(actual, SpdxIdentifier("MIT".to_string()));
+    }
+
+    #[test]
+    fn it_should_fail_to_convert_an_invalid_spdx_identifier() {
+        let actual = SpdxIdentifier::try_from("MIT OR Apache-2.0".to_string())
+            .expect_err("Should have failed to parse as an identifier");
+
+        assert_eq!(
+            actual,
+            SpdxIdentifierError::InvalidSpdxIdentifier(
+                "Not a valid identifier: MIT OR Apache-2.0".to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn it_should_succeed_in_converting_an_imprecise_spdx_identifier() {
+        let actual =
+            SpdxIdentifier::imprecise("mit".to_string()).expect("Failed to parse as an identifier");
+
+        assert_eq!(actual, SpdxIdentifier("MIT".to_string()));
+    }
+
+    #[test]
+    fn it_should_fail_to_convert_an_invalid_imprecise_spdx_identifier() {
+        let actual = SpdxIdentifier::imprecise("GNU General Public License v3".to_string())
+            .expect_err("Should have failed to parse as an identifier");
+
+        assert_eq!(
+            actual,
+            SpdxIdentifierError::InvalidImpreciseSpdxIdentifier(
+                "Not a valid identifier: GNU General Public License v3".to_string()
+            )
+        );
+    }
 
     #[test]
     fn valid_spdx_identifiers_should_pass_validation() {

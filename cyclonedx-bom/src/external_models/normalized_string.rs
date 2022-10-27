@@ -29,7 +29,7 @@ pub struct NormalizedString(pub(crate) String);
 impl NormalizedString {
     /// Construct a `NormalizedString` by replacing all of the invalid characters with spaces
     /// ```
-    /// use cyclonedx_bom::external_models::normalized_string::NormalizedString;
+    /// use cyclonedx_bom::prelude::*;
     ///
     /// let normalized_string = NormalizedString::new("A\r\nstring\rwith\ninvalid\tcharacters");
     /// assert_eq!(normalized_string.to_string(), "A string with invalid characters".to_string());
