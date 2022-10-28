@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v3.1.0
     - name: Install Rust Toolchain
       run: |
         rustup update
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v3.1.0
     - name: Install Rust Toolchain
       run: |
         rustup update
@@ -60,7 +60,7 @@ jobs:
             continue-on-error: true
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v3.1.0
     - name: Install Rust Toolchain
       run: |
         rustup update
