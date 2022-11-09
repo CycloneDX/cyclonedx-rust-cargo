@@ -35,11 +35,7 @@ impl NormalizedString {
     /// assert_eq!(normalized_string.to_string(), "A string with invalid characters".to_string());
     /// ```
     pub fn new(value: &str) -> Self {
-        let value = value
-            .replace("\r\n", " ")
-            .replace('\r', " ")
-            .replace('\n', " ")
-            .replace('\t', " ");
+        let value = value.replace("\r\n", " ").replace(['\r', '\n', '\t'], " ");
         NormalizedString(value)
     }
 
