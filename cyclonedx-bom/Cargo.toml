@@ -3,7 +3,7 @@ name = "cyclonedx-bom"
 version = "0.4.0"
 license = "Apache-2.0"
 edition = "2018"
-rust-version = "1.60.0"
+rust-version = "1.64.0"
 
 description = "CycloneDX Software Bill of Materials Library"
 homepage = "https://cyclonedx.org/"
