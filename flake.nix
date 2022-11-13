@@ -36,6 +36,7 @@
         nativeBuildInputs = with pkgs; [
           cargo
           cargo-edit
+          cargo-msrv
           cargo-outdated
           clippy
           rustc
