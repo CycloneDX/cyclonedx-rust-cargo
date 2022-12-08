@@ -17,7 +17,7 @@
  */
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Dependencies(pub(crate) Vec<Dependency>);
+pub struct Dependencies(pub Vec<Dependency>);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Dependency {

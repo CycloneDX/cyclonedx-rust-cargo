@@ -172,6 +172,80 @@ fn bom_file_name_extension_is_prepended_with_cdx() -> Result<(), Box<dyn std::er
     Ok(())
 }
 
+#[test]
+fn bom_file_contains_dependencies() -> Result<(), Box<dyn std::error::Error>> {
+    let tmp_dir = assert_fs::TempDir::new()?;
+    tmp_dir.child("src/main.rs").touch()?;
+
+    tmp_dir.child("Cargo.toml").write_str(
+        r#"[package]
+name = "pkg"
+version = "0.0.0"
+
+[dependencies]
+child-1 = { path = "child-1" }
+"#,
+    )?;
+
+    tmp_dir.child("child-1/src/main.rs").touch()?;
+
+    tmp_dir.child("child-1/Cargo.toml").write_str(
+        r#"[package]
+name = "child-1"
+version = "1.0.0"
+
+[dependencies]
+child-2 = { path = "../child-2" }
+child-3 = { path = "../child-3" }
+"#,
+    )?;
+
+    tmp_dir.child("child-2/src/main.rs").touch()?;
+
+    tmp_dir
+        .child("child-2/Cargo.toml")
+        .write_str(r#"package = { name = "child-2", version = "2.0.0" }"#)?;
+
+    tmp_dir.child("child-3/src/main.rs").touch()?;
+
+    tmp_dir
+        .child("child-3/Cargo.toml")
+        .write_str(r#"package = { name = "child-3", version = "3.0.0" }"#)?;
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+
+    cmd.current_dir(tmp_dir.path()).arg("cyclonedx");
+
+    cmd.assert().success().stdout("");
+
+    tmp_dir
+        .child("bom.xml")
+        .assert(predicate::str::contains(r#"<dependencies>"#).not());
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+
+    cmd.current_dir(tmp_dir.path())
+        .arg("cyclonedx")
+        .arg("--all");
+
+    cmd.assert().success().stdout("");
+
+    let patterns = [
+        r#"<dependencies>"#,
+        r#"<dependency ref="pkg:cargo/child-1@1.0.0">"#,
+        r#"<dependency ref="pkg:cargo/child-2@2.0.0" />"#,
+        r#"<dependency ref="pkg:cargo/child-3@3.0.0" />"#,
+    ];
+
+    for pattern in patterns {
+        tmp_dir
+            .child("bom.xml")
+            .assert(predicate::str::contains(pattern));
+    }
+
+    Ok(())
+}
+
 fn make_temp_rust_project() -> Result<assert_fs::TempDir, assert_fs::fixture::FixtureError> {
     let tmp_dir = assert_fs::TempDir::new()?;
     tmp_dir.child("src/main.rs").touch()?;

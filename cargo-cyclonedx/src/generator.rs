@@ -31,9 +31,10 @@ use cargo::ops;
 
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
-use cyclonedx_bom::external_models::uri::{Purl, Uri};
+use cyclonedx_bom::external_models::uri::{Purl, Uri, UriError};
 use cyclonedx_bom::models::bom::Bom;
 use cyclonedx_bom::models::component::{Classification, Component, Components, Scope};
+use cyclonedx_bom::models::dependency::{Dependencies, Dependency};
 use cyclonedx_bom::models::external_reference::{
     ExternalReference, ExternalReferenceType, ExternalReferences,
 };
@@ -87,14 +88,15 @@ impl SbomGenerator {
             log::trace!("Config from config override: {:?}", config_override);
             log::debug!("Config from merged config: {:?}", config);
 
-            let dependencies =
-                if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(&members, &package_ids, &resolve)?
-                } else {
-                    top_level_dependencies(&members, &package_ids)?
-                };
+            let included_dependencies = config.included_dependencies();
 
-            let bom = create_bom(member, dependencies)?;
+            let dependencies = if included_dependencies == IncludedDependencies::AllDependencies {
+                all_dependencies(&members, &package_ids, &resolve)?
+            } else {
+                top_level_dependencies(&members, &package_ids)?
+            };
+
+            let bom = create_bom(member, dependencies, &included_dependencies)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
 
@@ -112,13 +114,14 @@ impl SbomGenerator {
     }
 }
 
-fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Result<Bom, GeneratorError> {
+fn create_bom(
+    package: &Package,
+    dependencies: BTreeSet<Package>,
+    included_dependencies: &IncludedDependencies,
+) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
-    let components: Vec<_> = dependencies
-        .into_iter()
-        .map(|package| create_component(&package))
-        .collect();
+    let components = dependencies.iter().map(create_component).collect();
 
     bom.components = Some(Components(components));
 
@@ -126,7 +129,58 @@ fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Result<Bom,
 
     bom.metadata = Some(metadata);
 
+    bom.dependencies = match included_dependencies {
+        IncludedDependencies::AllDependencies => {
+            let dependencies = dependencies
+                .iter()
+                .map(|package| {
+                    create_dependency(package, &dependencies).map_err(|err| {
+                        GeneratorError::PackageError {
+                            package_id: package.package_id(),
+                            error: err.into(),
+                        }
+                    })
+                })
+                .collect::<Result<_, _>>()?;
+
+            Some(Dependencies(dependencies))
+        }
+        IncludedDependencies::TopLevelDependencies => None,
+    };
+
     Ok(bom)
+}
+
+fn create_purl(package: &Package) -> Result<Purl, UriError> {
+    Purl::new(
+        "cargo",
+        package.name().trim(),
+        &package.version().to_string(),
+    )
+}
+
+fn create_dependency(
+    package: &Package,
+    dependencies: &BTreeSet<Package>,
+) -> Result<Dependency, UriError> {
+    let dependency_ref = create_purl(package)?.to_string();
+
+    let dependencies = dependencies
+        .iter()
+        .filter(|p| {
+            package
+                .dependencies()
+                .iter()
+                .find(|d| d.matches_id(p.package_id()))
+                .is_some()
+        })
+        .map(|p| Ok(create_purl(p)?.to_string()))
+        .collect::<Result<_, _>>()?;
+
+    Ok(Dependency {
+        dependency_ref,
+        dependencies,
+    })
 }
 
 fn create_component(package: &Package) -> Component {
