@@ -23,6 +23,9 @@ use crate::validation::{
     ValidationResult,
 };
 
+/// Represents a way to document systems, sites, and information that may be relevant but which are not included with the BOM.
+///
+/// Please see the [CycloneDX use case](https://cyclonedx.org/use-cases/#external-references) for more information and examples.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExternalReference {
     pub external_reference_type: ExternalReferenceType,
@@ -32,6 +35,16 @@ pub struct ExternalReference {
 }
 
 impl ExternalReference {
+    /// Constructs a new `ExternalReference` with the reference type and url
+    /// ```
+    /// use cyclonedx_bom::models::external_reference::{ExternalReference, ExternalReferenceType};
+    /// use cyclonedx_bom::external_models::uri::{Uri, UriError};
+    /// use std::convert::TryFrom;
+    ///
+    /// let url = Uri::try_from("https://example.org/support/sbom/portal-server/1.0.0".to_string())?;
+    /// let external_reference = ExternalReference::new(ExternalReferenceType::Bom, url);
+    /// # Ok::<(), UriError>(())
+    /// ```
     pub fn new(external_reference_type: ExternalReferenceType, url: Uri) -> Self {
         Self {
             external_reference_type,
@@ -94,6 +107,7 @@ impl Validate for ExternalReferences {
     }
 }
 
+/// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_externalReferenceType).
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExternalReferenceType {
     Vcs,
