@@ -171,8 +171,7 @@ fn create_dependency(
             package
                 .dependencies()
                 .iter()
-                .find(|d| d.matches_id(p.package_id()))
-                .is_some()
+                .any(|d| d.matches_id(p.package_id()))
         })
         .map(|p| Ok(create_purl(p)?.to_string()))
         .collect::<Result<_, _>>()?;
