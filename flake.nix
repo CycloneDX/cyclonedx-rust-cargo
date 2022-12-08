@@ -1,5 +1,5 @@
 {
-  description = "A framework for building and using custom tools for Sonatype Lift";
+  description = "A framework for developing the Rust CycloneDX implementation";
 
   inputs = {
     utils.url = "github:numtide/flake-utils";
