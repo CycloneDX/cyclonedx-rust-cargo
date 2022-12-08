@@ -96,7 +96,7 @@ impl SbomGenerator {
                 top_level_dependencies(&members, &package_ids)?
             };
 
-            let bom = create_bom(member, dependencies, &included_dependencies)?;
+            let bom = create_bom(member, dependencies, included_dependencies)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
 
@@ -117,7 +117,7 @@ impl SbomGenerator {
 fn create_bom(
     package: &Package,
     dependencies: BTreeSet<Package>,
-    included_dependencies: &IncludedDependencies,
+    included_dependencies: IncludedDependencies,
 ) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
@@ -171,6 +171,7 @@ fn create_dependency(
             package
                 .dependencies()
                 .iter()
+                .filter(|d| DepKind::Normal == d.kind())
                 .any(|d| d.matches_id(p.package_id()))
         })
         .map(|p| Ok(create_purl(p)?.to_string()))
