@@ -23,6 +23,7 @@ use crate::format::Format;
 use crate::toml::config_from_toml;
 use crate::toml::ConfigError;
 use cargo::core::dependency::DepKind;
+use cargo::core::Dependency;
 use cargo::core::Package;
 use cargo::core::PackageSet;
 use cargo::core::Resolve;
@@ -91,7 +92,7 @@ impl SbomGenerator {
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(&members, &package_ids, &resolve)?
                 } else {
-                    top_level_dependencies(&members, &package_ids)?
+                    top_level_dependencies(&members, &package_ids, &resolve)?
                 };
 
             let bom = create_bom(member, dependencies)?;
@@ -374,14 +375,24 @@ pub enum GeneratorError {
 fn top_level_dependencies(
     members: &[Package],
     package_ids: &PackageSet<'_>,
+    resolve: &Resolve,
 ) -> Result<BTreeSet<Package>, GeneratorError> {
     log::trace!("Adding top-level dependencies to SBOM");
     let mut dependencies = BTreeSet::new();
 
     let all_dependencies = members
         .iter()
-        .flat_map(|m| m.dependencies().iter())
-        .filter(|d| d.kind() == DepKind::Normal);
+        .flat_map(|m| {
+            resolve
+                .deps(m.package_id())
+                .filter_map(move |r| match r.0 == m.package_id() {
+                    true => Some(r.1),
+                    false => None,
+                })
+        })
+        .flatten()
+        .filter(|d: &&Dependency| d.kind() == DepKind::Normal);
+
     for dependency in all_dependencies {
         log::trace!("Dependency: {dependency:?}");
         match package_ids
