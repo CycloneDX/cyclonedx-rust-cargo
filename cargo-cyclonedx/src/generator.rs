@@ -383,14 +383,25 @@ fn top_level_dependencies(
         .flat_map(|m| m.dependencies().iter())
         .filter(|d| d.kind() == DepKind::Normal);
     for dependency in all_dependencies {
-        if let Some(package_id) = package_ids
+        log::trace!("Dependency: {dependency:?}");
+        match package_ids
             .package_ids()
             .find(|id| dependency.matches_id(*id))
         {
-            let package = package_ids
-                .get_one(package_id)
-                .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-            dependencies.insert(package.to_owned());
+            Some(package_id) => {
+                let package = package_ids
+                    .get_one(package_id)
+                    .map_err(|error| GeneratorError::PackageError { package_id, error })?;
+                dependencies.insert(package.to_owned());
+            }
+            None => {
+                log::warn!(
+                    "Unable to find package for dependency (name: {}, req: {}, source_id: {})",
+                    dependency.package_name(),
+                    dependency.version_req(),
+                    dependency.source_id(),
+                );
+            }
         }
     }
 
