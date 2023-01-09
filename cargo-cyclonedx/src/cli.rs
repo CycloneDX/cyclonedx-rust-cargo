@@ -1,12 +1,14 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, CustomPrefix, Features, IncludedDependencies, OutputOptions, Pattern, Prefix,
-        PrefixError, SbomConfig, Target,
+        CdxExtension, CustomPrefix, Features, IncludedDependencies, LicenseParserOptions,
+        OutputOptions, ParseMode, Pattern, Prefix, PrefixError, SbomConfig, Target,
     },
     format::Format,
     platform::host_platform,
 };
-use clap::{ArgGroup, Parser};
+use clap::{ArgAction, ArgGroup, Parser};
+use std::collections::HashSet;
+use std::iter::FromIterator;
 use std::path;
 use thiserror::Error;
 
@@ -88,6 +90,13 @@ Defaults to the host target, as printed by 'rustc -vV'"
         value_name = "FILENAME_PREFIX"
     )]
     pub output_prefix: Option<String>,
+
+    /// Perform a best-effort interpretation of invalid SPDX license expressions (lax parsing)
+    #[clap(long = "license-lax")]
+    pub license_lax: bool,
+
+    #[clap(long = "license-accept-name", action=ArgAction::Append)]
+    pub license_accept_named: Vec<String>,
 }
 
 impl Args {
@@ -160,12 +169,21 @@ impl Args {
             (_, _) => None,
         };
 
+        let license_parser = Some(LicenseParserOptions {
+            parse_mode: match self.license_lax {
+                true => ParseMode::Lax,
+                false => ParseMode::Strict,
+            },
+            accept_named: HashSet::from_iter(self.license_accept_named.clone()),
+        });
+
         Ok(SbomConfig {
             format: self.format,
             included_dependencies,
             output_options,
             features,
             target,
+            license_parser,
         })
     }
 }
