@@ -1,0 +1,17 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_4.rs
+expression: bom_output
+input_file: cyclonedx-bom/tests/data/1.4/valid-service-empty-objects-1.4.xml
+---
+<?xml version="1.0" encoding="utf-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79" version="1">
+  <services>
+    <service bom-ref="b2a46a4b-8367-4bae-9820-95557cfe03a8">
+      <provider />
+      <name>Stock ticker service</name>
+      <endpoints />
+      <data />
+      <licenses />
+    </service>
+  </services>
+</bom>
