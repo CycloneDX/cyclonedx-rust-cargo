@@ -1,0 +1,81 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_4.rs
+expression: bom_output
+input_file: cyclonedx-bom/tests/data/1.4/valid-release-notes-1.4.json
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "components": [
+    {
+      "type": "library",
+      "name": "acme-example",
+      "version": "1.0.0"
+    }
+  ],
+  "services": [
+    {
+      "bom-ref": "b2a46a4b-8367-4bae-9820-95557cfe03a8",
+      "provider": {
+        "name": "Partner Org",
+        "url": [
+          "https://partner.org"
+        ],
+        "contact": [
+          {
+            "name": "Support",
+            "email": "support@partner",
+            "phone": "800-555-1212"
+          }
+        ]
+      },
+      "group": "org.partner",
+      "name": "Stock ticker service",
+      "version": "2020-Q2",
+      "description": "Provides real-time stock information",
+      "endpoints": [
+        "https://partner.org/api/v1/lookup",
+        "https://partner.org/api/v1/stock"
+      ],
+      "authenticated": true,
+      "x-trust-boundary": true,
+      "data": [
+        {
+          "flow": "inbound",
+          "classification": "PII"
+        },
+        {
+          "flow": "outbound",
+          "classification": "PIFI"
+        },
+        {
+          "flow": "bi-directional",
+          "classification": "pubic"
+        },
+        {
+          "flow": "unknown",
+          "classification": "partner-data"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Partner license"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "http://partner.org"
+        },
+        {
+          "type": "documentation",
+          "url": "http://api.partner.org/swagger"
+        }
+      ]
+    }
+  ]
+}

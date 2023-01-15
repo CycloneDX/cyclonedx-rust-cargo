@@ -36,6 +36,10 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
 
+// Placeholders for types defined in other versions of the spec
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+struct Vulnerabilities();
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Bom {
@@ -57,6 +61,8 @@ pub(crate) struct Bom {
     compositions: Option<Compositions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    vulnerabilities: Option<Vulnerabilities>,
 }
 
 impl From<models::bom::Bom> for Bom {
@@ -73,6 +79,7 @@ impl From<models::bom::Bom> for Bom {
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
+            vulnerabilities: None,
         }
     }
 }
@@ -89,6 +96,7 @@ impl From<Bom> for models::bom::Bom {
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
+            vulnerabilities: None,
         }
     }
 }
@@ -306,6 +314,7 @@ impl FromXmlDocument for Bom {
             dependencies,
             compositions,
             properties,
+            vulnerabilities: None,
         })
     }
 }
@@ -362,6 +371,7 @@ pub(crate) mod test {
             dependencies: None,
             compositions: None,
             properties: None,
+            vulnerabilities: None,
         }
     }
 
@@ -378,6 +388,7 @@ pub(crate) mod test {
             dependencies: Some(example_dependencies()),
             compositions: Some(example_compositions()),
             properties: Some(example_properties()),
+            vulnerabilities: None,
         }
     }
 
@@ -392,6 +403,7 @@ pub(crate) mod test {
             dependencies: Some(corresponding_dependencies()),
             compositions: Some(corresponding_compositions()),
             properties: Some(corresponding_properties()),
+            vulnerabilities: None,
         }
     }
 
