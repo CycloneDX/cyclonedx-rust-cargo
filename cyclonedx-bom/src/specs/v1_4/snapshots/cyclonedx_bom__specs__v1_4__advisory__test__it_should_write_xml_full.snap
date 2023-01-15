@@ -1,0 +1,12 @@
+---
+source: cyclonedx-bom/src/specs/v1_4/advisory.rs
+assertion_line: 219
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<advisories>
+  <advisory>
+    <title>title</title>
+    <url>url</url>
+  </advisory>
+</advisories>

@@ -1,0 +1,16 @@
+---
+source: cyclonedx-bom/src/specs/v1_4/composition.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<compositions>
+  <composition>
+    <aggregate>aggregate</aggregate>
+    <assemblies>
+      <assembly ref="assembly" />
+    </assemblies>
+    <dependencies>
+      <dependency ref="dependency" />
+    </dependencies>
+  </composition>
+</compositions>

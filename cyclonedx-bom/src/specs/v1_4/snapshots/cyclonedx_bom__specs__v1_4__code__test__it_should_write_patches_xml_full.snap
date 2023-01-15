@@ -1,0 +1,27 @@
+---
+source: cyclonedx-bom/src/specs/v1_4/code.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<patches>
+  <patch type="patch type">
+    <diff>
+      <text content-type="content type" encoding="encoding">content</text>
+      <url>url</url>
+    </diff>
+    <resolves>
+      <issue type="issue type">
+        <id>id</id>
+        <name>name</name>
+        <description>description</description>
+        <source>
+          <name>name</name>
+          <url>url</url>
+        </source>
+        <references>
+          <url>reference</url>
+        </references>
+      </issue>
+    </resolves>
+  </patch>
+</patches>

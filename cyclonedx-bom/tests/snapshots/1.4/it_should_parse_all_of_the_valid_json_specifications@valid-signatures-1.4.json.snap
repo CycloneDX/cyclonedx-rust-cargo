@@ -1,0 +1,51 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_4.rs
+expression: bom_output
+input_file: cyclonedx-bom/tests/data/1.4/valid-signatures-1.4.json
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "components": [
+    {
+      "type": "application",
+      "bom-ref": "5366293e-0740-4dcf-b1d0-0c1fc26e4981",
+      "name": "amce app",
+      "version": "1.0"
+    }
+  ],
+  "services": [
+    {
+      "bom-ref": "ee10d0a2-baba-4656-a5ac-d49e172a0d3d",
+      "group": "org.partner",
+      "name": "Stock ticker service",
+      "version": "2020-Q2",
+      "endpoints": [
+        "https://partner.org/api/v1/lookup",
+        "https://partner.org/api/v1/stock"
+      ],
+      "authenticated": true,
+      "x-trust-boundary": true,
+      "data": [
+        {
+          "flow": "inbound",
+          "classification": "PII"
+        }
+      ]
+    }
+  ],
+  "compositions": [
+    {
+      "aggregate": "complete",
+      "assemblies": [
+        "5366293e-0740-4dcf-b1d0-0c1fc26e4981",
+        "ee10d0a2-baba-4656-a5ac-d49e172a0d3d"
+      ],
+      "dependencies": [
+        "5366293e-0740-4dcf-b1d0-0c1fc26e4981"
+      ]
+    }
+  ]
+}

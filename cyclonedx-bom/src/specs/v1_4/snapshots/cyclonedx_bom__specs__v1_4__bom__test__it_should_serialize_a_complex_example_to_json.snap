@@ -1,0 +1,555 @@
+---
+source: cyclonedx-bom/src/specs/v1_4/bom.rs
+expression: actual
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "serialNumber": "fake-uuid",
+  "metadata": {
+    "timestamp": "timestamp",
+    "tools": [
+      {
+        "vendor": "vendor",
+        "name": "name",
+        "version": "version",
+        "hashes": [
+          {
+            "alg": "algorithm",
+            "content": "hash value"
+          }
+        ]
+      }
+    ],
+    "authors": [
+      {
+        "name": "name",
+        "email": "email",
+        "phone": "phone"
+      }
+    ],
+    "component": {
+      "type": "component type",
+      "mime-type": "mime type",
+      "bom-ref": "bom ref",
+      "supplier": {
+        "name": "name",
+        "url": [
+          "url"
+        ],
+        "contact": [
+          {
+            "name": "name",
+            "email": "email",
+            "phone": "phone"
+          }
+        ]
+      },
+      "author": "author",
+      "publisher": "publisher",
+      "group": "group",
+      "name": "name",
+      "version": "version",
+      "description": "description",
+      "scope": "scope",
+      "hashes": [
+        {
+          "alg": "algorithm",
+          "content": "hash value"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "expression"
+        }
+      ],
+      "copyright": "copyright",
+      "cpe": "cpe",
+      "purl": "purl",
+      "swid": {
+        "tagId": "tag id",
+        "name": "name",
+        "version": "version",
+        "tagVersion": 1,
+        "patch": true,
+        "text": {
+          "contentType": "content type",
+          "encoding": "encoding",
+          "content": "content"
+        },
+        "url": "url"
+      },
+      "modified": true,
+      "pedigree": {
+        "ancestors": [],
+        "descendants": [],
+        "variants": [],
+        "commits": [
+          {
+            "uid": "uid",
+            "url": "url",
+            "author": {
+              "timestamp": "timestamp",
+              "name": "name",
+              "email": "email"
+            },
+            "committer": {
+              "timestamp": "timestamp",
+              "name": "name",
+              "email": "email"
+            },
+            "message": "message"
+          }
+        ],
+        "patches": [
+          {
+            "type": "patch type",
+            "diff": {
+              "text": {
+                "contentType": "content type",
+                "encoding": "encoding",
+                "content": "content"
+              },
+              "url": "url"
+            },
+            "resolves": [
+              {
+                "type": "issue type",
+                "id": "id",
+                "name": "name",
+                "description": "description",
+                "source": {
+                  "name": "name",
+                  "url": "url"
+                },
+                "references": [
+                  "reference"
+                ]
+              }
+            ]
+          }
+        ],
+        "notes": "notes"
+      },
+      "externalReferences": [
+        {
+          "type": "external reference type",
+          "url": "url",
+          "comment": "comment",
+          "hashes": [
+            {
+              "alg": "algorithm",
+              "content": "hash value"
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "name",
+          "value": "value"
+        }
+      ],
+      "components": [],
+      "evidence": {
+        "licenses": [
+          {
+            "expression": "expression"
+          }
+        ],
+        "copyright": [
+          {
+            "text": "copyright"
+          }
+        ]
+      }
+    },
+    "manufacture": {
+      "name": "name",
+      "url": [
+        "url"
+      ],
+      "contact": [
+        {
+          "name": "name",
+          "email": "email",
+          "phone": "phone"
+        }
+      ]
+    },
+    "supplier": {
+      "name": "name",
+      "url": [
+        "url"
+      ],
+      "contact": [
+        {
+          "name": "name",
+          "email": "email",
+          "phone": "phone"
+        }
+      ]
+    },
+    "licenses": [
+      {
+        "expression": "expression"
+      }
+    ],
+    "properties": [
+      {
+        "name": "name",
+        "value": "value"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "component type",
+      "mime-type": "mime type",
+      "bom-ref": "bom ref",
+      "supplier": {
+        "name": "name",
+        "url": [
+          "url"
+        ],
+        "contact": [
+          {
+            "name": "name",
+            "email": "email",
+            "phone": "phone"
+          }
+        ]
+      },
+      "author": "author",
+      "publisher": "publisher",
+      "group": "group",
+      "name": "name",
+      "version": "version",
+      "description": "description",
+      "scope": "scope",
+      "hashes": [
+        {
+          "alg": "algorithm",
+          "content": "hash value"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "expression"
+        }
+      ],
+      "copyright": "copyright",
+      "cpe": "cpe",
+      "purl": "purl",
+      "swid": {
+        "tagId": "tag id",
+        "name": "name",
+        "version": "version",
+        "tagVersion": 1,
+        "patch": true,
+        "text": {
+          "contentType": "content type",
+          "encoding": "encoding",
+          "content": "content"
+        },
+        "url": "url"
+      },
+      "modified": true,
+      "pedigree": {
+        "ancestors": [],
+        "descendants": [],
+        "variants": [],
+        "commits": [
+          {
+            "uid": "uid",
+            "url": "url",
+            "author": {
+              "timestamp": "timestamp",
+              "name": "name",
+              "email": "email"
+            },
+            "committer": {
+              "timestamp": "timestamp",
+              "name": "name",
+              "email": "email"
+            },
+            "message": "message"
+          }
+        ],
+        "patches": [
+          {
+            "type": "patch type",
+            "diff": {
+              "text": {
+                "contentType": "content type",
+                "encoding": "encoding",
+                "content": "content"
+              },
+              "url": "url"
+            },
+            "resolves": [
+              {
+                "type": "issue type",
+                "id": "id",
+                "name": "name",
+                "description": "description",
+                "source": {
+                  "name": "name",
+                  "url": "url"
+                },
+                "references": [
+                  "reference"
+                ]
+              }
+            ]
+          }
+        ],
+        "notes": "notes"
+      },
+      "externalReferences": [
+        {
+          "type": "external reference type",
+          "url": "url",
+          "comment": "comment",
+          "hashes": [
+            {
+              "alg": "algorithm",
+              "content": "hash value"
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "name",
+          "value": "value"
+        }
+      ],
+      "components": [],
+      "evidence": {
+        "licenses": [
+          {
+            "expression": "expression"
+          }
+        ],
+        "copyright": [
+          {
+            "text": "copyright"
+          }
+        ]
+      }
+    }
+  ],
+  "services": [
+    {
+      "bom-ref": "bom-ref",
+      "provider": {
+        "name": "name",
+        "url": [
+          "url"
+        ],
+        "contact": [
+          {
+            "name": "name",
+            "email": "email",
+            "phone": "phone"
+          }
+        ]
+      },
+      "group": "group",
+      "name": "name",
+      "version": "version",
+      "description": "description",
+      "endpoints": [
+        "endpoint"
+      ],
+      "authenticated": true,
+      "x-trust-boundary": true,
+      "data": [
+        {
+          "flow": "flow",
+          "classification": "classification"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "expression"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "external reference type",
+          "url": "url",
+          "comment": "comment",
+          "hashes": [
+            {
+              "alg": "algorithm",
+              "content": "hash value"
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "name",
+          "value": "value"
+        }
+      ],
+      "services": []
+    }
+  ],
+  "externalReferences": [
+    {
+      "type": "external reference type",
+      "url": "url",
+      "comment": "comment",
+      "hashes": [
+        {
+          "alg": "algorithm",
+          "content": "hash value"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "ref",
+      "dependsOn": [
+        "depends on"
+      ]
+    }
+  ],
+  "compositions": [
+    {
+      "aggregate": "aggregate",
+      "assemblies": [
+        "assembly"
+      ],
+      "dependencies": [
+        "dependency"
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "name",
+      "value": "value"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "bom-ref",
+      "id": "id",
+      "source": {
+        "name": "name",
+        "url": "url"
+      },
+      "references": [
+        {
+          "id": "id",
+          "source": {
+            "name": "name",
+            "url": "url"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "name",
+            "url": "url"
+          },
+          "score": 9.8,
+          "severity": "info",
+          "method": "CVSSv3",
+          "vector": "vector",
+          "justification": "justification"
+        }
+      ],
+      "cwes": [
+        1,
+        2,
+        3
+      ],
+      "description": "description",
+      "detail": "detail",
+      "recommendation": "recommendation",
+      "advisories": [
+        {
+          "title": "title",
+          "url": "url"
+        }
+      ],
+      "created": "created",
+      "published": "published",
+      "updated": "updated",
+      "credits": {
+        "organizations": [
+          {
+            "name": "name",
+            "url": [
+              "url"
+            ],
+            "contact": [
+              {
+                "name": "name",
+                "email": "email",
+                "phone": "phone"
+              }
+            ]
+          }
+        ],
+        "individuals": [
+          {
+            "name": "name",
+            "email": "email",
+            "phone": "phone"
+          }
+        ]
+      },
+      "tools": [
+        {
+          "vendor": "vendor",
+          "name": "name",
+          "version": "version",
+          "hashes": [
+            {
+              "alg": "algorithm",
+              "content": "hash value"
+            }
+          ]
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_reachable",
+        "responses": [
+          "update"
+        ],
+        "detail": "detail"
+      },
+      "affects": [
+        {
+          "ref": "ref",
+          "versions": [
+            {
+              "version": "5.0.0",
+              "status": "unaffected"
+            },
+            {
+              "range": "vers:npm/1.2.3|>=2.0.0|<5.0.0",
+              "status": "affected"
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "name",
+          "value": "value"
+        }
+      ]
+    }
+  ]
+}
