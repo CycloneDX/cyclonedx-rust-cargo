@@ -231,7 +231,7 @@ pub(crate) fn read_boolean_tag<R: Read>(
     element: &OwnedName,
 ) -> Result<bool, XmlReadError> {
     read_simple_tag(event_reader, element)
-        .and_then(|modified| bool::from_xml_value(element, &modified))
+        .and_then(|modified| bool::from_xml_value(element, modified))
 }
 
 impl FromXml for String {

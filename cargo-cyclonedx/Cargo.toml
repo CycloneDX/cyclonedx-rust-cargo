@@ -4,7 +4,7 @@ version = "0.3.7"
 authors = [ "Steve Springett <steve.springett@owasp.org>" ]
 license = "Apache-2.0"
 edition = "2018"
-rust-version = "1.64.0"
+rust-version = "1.65.0"
 
 description = "CycloneDX Software Bill of Materials (SBOM) for Rust Crates"
 homepage = "https://cyclonedx.org/"
