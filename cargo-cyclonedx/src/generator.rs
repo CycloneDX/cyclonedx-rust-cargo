@@ -385,10 +385,8 @@ fn top_level_dependencies(
         .flat_map(|m| {
             resolve
                 .deps(m.package_id())
-                .filter_map(move |r| match r.0 == m.package_id() {
-                    true => Some(r.1),
-                    false => None,
-                })
+                .filter(move |r| r.0 == m.package_id())
+                .map(|(_, dependency)| dependency)
         })
         .flatten()
         .filter(|d: &&Dependency| d.kind() == DepKind::Normal);
