@@ -23,6 +23,7 @@ use crate::format::Format;
 use crate::toml::config_from_toml;
 use crate::toml::ConfigError;
 use cargo::core::dependency::DepKind;
+use cargo::core::Dependency;
 use cargo::core::Package;
 use cargo::core::PackageSet;
 use cargo::core::Resolve;
@@ -91,7 +92,7 @@ impl SbomGenerator {
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(&members, &package_ids, &resolve)?
                 } else {
-                    top_level_dependencies(&members, &package_ids)?
+                    top_level_dependencies(&members, &package_ids, &resolve)?
                 };
 
             let bom = create_bom(member, dependencies)?;
@@ -374,23 +375,42 @@ pub enum GeneratorError {
 fn top_level_dependencies(
     members: &[Package],
     package_ids: &PackageSet<'_>,
+    resolve: &Resolve,
 ) -> Result<BTreeSet<Package>, GeneratorError> {
     log::trace!("Adding top-level dependencies to SBOM");
     let mut dependencies = BTreeSet::new();
 
     let all_dependencies = members
         .iter()
-        .flat_map(|m| m.dependencies().iter())
-        .filter(|d| d.kind() == DepKind::Normal);
+        .flat_map(|m| {
+            resolve
+                .deps(m.package_id())
+                .filter(move |r| r.0 == m.package_id())
+                .map(|(_, dependency)| dependency)
+        })
+        .flatten()
+        .filter(|d: &&Dependency| d.kind() == DepKind::Normal);
+
     for dependency in all_dependencies {
-        if let Some(package_id) = package_ids
+        log::trace!("Dependency: {dependency:?}");
+        match package_ids
             .package_ids()
             .find(|id| dependency.matches_id(*id))
         {
-            let package = package_ids
-                .get_one(package_id)
-                .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-            dependencies.insert(package.to_owned());
+            Some(package_id) => {
+                let package = package_ids
+                    .get_one(package_id)
+                    .map_err(|error| GeneratorError::PackageError { package_id, error })?;
+                dependencies.insert(package.to_owned());
+            }
+            None => {
+                log::warn!(
+                    "Unable to find package for dependency (name: {}, req: {}, source_id: {})",
+                    dependency.package_name(),
+                    dependency.version_req(),
+                    dependency.source_id(),
+                );
+            }
         }
     }
 
