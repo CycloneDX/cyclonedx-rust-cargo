@@ -246,7 +246,7 @@ mod test {
 format = "json"
 included_dependencies = "top-level"
 output_options = { cdx = true, pattern = "bom", prefix = "tacos" }
-license_parser = { strict = true, allow_named = [ "Foo License" ]}
+license_parser = { mode = "strict", accept_named = [ "Foo License" ]}
 "#;
 
         let actual: ConfigWrapper = toml::from_str(toml).expect("Failed to parse toml");
@@ -260,7 +260,7 @@ license_parser = { strict = true, allow_named = [ "Foo License" ]}
                 pattern: Some(Pattern::Bom),
             }),
             license_parser: Some(LicenseParserOptions {
-                parse_mode: ParseMode::Strict,
+                mode: ParseMode::Strict,
                 accept_named: ["Foo License".into()].into(),
             }),
         };

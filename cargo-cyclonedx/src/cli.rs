@@ -95,7 +95,8 @@ Defaults to the host target, as printed by 'rustc -vV'"
     #[clap(long = "license-lax")]
     pub license_lax: bool,
 
-    #[clap(long = "license-accept-name", action=ArgAction::Append)]
+    /// Add license names which will not be warned about when parsing them as a SPDX expression fails
+    #[clap(long = "license-accept-named", action=ArgAction::Append)]
     pub license_accept_named: Vec<String>,
 }
 
@@ -170,7 +171,7 @@ impl Args {
         };
 
         let license_parser = Some(LicenseParserOptions {
-            parse_mode: match self.license_lax {
+            mode: match self.license_lax {
                 true => ParseMode::Lax,
                 false => ParseMode::Strict,
             },

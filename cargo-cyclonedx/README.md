@@ -38,6 +38,8 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
   * `bom`: Outputs a prefix of `bom` for the filename
   * `package`: Outputs a prefix using the `Cargo.toml` package name for the filename
 * `--output-prefix`: Outputs a custom prefix for the filename
+* `--license-lax`: Switch license parser to "lax mode", interpreting non-SPDX expressions like `MIT/Apache-2.0` as `MIT or Apache-2.0`
+* `--license-accept-named`: Adds license names, which will silently be accepted as a named license, in case parsing them as a SPDX license expression fails
 
 Notes:
 
@@ -87,6 +89,7 @@ Configuration options will be merged and applied in the following order from low
 included_dependencies = "top-level"
 format = "xml"
 output_options = { cdx = false, prefix = "cyclonedx" }
+license_parser = { mode = "lax", accept_named = [ "My Special License" ] }
 ```
 
 #### Example Package Configuration
@@ -98,6 +101,7 @@ You can also specify your configuration in using package metadata in your packag
 included_dependencies = "all"
 format = "json"
 output_options = { cdx = true, pattern = "package" }
+license_parser = { mode = "lax", accept_named = [ "My Special License" ] }
 ```
 
 ## Copyright & License

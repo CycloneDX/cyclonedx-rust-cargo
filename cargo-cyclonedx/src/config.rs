@@ -215,7 +215,7 @@ pub enum PrefixError {
 pub struct LicenseParserOptions {
     /// Use lax or strict parsing
     #[serde(default)]
-    pub parse_mode: ParseMode,
+    pub mode: ParseMode,
 
     /// Silently accept the named licenses
     #[serde(default)]
@@ -225,7 +225,7 @@ pub struct LicenseParserOptions {
 impl LicenseParserOptions {
     pub fn merge(mut self, other: Self) -> Self {
         Self {
-            parse_mode: other.parse_mode,
+            mode: other.mode,
             accept_named: {
                 self.accept_named.extend(other.accept_named);
                 self.accept_named
@@ -235,6 +235,7 @@ impl LicenseParserOptions {
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all(deserialize = "kebab-case"))]
 pub enum ParseMode {
     /// Parse licenses in strict mode
     #[default]
@@ -275,14 +276,14 @@ mod test {
     fn it_should_merge_license_names() {
         let config_1 = SbomConfig {
             license_parser: Some(LicenseParserOptions {
-                parse_mode: ParseMode::Strict,
+                mode: ParseMode::Strict,
                 accept_named: ["Foo".into()].into(),
             }),
             ..Default::default()
         };
         let config_2 = SbomConfig {
             license_parser: Some(LicenseParserOptions {
-                parse_mode: ParseMode::Lax,
+                mode: ParseMode::Lax,
                 accept_named: ["Bar".into()].into(),
             }),
             ..Default::default()
@@ -294,7 +295,7 @@ mod test {
             config,
             SbomConfig {
                 license_parser: Some(LicenseParserOptions {
-                    parse_mode: ParseMode::Lax,
+                    mode: ParseMode::Lax,
                     accept_named: ["Foo".into(), "Bar".into()].into(),
                 }),
                 ..Default::default()
@@ -306,7 +307,7 @@ mod test {
     fn it_should_keep_strict() {
         let config_1 = SbomConfig {
             license_parser: Some(LicenseParserOptions {
-                parse_mode: ParseMode::Strict,
+                mode: ParseMode::Strict,
                 accept_named: ["Foo".into()].into(),
             }),
             ..Default::default()
@@ -319,7 +320,7 @@ mod test {
             config,
             SbomConfig {
                 license_parser: Some(LicenseParserOptions {
-                    parse_mode: ParseMode::Strict,
+                    mode: ParseMode::Strict,
                     accept_named: ["Foo".into()].into(),
                 }),
                 ..Default::default()
