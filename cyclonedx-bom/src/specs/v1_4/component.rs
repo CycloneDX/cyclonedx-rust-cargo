@@ -669,7 +669,7 @@ impl FromXml for Swid {
         let version = optional_attribute(attributes, VERSION_ATTR);
         let tag_version =
             if let Some(tag_version) = optional_attribute(attributes, TAG_VERSION_ATTR) {
-                let tag_version = u32::from_xml_value(TAG_VERSION_ATTR, &tag_version)?;
+                let tag_version = u32::from_xml_value(TAG_VERSION_ATTR, tag_version)?;
                 Some(tag_version)
             } else {
                 None
