@@ -107,7 +107,7 @@ impl Bom {
         bom.write_xml_element(&mut event_writer)
     }
 
-    /// Parse the input as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
+    /// Parse the input as a JSON document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/json/)
     pub fn parse_from_json_v1_4<R: std::io::Read>(
         mut reader: R,
     ) -> Result<Self, crate::errors::JsonReadError> {
@@ -701,7 +701,7 @@ mod test {
                 publisher: None,
                 group: None,
                 name: NormalizedString::new("name"),
-                version: NormalizedString::new("version"),
+                version: Some(NormalizedString::new("version")),
                 description: None,
                 scope: None,
                 hashes: None,

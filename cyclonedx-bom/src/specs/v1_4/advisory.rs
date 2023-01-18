@@ -106,7 +106,7 @@ impl From<Advisory> for models::advisory::Advisory {
     fn from(other: Advisory) -> Self {
         Self {
             title: other.title.map(NormalizedString::new_unchecked),
-            url: Uri(other.url.to_string()),
+            url: Uri(other.url),
         }
     }
 }
