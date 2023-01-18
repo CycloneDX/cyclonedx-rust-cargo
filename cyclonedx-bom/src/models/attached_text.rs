@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use base64::{engine::general_purpose::STANDARD, Engine};
+
 use crate::{
     external_models::normalized_string::NormalizedString,
     validation::{FailureReason, Validate, ValidationContext, ValidationError, ValidationResult},
@@ -37,7 +39,7 @@ impl AttachedText {
         Self {
             content_type,
             encoding: Some(Encoding::Base64),
-            content: base64::encode(content),
+            content: STANDARD.encode(content),
         }
     }
 }
@@ -56,7 +58,7 @@ impl Validate for AttachedText {
         }
 
         if let Some(encoding) = &self.encoding {
-            match (encoding, base64::decode(self.content.clone())) {
+            match (encoding, STANDARD.decode(self.content.clone())) {
                 (Encoding::Base64, Ok(_)) => results.push(ValidationResult::Passed),
                 (Encoding::Base64, Err(_)) => {
                     let context =
