@@ -120,7 +120,8 @@ pub(crate) struct Component {
     #[serde(skip_serializing_if = "Option::is_none")]
     group: Option<String>,
     name: String,
-    version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -162,7 +163,7 @@ impl From<models::component::Component> for Component {
             publisher: other.publisher.map(|p| p.to_string()),
             group: other.group.map(|g| g.to_string()),
             name: other.name.to_string(),
-            version: other.version.to_string(),
+            version: other.version.map(|v| v.to_string()),
             description: other.description.map(|d| d.to_string()),
             scope: other.scope.map(|s| s.to_string()),
             hashes: convert_optional(other.hashes),
@@ -192,7 +193,7 @@ impl From<Component> for models::component::Component {
             publisher: other.publisher.map(NormalizedString::new_unchecked),
             group: other.group.map(NormalizedString::new_unchecked),
             name: NormalizedString::new_unchecked(other.name),
-            version: NormalizedString::new_unchecked(other.version),
+            version: other.version.map(NormalizedString::new_unchecked),
             description: other.description.map(NormalizedString::new_unchecked),
             scope: other.scope.map(models::component::Scope::new_unchecked),
             hashes: convert_optional(other.hashes),
@@ -267,7 +268,9 @@ impl ToXml for Component {
 
         write_simple_tag(writer, NAME_TAG, &self.name)?;
 
-        write_simple_tag(writer, VERSION_TAG, &self.version)?;
+        if let Some(version) = &self.version {
+            write_simple_tag(writer, VERSION_TAG, version)?;
+        }
 
         if let Some(description) = &self.description {
             write_simple_tag(writer, DESCRIPTION_TAG, description)?;
@@ -523,10 +526,6 @@ impl FromXml for Component {
 
         let component_name = component_name.ok_or_else(|| XmlReadError::RequiredDataMissing {
             required_field: NAME_TAG.to_string(),
-            element: element_name.local_name.to_string(),
-        })?;
-        let version = version.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: VERSION_TAG.to_string(),
             element: element_name.local_name.to_string(),
         })?;
 
@@ -1210,7 +1209,7 @@ pub(crate) mod test {
             publisher: Some("publisher".to_string()),
             group: Some("group".to_string()),
             name: "name".to_string(),
-            version: "version".to_string(),
+            version: Some("version".to_string()),
             description: Some("description".to_string()),
             scope: Some("scope".to_string()),
             hashes: Some(example_hashes()),
@@ -1240,7 +1239,7 @@ pub(crate) mod test {
             publisher: Some(NormalizedString::new_unchecked("publisher".to_string())),
             group: Some(NormalizedString::new_unchecked("group".to_string())),
             name: NormalizedString::new_unchecked("name".to_string()),
-            version: NormalizedString::new_unchecked("version".to_string()),
+            version: Some(NormalizedString::new_unchecked("version".to_string())),
             description: Some(NormalizedString::new_unchecked("description".to_string())),
             scope: Some(models::component::Scope::UnknownScope("scope".to_string())),
             hashes: Some(corresponding_hashes()),
