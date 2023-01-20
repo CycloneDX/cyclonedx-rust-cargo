@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::convert::TryFrom;
+
 use crate::{
     errors::XmlReadError,
     external_models::{
@@ -36,18 +38,34 @@ use crate::{
 };
 use crate::{
     models,
-    utilities::{convert_optional, convert_vec},
+    utilities::{convert_optional, convert_vec, try_convert_vec},
 };
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
+use crate::errors::BomError;
+use crate::errors::BomError::BomV13SerializationError;
+use crate::utilities::try_convert_optional;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
 pub(crate) struct Components(Vec<Component>);
 
+/*
 impl From<models::component::Components> for Components {
     fn from(other: models::component::Components) -> Self {
-        Components(convert_vec(other.0))
+        Components(try_convert_vec(other.0))
+    }
+}
+*/
+
+impl TryFrom<models::component::Components> for Components {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Components) -> Result<Self, Self::Error> {
+        match try_convert_vec(other.0) {
+            Err(e) => Err(e),
+            Ok(result) => Ok(Components(result)),
+        }
     }
 }
 
@@ -151,6 +169,7 @@ pub(crate) struct Component {
     evidence: Option<ComponentEvidence>,
 }
 
+/*
 impl From<models::component::Component> for Component {
     fn from(other: models::component::Component) -> Self {
         Self {
@@ -183,6 +202,42 @@ impl From<models::component::Component> for Component {
             properties: convert_optional(other.properties),
             components: convert_optional(other.components),
             evidence: convert_optional(other.evidence),
+        }
+    }
+}
+*/
+
+impl TryFrom<models::component::Component> for Component {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Component) -> Result<Self, Self::Error> {
+        match other.version {
+            None => Err(BomV13SerializationError("version missing".to_string())),
+            Some(version) => Ok(Self {
+                component_type: other.component_type.to_string(),
+                mime_type: other.mime_type.map(|m| MimeType(m.0)),
+                bom_ref: other.bom_ref,
+                supplier: convert_optional(other.supplier),
+                author: other.author.map(|a| a.to_string()),
+                publisher: other.publisher.map(|p| p.to_string()),
+                group: other.group.map(|g| g.to_string()),
+                name: other.name.to_string(),
+                version: version.to_string(),
+                description: other.description.map(|d| d.to_string()),
+                scope: other.scope.map(|s| s.to_string()),
+                hashes: convert_optional(other.hashes),
+                licenses: convert_optional(other.licenses),
+                copyright: other.copyright.map(|c| c.to_string()),
+                cpe: convert_optional(other.cpe),
+                purl: other.purl.map(|p| p.0),
+                swid: convert_optional(other.swid),
+                modified: other.modified,
+                pedigree: try_convert_optional(other.pedigree)?,
+                external_references: convert_optional(other.external_references),
+                properties: convert_optional(other.properties),
+                components: try_convert_optional(other.components)?,
+                evidence: convert_optional(other.evidence),
+            }),
         }
     }
 }
@@ -873,6 +928,7 @@ struct Pedigree {
     notes: Option<String>,
 }
 
+/*
 impl From<models::component::Pedigree> for Pedigree {
     fn from(other: models::component::Pedigree) -> Self {
         Self {
@@ -883,6 +939,22 @@ impl From<models::component::Pedigree> for Pedigree {
             patches: convert_optional(other.patches),
             notes: other.notes,
         }
+    }
+}
+*/
+
+impl TryFrom<models::component::Pedigree> for Pedigree {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Pedigree) -> Result<Self, Self::Error> {
+        Ok(Self {
+            ancestors: try_convert_optional(other.ancestors)?,
+            descendants: try_convert_optional(other.descendants)?,
+            variants: try_convert_optional(other.variants)?,
+            commits: convert_optional(other.commits),
+            patches: convert_optional(other.patches),
+            notes: other.notes,
+        })
     }
 }
 
