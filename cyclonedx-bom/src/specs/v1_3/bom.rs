@@ -16,9 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::convert::TryFrom;
 use crate::{
     models::{self},
-    utilities::convert_optional,
+    utilities::{convert_optional, try_convert_optional},
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, FromXmlDocument,
@@ -35,6 +36,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
+use crate::errors::BomError;
 
 // Placeholders for types defined in other versions of the spec
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -65,6 +67,7 @@ pub(crate) struct Bom {
     vulnerabilities: Option<Vulnerabilities>,
 }
 
+/*
 impl From<models::bom::Bom> for Bom {
     fn from(other: models::bom::Bom) -> Self {
         Self {
@@ -81,6 +84,28 @@ impl From<models::bom::Bom> for Bom {
             properties: convert_optional(other.properties),
             vulnerabilities: None,
         }
+    }
+}
+*/
+
+impl TryFrom<models::bom::Bom> for Bom {
+    type Error = BomError;
+
+    fn try_from(other: models::bom::Bom) -> Result<Self, Self::Error> {
+        Ok(Self {
+            bom_format: BomFormat::CycloneDX,
+            spec_version: "1.3".to_string(),
+            version: Some(other.version),
+            serial_number: convert_optional(other.serial_number),
+            metadata: try_convert_optional(other.metadata)?,
+            components: try_convert_optional(other.components)?,
+            services: convert_optional(other.services),
+            external_references: convert_optional(other.external_references),
+            dependencies: convert_optional(other.dependencies),
+            compositions: convert_optional(other.compositions),
+            properties: convert_optional(other.properties),
+            vulnerabilities: None,
+        })
     }
 }
 
@@ -341,6 +366,7 @@ impl From<UrnUuid> for models::bom::UrnUuid {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use std::convert::TryInto;
     use crate::{
         specs::v1_3::{
             component::test::{corresponding_components, example_components},
@@ -441,7 +467,8 @@ pub(crate) mod test {
     #[test]
     fn it_can_convert_from_the_internal_model() {
         let model = corresponding_internal_model();
-        let spec: Bom = model.into();
+        // todo: check for conversion error with assert, then assert_eq on Bom
+        let spec: Bom = model.try_into().expect("todo: error handling in it_can_convert_from_the_internal_model");
         assert_eq!(spec, full_bom_example());
     }
 
