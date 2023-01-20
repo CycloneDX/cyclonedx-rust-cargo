@@ -17,6 +17,7 @@
  */
 
 use std::collections::HashSet;
+use std::convert::TryInto;
 use std::fmt;
 
 use once_cell::sync::Lazy;
@@ -76,7 +77,7 @@ impl Bom {
         self,
         writer: &mut W,
     ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_3::bom::Bom = self.into();
+        let bom: crate::specs::v1_3::bom::Bom = self.try_into().expect("todo: error handling in output_as_json_v1_3");
         serde_json::to_writer_pretty(writer, &bom)?;
         Ok(())
     }
@@ -89,7 +90,7 @@ impl Bom {
         let config = EmitterConfig::default().perform_indent(true);
         let mut event_writer = EventWriter::new_with_config(writer, config);
 
-        let bom: crate::specs::v1_3::bom::Bom = self.into();
+        let bom: crate::specs::v1_3::bom::Bom = self.try_into().expect("todo: error handling in output_as_json_v1_3");
         bom.write_xml_element(&mut event_writer)
     }
 
@@ -328,6 +329,9 @@ impl Validate for Bom {
 
             results.push(properties.validate_with_context(context)?);
         }
+
+        // todo: validate vulnerabilities, not sure about which approach to take
+        // see different approaches for services vs. properties
 
         Ok(results
             .into_iter()

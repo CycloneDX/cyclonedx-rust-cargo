@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::convert::TryFrom;
 use crate::{
     external_models::date_time::DateTime,
     models,
@@ -23,7 +24,7 @@ use crate::{
         component::Component, license::Licenses, organization::OrganizationalContact,
         organization::OrganizationalEntity, property::Properties, tool::Tools,
     },
-    utilities::{convert_optional, convert_optional_vec},
+    utilities::{convert_optional, convert_optional_vec, try_convert_optional},
     xml::{
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
         to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
@@ -31,6 +32,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
+use crate::errors::BomError;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -53,6 +55,7 @@ pub(crate) struct Metadata {
     properties: Option<Properties>,
 }
 
+/*
 impl From<models::metadata::Metadata> for Metadata {
     fn from(other: models::metadata::Metadata) -> Self {
         Self {
@@ -65,6 +68,24 @@ impl From<models::metadata::Metadata> for Metadata {
             licenses: convert_optional(other.licenses),
             properties: convert_optional(other.properties),
         }
+    }
+}
+*/
+
+impl TryFrom<models::metadata::Metadata> for Metadata {
+    type Error = BomError;
+
+    fn try_from(other: models::metadata::Metadata) -> Result<Self, Self::Error> {
+        Ok(Self {
+            timestamp: other.timestamp.map(|t| t.to_string()),
+            tools: convert_optional(other.tools),
+            authors: convert_optional_vec(other.authors),
+            component: try_convert_optional(other.component)?,
+            manufacture: convert_optional(other.manufacture),
+            supplier: convert_optional(other.supplier),
+            licenses: convert_optional(other.licenses),
+            properties: convert_optional(other.properties),
+        })
     }
 }
 
