@@ -60,6 +60,12 @@ impl Validate for Purl {
     }
 }
 
+impl <'a> From<PackageUrl<'a>> for Purl {
+    fn from(value: PackageUrl<'a>) -> Self {
+        Self(value.to_string())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Uri(pub(crate) String);
 
