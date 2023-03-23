@@ -60,7 +60,7 @@ impl Validate for Purl {
     }
 }
 
-impl <'a> From<PackageUrl<'a>> for Purl {
+impl<'a> From<PackageUrl<'a>> for Purl {
     fn from(value: PackageUrl<'a>) -> Self {
         Self(value.to_string())
     }

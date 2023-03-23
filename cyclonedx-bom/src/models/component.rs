@@ -16,9 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::str::FromStr;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use std::str::FromStr;
 
 use crate::models::attached_text::AttachedText;
 use crate::models::code::{Commits, Patches};
