@@ -13,7 +13,6 @@
         naersk-lib = naersk.lib."${system}";
       in
       rec {
-        # `nix build`
         packages.cyclonedx-rust-cargo = naersk-lib.buildPackage {
           pname = "cyclonedx-rust-cargo";
           root = ./.;
@@ -24,17 +23,15 @@
           buildInputs = with pkgs; [ openssl ];
           nativeBuildInputs = with pkgs; [ pkg-config ];
         };
-        defaultPackage = packages.cyclonedx-rust-cargo;
+        packages.default = packages.cyclonedx-rust-cargo;
 
-        # `nix run`
         apps.cargo-cyclonedx = utils.lib.mkApp {
           drv = packages.cyclonedx-rust-cargo;
           name = "cargo-cyclonedx";
         };
-        defaultApp = apps.cargo-cyclonedx;
+        apps.default = apps.cargo-cyclonedx;
 
-        # `nix develop`
-        devShell = pkgs.mkShell {
+        devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             cargo
             cargo-edit
