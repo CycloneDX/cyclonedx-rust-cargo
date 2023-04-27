@@ -90,12 +90,6 @@ impl Bom {
         Ok(())
     }
 
-    /// Output as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
-    pub fn output_as_json_value_v1_3(self) -> Result<Value, crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_3::bom::Bom = self.into();
-        Ok(serde_json::to_value(bom)?)
-    }
-
     /// Output as an XML document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/xml/)
     pub fn output_as_xml_v1_3<W: std::io::Write>(
         self,
