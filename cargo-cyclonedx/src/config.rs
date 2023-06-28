@@ -192,7 +192,7 @@ mod test {
 
     #[test]
     fn it_should_error_for_a_prefix_with_a_path_separator() {
-        let prefix = format!("directory{}prefix", std::path::MAIN_SEPARATOR.to_string());
+        let prefix = format!("directory{}prefix", std::path::MAIN_SEPARATOR);
 
         let actual = CustomPrefix::new(prefix)
             .expect_err("Should not have been able to create CustomPrefix with path separator");

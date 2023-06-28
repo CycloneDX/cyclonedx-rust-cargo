@@ -16,5 +16,12 @@ jobs:
       uses: DeterminateSystems/nix-installer-action@v4
     - name: Run the Magic Nix Cache
       uses: DeterminateSystems/magic-nix-cache-action@v2
-    - run: nix build
-    - run: nix flake check
+
+    - name: Build the default flake output
+      run: nix build
+
+    - name: Check the flake outputs
+      run: nix flake check
+
+    - name: Check the flake's formatting
+      run: nix develop --command nixpkgs-fmt --check flake.nix
