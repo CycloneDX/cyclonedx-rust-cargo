@@ -19,7 +19,7 @@ name = "cargo-cyclonedx"
 path = "src/main.rs"
 
 [profile.release]
-lto = true
+lto = "thin"
 
 [dependencies]
 anyhow = "1.0.71"
