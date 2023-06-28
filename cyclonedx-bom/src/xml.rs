@@ -381,9 +381,7 @@ pub(crate) mod test {
     pub(crate) fn read_document_from_string<X: FromXmlDocument>(string: impl AsRef<str>) -> X {
         let mut event_reader =
             EventReader::new_with_config(string.as_ref().as_bytes(), parser_config());
-        let output: X;
-
-        output = X::read_xml_document(&mut event_reader)
+        let output: X = X::read_xml_document(&mut event_reader)
             .expect("Failed to read the document from the string");
 
         // According to the documentation, an event reader that returns an

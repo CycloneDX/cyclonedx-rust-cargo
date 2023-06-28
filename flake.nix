@@ -2,49 +2,99 @@
   description = "A framework for developing the Rust CycloneDX implementation";
 
   inputs = {
-    utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nmattia/naersk";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
   };
 
-  outputs = { self, nixpkgs, utils, naersk }:
-    utils.lib.eachDefaultSystem (system:
+  outputs = { self, nixpkgs, flake-utils, crane, rust-overlay, ... }:
+    flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages."${system}";
-        naersk-lib = naersk.lib."${system}";
-      in
-      rec {
-        packages.cyclonedx-rust-cargo = naersk-lib.buildPackage {
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (import rust-overlay) ];
+        };
+
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [ "rust-analyzer" "rust-src" ];
+        };
+
+        craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+        xmlFilter = path: _type: builtins.match ".*xml$" path != null;
+        jsonFilter = path: _type: builtins.match ".*json$" path != null;
+        snapshotTestFilter = path: _type: builtins.match ".*snap" path != null;
+
+        srcFilter = path: type:
+          (xmlFilter path type) || (jsonFilter path type) || (snapshotTestFilter path type) || (craneLib.filterCargoSources path type);
+
+        src = pkgs.lib.cleanSourceWith {
+          src = craneLib.path ./.;
+          filter = srcFilter;
+        };
+
+        commonArgs = {
+          inherit src;
+
           pname = "cyclonedx-rust-cargo";
-          root = ./.;
-          doCheck = true;
-          doDoc = true;
-          doDocFail = true;
+          version = "0.1.0";
 
           buildInputs = with pkgs; [ openssl ];
           nativeBuildInputs = with pkgs; [ pkg-config ];
         };
+
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+        cyclonedx-rust-cargo = craneLib.buildPackage (commonArgs // {
+          inherit cargoArtifacts;
+        });
+      in
+      rec {
+        checks = {
+          inherit cyclonedx-rust-cargo;
+
+          clippy = craneLib.cargoClippy (commonArgs // {
+            inherit cargoArtifacts;
+          });
+
+          doc = craneLib.cargoDoc (commonArgs // {
+            inherit cargoArtifacts;
+          });
+
+          fmt = craneLib.cargoFmt (commonArgs // {
+            inherit src;
+          });
+        };
+
+        packages.cyclonedx-rust-cargo = cyclonedx-rust-cargo;
         packages.default = packages.cyclonedx-rust-cargo;
 
-        apps.cargo-cyclonedx = utils.lib.mkApp {
+        apps.cargo-cyclonedx = flake-utils.lib.mkApp {
           drv = packages.cyclonedx-rust-cargo;
           name = "cargo-cyclonedx";
         };
         apps.default = apps.cargo-cyclonedx;
 
         devShells.default = pkgs.mkShell {
+          inputsFrom = builtins.attrValues self.checks.${system};
+
           packages = with pkgs; [
-            cargo
+            rustToolchain
             cargo-edit
             cargo-msrv
             cargo-outdated
-            clippy
-            rustc
-            rustfmt
-            rust-analyzer
-
-            # Required for compiling OpenSSL
-            openssl
-            pkg-config
 
             # GitHub tooling
             gh
@@ -52,8 +102,6 @@
             # Nix tooling
             nixpkgs-fmt
           ];
-
-          RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
         };
       });
 }
