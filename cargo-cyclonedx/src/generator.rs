@@ -110,7 +110,7 @@ impl SbomGenerator {
                 // We only want to generate SBOMs for binaries and libraries (this matches all kinds of libraries for example cdylib, rlib etc.)
                 if !matches!(
                     target.kind(),
-                    TargetKind::Bin | TargetKind::Lib(_) | TargetK
+                    TargetKind::Bin | TargetKind::Lib(_)
                 ) {
                     log::trace!(
                         "Skipping target {}/{} as it is not a binary or lib target",
