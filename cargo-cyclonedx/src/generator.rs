@@ -147,7 +147,7 @@ fn create_bom(
 
     let components: Vec<_> = dependencies
         .into_iter()
-        .map(|package| create_component(&package))
+        .map(|package| create_component(&package, ))
         .collect();
 
     bom.components = Some(Components(components));
@@ -159,8 +159,8 @@ fn create_bom(
     Ok(bom)
 }
 
-fn create_component(package: &Package) -> Component {
-    let name = package.name().to_owned().trim().to_string();
+fn create_component(package: &Package, target: &Target) -> Component {
+    let name = target.name().to_owned().trim().to_string();
     let version = package.version().to_string();
 
     let purl = match Purl::new("cargo", &name, &version) {
@@ -311,7 +311,7 @@ fn create_metadata(package: &Package, target: &Target) -> Result<Metadata, Gener
         metadata.authors = Some(authors);
     }
 
-    let mut component = create_component(package);
+    let mut component = create_component(package, target);
 
     component.component_type = get_classification(target);
 
