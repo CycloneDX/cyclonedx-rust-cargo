@@ -16,8 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 use crate::config::IncludedDependencies;
-use crate::config::Pattern;
-use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::format::Format;
 use crate::toml::config_from_toml;
@@ -513,14 +511,9 @@ impl GeneratedSbom {
 
     fn filename(&self) -> String {
         let output_options = self.sbom_config.output_options();
-        let prefix = match output_options.prefix {
-            Prefix::Pattern(Pattern::Bom) => "bom".to_string(),
-            Prefix::Pattern(Pattern::Package) => format!(
-                "{}-{}",
-                self.package_name.clone(),
-                self.target_kind.description()
-            ),
-            Prefix::Custom(c) => c.to_string(),
+        let prefix = match self.target_kind {
+            TargetKind::Lib(_) => format!("lib{}", self.package_name.clone()),
+            _ => self.package_name.clone(),
         };
 
         format!(

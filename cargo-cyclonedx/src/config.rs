@@ -88,14 +88,12 @@ impl FromStr for IncludedDependencies {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OutputOptions {
     pub cdx_extension: CdxExtension,
-    pub prefix: Prefix,
 }
 
 impl Default for OutputOptions {
     fn default() -> Self {
         Self {
             cdx_extension: CdxExtension::default(),
-            prefix: Prefix::Pattern(Pattern::Bom),
         }
     }
 }
@@ -121,41 +119,6 @@ impl Default for CdxExtension {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Prefix {
-    Pattern(Pattern),
-    Custom(CustomPrefix),
-}
-
-impl Default for Prefix {
-    fn default() -> Self {
-        Self::Pattern(Pattern::default())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Pattern {
-    Bom,
-    Package,
-}
-
-impl Default for Pattern {
-    fn default() -> Self {
-        Self::Bom
-    }
-}
-
-impl FromStr for Pattern {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "bom" => Ok(Self::Bom),
-            "package" => Ok(Self::Package),
-            _ => Err(format!("Expected bom or package, got `{}`", s)),
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CustomPrefix(String);

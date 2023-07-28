@@ -1,6 +1,6 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, CustomPrefix, IncludedDependencies, OutputOptions, Pattern, Prefix,
+        CdxExtension, IncludedDependencies, OutputOptions,
         PrefixError, SbomConfig,
     },
     format::Format,
@@ -19,7 +19,6 @@ pub enum Opts {
 
 #[derive(Parser, Debug)]
 #[clap(group(ArgGroup::new("dependencies-group").required(false).args(&["all", "top-level"])))]
-#[clap(group(ArgGroup::new("prefix-or-pattern-group").required(false).args(&["output-prefix", "output-pattern"])))]
 pub struct Args {
     /// Path to Cargo.toml
     #[clap(long = "manifest-path", value_name = "PATH")]
@@ -49,14 +48,6 @@ pub struct Args {
     #[clap(long = "output-cdx")]
     pub output_cdx: bool,
 
-    /// Prefix patterns to use for the filename: bom, package
-    #[clap(
-        name = "output-pattern",
-        long = "output-pattern",
-        value_name = "PATTERN"
-    )]
-    pub output_pattern: Option<Pattern>,
-
     /// Custom prefix string to use for the filename
     #[clap(
         name = "output-prefix",
@@ -74,34 +65,18 @@ impl Args {
             _ => None,
         };
 
-        let prefix = match (self.output_pattern, &self.output_prefix) {
-            (Some(pattern), _) => Some(Prefix::Pattern(pattern)),
-            (_, Some(prefix)) => {
-                let prefix = CustomPrefix::new(prefix)?;
-                Some(Prefix::Custom(prefix))
-            }
-            (_, _) => None,
-        };
-
         let cdx_extension = match self.output_cdx {
             true => Some(CdxExtension::Included),
             false => None,
         };
 
-        let output_options = match (cdx_extension, prefix) {
-            (Some(cdx_extension), Some(prefix)) => Some(OutputOptions {
+        let output_options = match cdx_extension {
+            Some(cdx_extension) => Some(OutputOptions {
                 cdx_extension,
-                prefix,
             }),
-            (Some(cdx_extension), _) => Some(OutputOptions {
-                cdx_extension,
-                prefix: Prefix::default(),
-            }),
-            (_, Some(prefix)) => Some(OutputOptions {
+            _ => Some(OutputOptions {
                 cdx_extension: CdxExtension::default(),
-                prefix,
             }),
-            (_, _) => None,
         };
 
         Ok(SbomConfig {

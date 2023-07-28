@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 use crate::config::{self, CdxExtension, PrefixError};
-use crate::config::{CustomPrefix, SbomConfig};
+use crate::config::{SbomConfig};
 use crate::format::Format;
 
 use serde::Deserialize;
@@ -143,20 +143,8 @@ impl TryFrom<OutputOptions> for config::OutputOptions {
             None => CdxExtension::default(),
         };
 
-        let prefix = match (value.pattern, value.prefix) {
-            (Some(pattern), None) => Ok(Some(config::Prefix::Pattern(pattern.into()))),
-            (None, Some(prefix)) => {
-                let prefix = CustomPrefix::new(prefix)?;
-                Ok(Some(config::Prefix::Custom(prefix)))
-            }
-            (None, None) => Ok(None),
-            _ => Err(ConfigError::ValidationError(
-                "OutputOptions can contain either prefix or pattern, got both".to_string(),
-            )),
-        }?;
         Ok(Self {
             cdx_extension,
-            prefix: prefix.unwrap_or_default(),
         })
     }
 }
@@ -182,15 +170,6 @@ impl FromStr for Pattern {
             "bom" => Ok(Self::Bom),
             "package" => Ok(Self::Package),
             _ => Err(format!("Expected bom or package, got `{}`", s)),
-        }
-    }
-}
-
-impl From<Pattern> for config::Pattern {
-    fn from(val: Pattern) -> Self {
-        match val {
-            Pattern::Bom => Self::Bom,
-            Pattern::Package => Self::Package,
         }
     }
 }
