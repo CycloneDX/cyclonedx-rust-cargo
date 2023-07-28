@@ -101,10 +101,10 @@ impl SbomGenerator {
             // And if we only use the name of the package it means users will have to alter the metadata manually to get the correct name.
             for target in member.targets() {
                 log::trace!(
-                    "Processing Target: {}/{}/{:?}",
+                    "Processing Target: {}/{}/{}",
                     member.name(),
                     target.name(),
-                    target.description_named()
+                    target.kind().description()
                 );
 
                 // We only want to generate SBOMs for binaries and libraries (this matches all kinds of libraries for example cdylib, rlib etc.)
@@ -127,7 +127,7 @@ impl SbomGenerator {
                 let generated = GeneratedSbom {
                     bom,
                     manifest_path: member.manifest_path().to_path_buf(),
-                    package_name: member.name().to_string(),
+                    package_name: target.name().to_string(),
                     sbom_config: config.clone(),
                     target_kind: target.kind().clone(),
                 };
