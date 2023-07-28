@@ -23,11 +23,11 @@ use crate::format::Format;
 use crate::toml::config_from_toml;
 use crate::toml::ConfigError;
 use cargo::core::dependency::DepKind;
-use cargo::core::Dependency;
 use cargo::core::Package;
 use cargo::core::PackageSet;
 use cargo::core::Resolve;
 use cargo::core::Workspace;
+use cargo::core::{Dependency, Target, TargetKind};
 use cargo::ops;
 
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
@@ -78,6 +78,7 @@ impl SbomGenerator {
                 "Processing the package {} configuration",
                 member.manifest_path().to_string_lossy()
             );
+
             let package_config = config_from_toml(member.manifest().custom_metadata())?;
             let config = workspace_config
                 .merge(&package_config)
@@ -95,25 +96,55 @@ impl SbomGenerator {
                     top_level_dependencies(&members, &package_ids, &resolve)?
                 };
 
-            let bom = create_bom(member, dependencies)?;
+            // A package (member) can contain multiple targets (e.g. a single library, one or more binaries, tests, ...)
+            // We need to create a SBOM for each of those because while they might share the same dependencies they can have different names.
+            // And if we only use the name of the package it means users will have to alter the metadata manually to get the correct name.
+            for target in member.targets() {
+                log::trace!(
+                    "Processing Target: {}/{}/{:?}",
+                    member.name(),
+                    target.name(),
+                    target.description_named()
+                );
 
-            log::debug!("Bom validation: {:?}", &bom.validate());
+                // We only want to generate SBOMs for binaries and libraries (this matches all kinds of libraries for example cdylib, rlib etc.)
+                if !matches!(
+                    target.kind(),
+                    TargetKind::Bin | TargetKind::Lib(_) | TargetK
+                ) {
+                    log::trace!(
+                        "Skipping target {}/{} as it is not a binary or lib target",
+                        member.name(),
+                        target.name()
+                    );
+                    continue;
+                }
 
-            let generated = GeneratedSbom {
-                bom,
-                manifest_path: member.manifest_path().to_path_buf(),
-                package_name: member.name().to_string(),
-                sbom_config: config,
-            };
+                let bom = create_bom(member, target, dependencies.clone())?;
 
-            result.push(generated);
+                log::debug!("Bom validation: {:?}", &bom.validate());
+
+                let generated = GeneratedSbom {
+                    bom,
+                    manifest_path: member.manifest_path().to_path_buf(),
+                    package_name: member.name().to_string(),
+                    sbom_config: config.clone(),
+                    target_kind: target.kind().clone(),
+                };
+
+                result.push(generated);
+            }
         }
 
         Ok(result)
     }
 }
 
-fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Result<Bom, GeneratorError> {
+fn create_bom(
+    package: &Package,
+    target: &Target,
+    dependencies: BTreeSet<Package>,
+) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
     let components: Vec<_> = dependencies
@@ -123,7 +154,7 @@ fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Result<Bom,
 
     bom.components = Some(Components(components));
 
-    let metadata = create_metadata(package)?;
+    let metadata = create_metadata(package, target)?;
 
     bom.metadata = Some(metadata);
 
@@ -164,8 +195,8 @@ fn create_component(package: &Package) -> Component {
     component
 }
 
-fn get_classification(pkg: &Package) -> Classification {
-    if pkg.targets().iter().any(|tgt| tgt.is_bin()) {
+fn get_classification(pkg: &Target) -> Classification {
+    if pkg.is_bin() {
         return Classification::Application;
     }
 
@@ -242,7 +273,7 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
         match SpdxExpression::try_from(license.to_string()) {
             Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
             Err(err) => {
-                log::error!(
+                log::debug!(
                     "Package {} has an invalid license expression, trying lax parsing ({}): {}",
                     package.name(),
                     license,
@@ -274,7 +305,7 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
     Some(Licenses(licenses))
 }
 
-fn create_metadata(package: &Package) -> Result<Metadata, GeneratorError> {
+fn create_metadata(package: &Package, target: &Target) -> Result<Metadata, GeneratorError> {
     let authors = create_authors(package);
 
     let mut metadata = Metadata::new()?;
@@ -284,7 +315,7 @@ fn create_metadata(package: &Package) -> Result<Metadata, GeneratorError> {
 
     let mut component = create_component(package);
 
-    component.component_type = get_classification(package);
+    component.component_type = get_classification(target);
 
     metadata.component = Some(component);
 
@@ -454,6 +485,7 @@ pub struct GeneratedSbom {
     pub bom: Bom,
     pub manifest_path: PathBuf,
     pub package_name: String,
+    pub target_kind: TargetKind,
     pub sbom_config: SbomConfig,
 }
 
@@ -483,7 +515,11 @@ impl GeneratedSbom {
         let output_options = self.sbom_config.output_options();
         let prefix = match output_options.prefix {
             Prefix::Pattern(Pattern::Bom) => "bom".to_string(),
-            Prefix::Pattern(Pattern::Package) => self.package_name.clone(),
+            Prefix::Pattern(Pattern::Package) => format!(
+                "{}-{}",
+                self.package_name.clone(),
+                self.target_kind.description()
+            ),
             Prefix::Custom(c) => c.to_string(),
         };
 

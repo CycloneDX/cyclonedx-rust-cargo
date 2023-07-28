@@ -21,7 +21,7 @@ use thiserror::Error;
  */
 use crate::format::Format;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SbomConfig {
     pub format: Option<Format>,
     pub included_dependencies: Option<IncludedDependencies>,
