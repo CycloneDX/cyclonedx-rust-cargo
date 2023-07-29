@@ -75,15 +75,9 @@ impl TryFrom<TomlConfig> for SbomConfig {
     type Error = ConfigError;
 
     fn try_from(value: TomlConfig) -> Result<Self, Self::Error> {
-        let output_options: Option<config::OutputOptions> = match value.output_options {
-            Some(options) => Some(options.try_into()?),
-            None => None,
-        };
-
         Ok(Self {
             format: value.format,
             included_dependencies: value.included_dependencies.map(Into::into),
-            output_options,
         })
     }
 }
@@ -215,27 +209,6 @@ output_options = { cdx = true, pattern = "bom", prefix = "tacos" }
     }
 
     #[test]
-    fn it_should_return_an_error_for_mutually_exclusive_options() {
-        let options = OutputOptions {
-            cdx_extension: Some(true),
-            pattern: Some(Pattern::Bom),
-            prefix: Some("tacos".to_string()),
-        };
-
-        let actual: Result<config::OutputOptions, ConfigError> = options.try_into();
-
-        let actual = actual
-            .expect_err("Should not have been able to convert with mutually exclusive options");
-
-        assert_eq!(
-            actual,
-            ConfigError::ValidationError(
-                "OutputOptions can contain either prefix or pattern, got both".to_string()
-            )
-        );
-    }
-
-    #[test]
     fn it_should_convert_to_config_output_options() {
         let options = OutputOptions {
             cdx_extension: Some(true),
@@ -249,7 +222,6 @@ output_options = { cdx = true, pattern = "bom", prefix = "tacos" }
 
         let expected = config::OutputOptions {
             cdx_extension: config::CdxExtension::Included,
-            prefix: config::Prefix::Pattern(config::Pattern::Bom),
         };
 
         assert_eq!(actual, expected);

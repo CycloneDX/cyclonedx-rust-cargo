@@ -71,14 +71,14 @@ fn find_content_in_bom_files() -> Result<(), Box<dyn std::error::Error>> {
     cmd.assert().success().stdout("");
 
     tmp_dir
-        .child("bom.xml")
+        .child("pkg.cdx.xml")
         .assert(predicate::str::contains("<vendor>CycloneDX</vendor>"));
 
     cmd.arg("--format").arg("json");
     cmd.assert().success().stdout("");
 
     tmp_dir
-        .child("bom.json")
+        .child("pkg.cdx.json")
         .assert(predicate::str::contains(r#""vendor": "CycloneDX"#));
 
     tmp_dir.close()?;
@@ -123,13 +123,13 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
     cmd.current_dir(tmp_dir.path())
         .arg("cyclonedx")
         .arg("--all")
-        .arg("--verbose");
+        .arg("-vvvvv");
 
     cmd.assert()
         .success()
         .stderr(predicate::str::contains(format!(
             "Outputting {}",
-            tmp_dir.path().join("bom.xml").display(),
+            tmp_dir.path().join("test.cdx.xml").display(),
         )))
         .stderr(predicate::str::contains(format!(
             "Package {} has an invalid license expression, trying lax parsing ({})",
@@ -156,15 +156,14 @@ fn bom_file_name_extension_is_prepended_with_cdx() -> Result<(), Box<dyn std::er
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
 
     cmd.current_dir(tmp_dir.path())
-        .arg("cyclonedx")
-        .arg("--output-cdx");
+        .arg("cyclonedx");
 
     cmd.assert().success().stdout("");
 
-    tmp_dir.child("bom.xml").assert(predicate::path::missing());
+    tmp_dir.child("pkg.xml").assert(predicate::path::missing());
 
     tmp_dir
-        .child("bom.cdx.xml")
+        .child("pkg.cdx.xml")
         .assert(predicate::path::exists());
 
     tmp_dir.close()?;

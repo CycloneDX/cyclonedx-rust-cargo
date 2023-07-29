@@ -65,13 +65,13 @@ use cli::{Args, Opts};
 
 fn main() -> anyhow::Result<()> {
     let Opts::Bom(args) = Opts::parse();
-    let mut config = Config::default()?;
-    setup_logging(&args, &mut config)?;
+    let mut cargo_config = Config::default()?;
+    setup_logging(&args, &mut cargo_config)?;
 
     let manifest_path = locate_manifest(&args)?;
-    let cli_config = args.as_config()?;
+    let cli_config = args.as_config();
 
-    let ws = Workspace::new(&manifest_path, &config)?;
+    let ws = Workspace::new(&manifest_path, &cargo_config)?;
 
     log::trace!("SBOM generation started");
     let boms = SbomGenerator::create_sboms(ws, &cli_config)?;

@@ -25,7 +25,6 @@ use crate::format::Format;
 pub struct SbomConfig {
     pub format: Option<Format>,
     pub included_dependencies: Option<IncludedDependencies>,
-    pub output_options: Option<OutputOptions>,
 }
 
 impl SbomConfig {
@@ -33,7 +32,6 @@ impl SbomConfig {
         Self {
             format: None,
             included_dependencies: None,
-            output_options: None,
         }
     }
 
@@ -41,10 +39,6 @@ impl SbomConfig {
         SbomConfig {
             format: other.format.or(self.format),
             included_dependencies: other.included_dependencies.or(self.included_dependencies),
-            output_options: other
-                .output_options
-                .clone()
-                .or_else(|| self.output_options.clone()),
         }
     }
 
@@ -54,10 +48,6 @@ impl SbomConfig {
 
     pub fn included_dependencies(&self) -> IncludedDependencies {
         self.included_dependencies.unwrap_or_default()
-    }
-
-    pub fn output_options(&self) -> OutputOptions {
-        self.output_options.clone().unwrap_or_default()
     }
 }
 

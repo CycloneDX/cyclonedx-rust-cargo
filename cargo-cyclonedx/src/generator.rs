@@ -61,6 +61,7 @@ impl SbomGenerator {
             "Processing the workspace {} configuration",
             ws.root_manifest().to_string_lossy()
         );
+
         let workspace_config = config_from_toml(ws.custom_metadata())?;
         let members: Vec<Package> = ws.members().cloned().collect();
 
@@ -87,11 +88,13 @@ impl SbomGenerator {
             log::trace!("Config from config override: {:?}", config_override);
             log::debug!("Config from merged config: {:?}", config);
 
+            // By default, list all dependencies, even transitive ones.
+            // This is recommended: https://cyclonedx.org/use-cases/#inventory
             let dependencies =
-                if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(&members, &package_ids, &resolve)?
-                } else {
+                if config.included_dependencies() == IncludedDependencies::TopLevelDependencies {
                     top_level_dependencies(&members, &package_ids, &resolve)?
+                } else {
+                    all_dependencies(&members, &package_ids, &resolve)?
                 };
 
             // A package (member) can contain multiple targets (e.g. a single library, one or more binaries, tests, ...)
@@ -105,7 +108,7 @@ impl SbomGenerator {
                     target.kind().description()
                 );
 
-                // We only want to generate SBOMs for binaries and libraries (this matches all kinds of libraries for example cdylib, rlib etc.)
+                // We only want to generate SBOMs for binaries and libraries (this matches all kinds of libraries, for example cdylib, rlib etc.)
                 if !matches!(
                     target.kind(),
                     TargetKind::Bin | TargetKind::Lib(_)
@@ -149,11 +152,9 @@ fn create_bom(
         .into_iter()
         .map(|package| create_component(package, package.name().as_str()))
         .collect();
-
     bom.components = Some(Components(components));
 
     let metadata = create_metadata(package, target)?;
-
     bom.metadata = Some(metadata);
 
     Ok(bom)
@@ -316,6 +317,7 @@ fn create_metadata(package: &Package, target: &Target) -> Result<Metadata, Gener
     component.component_type = get_classification(target);
 
     metadata.component = Some(component);
+    metadata.licenses = get_licenses(package);
 
     let tool = Tool::new("CycloneDX", "cargo-cyclonedx", env!("CARGO_PKG_VERSION"));
 
@@ -443,11 +445,6 @@ fn top_level_dependencies(
         }
     }
 
-    // Filter out our own workspace crates from dependency list
-    for member in members {
-        dependencies.remove(member);
-    }
-
     Ok(dependencies)
 }
 
@@ -510,16 +507,14 @@ impl GeneratedSbom {
     }
 
     fn filename(&self) -> String {
-        let output_options = self.sbom_config.output_options();
         let prefix = match self.target_kind {
             TargetKind::Lib(_) => format!("lib{}", self.package_name.clone()),
             _ => self.package_name.clone(),
         };
 
         format!(
-            "{}{}.{}",
+            "{}.cdx.{}",
             prefix,
-            output_options.cdx_extension.extension(),
             self.sbom_config.format()
         )
     }
