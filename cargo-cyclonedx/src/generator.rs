@@ -118,7 +118,7 @@ impl SbomGenerator {
                     continue;
                 }
 
-                let bom = create_bom(member, target, dependencies.clone())?;
+                let bom = create_bom(member, target, &dependencies)?;
 
                 log::debug!("Bom validation: {:?}", &bom.validate());
 
@@ -141,13 +141,13 @@ impl SbomGenerator {
 fn create_bom(
     package: &Package,
     target: &Target,
-    dependencies: BTreeSet<Package>,
+    dependencies: &BTreeSet<Package>,
 ) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
     let components: Vec<_> = dependencies
         .into_iter()
-        .map(|package| create_component(&package, target))
+        .map(|package| create_component(package, package.name().as_str()))
         .collect();
 
     bom.components = Some(Components(components));
@@ -159,8 +159,7 @@ fn create_bom(
     Ok(bom)
 }
 
-fn create_component(package: &Package, target: &Target) -> Component {
-    let name = target.name().to_owned().trim().to_string();
+fn create_component(package: &Package, name: &str) -> Component {
     let version = package.version().to_string();
 
     let purl = match Purl::new("cargo", &name, &version) {
@@ -311,7 +310,8 @@ fn create_metadata(package: &Package, target: &Target) -> Result<Metadata, Gener
         metadata.authors = Some(authors);
     }
 
-    let mut component = create_component(package, target);
+    let mut component = create_component(package, target.name());
+
 
     component.component_type = get_classification(target);
 
