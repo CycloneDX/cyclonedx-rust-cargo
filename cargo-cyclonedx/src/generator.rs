@@ -147,7 +147,7 @@ fn create_bom(
 
     let components: Vec<_> = dependencies
         .into_iter()
-        .map(|package| create_component(&package, ))
+        .map(|package| create_component(&package, target))
         .collect();
 
     bom.components = Some(Components(components));
