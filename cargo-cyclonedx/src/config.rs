@@ -59,7 +59,7 @@ pub enum IncludedDependencies {
 
 impl Default for IncludedDependencies {
     fn default() -> Self {
-        Self::TopLevelDependencies
+        Self::AllDependencies
     }
 }
 

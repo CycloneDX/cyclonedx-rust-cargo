@@ -94,7 +94,7 @@ impl SbomGenerator {
                 if config.included_dependencies() == IncludedDependencies::TopLevelDependencies {
                     top_level_dependencies(&members, &package_ids, &resolve)?
                 } else {
-                    all_dependencies(&members, &package_ids, &resolve)?
+                    all_dependencies(&package_ids, &resolve)?
                 };
 
             // A package (member) can contain multiple targets (e.g. a single library, one or more binaries, tests, ...)
@@ -449,7 +449,6 @@ fn top_level_dependencies(
 }
 
 fn all_dependencies(
-    members: &[Package],
     package_ids: &PackageSet<'_>,
     resolve: &Resolve,
 ) -> Result<BTreeSet<Package>, GeneratorError> {
@@ -460,10 +459,6 @@ fn all_dependencies(
         let package = package_ids
             .get_one(package_id)
             .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-        if members.contains(package) {
-            // Skip listing our own packages in our workspace
-            continue;
-        }
         dependencies.insert(package.to_owned());
     }
 
