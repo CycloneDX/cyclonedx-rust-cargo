@@ -411,7 +411,7 @@ pub(crate) mod test {
         let initial_event = event_reader
             .next()
             .expect("Failed to read from the XML input");
-        let output: X = match initial_event {
+        let output = match initial_event {
             reader::XmlEvent::StartElement {
                 name, attributes, ..
             } => X::read_xml_element(&mut event_reader, &name, &attributes)
