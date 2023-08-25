@@ -414,10 +414,8 @@ pub(crate) mod test {
         let output: X = match initial_event {
             reader::XmlEvent::StartElement {
                 name, attributes, ..
-            } => {
-                X::read_xml_element(&mut event_reader, &name, &attributes)
-                    .expect("Failed to read the element from the string")
-            }
+            } => X::read_xml_element(&mut event_reader, &name, &attributes)
+                .expect("Failed to read the element from the string"),
             other => panic!("Expected to start an element, but got {:?}", other),
         };
         let end_document = event_reader.next().expect("Expected to end the document");
