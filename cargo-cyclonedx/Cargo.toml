@@ -23,7 +23,7 @@ lto = "thin"
 [dependencies]
 anyhow = "1.0.75"
 cargo = "0.73.0"
-clap = { version = "4.3.24", features = ["derive"] }
+clap = { version = "4.4.0", features = ["derive"] }
 cyclonedx-bom = { version = "0.4.1", path = "../cyclonedx-bom" }
 env_logger = "0.10.0"
 log = "0.4.20"
@@ -35,6 +35,6 @@ toml = "0.7.6"
 validator = { version = "0.16.1" }
 
 [dev-dependencies]
-assert_cmd = "2.0.11"
+assert_cmd = "2.0.12"
 assert_fs = "1.0.13"
 predicates = "3.0.3"
