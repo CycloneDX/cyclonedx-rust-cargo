@@ -1,32 +1,32 @@
 [package]
 name = "cyclonedx-bom"
 version = "0.4.1"
-license = "Apache-2.0"
-edition = "2018"
-rust-version = "1.65.0"
-
 description = "CycloneDX Software Bill of Materials Library"
-homepage = "https://cyclonedx.org/"
-repository = "https://github.com/CycloneDX/cyclonedx-rust-cargo"
-readme = "README.md"
-
 categories = []
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
+readme = "README.md"
+
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 base64 = "0.21.2"
 http = "0.2.9"
-once_cell = "1.17.1"
+once_cell = "1.18.0"
 packageurl = "0.3.0"
-regex = "1.8.4"
-serde = { version = "1.0.164", features = ["derive"] }
-serde_json = "1.0.96"
-spdx = "0.10.1"
-thiserror = "1.0.40"
-time = { version = "0.3.21", features = ["formatting", "parsing"] }
-uuid = { version = "1.3.3", features = ["v4"] }
-xml-rs = "0.8.10"
+regex = "1.9.3"
+serde = { version = "1.0.187", features = ["derive"] }
+serde_json = "1.0.105"
+spdx = "0.10.2"
+thiserror = "1.0.47"
+time = { version = "0.3.27", features = ["formatting", "parsing"] }
+uuid = { version = "1.4.1", features = ["v4"] }
+xml-rs = "0.8.16"
 
 [dev-dependencies]
-insta = { version = "1.29.0", features = ["glob", "json"] }
-pretty_assertions = "1.3.0"
+insta = { version = "1.31.0", features = ["glob", "json"] }
+pretty_assertions = "1.4.0"
