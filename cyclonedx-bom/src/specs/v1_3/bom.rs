@@ -438,7 +438,8 @@ pub(crate) mod test {
         let input = r#"
 <?xml version="1.0" encoding="utf-8"?>
 <bom xmlns="http://cyclonedx.org/schema/bom/1.3" serialNumber="fake-uuid" version="1" />
-"#;
+"#
+        .trim_start();
         let actual: Bom = read_document_from_string(input);
         let expected = minimal_bom_example();
         assert_eq!(actual, expected);
@@ -764,7 +765,7 @@ pub(crate) mod test {
     <example:innerElement id="test" />
   </example:laxValidation>
 </bom>
-"#;
+"#.trim_start();
         let actual: Bom = read_document_from_string(input);
         let expected = full_bom_example();
         assert_eq!(actual, expected);
