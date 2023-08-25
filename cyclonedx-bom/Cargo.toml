@@ -1,17 +1,17 @@
 [package]
 name = "cyclonedx-bom"
 version = "0.4.1"
-license = "Apache-2.0"
-edition = "2018"
-rust-version = "1.65.0"
-
 description = "CycloneDX Software Bill of Materials Library"
-homepage = "https://cyclonedx.org/"
-repository = "https://github.com/CycloneDX/cyclonedx-rust-cargo"
-readme = "README.md"
-
 categories = []
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
+readme = "README.md"
+
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 base64 = "0.21.2"
