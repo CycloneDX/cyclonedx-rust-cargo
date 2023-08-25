@@ -91,7 +91,7 @@ impl SbomGenerator {
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(&members, &package_ids, &resolve)?
                 } else {
-                    top_level_dependencies(&member, &package_ids, &resolve)?
+                    top_level_dependencies(member, &package_ids, &resolve)?
                 };
 
             let bom = create_bom(member, dependencies)?;
@@ -379,10 +379,11 @@ fn top_level_dependencies(
     log::trace!("Adding top-level dependencies to SBOM");
     let mut dependencies = BTreeSet::new();
 
-    let all_dependencies =
-        resolve.deps(member.package_id())
-            .filter(move |r| r.0 != member.package_id())
-            .map(|(_, dependency)| dependency).flatten().filter(|d|d.kind() == DepKind::Normal);
+    let all_dependencies = resolve
+        .deps(member.package_id())
+        .filter(move |r| r.0 != member.package_id())
+        .flat_map(|(_, dependency)| dependency)
+        .filter(|d| d.kind() == DepKind::Normal);
 
     for dependency in all_dependencies {
         log::trace!("Dependency: {dependency:?}");
