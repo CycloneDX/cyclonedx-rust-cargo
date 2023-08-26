@@ -25,7 +25,7 @@ use cargo::core::Package;
 use cargo::core::PackageSet;
 use cargo::core::Resolve;
 use cargo::core::Workspace;
-use cargo::core::{Dependency, Target, TargetKind};
+use cargo::core::{Target, TargetKind};
 use cargo::ops;
 
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
