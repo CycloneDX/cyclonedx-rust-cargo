@@ -109,10 +109,7 @@ impl SbomGenerator {
                 );
 
                 // We only want to generate SBOMs for binaries and libraries (this matches all kinds of libraries, for example cdylib, rlib etc.)
-                if !matches!(
-                    target.kind(),
-                    TargetKind::Bin | TargetKind::Lib(_)
-                ) {
+                if !matches!(target.kind(), TargetKind::Bin | TargetKind::Lib(_)) {
                     log::trace!(
                         "Skipping target {}/{} as it is not a binary or lib target",
                         member.name(),
@@ -313,7 +310,6 @@ fn create_metadata(package: &Package, target: &Target) -> Result<Metadata, Gener
 
     let mut component = create_component(package, target.name());
 
-
     component.component_type = get_classification(target);
 
     metadata.component = Some(component);
@@ -502,11 +498,7 @@ impl GeneratedSbom {
             _ => self.package_name.clone(),
         };
 
-        format!(
-            "{}.cdx.{}",
-            prefix,
-            self.sbom_config.format()
-        )
+        format!("{}.cdx.{}", prefix, self.sbom_config.format())
     }
 }
 

@@ -109,7 +109,6 @@ impl Default for CdxExtension {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CustomPrefix(String);
 

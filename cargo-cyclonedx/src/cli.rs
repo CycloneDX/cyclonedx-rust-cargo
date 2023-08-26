@@ -1,10 +1,7 @@
-use cargo_cyclonedx::{
-    config::SbomConfig,
-    format::Format,
-};
+use cargo_cyclonedx::config::IncludedDependencies;
+use cargo_cyclonedx::{config::SbomConfig, format::Format};
 use clap::{ArgGroup, Parser};
 use std::path;
-use cargo_cyclonedx::config::IncludedDependencies;
 
 #[derive(Parser, Debug)]
 #[clap(bin_name = "cargo")]

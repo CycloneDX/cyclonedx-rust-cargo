@@ -15,8 +15,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use crate::config::SbomConfig;
 use crate::config::{self, CdxExtension, PrefixError};
-use crate::config::{SbomConfig};
 use crate::format::Format;
 
 use serde::Deserialize;
@@ -137,9 +137,7 @@ impl TryFrom<OutputOptions> for config::OutputOptions {
             None => CdxExtension::default(),
         };
 
-        Ok(Self {
-            cdx_extension,
-        })
+        Ok(Self { cdx_extension })
     }
 }
 

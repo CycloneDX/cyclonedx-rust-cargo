@@ -155,8 +155,7 @@ fn bom_file_name_extension_is_prepended_with_cdx() -> Result<(), Box<dyn std::er
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
 
-    cmd.current_dir(tmp_dir.path())
-        .arg("cyclonedx");
+    cmd.current_dir(tmp_dir.path()).arg("cyclonedx");
 
     cmd.assert().success().stdout("");
 
