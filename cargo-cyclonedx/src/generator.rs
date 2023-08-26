@@ -146,7 +146,7 @@ fn create_bom(
     let mut bom = Bom::default();
 
     let components: Vec<_> = dependencies
-        .into_iter()
+        .iter()
         .map(|package| create_component(package, package.name().as_str()))
         .collect();
     bom.components = Some(Components(components));
@@ -160,7 +160,7 @@ fn create_bom(
 fn create_component(package: &Package, name: &str) -> Component {
     let version = package.version().to_string();
 
-    let purl = match Purl::new("cargo", &name, &version) {
+    let purl = match Purl::new("cargo", name, &version) {
         Ok(purl) => Some(purl),
         Err(e) => {
             log::error!("Package {} has an invalid Purl: {} ", package.name(), e);
@@ -170,7 +170,7 @@ fn create_component(package: &Package, name: &str) -> Component {
 
     let mut component = Component::new(
         Classification::Library,
-        &name,
+        name,
         &version,
         purl.clone().map(|p| p.to_string()),
     );

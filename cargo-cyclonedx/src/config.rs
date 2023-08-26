@@ -75,17 +75,9 @@ impl FromStr for IncludedDependencies {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct OutputOptions {
     pub cdx_extension: CdxExtension,
-}
-
-impl Default for OutputOptions {
-    fn default() -> Self {
-        Self {
-            cdx_extension: CdxExtension::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
