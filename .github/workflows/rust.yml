@@ -52,7 +52,7 @@ jobs:
             continue-on-error: false
           - # test with the MSRV version
             test-arm: 'Minimum Supported Rust Version'
-            rust-version: '1.65.0'
+            rust-version: '1.70.0'
             continue-on-error: false
           - # test with the current nightly version (allowed to fail)
             test-arm: 'Nightly'
@@ -73,4 +73,3 @@ jobs:
       continue-on-error: ${{ matrix.continue-on-error }}
     - name: Run CLI
       run: cargo +${{ matrix.rust-version }} run -- cyclonedx
-
