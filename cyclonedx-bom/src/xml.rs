@@ -476,9 +476,7 @@ pub(crate) mod test {
     pub(crate) fn read_document_from_string<X: FromXmlDocument>(string: impl AsRef<str>) -> X {
         let mut event_reader =
             EventReader::new_with_config(string.as_ref().as_bytes(), parser_config());
-        let output: X;
-
-        output = X::read_xml_document(&mut event_reader)
+        let output: X = X::read_xml_document(&mut event_reader)
             .expect("Failed to read the document from the string");
 
         // According to the documentation, an event reader that returns an
@@ -497,7 +495,6 @@ pub(crate) mod test {
     pub(crate) fn read_element_from_string<X: FromXml>(string: impl AsRef<str>) -> X {
         let mut event_reader =
             EventReader::new_with_config(string.as_ref().as_bytes(), parser_config());
-        let output: X;
 
         let start_document = event_reader.next().expect("Expected to start the document");
 
@@ -509,15 +506,13 @@ pub(crate) mod test {
         let initial_event = event_reader
             .next()
             .expect("Failed to read from the XML input");
-        match initial_event {
+        let output = match initial_event {
             reader::XmlEvent::StartElement {
                 name, attributes, ..
-            } => {
-                output = X::read_xml_element(&mut event_reader, &name, &attributes)
-                    .expect("Failed to read the element from the string")
-            }
+            } => X::read_xml_element(&mut event_reader, &name, &attributes)
+                .expect("Failed to read the element from the string"),
             other => panic!("Expected to start an element, but got {:?}", other),
-        }
+        };
         let end_document = event_reader.next().expect("Expected to end the document");
 
         match end_document {

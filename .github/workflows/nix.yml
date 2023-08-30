@@ -12,6 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3.0.2
-    - uses: cachix/install-nix-action@v20
-    - run: nix build
-    - run: nix flake check
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@v4
+    - name: Run the Magic Nix Cache
+      uses: DeterminateSystems/magic-nix-cache-action@v2
+
+    - name: Build the default flake output
+      run: nix build
+
+    - name: Check the flake outputs
+      run: nix flake check
+
+    - name: Check the flake's formatting
+      run: nix develop --command nixpkgs-fmt --check flake.nix
