@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::convert::TryFrom;
+use crate::errors::BomError;
 use crate::{
     external_models::date_time::DateTime,
     models,
@@ -31,8 +31,8 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use xml::{reader, writer::XmlEvent};
-use crate::errors::BomError;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]

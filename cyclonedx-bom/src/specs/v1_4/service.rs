@@ -18,10 +18,7 @@
 
 use crate::{
     errors::XmlReadError,
-    external_models::{
-        normalized_string::NormalizedString,
-        uri::Uri,
-    },
+    external_models::{normalized_string::NormalizedString, uri::Uri},
     models,
     utilities::{convert_optional, convert_optional_vec, convert_vec},
     xml::{
@@ -34,9 +31,7 @@ use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
 
 use crate::specs::v1_4::{
-    external_reference::ExternalReferences,
-    license::Licenses,
-    organization::OrganizationalEntity,
+    external_reference::ExternalReferences, license::Licenses, organization::OrganizationalEntity,
     property::Properties,
 };
 

@@ -18,9 +18,7 @@
 
 use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::validation::{
-    Validate,
-    ValidationContext, ValidationError,
-    ValidationPathComponent, ValidationResult,
+    Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
 };
 
 /// Represents an advisory, a notification of a threat to a component, service, or system.
@@ -44,10 +42,7 @@ impl Advisory {
     /// # Ok::<(), UriError>(())
     /// ```
     pub fn new(url: Uri) -> Self {
-        Self {
-            title: None,
-            url,
-        }
+        Self { title: None, url }
     }
 }
 
@@ -97,10 +92,7 @@ impl Validate for Advisories {
 #[cfg(test)]
 mod test {
     use crate::{
-        external_models::{
-            normalized_string::NormalizedString,
-            uri::Uri
-        },
+        external_models::{normalized_string::NormalizedString, uri::Uri},
         validation::FailureReason,
     };
 
@@ -134,8 +126,8 @@ mod test {
                 reasons: vec![
                     FailureReason {
                         message:
-                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                            .to_string(),
+                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                                .to_string(),
                         context: ValidationContext(vec![
                             ValidationPathComponent::Array { index: 0 },
                             ValidationPathComponent::Struct {

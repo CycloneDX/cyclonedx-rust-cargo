@@ -353,6 +353,9 @@ impl From<UrnUuid> for models::bom::UrnUuid {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use crate::specs::v1_4::vulnerability::test::{
+        corresponding_vulnerabilities, example_vulnerabilities,
+    };
     use crate::{
         specs::v1_4::{
             component::test::{corresponding_components, example_components},
@@ -367,7 +370,6 @@ pub(crate) mod test {
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };
-    use crate::specs::v1_4::vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities};
 
     use super::*;
 
@@ -463,7 +465,8 @@ pub(crate) mod test {
         let input = r#"
 <?xml version="1.0" encoding="utf-8"?>
 <bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="fake-uuid" version="1" />
-"#;
+"#
+        .trim_start();
         let actual: Bom = read_document_from_string(input);
         let expected = minimal_bom_example();
         assert_eq!(actual, expected);
@@ -893,7 +896,7 @@ pub(crate) mod test {
     <example:innerElement id="test" />
   </example:laxValidation>
 </bom>
-"#;
+"#.trim_start();
         let actual: Bom = read_document_from_string(input);
         let expected = full_bom_example();
         assert_eq!(actual, expected);

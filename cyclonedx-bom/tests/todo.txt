@@ -1,3 +1,0 @@
-Some URLs in valid-patch-1.4.xml / valid-patch-1.4.json are invalid.
-
-

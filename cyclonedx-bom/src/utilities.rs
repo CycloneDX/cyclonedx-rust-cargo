@@ -1,5 +1,5 @@
-use std::convert::TryFrom;
 use crate::errors::BomError;
+use std::convert::TryFrom;
 
 /// Convert an optional list of a type
 ///
@@ -18,16 +18,16 @@ pub(crate) fn convert_optional<A, B: From<A>>(value: Option<A>) -> Option<B> {
     value.map(std::convert::Into::into)
 }
 
-pub(crate) fn try_convert_optional<A, B: TryFrom<A, Error = BomError>>(value: Option<A>) -> Result<Option<B>, BomError> {
+pub(crate) fn try_convert_optional<A, B: TryFrom<A, Error = BomError>>(
+    value: Option<A>,
+) -> Result<Option<B>, BomError> {
     // todo: check if this could be handled more elegantly
     let value = value.map(std::convert::TryInto::try_into);
     match value {
-        Some(result ) => {
-            match result {
-                Err(e) => Err(e),
-                Ok(value) => Ok(Some(value)),
-            }
-        }
+        Some(result) => match result {
+            Err(e) => Err(e),
+            Ok(value) => Ok(Some(value)),
+        },
         None => Ok(None),
     }
 }
@@ -36,8 +36,13 @@ pub(crate) fn convert_vec<A, B: From<A>>(value: Vec<A>) -> Vec<B> {
     value.into_iter().map(std::convert::Into::into).collect()
 }
 
-pub(crate) fn try_convert_vec<A, B: TryFrom<A, Error = BomError>>(value: Vec<A>) -> Result<Vec<B>, BomError> {
-    value.into_iter().map(std::convert::TryInto::try_into).collect()
+pub(crate) fn try_convert_vec<A, B: TryFrom<A, Error = BomError>>(
+    value: Vec<A>,
+) -> Result<Vec<B>, BomError> {
+    value
+        .into_iter()
+        .map(std::convert::TryInto::try_into)
+        .collect()
 }
 
 /*
