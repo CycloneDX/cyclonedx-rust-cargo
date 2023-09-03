@@ -256,13 +256,15 @@ pub(crate) fn read_u32_tag<R: Read>(
         .map_err(to_xml_read_error(&element_display))
         .and_then(inner_text_or_error(&element_display))?;
 
-    let number= match content.trim().parse::<u32>() {
+    let number = match content.trim().parse::<u32>() {
         Ok(n) => n,
-        Err(_) => return Err(XmlReadError::InvalidParseError {
-            value: content,
-            data_type: "u32".to_string(),
-            element: element_display,
-        }),
+        Err(_) => {
+            return Err(XmlReadError::InvalidParseError {
+                value: content,
+                data_type: "u32".to_string(),
+                element: element_display,
+            })
+        }
     };
 
     event_reader
@@ -283,14 +285,15 @@ pub(crate) fn read_f32_tag<R: Read>(
         .map_err(to_xml_read_error(&element_display))
         .and_then(inner_text_or_error(&element_display))?;
 
-
     let number = match content.trim().parse::<f32>() {
         Ok(n) => n,
-        Err(_) => return Err(XmlReadError::InvalidParseError {
-            value: content,
-            data_type: "f32".to_string(),
-            element: element_display,
-        }),
+        Err(_) => {
+            return Err(XmlReadError::InvalidParseError {
+                value: content,
+                data_type: "f32".to_string(),
+                element: element_display,
+            })
+        }
     };
 
     event_reader
@@ -328,8 +331,11 @@ impl FromXml for u32 {
         element_name: &OwnedName,
         _attributes: &[OwnedAttribute],
     ) -> Result<Self, XmlReadError>
-        where
-            Self: Sized, { read_u32_tag(event_reader, element_name) }
+    where
+        Self: Sized,
+    {
+        read_u32_tag(event_reader, element_name)
+    }
 }
 
 impl FromXml for f32 {
@@ -338,8 +344,11 @@ impl FromXml for f32 {
         element_name: &OwnedName,
         _attributes: &[OwnedAttribute],
     ) -> Result<Self, XmlReadError>
-        where
-            Self: Sized, { read_f32_tag(event_reader, element_name) }
+    where
+        Self: Sized,
+    {
+        read_f32_tag(event_reader, element_name)
+    }
 }
 
 pub(crate) fn read_list_tag<R: Read, X: FromXml>(

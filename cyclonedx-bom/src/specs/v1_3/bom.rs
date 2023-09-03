@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::convert::TryFrom;
+use crate::errors::BomError;
 use crate::{
     models::{self},
     utilities::{convert_optional, try_convert_optional},
@@ -35,8 +35,8 @@ use crate::{
     xml::ToXml,
 };
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use xml::{reader, writer::XmlEvent};
-use crate::errors::BomError;
 
 // Placeholders for types defined in other versions of the spec
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -366,7 +366,6 @@ impl From<UrnUuid> for models::bom::UrnUuid {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use std::convert::TryInto;
     use crate::{
         specs::v1_3::{
             component::test::{corresponding_components, example_components},
@@ -381,6 +380,7 @@ pub(crate) mod test {
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };
+    use std::convert::TryInto;
 
     use super::*;
 
@@ -468,7 +468,9 @@ pub(crate) mod test {
     fn it_can_convert_from_the_internal_model() {
         let model = corresponding_internal_model();
         // todo: check for conversion error with assert, then assert_eq on Bom
-        let spec: Bom = model.try_into().expect("todo: error handling in it_can_convert_from_the_internal_model");
+        let spec: Bom = model
+            .try_into()
+            .expect("todo: error handling in it_can_convert_from_the_internal_model");
         assert_eq!(spec, full_bom_example());
     }
 

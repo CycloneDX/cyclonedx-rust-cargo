@@ -39,7 +39,7 @@ use crate::validation::{
 };
 use crate::xml::{FromXmlDocument, ToXml};
 
-/// todo: derive(Eq)
+// todo: derive(Eq)
 #[derive(Debug, PartialEq)]
 pub struct Bom {
     pub version: u32,
@@ -85,7 +85,9 @@ impl Bom {
         self,
         writer: &mut W,
     ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_3::bom::Bom = self.try_into().expect("todo: error handling in output_as_json_v1_3");
+        let bom: crate::specs::v1_3::bom::Bom = self
+            .try_into()
+            .expect("todo: error handling in output_as_json_v1_3");
         serde_json::to_writer_pretty(writer, &bom)?;
         Ok(())
     }
@@ -98,7 +100,9 @@ impl Bom {
         let config = EmitterConfig::default().perform_indent(true);
         let mut event_writer = EventWriter::new_with_config(writer, config);
 
-        let bom: crate::specs::v1_3::bom::Bom = self.try_into().expect("todo: error handling in output_as_json_v1_3");
+        let bom: crate::specs::v1_3::bom::Bom = self
+            .try_into()
+            .expect("todo: error handling in output_as_json_v1_3");
         bom.write_xml_element(&mut event_writer)
     }
 
@@ -516,10 +520,7 @@ fn matches_urn_uuid_regex(value: &str) -> Result<bool, regex::Error> {
 #[cfg(test)]
 mod test {
     use crate::{
-        external_models::{
-            date_time::DateTime,
-            normalized_string::NormalizedString,
-            uri::Uri},
+        external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri},
         models::{
             component::{Classification, Component},
             composition::{AggregateType, BomReference, Composition},

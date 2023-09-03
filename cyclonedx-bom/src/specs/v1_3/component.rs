@@ -18,6 +18,9 @@
 
 use std::convert::TryFrom;
 
+use crate::errors::BomError;
+use crate::errors::BomError::BomV13SerializationError;
+use crate::utilities::try_convert_optional;
 use crate::{
     errors::XmlReadError,
     external_models::{
@@ -42,9 +45,6 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
-use crate::errors::BomError;
-use crate::errors::BomError::BomV13SerializationError;
-use crate::utilities::try_convert_optional;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]

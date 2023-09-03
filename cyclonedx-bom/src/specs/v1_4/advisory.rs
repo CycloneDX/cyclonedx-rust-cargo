@@ -18,16 +18,12 @@
 
 use crate::{
     errors::XmlReadError,
-    external_models::{
-        normalized_string::NormalizedString,
-        uri::Uri,
-    },
+    external_models::{normalized_string::NormalizedString, uri::Uri},
     models,
     utilities::convert_vec,
     xml::{
-        read_lax_validation_list_tag, read_lax_validation_tag, read_simple_tag,
-        to_xml_read_error, to_xml_write_error, unexpected_element_error,
-        write_simple_tag, FromXml, ToXml,
+        read_lax_validation_list_tag, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -158,7 +154,7 @@ impl FromXml for Advisory {
                 .next()
                 .map_err(to_xml_read_error(ADVISORY_TAG))?;
             match next_element {
-                reader::XmlEvent::StartElement {name, .. } if name.local_name == TITLE_TAG => {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == TITLE_TAG => {
                     title = Some(read_simple_tag(event_reader, &name)?);
                 }
 
@@ -182,26 +178,20 @@ impl FromXml for Advisory {
             element: element_name.local_name.to_string(),
         })?;
 
-        Ok(Self {
-            title,
-            url,
-        })
+        Ok(Self { title, url })
     }
 }
 
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
-    use crate::{
-        xml::test::{read_element_from_string, write_element_to_string},
-    };
+    use crate::xml::test::{read_element_from_string, write_element_to_string};
 
     pub(crate) fn example_advisories() -> Advisories {
         Advisories(vec![example_advisory()])
     }
 
-    pub(crate) fn corresponding_advisories(
-    ) -> models::advisory::Advisories {
+    pub(crate) fn corresponding_advisories() -> models::advisory::Advisories {
         models::advisory::Advisories(vec![corresponding_advisory()])
     }
 
