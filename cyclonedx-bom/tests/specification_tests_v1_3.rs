@@ -5,10 +5,10 @@ mod v1_3 {
     #[test]
     fn it_should_parse_all_of_the_valid_xml_specifications() {
         insta::with_settings!({
-            snapshot_path => "snapshots/1.3",
+            snapshot_path => "spec/snapshots/1.3",
             prepend_module_to_snapshot => false,
         }, {
-            insta::glob!("data/1.3/valid*.xml", |path| {
+            insta::glob!("spec/1.3/valid*.xml", |path| {
                 let file = std::fs::File::open(path).expect(&format!("Failed to read file: {path:?}"));
                 let bom = Bom::parse_from_xml_v1_3(file).expect(&format!(
                     "Failed to parse the document as an SBOM: {path:?}"
@@ -34,10 +34,10 @@ mod v1_3 {
     #[test]
     fn it_should_parse_all_of_the_valid_json_specifications() {
         insta::with_settings!({
-            snapshot_path => "snapshots/1.3",
+            snapshot_path => "spec/snapshots/1.3",
             prepend_module_to_snapshot => false,
         }, {
-            insta::glob!("data/1.3/valid*.json", |path| {
+            insta::glob!("spec/1.3/valid*.json", |path| {
                 let file = std::fs::File::open(path).expect(&format!("Failed to read file: {path:?}"));
                 let bom = Bom::parse_from_json_v1_3(file).expect(&format!(
                     "Failed to parse the document as an SBOM: {path:?}"
@@ -63,10 +63,10 @@ mod v1_3 {
     #[test]
     fn it_should_fail_to_parse_all_of_the_invalid_xml_specifications() {
         insta::with_settings!({
-            snapshot_path => "snapshots/1.3",
+            snapshot_path => "spec/snapshots/1.3",
             prepend_module_to_snapshot => false,
         }, {
-            insta::glob!("data/1.3/invalid*.xml", |path| {
+            insta::glob!("spec/1.3/invalid*.xml", |path| {
                 let file = std::fs::File::open(path).expect(&format!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_xml_v1_3(file) {
                     let validation_result = bom.validate().expect("Failed to validate BOM");
@@ -83,10 +83,10 @@ mod v1_3 {
     #[test]
     fn it_should_fail_to_parse_all_of_the_invalid_json_specifications() {
         insta::with_settings!({
-            snapshot_path => "snapshots/1.3",
+            snapshot_path => "spec/snapshots/1.3",
             prepend_module_to_snapshot => false,
         }, {
-            insta::glob!("data/1.3/invalid*.json", |path| {
+            insta::glob!("spec/1.3/invalid*.json", |path| {
                 let file = std::fs::File::open(path).expect(&format!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_json_v1_3(file) {
                     let validation_result = bom.validate().expect("Failed to validate BOM");
