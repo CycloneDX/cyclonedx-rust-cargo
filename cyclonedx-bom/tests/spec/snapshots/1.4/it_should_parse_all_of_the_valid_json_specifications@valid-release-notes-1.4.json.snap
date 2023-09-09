@@ -1,7 +1,7 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_4.rs
 expression: bom_output
-input_file: cyclonedx-bom/tests/data/1.4/valid-release-notes-1.4.json
+input_file: cyclonedx-bom/tests/spec/1.4/valid-release-notes-1.4.json
 ---
 {
   "bomFormat": "CycloneDX",
@@ -26,7 +26,7 @@ input_file: cyclonedx-bom/tests/data/1.4/valid-release-notes-1.4.json
         "contact": [
           {
             "name": "Support",
-            "email": "support@partner",
+            "email": "support@partner.org",
             "phone": "800-555-1212"
           }
         ]
