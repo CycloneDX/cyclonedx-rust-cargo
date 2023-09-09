@@ -17,7 +17,7 @@
                     <patch type="unofficial">
                         <diff>
                             <text content-type="text/plain" encoding="base64">blah</text>
-                            <url>http://uri/to/changes.diff</url>
+                            <url>uri/to/changes.diff</url>
                         </diff>
                         <resolves>
                             <issue type="enhancement">
@@ -33,7 +33,7 @@
                     <patch type="backport">
                         <diff>
                             <text content-type="text/plain" encoding="base64">blah</text>
-                            <url>http://uri/to/changes.diff</url>
+                            <url>uri/to/changes.diff</url>
                         </diff>
                         <resolves>
                             <issue type="security">

@@ -27,7 +27,7 @@
                 "encoding": "base64",
                 "content": "blah"
               },
-              "url": "http://uri/to/changes.diff"
+              "url": "uri/to/changes.diff"
             },
             "resolves": [
               {
@@ -49,7 +49,7 @@
                 "encoding": "base64",
                 "content": "blah"
               },
-              "url": "http://uri/to/changes.diff"
+              "url": "uri/to/changes.diff"
             },
             "resolves": [
               {
