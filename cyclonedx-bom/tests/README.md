@@ -6,9 +6,13 @@ covering verification and validation.
 
 # Verification
 
-The CycloneDX project provides its BOM format specification in a dedicated 
-[repository](https://github.com/CycloneDX/specification). Within that repository 
-there is [test data](https://github.com/CycloneDX/specification/tree/master/tools/src/test/resources) 
+The CycloneDX project provides a specification of its BOM format in a dedicated 
+[repository](https://github.com/CycloneDX/specification). The specification is defined 
+in [schemas](https://github.com/CycloneDX/specification/tree/master/schema) 
+of different formats, including JSON and XML.
+
+Within that repository there is also 
+[test data](https://github.com/CycloneDX/specification/tree/master/tools/src/test/resources) 
 for all released versions.
 
 ## Preparing
