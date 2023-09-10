@@ -23,7 +23,6 @@ use crate::format::Format;
 use crate::toml::config_from_toml;
 use crate::toml::ConfigError;
 use cargo::core::dependency::DepKind;
-use cargo::core::Dependency;
 use cargo::core::Package;
 use cargo::core::PackageSet;
 use cargo::core::Resolve;
