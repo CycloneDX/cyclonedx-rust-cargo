@@ -1,13 +1,8 @@
----
-source: cyclonedx-bom/tests/specification_tests_v1_3.rs
-expression: bom_output
-input_file: cyclonedx-bom/tests/spec/1.3/valid-bom-1.3.json
----
 {
   "bomFormat": "CycloneDX",
-  "specVersion": "1.3",
-  "version": 1,
+  "specVersion": "1.4",
   "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "version": 1,
   "metadata": {
     "timestamp": "2020-04-13T20:20:39+00:00",
     "tools": [
@@ -77,8 +72,8 @@ input_file: cyclonedx-bom/tests/spec/1.3/valid-bom-1.3.json
   },
   "components": [
     {
-      "type": "library",
       "bom-ref": "pkg:npm/acme/component@1.0.0",
+      "type": "library",
       "publisher": "Acme Inc",
       "group": "com.acme",
       "name": "tomcat-catalina",
@@ -134,12 +129,12 @@ input_file: cyclonedx-bom/tests/spec/1.3/valid-bom-1.3.json
         ],
         "commits": [
           {
-            "uid": "123",
-            "url": "https://example.com",
+            "uid": "7638417db6d59f3c431d3e1f261cc637155684cd",
+            "url": "https://location/to/7638417db6d59f3c431d3e1f261cc637155684cd",
             "author": {
               "timestamp": "2018-11-13T20:20:39+00:00",
-              "name": "",
-              "email": ""
+              "name": "me",
+              "email": "me@acme.org"
             }
           }
         ]

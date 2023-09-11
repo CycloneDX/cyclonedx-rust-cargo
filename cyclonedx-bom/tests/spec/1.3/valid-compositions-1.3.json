@@ -1,32 +1,27 @@
----
-source: cyclonedx-bom/tests/specification_tests_v1_3.rs
-expression: bom_output
-input_file: cyclonedx-bom/tests/spec/1.3/valid-compositions-1.3.json
----
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.3",
-  "version": 1,
   "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "version": 1,
   "metadata": {
     "component": {
-      "type": "application",
       "bom-ref": "acme-application-1.0",
+      "type": "application",
       "name": "Acme Application",
       "version": "1.0"
     }
   },
   "components": [
     {
-      "type": "library",
       "bom-ref": "pkg:maven/partner/shaded-library@1.0",
+      "type": "library",
       "name": "Partner Shaded Library",
       "version": "1.0",
       "purl": "pkg:maven/partner/shaded-library@1.0",
       "components": [
         {
-          "type": "library",
           "bom-ref": "pkg:maven/ossproject/library@2.0",
+          "type": "library",
           "name": "Some Opensource Library",
           "version": "2.0",
           "purl": "pkg:maven/ossproject/library@2.0"
@@ -34,8 +29,8 @@ input_file: cyclonedx-bom/tests/spec/1.3/valid-compositions-1.3.json
       ]
     },
     {
-      "type": "library",
       "bom-ref": "pkg:maven/acme/library@3.0",
+      "type": "library",
       "name": "Acme Library",
       "version": "3.0",
       "purl": "pkg:maven/acme/library@3.0"

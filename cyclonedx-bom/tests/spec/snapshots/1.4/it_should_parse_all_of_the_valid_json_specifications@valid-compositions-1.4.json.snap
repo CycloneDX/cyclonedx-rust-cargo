@@ -1,27 +1,32 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_4.rs
+expression: bom_output
+input_file: cyclonedx-bom/tests/spec/1.4/valid-compositions-1.4.json
+---
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
   "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
   "metadata": {
     "component": {
-      "bom-ref": "acme-application-1.0",
       "type": "application",
+      "bom-ref": "acme-application-1.0",
       "name": "Acme Application",
       "version": "1.0"
     }
   },
   "components": [
     {
-      "bom-ref": "pkg:maven/partner/shaded-library@1.0",
       "type": "library",
+      "bom-ref": "pkg:maven/partner/shaded-library@1.0",
       "name": "Partner Shaded Library",
       "version": "1.0",
       "purl": "pkg:maven/partner/shaded-library@1.0",
       "components": [
         {
-          "bom-ref": "pkg:maven/ossproject/library@2.0",
           "type": "library",
+          "bom-ref": "pkg:maven/ossproject/library@2.0",
           "name": "Some Opensource Library",
           "version": "2.0",
           "purl": "pkg:maven/ossproject/library@2.0"
@@ -30,6 +35,7 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:maven/acme/library@3.0",
       "name": "Acme Library",
       "version": "3.0",
       "purl": "pkg:maven/acme/library@3.0"
