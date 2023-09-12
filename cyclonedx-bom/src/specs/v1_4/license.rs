@@ -266,11 +266,19 @@ impl FromXml for License {
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
                 } if name.local_name == ID_TAG || name.local_name == NAME_TAG => {
-                    license_identifier = Some(LicenseIdentifier::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
+                    // ID_TAG and NAME_TAG are only allowed once within a LICENSE_TAG
+                    if license_identifier.is_none() {
+                        license_identifier = Some(LicenseIdentifier::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    } else {
+                        return Err(XmlReadError::UnexpectedElementReadError {
+                            error: format!("Got a second {} not allowed within {}", name.local_name, LICENSE_TAG),
+                            element: LICENSE_TAG.to_string(),
+                        });
+                    }
                 }
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
@@ -385,7 +393,7 @@ impl FromXml for LicenseIdentifier {
 
                 event_reader
                     .next()
-                    .map_err(to_xml_read_error(ID_TAG))
+                    .map_err(to_xml_read_error(NAME_TAG))
                     .and_then(closing_tag_or_error(name))?;
 
                 Ok(Self::Name(license_name))
