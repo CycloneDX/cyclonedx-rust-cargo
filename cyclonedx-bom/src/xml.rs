@@ -119,6 +119,17 @@ pub(crate) fn inner_text_or_error(
     }
 }
 
+pub(crate) fn inner_text_or_none(
+    element_name: impl AsRef<str>,
+) -> impl FnOnce(xml::reader::XmlEvent) -> Result<Option<String>, XmlReadError> {
+    let element_name = element_name.as_ref().to_owned();
+    |event| match event {
+        reader::XmlEvent::Characters(s) | reader::XmlEvent::CData(s) => Ok(Some(s)),
+        reader::XmlEvent::EndElement{name} if name.to_string() == element_name => Ok(None),
+        unexpected => Err(unexpected_element_error(element_name, unexpected)),
+    }
+}
+
 pub(crate) fn closing_tag_or_error(
     element: &OwnedName,
 ) -> impl FnOnce(xml::reader::XmlEvent) -> Result<(), XmlReadError> {
@@ -242,6 +253,27 @@ pub(crate) fn read_simple_tag<R: Read>(
         .next()
         .map_err(to_xml_read_error(&element_display))
         .and_then(closing_tag_or_error(element))?;
+
+    Ok(content)
+}
+
+pub(crate) fn read_optional_tag<R: Read>(
+    event_reader: &mut EventReader<R>,
+    element: &OwnedName,
+) -> Result<Option<String>, XmlReadError> {
+    let element_display = element.to_string();
+    let content = event_reader
+        .next()
+        .map_err(to_xml_read_error(&element_display))
+        .and_then(inner_text_or_none(&element_display))?;
+
+    // If XML tag has content, read next element
+    if content.is_some() {
+        event_reader
+            .next()
+            .map_err(to_xml_read_error(&element_display))
+            .and_then(closing_tag_or_error(element))?;
+    }
 
     Ok(content)
 }
