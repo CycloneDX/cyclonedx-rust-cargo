@@ -275,7 +275,10 @@ impl FromXml for License {
                         )?);
                     } else {
                         return Err(XmlReadError::UnexpectedElementReadError {
-                            error: format!("Got a second {} not allowed within {}", name.local_name, LICENSE_TAG),
+                            error: format!(
+                                "Got a second {} not allowed within {}",
+                                name.local_name, LICENSE_TAG
+                            ),
                             element: LICENSE_TAG.to_string(),
                         });
                     }
