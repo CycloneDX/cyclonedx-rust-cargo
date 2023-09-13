@@ -125,7 +125,7 @@ pub(crate) fn inner_text_or_none(
     let element_name = element_name.as_ref().to_owned();
     |event| match event {
         reader::XmlEvent::Characters(s) | reader::XmlEvent::CData(s) => Ok(Some(s)),
-        reader::XmlEvent::EndElement{name} if name.to_string() == element_name => Ok(None),
+        reader::XmlEvent::EndElement { name } if name.to_string() == element_name => Ok(None),
         unexpected => Err(unexpected_element_error(element_name, unexpected)),
     }
 }

@@ -287,7 +287,7 @@ mod test {
                         }])
                     },
                     FailureReason {
-                        message: "Uri does not conform to ISO 8601".to_string(),
+                        message: "Uri does not conform to RFC 3986".to_string(),
                         context: ValidationContext(vec![
                             ValidationPathComponent::Struct {
                                 struct_name: "OrganizationalEntity".to_string(),

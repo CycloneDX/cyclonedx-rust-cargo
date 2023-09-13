@@ -1,7 +1,7 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_4.rs
 expression: bom_output
-input_file: cyclonedx-bom/tests/data/1.4/valid-patch-1.4.json
+input_file: cyclonedx-bom/tests/spec/1.4/valid-patch-1.4.json
 ---
 {
   "bomFormat": "CycloneDX",
@@ -32,7 +32,7 @@ input_file: cyclonedx-bom/tests/data/1.4/valid-patch-1.4.json
                 "encoding": "base64",
                 "content": "blah"
               },
-              "url": "http://uri/to/changes.diff"
+              "url": "uri/to/changes.diff"
             },
             "resolves": [
               {
@@ -54,7 +54,7 @@ input_file: cyclonedx-bom/tests/data/1.4/valid-patch-1.4.json
                 "encoding": "base64",
                 "content": "blah"
               },
-              "url": "http://uri/to/changes.diff"
+              "url": "uri/to/changes.diff"
             },
             "resolves": [
               {
