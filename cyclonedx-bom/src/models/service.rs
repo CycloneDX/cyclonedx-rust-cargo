@@ -310,9 +310,9 @@ mod test {
                 flow: DataFlowType::Inbound,
                 classification: NormalizedString::new("classification"),
             }]),
-            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
+            licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
                 "MIT".to_string(),
-            ))])),
+            )]))),
             external_references: Some(ExternalReferences(vec![ExternalReference {
                 external_reference_type: ExternalReferenceType::Bom,
                 url: Uri("https://www.example.com".to_string()),
@@ -351,9 +351,9 @@ mod test {
                 flow: DataFlowType::UnknownDataFlow("unknown".to_string()),
                 classification: NormalizedString("invalid\tclassification".to_string()),
             }]),
-            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
+            licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
                 "invalid license".to_string(),
-            ))])),
+            )]))),
             external_references: Some(ExternalReferences(vec![ExternalReference {
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown".to_string(),

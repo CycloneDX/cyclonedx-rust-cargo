@@ -638,9 +638,9 @@ mod test {
                 alg: HashAlgorithm::MD5,
                 content: HashValue("a3bf1f3d584747e2569483783ddee45b".to_string()),
             }])),
-            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
+            licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
                 "MIT".to_string(),
-            ))])),
+            )]))),
             copyright: Some(NormalizedString::new("copyright")),
             cpe: Some(Cpe("cpe:/a:example:mylibrary:1.0.0".to_string())),
             purl: Some(Purl("pkg:cargo/cyclonedx-bom@0.3.1".to_string())),
@@ -688,9 +688,9 @@ mod test {
             }])),
             components: Some(Components(vec![])),
             evidence: Some(ComponentEvidence {
-                licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
+                licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
                     "MIT".to_string(),
-                ))])),
+                )]))),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
             }),
         }])
@@ -722,9 +722,9 @@ mod test {
                 alg: HashAlgorithm::MD5,
                 content: HashValue("invalid hash content".to_string()),
             }])),
-            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
+            licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
                 "invalid license".to_string(),
-            ))])),
+            )]))),
             copyright: Some(NormalizedString("invalid\tcopyright".to_string())),
             cpe: Some(Cpe("invalid cpe".to_string())),
             purl: Some(Purl("invalid purl".to_string())),
@@ -776,9 +776,9 @@ mod test {
             }])),
             components: Some(Components(vec![invalid_component()])),
             evidence: Some(ComponentEvidence {
-                licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
+                licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
                     "invalid license".to_string(),
-                ))])),
+                )]))),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
             }),
         }])

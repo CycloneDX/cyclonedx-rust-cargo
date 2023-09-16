@@ -1,7 +1,7 @@
 ---
-source: cyclonedx-bom/tests/specification_tests.rs
+source: cyclonedx-bom/tests/specification_tests_v1_3.rs
 expression: bom_output
-input_file: cyclonedx-bom/tests/data/1.3/valid-service-empty-objects-1.3.xml
+input_file: cyclonedx-bom/tests/spec/1.3/valid-service-empty-objects-1.3.xml
 ---
 <?xml version="1.0" encoding="utf-8"?>
 <bom xmlns="http://cyclonedx.org/schema/bom/1.3" serialNumber="urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79" version="1">
