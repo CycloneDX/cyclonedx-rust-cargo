@@ -14,6 +14,10 @@ pub(crate) fn try_convert_optional_vec<A, B: TryFrom<A, Error = BomError>>(value
 }
 */
 
+pub(crate) fn convert<A, B: From<A>>(value: A) -> B {
+    value.into()
+}
+
 pub(crate) fn convert_optional<A, B: From<A>>(value: Option<A>) -> Option<B> {
     value.map(std::convert::Into::into)
 }

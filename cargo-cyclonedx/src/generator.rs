@@ -235,11 +235,11 @@ fn get_external_references(package: &Package) -> Option<ExternalReferences> {
 }
 
 fn get_licenses(package: &Package) -> Option<Licenses> {
-    let mut licenses = vec![];
+    let mut licenses: Option<LicenseChoice> = None;
 
     if let Some(license) = package.manifest().metadata().license.as_ref() {
         match SpdxExpression::try_from(license.to_string()) {
-            Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
+            Ok(expression) => licenses = Some(LicenseChoice::Expressions(vec![expression])),
             Err(err) => {
                 log::error!(
                     "Package {} has an invalid license expression, trying lax parsing ({}): {}",
@@ -249,28 +249,30 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
                 );
 
                 match SpdxExpression::parse_lax(license.to_string()) {
-                    Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
+                    Ok(expression) => licenses = Some(LicenseChoice::Expressions(vec![expression])),
                     Err(err) => {
                         log::error!(
-                        "Package {} has an invalid license expression that could not be converted to a valid expression, using named license ({}): {}",
-                        package.name(),
-                        license,
-                        err
-                    );
+                            "Package {} has an invalid license expression that could not be converted to a valid expression, using named license ({}): {}",
+                            package.name(),
+                            license,
+                            err
+                        );
 
-                        licenses.push(LicenseChoice::License(License::named_license(license)))
+                        licenses = Some(LicenseChoice::Licenses(vec![License::named_license(
+                            license,
+                        )]))
                     }
                 }
             }
         }
     }
 
-    if licenses.is_empty() {
+    if let Some(licenses) = licenses {
+        Some(Licenses(licenses))
+    } else {
         log::trace!("Package {} has no licenses", package.name());
-        return None;
+        None
     }
-
-    Some(Licenses(licenses))
 }
 
 fn create_metadata(package: &Package) -> Result<Metadata, GeneratorError> {
