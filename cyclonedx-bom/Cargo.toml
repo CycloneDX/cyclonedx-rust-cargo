@@ -28,5 +28,5 @@ uuid = { version = "1.4.1", features = ["v4"] }
 xml-rs = "0.8.16"
 
 [dev-dependencies]
-insta = { version = "1.31.0", features = ["glob", "json"] }
+insta = { version = "1.32.0", features = ["glob", "json"] }
 pretty_assertions = "1.4.0"
