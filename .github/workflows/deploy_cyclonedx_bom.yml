@@ -1,13 +1,11 @@
 name: Deploy cyclonedx-bom to Crates.io
-
 on:
   workflow_dispatch:
     inputs:
       releaseType:
-        description: 'cyclonedx-bom release type (major, minor, patch)'
+        description: "cyclonedx-bom release type (major, minor, patch)"
         required: true
-        default: 'patch'
-
+        default: "patch"
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -29,9 +27,12 @@ jobs:
           echo "::set-output name=CARGO_VERSION::$(cargo metadata | jq -r '.packages[] | select(.name == "cyclonedx-bom") | .version')"
         id: version
       - name: Build one time, for sanity
-        run: cargo build
-      - name: Publish
-        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --allow-dirty
+        run: |
+          cargo build
+          ls -la
+          tree target
+      # - name: Publish
+      #   run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --allow-dirty
       - name: Configure git and add files
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -39,3 +40,8 @@ jobs:
           git commit -am "New development bump of cyclonedx-bom to ${{steps.version.outputs.CARGO_VERSION}}"
           git tag -a "cyclonedx-bom-${{steps.version.outputs.CARGO_VERSION}}" -m "cyclonedx-bom ${{steps.version.outputs.CARGO_VERSION}} release"
           git push --follow-tags
+      - name: Release Github
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: target/release/cargo-cyclonedx

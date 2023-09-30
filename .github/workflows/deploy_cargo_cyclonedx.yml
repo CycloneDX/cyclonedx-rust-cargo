@@ -1,13 +1,11 @@
 name: Deploy cargo-cyclonedx to Crates.io
-
 on:
   workflow_dispatch:
     inputs:
       releaseType:
-        description: 'cargo-cyclonedx release type (major, minor, patch)'
+        description: "cargo-cyclonedx release type (major, minor, patch)"
         required: true
-        default: 'patch'
-
+        default: "patch"
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -30,8 +28,8 @@ jobs:
         id: version
       - name: Build one time, for sanity
         run: cargo build
-      - name: Publish
-        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cargo-cyclonedx --verbose --allow-dirty
+      # - name: Publish
+      #   run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cargo-cyclonedx --verbose --allow-dirty
       - name: Configure git and add files
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
