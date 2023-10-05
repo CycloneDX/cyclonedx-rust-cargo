@@ -39,8 +39,7 @@ use crate::validation::{
 };
 use crate::xml::{FromXmlDocument, ToXml};
 
-// todo: derive(Eq)
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Bom {
     pub version: u32,
     pub serial_number: Option<UrnUuid>,
