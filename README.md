@@ -9,8 +9,8 @@
 # CycloneDX Rust (Cargo) Plugin
 
 The CycloneDX module for Rust (Cargo) creates a valid CycloneDX Software Bill-of-Material (SBOM) containing an
-aggregate of all project dependencies. CycloneDX is a lightweight SBOM specification that is easily created, human
-and machine readable, and simple to parse.
+aggregate of all project dependencies. OWASP CycloneDX is a full-stack Bill of Materials (BOM) standard that
+provides advanced supply chain capabilities for cyber risk reduction
 
 ## Usage
 
