@@ -4,39 +4,40 @@ on:
   pull_request:
   push:
     branches:
-      - 'main'
+      - "main"
 
 jobs:
-
   lint:
     name: Linting & Coding Standards
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install Rust Toolchain
-      run: |
-        rustup update
-        rustup component add clippy
-    - name: Lint
-      run: |
-        cargo fmt -- --check
-        cargo clippy --all-targets
+      - uses: actions/checkout@v3
+      - name: Install Rust Toolchain
+        run: |
+          rustup update
+          rustup component add clippy
+      - name: Setup Cache
+        uses: Swatinem/rust-cache@v2
+      - name: Lint
+        run: |
+          cargo fmt -- --check
+          cargo clippy --all-targets
 
   dependencies:
     name: Check Dependencies
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install Rust Toolchain
-      run: |
-        rustup update
-        rustup install nightly
-        cargo install cargo-udeps
-    - name: Check for unused dependencies
-      run: |
-        cargo +nightly udeps
+      - uses: actions/checkout@v3
+      - name: Install Rust Toolchain
+        run: |
+          rustup update
+          rustup install nightly
+          cargo install cargo-udeps
+      - name: Check for unused dependencies
+        run: |
+          cargo +nightly udeps
 
   test:
     name: Test Suite Runs - ${{ matrix.test-arm }}
@@ -47,29 +48,31 @@ jobs:
       matrix:
         include:
           - # test with the current stable version
-            test-arm: 'Stable'
-            rust-version: 'stable'
+            test-arm: "Stable"
+            rust-version: "stable"
             continue-on-error: false
           - # test with the MSRV version
-            test-arm: 'Minimum Supported Rust Version'
-            rust-version: '1.70.0'
+            test-arm: "Minimum Supported Rust Version"
+            rust-version: "1.70.0"
             continue-on-error: false
           - # test with the current nightly version (allowed to fail)
-            test-arm: 'Nightly'
-            rust-version: 'nightly'
+            test-arm: "Nightly"
+            rust-version: "nightly"
             continue-on-error: true
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install Rust Toolchain
-      run: |
-        rustup update
-        rustup install ${{ matrix.rust-version }}
-    - name: Build
-      run: cargo +${{ matrix.rust-version }} build --verbose
-      continue-on-error: ${{ matrix.continue-on-error }}
-    - name: Execute tests
-      run: cargo +${{ matrix.rust-version }} test --verbose
-      continue-on-error: ${{ matrix.continue-on-error }}
-    - name: Run CLI
-      run: cargo +${{ matrix.rust-version }} run -- cyclonedx
+      - uses: actions/checkout@v3
+      - name: Install Rust Toolchain
+        run: |
+          rustup update
+          rustup install ${{ matrix.rust-version }}
+      - name: Setup Cache
+        uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo +${{ matrix.rust-version }} build --verbose
+        continue-on-error: ${{ matrix.continue-on-error }}
+      - name: Execute tests
+        run: cargo +${{ matrix.rust-version }} test --verbose
+        continue-on-error: ${{ matrix.continue-on-error }}
+      - name: Run CLI
+        run: cargo +${{ matrix.rust-version }} run -- cyclonedx

@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       releaseType:
-        description: 'cargo-cyclonedx release type (major, minor, patch)'
+        description: "cargo-cyclonedx release type (major, minor, patch)"
         required: true
-        default: 'patch'
+        default: "patch"
 
 jobs:
   deploy:
@@ -20,6 +20,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Setup Cache
+        uses: Swatinem/rust-cache@v2
       - name: Cargo bump
         run: |
           cargo install cargo-edit
