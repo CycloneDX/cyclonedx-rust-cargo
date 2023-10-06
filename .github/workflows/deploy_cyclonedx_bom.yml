@@ -44,6 +44,7 @@ jobs:
           git commit -am "New development bump of cyclonedx-bom to ${{steps.version.outputs.CARGO_VERSION}}"
           git tag -a $TAG_NAME -m "cyclonedx-bom $CARGO_VERSION release"
           git push --follow-tags
+
   build-prod:
     # Set the job to run on the platform specified by the matrix below
     runs-on: ${{ matrix.runner }}
@@ -102,6 +103,7 @@ jobs:
         with:
           name: ${{ steps.zip.outputs.ZIPFILE }}
           path: ${{ steps.zip.outputs.ZIPFILE }}
+
   release:
     needs: [deploy, build-prod]
     runs-on: ubuntu-latest
