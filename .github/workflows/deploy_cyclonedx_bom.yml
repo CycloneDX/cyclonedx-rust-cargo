@@ -33,8 +33,8 @@ jobs:
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
       - name: Build one time, for sanity
         run: cargo build
-      - name: Publish
-        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --allow-dirty
+      # - name: Publish
+      #   run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --allow-dirty
       - name: Configure git and add files
         run: |
           CARGO_VERSION=${{ steps.version.outputs.CARGO_VERSION }}
