@@ -1,13 +1,11 @@
 name: Deploy cyclonedx-bom to Crates.io
-
 on:
   workflow_dispatch:
     inputs:
       releaseType:
-        description: 'cyclonedx-bom release type (major, minor, patch)'
+        description: "cyclonedx-bom release type (major, minor, patch)"
         required: true
-        default: 'patch'
-
+        default: "patch"
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,22 +18,112 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Setup Cache
+        uses: Swatinem/rust-cache@v2
       - name: Cargo bump
         run: |
           cargo install cargo-edit
           cargo set-version --package cyclonedx-bom --bump ${{ github.event.inputs.releaseType }}
-      - name: Retrieve new version
-        run: |
-          echo "::set-output name=CARGO_VERSION::$(cargo metadata | jq -r '.packages[] | select(.name == "cyclonedx-bom") | .version')"
+      - name: Set new version and tag name
         id: version
+        run: |
+          CARGO_VERSION=$(cargo metadata | jq -r '.packages[] | select(.name == "cyclonedx-bom") | .version')
+          echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_OUTPUT
+          TAG_NAME=cyclonedx-bom-$CARGO_VERSION
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
       - name: Build one time, for sanity
         run: cargo build
       - name: Publish
         run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --allow-dirty
       - name: Configure git and add files
         run: |
+          CARGO_VERSION=${{ steps.version.outputs.CARGO_VERSION }}
+          TAG_NAME=${{ steps.version.outputs.TAG_NAME }}
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git commit -am "New development bump of cyclonedx-bom to ${{steps.version.outputs.CARGO_VERSION}}"
-          git tag -a "cyclonedx-bom-${{steps.version.outputs.CARGO_VERSION}}" -m "cyclonedx-bom ${{steps.version.outputs.CARGO_VERSION}} release"
+          git tag -a $TAG_NAME -m "cyclonedx-bom $CARGO_VERSION release"
           git push --follow-tags
+  build-prod:
+    # Set the job to run on the platform specified by the matrix below
+    runs-on: ${{ matrix.runner }}
+    needs: deploy
+    # Define the build matrix for cross-compilation
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - name: win-amd64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: macos-amd64
+            runner: macos-latest
+            target: x86_64-apple-darwin
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout latest release tag
+        run: |
+          echo "${{ needs.deploy.outputs.TAG_NAME }}"
+          TAG_NAME=${{ needs.deploy.outputs.TAG_NAME }}
+          git checkout $TAG_NAME
+          git status
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "${{ matrix.target }}"
+      - name: Setup Cache
+        uses: Swatinem/rust-cache@v2
+      - name: Build Prod Binary
+        run: cargo build --verbose --locked --release --target ${{ matrix.target }}
+      - name: Rename and zip artifact
+        id: zip
+        run: |
+          FILENAME=cargo-cyclonedx-${{ matrix.name }}
+          FILEPATH=target/${{ matrix.target }}/release/cargo-cyclonedx
+          ZIPFILE=""
+          if [[ ${{ matrix.name }} == *"win"* ]]; then
+            ZIPFILE="$FILENAME.zip"
+            FILENAME="$FILENAME.exe"
+            mv $FILEPATH $FILENAME
+            zip -r $ZIPFILE $FILENAME
+          else
+            mv $FILEPATH $FILENAME
+            ZIPFILE="$FILENAME.tar.gz"
+            tar czfv $ZIPFILE $FILENAME
+          fi
+          echo "ARTIFACT=$ZIPFILE" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.zip.outputs.ZIPFILE }}
+          path: ${{ steps.zip.outputs.ZIPFILE }}
+  release:
+    needs: [deploy, build-prod]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+      - name: Review and move artifacts
+        run: |
+          mkdir dist
+          find artifacts -type f -exec mv {} dist \;
+          ls -lh dist
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: "cyclonedx-bom-${{ needs.deploy.outputs.TAG_NAME }}"
+          tag_name: ${{ needs.deploy.outputs.TAG_NAME }}
+          files: "dist/*"
