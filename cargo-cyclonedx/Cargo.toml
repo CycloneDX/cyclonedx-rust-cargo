@@ -22,7 +22,7 @@ lto = "thin"
 
 [dependencies]
 anyhow = "1.0.75"
-cargo = "0.73.0"
+cargo = "0.74.0"
 clap = { version = "4.4.0", features = ["derive"] }
 cyclonedx-bom = { version = "0.4.1", path = "../cyclonedx-bom" }
 env_logger = "0.10.0"
