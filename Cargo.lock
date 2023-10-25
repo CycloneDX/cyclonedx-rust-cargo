@@ -218,6 +218,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3e368af43e418a04d52505cf3dbc23dda4e3407ae2fa99fd0e4f308ce546acc"
 
 [[package]]
+name = "camino"
+version = "1.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c59e92b5a388f549b863a7bea62612c09f24c8393560709a54558a9abdfb3b9c"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "cargo"
 version = "0.73.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -293,6 +302,7 @@ dependencies = [
  "assert_cmd",
  "assert_fs",
  "cargo",
+ "cargo_metadata",
  "clap",
  "cyclonedx-bom",
  "env_logger",
@@ -335,6 +345,20 @@ dependencies = [
  "tempfile",
  "walkdir",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "cargo_metadata"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d886547e41f740c616ae73108f6eb70afe6d940c7bc697cb30f13daec073037"
+dependencies = [
+ "camino",
+ "cargo-platform",
+ "semver",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]
