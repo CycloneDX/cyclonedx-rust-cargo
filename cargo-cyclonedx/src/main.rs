@@ -51,6 +51,8 @@ use std::{
     path::PathBuf,
 };
 
+use cargo_metadata::{self, Metadata};
+
 use anyhow::Result;
 use clap::Parser;
 use env_logger::Builder;
@@ -63,10 +65,11 @@ fn main() -> anyhow::Result<()> {
     let Opts::Bom(args) = Opts::parse();
     setup_logging(&args)?;
 
-    let manifest_path = locate_manifest(&args)?;
     let cli_config = args.as_config()?;
 
-    let ws = Workspace::new(&manifest_path, &config)?;
+    log::trace!("Running `cargo metadata` started");
+    let metadata = get_metadata(&args)?;
+    log::trace!("Running `cargo metadata` finished");
 
     log::trace!("SBOM generation started");
     let boms = SbomGenerator::create_sboms(ws, &cli_config)?;
@@ -121,4 +124,13 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
         );
         Ok(manifest_path)
     }
+}
+
+fn get_metadata(args: &Args) -> anyhow::Result<Metadata> {
+    let manifest_path = locate_manifest(&args)?;
+
+    let mut cmd = cargo_metadata::MetadataCommand::new();
+    cmd.manifest_path(manifest_path);
+    // TODO: allow customizing the target platform, etc.
+    cmd.exec().map_err(|e| e.into())
 }
