@@ -56,8 +56,6 @@ use clap::Parser;
 use env_logger::Builder;
 use log::LevelFilter;
 
-#[deny(clippy::all)]
-#[deny(warnings)]
 mod cli;
 use cli::{Args, Opts};
 
