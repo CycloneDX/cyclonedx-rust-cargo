@@ -29,6 +29,10 @@ use cargo::core::Resolve;
 use cargo::core::Workspace;
 use cargo::ops;
 
+use cargo_metadata;
+use cargo_metadata::Metadata as CargoMetadata;
+use cargo_metadata::PackageId;
+
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
 use cyclonedx_bom::external_models::uri::{Purl, Uri};
@@ -55,15 +59,16 @@ pub struct SbomGenerator {}
 
 impl SbomGenerator {
     pub fn create_sboms(
-        ws: Workspace,
+        meta: CargoMetadata,
         config_override: &SbomConfig,
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
         log::trace!(
             "Processing the workspace {} configuration",
-            ws.root_manifest().to_string_lossy()
+            meta.workspace_root
         );
-        let workspace_config = config_from_toml(ws.custom_metadata())?;
-        let members: Vec<Package> = ws.members().cloned().collect();
+        // TODO: restore custom TOML config support, or just gut it?
+        let workspace_config = config_from_toml(None)?;
+        let members: Vec<PackageId> = meta.workspace_members;
 
         let (package_ids, resolve) =
             ops::resolve_ws(&ws).map_err(|error| GeneratorError::CargoConfigError {
