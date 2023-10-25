@@ -45,8 +45,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use cargo::core::Workspace;
-use cargo::Config;
 use cargo_cyclonedx::generator::SbomGenerator;
 use std::{
     io::{self},
@@ -65,8 +63,7 @@ use cli::{Args, Opts};
 
 fn main() -> anyhow::Result<()> {
     let Opts::Bom(args) = Opts::parse();
-    let mut config = Config::default()?;
-    setup_logging(&args, &mut config)?;
+    setup_logging(&args)?;
 
     let manifest_path = locate_manifest(&args)?;
     let cli_config = args.as_config()?;
@@ -86,7 +83,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn setup_logging(args: &Args, config: &mut Config) -> anyhow::Result<()> {
+fn setup_logging(args: &Args) -> anyhow::Result<()> {
     let mut builder = Builder::new();
 
     // default cargo internals to quiet unless overridden via an environment variable
@@ -104,22 +101,8 @@ fn setup_logging(args: &Args, config: &mut Config) -> anyhow::Result<()> {
         }
     };
     builder.filter_level(level_filter);
-
     builder.parse_default_env(); // allow overriding CLI arguments
     builder.try_init()?;
-
-    // configure logging level of cargo to match what was passed via CLI
-    config.configure(
-        args.verbose as u32,
-        args.quiet,
-        None,
-        false,
-        false,
-        false,
-        &None,
-        &[],
-        &[],
-    )?;
 
     Ok(())
 }
