@@ -24,6 +24,7 @@ use crate::toml::config_from_file;
 use crate::toml::ConfigError;
 
 use cargo_metadata;
+use cargo_metadata::DependencyKind;
 use cargo_metadata::Metadata as CargoMetadata;
 use cargo_metadata::Node;
 use cargo_metadata::Package;
@@ -393,22 +394,33 @@ fn top_level_dependencies(
     resolve: &ResolveMap,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
-    let direct_dep_ids = resolve[member].dependencies.as_slice();
+
+    // Only include packages that have dependency kinds other than "Development"
+    let direct_dep_ids: Vec<&PackageId> = resolve[member]
+        .deps
+        .iter()
+        .filter(|p| {
+            p.dep_kinds
+                .iter()
+                .any(|dep| dep.kind != DependencyKind::Development)
+        })
+        .map(|p| &p.pkg)
+        .collect();
 
     let mut pkg_result = PackageMap::new();
     pkg_result.insert(member.to_owned(), packages[member].to_owned());
-    for id in direct_dep_ids {
-        pkg_result.insert(id.to_owned(), packages[id].to_owned());
+    for id in &direct_dep_ids {
+        pkg_result.insert((*id).to_owned(), packages[id].to_owned());
     }
 
     let mut resolve_result = ResolveMap::new();
     resolve_result.insert(member.to_owned(), resolve[member].clone());
-    for id in direct_dep_ids {
+    for id in &direct_dep_ids {
         // Clear all depedencies, pretend there is only one level
         let mut node = resolve[id].clone();
         node.deps = Vec::new();
         node.dependencies = Vec::new();
-        resolve_result.insert(id.to_owned(), node);
+        resolve_result.insert((*id).to_owned(), node);
     }
 
     (pkg_result, resolve_result)
