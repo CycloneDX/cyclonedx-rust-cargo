@@ -132,7 +132,7 @@ fn create_bom(package: &PackageId, dependencies: &PackageMap) -> Result<Bom, Gen
 
     bom.components = Some(Components(components));
 
-    let metadata = create_metadata(package)?;
+    let metadata = create_metadata(&dependencies[package])?;
 
     bom.metadata = Some(metadata);
 
@@ -140,13 +140,13 @@ fn create_bom(package: &PackageId, dependencies: &PackageMap) -> Result<Bom, Gen
 }
 
 fn create_component(package: &Package) -> Component {
-    let name = package.name().to_owned().trim().to_string();
-    let version = package.version().to_string();
+    let name = package.name.to_owned().trim().to_string();
+    let version = package.version.to_string();
 
     let purl = match Purl::new("cargo", &name, &version) {
         Ok(purl) => Some(purl),
         Err(e) => {
-            log::error!("Package {} has an invalid Purl: {} ", package.name(), e);
+            log::error!("Package {} has an invalid Purl: {} ", package.name, e);
             None
         }
     };
@@ -164,8 +164,6 @@ fn create_component(package: &Package) -> Component {
     component.licenses = get_licenses(package);
 
     component.description = package
-        .manifest()
-        .metadata()
         .description
         .as_ref()
         .map(|s| NormalizedString::new(s));
@@ -174,7 +172,8 @@ fn create_component(package: &Package) -> Component {
 }
 
 fn get_classification(pkg: &Package) -> Classification {
-    if pkg.targets().iter().any(|tgt| tgt.is_bin()) {
+    // FIXME: this is almost certainly wrong
+    if pkg.targets.iter().any(|tgt| tgt.is_bin()) {
         return Classification::Application;
     }
 
@@ -184,9 +183,7 @@ fn get_classification(pkg: &Package) -> Classification {
 fn get_external_references(package: &Package) -> Option<ExternalReferences> {
     let mut references = Vec::new();
 
-    let metadata = package.manifest().metadata();
-
-    if let Some(documentation) = &metadata.documentation {
+    if let Some(documentation) = &package.documentation {
         match Uri::try_from(documentation.to_string()) {
             Ok(uri) => references.push(ExternalReference::new(
                 ExternalReferenceType::Documentation,
@@ -194,43 +191,43 @@ fn get_external_references(package: &Package) -> Option<ExternalReferences> {
             )),
             Err(e) => log::error!(
                 "Package {} has an invalid documentation URI ({}): {} ",
-                package.name(),
+                package.name,
                 documentation,
                 e
             ),
         }
     }
 
-    if let Some(website) = &metadata.homepage {
+    if let Some(website) = &package.homepage {
         match Uri::try_from(website.to_string()) {
             Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Website, uri)),
             Err(e) => log::error!(
                 "Package {} has an invalid homepage URI ({}): {} ",
-                package.name(),
+                package.name,
                 website,
                 e
             ),
         }
     }
 
-    if let Some(other) = &metadata.links {
+    if let Some(other) = &package.links {
         match Uri::try_from(other.to_string()) {
             Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Other, uri)),
             Err(e) => log::error!(
                 "Package {} has an invalid links URI ({}): {} ",
-                package.name(),
+                package.name,
                 other,
                 e
             ),
         }
     }
 
-    if let Some(vcs) = &metadata.repository {
+    if let Some(vcs) = &package.repository {
         match Uri::try_from(vcs.to_string()) {
             Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
             Err(e) => log::error!(
                 "Package {} has an invalid repository URI ({}): {} ",
-                package.name(),
+                package.name,
                 vcs,
                 e
             ),
@@ -247,13 +244,13 @@ fn get_external_references(package: &Package) -> Option<ExternalReferences> {
 fn get_licenses(package: &Package) -> Option<Licenses> {
     let mut licenses = vec![];
 
-    if let Some(license) = package.manifest().metadata().license.as_ref() {
+    if let Some(license) = package.license.as_ref() {
         match SpdxExpression::try_from(license.to_string()) {
             Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
             Err(err) => {
                 log::error!(
                     "Package {} has an invalid license expression, trying lax parsing ({}): {}",
-                    package.name(),
+                    package.name,
                     license,
                     err
                 );
@@ -263,7 +260,7 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
                     Err(err) => {
                         log::error!(
                         "Package {} has an invalid license expression that could not be converted to a valid expression, using named license ({}): {}",
-                        package.name(),
+                        package.name,
                         license,
                         err
                     );
@@ -276,7 +273,7 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
     }
 
     if licenses.is_empty() {
-        log::trace!("Package {} has no licenses", package.name());
+        log::trace!("Package {} has no licenses", package.name);
         return None;
     }
 
@@ -308,7 +305,7 @@ fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
     let mut authors = vec![];
     let mut invalid_authors = vec![];
 
-    for author in &package.manifest().metadata().authors {
+    for author in &package.authors {
         match parse_author(author) {
             Ok(author) => authors.push(author),
             Err(e) => invalid_authors.push((author, e)),
