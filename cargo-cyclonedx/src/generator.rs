@@ -100,7 +100,7 @@ impl SbomGenerator {
 
             let generated = GeneratedSbom {
                 bom,
-                manifest_path: packages[member].manifest_path.into_std_path_buf(),
+                manifest_path: packages[member].manifest_path.clone().into_std_path_buf(),
                 package_name: packages[member].name.clone(),
                 sbom_config: config,
             };
