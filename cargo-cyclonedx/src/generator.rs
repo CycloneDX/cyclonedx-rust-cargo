@@ -164,7 +164,7 @@ fn create_component(package: &Package) -> Component {
         Classification::Library,
         &name,
         &version,
-        purl.clone().map(|p| p.to_string()),
+        Some(package.id.to_string()),
     );
 
     component.purl = purl;
