@@ -25,6 +25,7 @@ use crate::toml::ConfigError;
 
 use cargo_metadata;
 use cargo_metadata::Metadata as CargoMetadata;
+use cargo_metadata::Node;
 use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
@@ -54,6 +55,7 @@ use validator::validate_email;
 
 // Maps from PackageId to Package for efficiency - faster lookups than in a Vec
 type PackageMap = BTreeMap<PackageId, Package>;
+type ResolveMap = BTreeMap<PackageId, Node>;
 
 pub struct SbomGenerator {}
 
@@ -70,6 +72,7 @@ impl SbomGenerator {
         let workspace_config = config_from_file(manifest_path)?;
         let members: Vec<PackageId> = meta.workspace_members;
         let packages = index_packages(meta.packages);
+        let resolve = index_resolve(meta.resolve.unwrap().nodes);
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
@@ -113,6 +116,13 @@ impl SbomGenerator {
 }
 
 fn index_packages(packages: Vec<Package>) -> PackageMap {
+    packages
+        .into_iter()
+        .map(|pkg| (pkg.id.clone(), pkg))
+        .collect()
+}
+
+fn index_resolve(packages: Vec<Node>) -> ResolveMap {
     packages
         .into_iter()
         .map(|pkg| (pkg.id.clone(), pkg))
@@ -378,45 +388,35 @@ pub enum GeneratorError {
     InvalidRegexError(#[source] regex::Error),
 }
 
-// fn top_level_dependencies(
-//     member: &Package,
-//     package_ids: &PackageSet<'_>,
-//     resolve: &Resolve,
-// ) -> Result<BTreeSet<Package>, GeneratorError> {
-//     log::trace!("Adding top-level dependencies to SBOM");
-//     let mut dependencies = BTreeSet::new();
+fn top_level_dependencies(
+    member: &PackageId,
+    packages: &PackageMap,
+    resolve: &ResolveMap,
+) -> (PackageMap, ResolveMap) {
+    log::trace!("Adding top-level dependencies to SBOM");
+    let direct_dep_ids = resolve[member].dependencies.as_slice();
 
-//     let all_dependencies = resolve
-//         .deps(member.package_id())
-//         .filter(move |r| r.0 != member.package_id())
-//         .flat_map(|(_, dependency)| dependency)
-//         .filter(|d| d.kind() == DepKind::Normal);
+    // FIXME: also include the root package.
+    // We will need it for the dependency graph later,
+    // but the previous code omitted it from components,
+    // so we emulate the behavior of the previous code for now.
 
-//     for dependency in all_dependencies {
-//         log::trace!("Dependency: {dependency:?}");
-//         match package_ids
-//             .package_ids()
-//             .find(|id| dependency.matches_id(*id))
-//         {
-//             Some(package_id) => {
-//                 let package = package_ids
-//                     .get_one(package_id)
-//                     .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-//                 dependencies.insert(package.to_owned());
-//             }
-//             None => {
-//                 log::warn!(
-//                     "Unable to find package for dependency (name: {}, req: {}, source_id: {})",
-//                     dependency.package_name(),
-//                     dependency.version_req(),
-//                     dependency.source_id(),
-//                 );
-//             }
-//         }
-//     }
+    let mut pkg_result = PackageMap::new();
+    for id in direct_dep_ids {
+        pkg_result.insert(id.to_owned(), packages[id].to_owned());
+    }
 
-//     Ok(dependencies)
-// }
+    let mut resolve_result = ResolveMap::new();
+    for id in direct_dep_ids {
+        // Clear all depedencies, pretend there is only one level
+        let mut node = resolve[id].clone();
+        node.deps = Vec::new();
+        node.dependencies = Vec::new();
+        resolve_result.insert(id.to_owned(), node);
+    }
+
+    (pkg_result, resolve_result)
+}
 
 // fn all_dependencies(
 //     members: &[Package],
