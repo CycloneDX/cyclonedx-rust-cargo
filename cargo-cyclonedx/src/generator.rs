@@ -378,67 +378,67 @@ pub enum GeneratorError {
     InvalidRegexError(#[source] regex::Error),
 }
 
-fn top_level_dependencies(
-    member: &Package,
-    package_ids: &PackageSet<'_>,
-    resolve: &Resolve,
-) -> Result<BTreeSet<Package>, GeneratorError> {
-    log::trace!("Adding top-level dependencies to SBOM");
-    let mut dependencies = BTreeSet::new();
+// fn top_level_dependencies(
+//     member: &Package,
+//     package_ids: &PackageSet<'_>,
+//     resolve: &Resolve,
+// ) -> Result<BTreeSet<Package>, GeneratorError> {
+//     log::trace!("Adding top-level dependencies to SBOM");
+//     let mut dependencies = BTreeSet::new();
 
-    let all_dependencies = resolve
-        .deps(member.package_id())
-        .filter(move |r| r.0 != member.package_id())
-        .flat_map(|(_, dependency)| dependency)
-        .filter(|d| d.kind() == DepKind::Normal);
+//     let all_dependencies = resolve
+//         .deps(member.package_id())
+//         .filter(move |r| r.0 != member.package_id())
+//         .flat_map(|(_, dependency)| dependency)
+//         .filter(|d| d.kind() == DepKind::Normal);
 
-    for dependency in all_dependencies {
-        log::trace!("Dependency: {dependency:?}");
-        match package_ids
-            .package_ids()
-            .find(|id| dependency.matches_id(*id))
-        {
-            Some(package_id) => {
-                let package = package_ids
-                    .get_one(package_id)
-                    .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-                dependencies.insert(package.to_owned());
-            }
-            None => {
-                log::warn!(
-                    "Unable to find package for dependency (name: {}, req: {}, source_id: {})",
-                    dependency.package_name(),
-                    dependency.version_req(),
-                    dependency.source_id(),
-                );
-            }
-        }
-    }
+//     for dependency in all_dependencies {
+//         log::trace!("Dependency: {dependency:?}");
+//         match package_ids
+//             .package_ids()
+//             .find(|id| dependency.matches_id(*id))
+//         {
+//             Some(package_id) => {
+//                 let package = package_ids
+//                     .get_one(package_id)
+//                     .map_err(|error| GeneratorError::PackageError { package_id, error })?;
+//                 dependencies.insert(package.to_owned());
+//             }
+//             None => {
+//                 log::warn!(
+//                     "Unable to find package for dependency (name: {}, req: {}, source_id: {})",
+//                     dependency.package_name(),
+//                     dependency.version_req(),
+//                     dependency.source_id(),
+//                 );
+//             }
+//         }
+//     }
 
-    Ok(dependencies)
-}
+//     Ok(dependencies)
+// }
 
-fn all_dependencies(
-    members: &[Package],
-    package_ids: &PackageSet<'_>,
-    resolve: &Resolve,
-) -> Result<BTreeSet<Package>, GeneratorError> {
-    log::trace!("Adding all dependencies to SBOM");
-    let mut dependencies = BTreeSet::new();
+// fn all_dependencies(
+//     members: &[Package],
+//     package_ids: &PackageSet<'_>,
+//     resolve: &Resolve,
+// ) -> Result<BTreeSet<Package>, GeneratorError> {
+//     log::trace!("Adding all dependencies to SBOM");
+//     let mut dependencies = BTreeSet::new();
 
-    for package_id in resolve.iter() {
-        let package = package_ids
-            .get_one(package_id)
-            .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-        if members.contains(package) {
-            // Skip listing our own packages in our workspace
-            continue;
-        }
-        dependencies.insert(package.to_owned());
-    }
+//     for package_id in resolve.iter() {
+//         let package = package_ids
+//             .get_one(package_id)
+//             .map_err(|error| GeneratorError::PackageError { package_id, error })?;
+//         if members.contains(package) {
+//             // Skip listing our own packages in our workspace
+//             continue;
+//         }
+//         dependencies.insert(package.to_owned());
+//     }
 
-    Ok(dependencies)
-}
+//     Ok(dependencies)
+// }
 
 /// Contains a generated SBOM and context used in its generation
 ///
