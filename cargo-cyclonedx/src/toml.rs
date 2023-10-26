@@ -25,6 +25,11 @@ use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
 
+// FIXME: this currently reads from `[cyclonedx]` instead of `[workspace.metadata.cyclonedx]`
+// or [package.metadata.cyclonedx]. This is a regression from 0.3.8.
+// This is not yet fixed because the jury is still out on whether we want this mechanism at all:
+// https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/495
+
 pub fn config_from_file(file: &Path) -> Result<SbomConfig, ConfigError> {
     let file_contents = std::fs::read(file)?;
     // we can .unwrap() here because Cargo.toml that's not UTF-8 will be rejected by Cargo
