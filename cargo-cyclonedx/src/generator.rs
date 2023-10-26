@@ -47,6 +47,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use std::convert::TryFrom;
+use std::io::BufWriter;
 use std::{collections::BTreeSet, fs::File, path::PathBuf};
 use thiserror::Error;
 use validator::validate_email;
@@ -451,16 +452,17 @@ impl GeneratedSbom {
     pub fn write_to_file(self) -> Result<(), SbomWriterError> {
         let path = self.manifest_path.with_file_name(self.filename());
         log::info!("Outputting {}", path.display());
-        let mut file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
+        let file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
+        let mut writer = BufWriter::new(file);
         match self.sbom_config.format() {
             Format::Json => {
                 self.bom
-                    .output_as_json_v1_3(&mut file)
+                    .output_as_json_v1_3(&mut writer)
                     .map_err(SbomWriterError::JsonWriteError)?;
             }
             Format::Xml => {
                 self.bom
-                    .output_as_xml_v1_3(&mut file)
+                    .output_as_xml_v1_3(&mut writer)
                     .map_err(SbomWriterError::XmlWriteError)?;
             }
         }
