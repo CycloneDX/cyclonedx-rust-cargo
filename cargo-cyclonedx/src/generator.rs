@@ -241,7 +241,7 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
         match SpdxExpression::try_from(license.to_string()) {
             Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
             Err(err) => {
-                log::error!(
+                log::debug!(
                     "Package {} has an invalid license expression, trying lax parsing ({}): {}",
                     package.name(),
                     license,
