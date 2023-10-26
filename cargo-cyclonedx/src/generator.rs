@@ -427,16 +427,14 @@ fn all_dependencies(
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
-    // Initialize the output with the root node
-    let mut out_resolve = ResolveMap::new();
-    out_resolve.insert(root.to_owned(), resolve[root].clone());
-
     // Note: using Vec (without deduplication) can theoreticall cause quadratic memory usage,
     // but since `Node` does not implement `Ord` or `Hash` it's hard to deduplicate them.
     // These are all pointers so it's highly unlikely to be an issue in practice.
     // We can work around this by using a map instead of a set if need be.
     let mut current_queue: Vec<&Node> = vec![&resolve[root]];
     let mut next_queue: Vec<&Node> = Vec::new();
+
+    let mut out_resolve = ResolveMap::new();
 
     // Run breadth-first search (BFS) over the dependency graph
     // to determine which nodes are actually dependened on by our package
