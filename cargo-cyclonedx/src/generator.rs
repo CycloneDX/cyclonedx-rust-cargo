@@ -27,6 +27,7 @@ use cargo_metadata;
 use cargo_metadata::DependencyKind;
 use cargo_metadata::Metadata as CargoMetadata;
 use cargo_metadata::Node;
+use cargo_metadata::NodeDep;
 use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
@@ -396,14 +397,7 @@ fn top_level_dependencies(
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let direct_dep_ids: Vec<&PackageId> = resolve[member]
-        .deps
-        .iter()
-        .filter(|p| {
-            p.dep_kinds
-                .iter()
-                .any(|dep| dep.kind != DependencyKind::Development)
-        })
+    let direct_dep_ids: Vec<&PackageId> = non_dev_dependencies(&resolve[member].deps)
         .map(|p| &p.pkg)
         .collect();
 
@@ -438,6 +432,16 @@ fn all_dependencies(
     // or dependencies of other packages in the workspace
 
     (packages.clone(), resolve.clone())
+}
+
+/// Filters out dependencies only used for development, and not affecting the final binary.
+/// These are specified under `[dev-dependencies]` in Cargo.toml.
+fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
+    input.iter().filter(|p| {
+        p.dep_kinds
+            .iter()
+            .any(|dep| dep.kind != DependencyKind::Development)
+    })
 }
 
 /// Contains a generated SBOM and context used in its generation
