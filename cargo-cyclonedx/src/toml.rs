@@ -21,8 +21,22 @@ use crate::format::Format;
 
 use serde::Deserialize;
 use std::convert::{TryFrom, TryInto};
+use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
+
+pub fn config_from_file(file: &Path) -> Result<SbomConfig, ConfigError> {
+    let file_contents = std::fs::read(file)?;
+    // we can .unwrap() here because Cargo.toml that's not UTF-8 will be rejected by Cargo
+    let string = std::str::from_utf8(&file_contents).unwrap();
+    config_from_toml_str(string)
+}
+
+pub fn config_from_toml_str(toml_text: &str) -> Result<SbomConfig, ConfigError> {
+    // we can .unwrap() here because Cargo.toml that's not valid TOML will be rejected by Cargo
+    let toml: toml::Value = toml::from_str(toml_text).unwrap();
+    config_from_toml(Some(&toml))
+}
 
 pub fn config_from_toml(value: Option<&toml::value::Value>) -> Result<SbomConfig, ConfigError> {
     if let Some(value) = value {
@@ -195,7 +209,7 @@ impl From<Pattern> for config::Pattern {
     }
 }
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("Failed to deserialize configuration from Toml: {0}")]
     TomlError(String),
@@ -205,6 +219,9 @@ pub enum ConfigError {
 
     #[error("Invalid prefix from Toml")]
     CustomPrefixError(#[from] PrefixError),
+
+    #[error("Failed to read the Cargo.toml file")]
+    IoError(#[from] std::io::Error),
 }
 
 #[cfg(test)]
@@ -248,12 +265,11 @@ output_options = { cdx = true, pattern = "bom", prefix = "tacos" }
         let actual = actual
             .expect_err("Should not have been able to convert with mutually exclusive options");
 
-        assert_eq!(
-            actual,
-            ConfigError::ValidationError(
-                "OutputOptions can contain either prefix or pattern, got both".to_string()
-            )
-        );
+        match actual {
+            ConfigError::ValidationError(_) => (), // the expected outcome
+            _ => panic!("OutputOptions can contain either prefix or pattern, got both, and validation failed to catch that")
+
+        }
     }
 
     #[test]

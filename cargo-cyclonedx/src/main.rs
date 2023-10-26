@@ -48,7 +48,7 @@
 use cargo_cyclonedx::generator::SbomGenerator;
 use std::{
     io::{self},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use cargo_metadata::{self, Metadata};
@@ -66,13 +66,15 @@ fn main() -> anyhow::Result<()> {
     setup_logging(&args)?;
 
     let cli_config = args.as_config()?;
+    let manifest_path = locate_manifest(&args)?;
+    log::debug!("Found the Cargo.toml file at {}", manifest_path.display());
 
     log::trace!("Running `cargo metadata` started");
-    let metadata = get_metadata(&args)?;
+    let metadata = get_metadata(&args, &manifest_path)?;
     log::trace!("Running `cargo metadata` finished");
 
     log::trace!("SBOM generation started");
-    let boms = SbomGenerator::create_sboms(metadata, &cli_config)?;
+    let boms = SbomGenerator::create_sboms(metadata, &cli_config, &manifest_path)?;
     log::trace!("SBOM generation finished");
 
     log::trace!("SBOM output started");
@@ -126,9 +128,7 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
     }
 }
 
-fn get_metadata(args: &Args) -> anyhow::Result<Metadata> {
-    let manifest_path = locate_manifest(&args)?;
-
+fn get_metadata(_args: &Args, manifest_path: &Path) -> anyhow::Result<Metadata> {
     let mut cmd = cargo_metadata::MetadataCommand::new();
     cmd.manifest_path(manifest_path);
     // TODO: allow customizing the target platform, etc.

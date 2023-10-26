@@ -20,7 +20,7 @@ use crate::config::Pattern;
 use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::format::Format;
-use crate::toml::config_from_toml;
+use crate::toml::config_from_file;
 use crate::toml::ConfigError;
 
 use cargo_metadata;
@@ -47,6 +47,7 @@ use regex::Regex;
 
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
+use std::path::Path;
 use std::{collections::BTreeSet, fs::File, path::PathBuf};
 use thiserror::Error;
 use validator::validate_email;
@@ -60,21 +61,20 @@ impl SbomGenerator {
     pub fn create_sboms(
         meta: CargoMetadata,
         config_override: &SbomConfig,
+        manifest_path: &Path,
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
         log::trace!(
             "Processing the workspace {} configuration",
             meta.workspace_root
         );
-        // TODO: restore custom TOML config support, or just gut it?
-        let workspace_config = config_from_toml(None)?;
+        let workspace_config = config_from_file(manifest_path)?;
         let members: Vec<PackageId> = meta.workspace_members;
         let packages = index_packages(meta.packages);
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
             log::trace!("Processing the package {} configuration", member);
-            // TODO: restore custom TOML config support, or just gut it?
-            let package_config = config_from_toml(None)?;
+            let package_config = config_from_file(manifest_path)?;
             let config = workspace_config
                 .merge(&package_config)
                 .merge(config_override);
