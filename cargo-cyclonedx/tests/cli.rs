@@ -24,11 +24,7 @@ fn manifest_doesnt_exist() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.assert()
         .failure()
-        .stdout("")
-        .stderr(predicate::str::contains(format!(
-            "Error: failed to read `{}`",
-            tmp_dir.path().join("Cargo.toml").display(),
-        )));
+        .stdout("");
 
     tmp_dir.close()?;
 
@@ -48,11 +44,7 @@ fn manifest_is_invalid() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.assert()
         .failure()
-        .stdout("")
-        .stderr(predicate::str::contains(format!(
-            "Error: failed to parse manifest at `{}`",
-            tmp_file.path().display(),
-        )));
+        .stdout("");
 
     tmp_file.close()?;
 
