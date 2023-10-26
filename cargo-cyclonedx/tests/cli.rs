@@ -22,9 +22,7 @@ fn manifest_doesnt_exist() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.current_dir(tmp_dir.path()).arg("cyclonedx");
 
-    cmd.assert()
-        .failure()
-        .stdout("");
+    cmd.assert().failure().stdout("");
 
     tmp_dir.close()?;
 
@@ -42,9 +40,7 @@ fn manifest_is_invalid() -> Result<(), Box<dyn std::error::Error>> {
         .arg("--manifest-path")
         .arg(tmp_file.path());
 
-    cmd.assert()
-        .failure()
-        .stdout("");
+    cmd.assert().failure().stdout("");
 
     tmp_file.close()?;
 
