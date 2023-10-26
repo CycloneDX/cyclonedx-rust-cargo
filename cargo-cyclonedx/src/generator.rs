@@ -88,7 +88,7 @@ impl SbomGenerator {
             log::trace!("Config from config override: {:?}", config_override);
             log::debug!("Config from merged config: {:?}", config);
 
-            let (dependencies, resolve) =
+            let (dependencies, _resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(member, &packages, &resolve)
                 } else {
