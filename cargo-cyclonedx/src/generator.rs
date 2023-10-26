@@ -87,17 +87,14 @@ impl SbomGenerator {
             log::trace!("Config from config override: {:?}", config_override);
             log::debug!("Config from merged config: {:?}", config);
 
-            // TODO: restore support for reporting top-level dependencies only
-            // (assuming that mode is compliant with the CycloneDX spec)
+            let (dependencies, resolve) =
+                if config.included_dependencies() == IncludedDependencies::AllDependencies {
+                    all_dependencies(member, &packages, &resolve)
+                } else {
+                    top_level_dependencies(member, &packages, &resolve)
+                };
 
-            // let dependencies =
-            //     if config.included_dependencies() == IncludedDependencies::AllDependencies {
-            //         all_dependencies(&members, &package_ids, &resolve)?
-            //     } else {
-            //         top_level_dependencies(member, &package_ids, &resolve)?
-            //     };
-
-            let bom = create_bom(member, &packages)?;
+            let bom = create_bom(member, &dependencies)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
 
