@@ -94,7 +94,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
 
     let license = "TEST";
     let pkg_dir = tmp_dir.child(pkg_name);
-    pkg_dir.child("src/main.rs").touch()?;
+    pkg_dir.child("src/lib.rs").touch()?;
 
     pkg_dir.child("Cargo.toml").write_str(&format!(
         r#"
