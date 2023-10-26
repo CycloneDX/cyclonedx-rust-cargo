@@ -427,11 +427,41 @@ fn all_dependencies(
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
-    // FIXME: run BFS to filter out irrelevant dependencies,
-    // such as dev dependencies that do not affect the final binary
-    // or dependencies of other packages in the workspace
+    // Initialize the output with the root node
+    let mut out_resolve = ResolveMap::new();
+    out_resolve.insert(root.to_owned(), resolve[root].clone());
 
-    (packages.clone(), resolve.clone())
+    // Note: using Vec (without deduplication) can theoreticall cause quadratic memory usage,
+    // but since `Node` does not implement `Ord` or `Hash` it's hard to deduplicate them.
+    // These are all pointers so it's highly unlikely to be an issue in practice.
+    // We can work around this by using a map instead of a set if need be.
+    let mut current_queue: Vec<&Node> = vec![&resolve[root]];
+    let mut next_queue: Vec<&Node> = Vec::new();
+
+    // Run breadth-first search (BFS) over the dependency graph
+    // to determine which nodes are actually dependened on by our package
+    // (not other packages) and to remove dev-dependencies
+    while current_queue.len() != 0 {
+        for node in current_queue.drain(..) {
+            // If we haven't processed this node yet...
+            if !out_resolve.contains_key(&node.id) {
+                // Add the node to the output
+                out_resolve.insert(node.id.to_owned(), strip_dev_dependencies(node));
+                // Queue its dependencies for the next BFS loop iteration
+                next_queue.extend(non_dev_dependencies(&node.deps).map(|dep| &resolve[&dep.pkg]));
+            }
+        }
+        std::mem::swap(&mut current_queue, &mut next_queue);
+    }
+
+    // Remove everything from `packages` that doesn't appear in the `resolve` we've built
+    let out_packages = packages
+        .iter()
+        .filter(|(id, _pkg)| out_resolve.contains_key(id))
+        .map(|(id, pkg)| (id.to_owned(), pkg.to_owned()))
+        .collect();
+
+    (out_packages, out_resolve)
 }
 
 fn strip_dev_dependencies(node: &Node) -> Node {
