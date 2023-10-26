@@ -36,6 +36,7 @@ use cyclonedx_bom::external_models::spdx::SpdxExpression;
 use cyclonedx_bom::external_models::uri::{Purl, Uri};
 use cyclonedx_bom::models::bom::Bom;
 use cyclonedx_bom::models::component::{Classification, Component, Components, Scope};
+use cyclonedx_bom::models::dependency::{Dependencies, Dependency};
 use cyclonedx_bom::models::external_reference::{
     ExternalReference, ExternalReferenceType, ExternalReferences,
 };
@@ -384,6 +385,18 @@ pub enum GeneratorError {
 
     #[error("Invalid regular expression")]
     InvalidRegexError(#[source] regex::Error),
+}
+
+/// Generates the `Dependencies` field in the final SBOM
+fn create_dependencies(resolve: &ResolveMap) -> Dependencies {
+    let deps = resolve
+        .values()
+        .map(|node| Dependency {
+            dependency_ref: node.id.to_string(),
+            dependencies: node.dependencies.iter().map(|d| d.to_string()).collect(),
+        })
+        .collect();
+    Dependencies(deps)
 }
 
 fn top_level_dependencies(
