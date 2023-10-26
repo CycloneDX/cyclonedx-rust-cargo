@@ -22,15 +22,10 @@ use crate::config::SbomConfig;
 use crate::format::Format;
 use crate::toml::config_from_toml;
 use crate::toml::ConfigError;
-use cargo::core::dependency::DepKind;
-use cargo::core::Package;
-use cargo::core::PackageSet;
-use cargo::core::Resolve;
-use cargo::core::Workspace;
-use cargo::ops;
 
 use cargo_metadata;
 use cargo_metadata::Metadata as CargoMetadata;
+use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
@@ -50,10 +45,14 @@ use cyclonedx_bom::validation::Validate;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::{collections::BTreeSet, fs::File, path::PathBuf};
 use thiserror::Error;
 use validator::validate_email;
+
+// Maps from PackageId to Package for efficiency - faster lookups than in a Vec
+type PackageMap = BTreeMap<PackageId, Package>;
 
 pub struct SbomGenerator {}
 
@@ -69,20 +68,13 @@ impl SbomGenerator {
         // TODO: restore custom TOML config support, or just gut it?
         let workspace_config = config_from_toml(None)?;
         let members: Vec<PackageId> = meta.workspace_members;
-
-        let (package_ids, resolve) =
-            ops::resolve_ws(&ws).map_err(|error| GeneratorError::CargoConfigError {
-                config_filepath: ws.root_manifest().to_string_lossy().to_string(),
-                error,
-            })?;
+        let packages = index_packages(meta.packages);
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
-            log::trace!(
-                "Processing the package {} configuration",
-                member.manifest_path().to_string_lossy()
-            );
-            let package_config = config_from_toml(member.manifest().custom_metadata())?;
+            log::trace!("Processing the package {} configuration", member);
+            // TODO: restore custom TOML config support, or just gut it?
+            let package_config = config_from_toml(None)?;
             let config = workspace_config
                 .merge(&package_config)
                 .merge(config_override);
@@ -92,21 +84,24 @@ impl SbomGenerator {
             log::trace!("Config from config override: {:?}", config_override);
             log::debug!("Config from merged config: {:?}", config);
 
-            let dependencies =
-                if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(&members, &package_ids, &resolve)?
-                } else {
-                    top_level_dependencies(member, &package_ids, &resolve)?
-                };
+            // TODO: restore support for reporting top-level dependencies only
+            // (assuming that mode is compliant with the CycloneDX spec)
 
-            let bom = create_bom(member, dependencies)?;
+            // let dependencies =
+            //     if config.included_dependencies() == IncludedDependencies::AllDependencies {
+            //         all_dependencies(&members, &package_ids, &resolve)?
+            //     } else {
+            //         top_level_dependencies(member, &package_ids, &resolve)?
+            //     };
+
+            let bom = create_bom(member, &packages)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
 
             let generated = GeneratedSbom {
                 bom,
-                manifest_path: member.manifest_path().to_path_buf(),
-                package_name: member.name().to_string(),
+                manifest_path: packages[member].manifest_path.into_std_path_buf(),
+                package_name: packages[member].name.clone(),
                 sbom_config: config,
             };
 
@@ -117,11 +112,21 @@ impl SbomGenerator {
     }
 }
 
-fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Result<Bom, GeneratorError> {
+fn index_packages(packages: Vec<Package>) -> PackageMap {
+    packages
+        .into_iter()
+        .map(|pkg| (pkg.id.clone(), pkg))
+        .collect()
+}
+
+fn create_bom(package: &PackageId, dependencies: &PackageMap) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
+    // TODO: add a filter to limit the dependency list to only the chosen package.
+    // This is not even a regression because the old code didn't do this either.
+
     let components: Vec<_> = dependencies
-        .into_iter()
+        .values()
         .map(|package| create_component(&package))
         .collect();
 
