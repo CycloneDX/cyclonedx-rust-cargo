@@ -98,7 +98,7 @@ impl SbomGenerator {
                     top_level_dependencies(member, &packages, &resolve)
                 };
 
-            let bom = create_bom(member, &dependencies)?;
+            let bom = create_bom(member, &dependencies, &resolve)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
 
@@ -130,10 +130,14 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
         .collect()
 }
 
-fn create_bom(package: &PackageId, dependencies: &PackageMap) -> Result<Bom, GeneratorError> {
+fn create_bom(
+    package: &PackageId,
+    packages: &PackageMap,
+    resolve: &ResolveMap,
+) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
-    let components: Vec<_> = dependencies
+    let components: Vec<_> = packages
         .values()
         .filter(|p| &p.id != package)
         .map(|package| create_component(&package))
@@ -141,9 +145,11 @@ fn create_bom(package: &PackageId, dependencies: &PackageMap) -> Result<Bom, Gen
 
     bom.components = Some(Components(components));
 
-    let metadata = create_metadata(&dependencies[package])?;
+    let metadata = create_metadata(&packages[package])?;
 
     bom.metadata = Some(metadata);
+
+    bom.dependencies = Some(create_dependencies(resolve));
 
     Ok(bom)
 }
