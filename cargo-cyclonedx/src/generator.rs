@@ -48,9 +48,9 @@ use regex::Regex;
 
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
+use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
-use std::fs::File;
 use thiserror::Error;
 use validator::validate_email;
 
@@ -394,12 +394,8 @@ fn top_level_dependencies(
     log::trace!("Adding top-level dependencies to SBOM");
     let direct_dep_ids = resolve[member].dependencies.as_slice();
 
-    // FIXME: also include the root package?
-    // We need it for the dependency graph,
-    // but the previous code omitted it from components,
-    // so we emulate the behavior of the previous code for now.
-
     let mut pkg_result = PackageMap::new();
+    pkg_result.insert(member.to_owned(), packages[member].to_owned());
     for id in direct_dep_ids {
         pkg_result.insert(id.to_owned(), packages[id].to_owned());
     }
@@ -424,16 +420,11 @@ fn all_dependencies(
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
-    // FIXME: also include the root package, see top_level_dependencies()
-
     // FIXME: run BFS to filter out irrelevant dependencies,
     // such as dev dependencies that do not affect the final binary
     // or dependencies of other packages in the workspace
 
-    let mut pkg_result = packages.clone();
-    pkg_result.remove(member);
-
-    (pkg_result, resolve.clone())
+    (packages.clone(), resolve.clone())
 }
 
 /// Contains a generated SBOM and context used in its generation
