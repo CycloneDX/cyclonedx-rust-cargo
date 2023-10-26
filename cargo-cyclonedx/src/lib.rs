@@ -16,9 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#![deny(clippy::all)]
-#![deny(warnings)]
-
 pub mod config;
 pub mod format;
 pub mod generator;
