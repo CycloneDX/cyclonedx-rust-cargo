@@ -397,25 +397,25 @@ fn top_level_dependencies(
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let direct_dep_ids: Vec<&PackageId> = non_dev_dependencies(&resolve[member].deps)
-        .map(|p| &p.pkg)
-        .collect();
+    let root_node = strip_dev_dependencies(&resolve[member]);
 
     let mut pkg_result = PackageMap::new();
+    // Record the root package, then its direct non-dev dependencies
     pkg_result.insert(member.to_owned(), packages[member].to_owned());
-    for id in &direct_dep_ids {
+    for id in &root_node.dependencies {
         pkg_result.insert((*id).to_owned(), packages[id].to_owned());
     }
 
     let mut resolve_result = ResolveMap::new();
-    resolve_result.insert(member.to_owned(), resolve[member].clone());
-    for id in &direct_dep_ids {
+    for id in &root_node.dependencies {
         // Clear all depedencies, pretend there is only one level
         let mut node = resolve[id].clone();
         node.deps = Vec::new();
         node.dependencies = Vec::new();
         resolve_result.insert((*id).to_owned(), node);
     }
+    // Insert the root node at the end now that we're done iterating over it
+    resolve_result.insert(member.to_owned(), root_node);
 
     (pkg_result, resolve_result)
 }
@@ -432,6 +432,13 @@ fn all_dependencies(
     // or dependencies of other packages in the workspace
 
     (packages.clone(), resolve.clone())
+}
+
+fn strip_dev_dependencies(node: &Node) -> Node {
+    let mut node = node.clone();
+    node.deps = non_dev_dependencies(&node.deps).cloned().collect();
+    node.dependencies = node.deps.iter().map(|d| d.pkg.to_owned()).collect();
+    node
 }
 
 /// Filters out dependencies only used for development, and not affecting the final binary.
