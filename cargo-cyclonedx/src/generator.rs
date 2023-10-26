@@ -396,8 +396,8 @@ fn top_level_dependencies(
     log::trace!("Adding top-level dependencies to SBOM");
     let direct_dep_ids = resolve[member].dependencies.as_slice();
 
-    // FIXME: also include the root package.
-    // We will need it for the dependency graph later,
+    // FIXME: also include the root package?
+    // We need it for the dependency graph,
     // but the previous code omitted it from components,
     // so we emulate the behavior of the previous code for now.
 
@@ -418,27 +418,24 @@ fn top_level_dependencies(
     (pkg_result, resolve_result)
 }
 
-// fn all_dependencies(
-//     members: &[Package],
-//     package_ids: &PackageSet<'_>,
-//     resolve: &Resolve,
-// ) -> Result<BTreeSet<Package>, GeneratorError> {
-//     log::trace!("Adding all dependencies to SBOM");
-//     let mut dependencies = BTreeSet::new();
+fn all_dependencies(
+    member: &PackageId,
+    packages: &PackageMap,
+    resolve: &ResolveMap,
+) -> (PackageMap, ResolveMap) {
+    log::trace!("Adding all dependencies to SBOM");
 
-//     for package_id in resolve.iter() {
-//         let package = package_ids
-//             .get_one(package_id)
-//             .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-//         if members.contains(package) {
-//             // Skip listing our own packages in our workspace
-//             continue;
-//         }
-//         dependencies.insert(package.to_owned());
-//     }
+    // FIXME: also include the root package, see top_level_dependencies()
 
-//     Ok(dependencies)
-// }
+    // FIXME: run BFS to filter out irrelevant dependencies,
+    // such as dev dependencies that do not affect the final binary
+    // or dependencies of other packages in the workspace
+
+    let mut pkg_result = packages.clone();
+    pkg_result.remove(member);
+
+    (pkg_result, resolve.clone())
+}
 
 /// Contains a generated SBOM and context used in its generation
 ///
