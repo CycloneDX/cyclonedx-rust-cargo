@@ -390,18 +390,18 @@ pub enum GeneratorError {
 }
 
 fn top_level_dependencies(
-    member: &PackageId,
+    root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let root_node = strip_dev_dependencies(&resolve[member]);
+    let root_node = strip_dev_dependencies(&resolve[root]);
 
     let mut pkg_result = PackageMap::new();
     // Record the root package, then its direct non-dev dependencies
-    pkg_result.insert(member.to_owned(), packages[member].to_owned());
+    pkg_result.insert(root.to_owned(), packages[root].to_owned());
     for id in &root_node.dependencies {
         pkg_result.insert((*id).to_owned(), packages[id].to_owned());
     }
@@ -415,13 +415,13 @@ fn top_level_dependencies(
         resolve_result.insert((*id).to_owned(), node);
     }
     // Insert the root node at the end now that we're done iterating over it
-    resolve_result.insert(member.to_owned(), root_node);
+    resolve_result.insert(root.to_owned(), root_node);
 
     (pkg_result, resolve_result)
 }
 
 fn all_dependencies(
-    member: &PackageId,
+    root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
 ) -> (PackageMap, ResolveMap) {
