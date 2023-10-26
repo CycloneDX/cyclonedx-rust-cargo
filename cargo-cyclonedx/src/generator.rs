@@ -132,6 +132,9 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
 fn create_bom(package: &PackageId, dependencies: &PackageMap) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
+    // TODO: add a filter to limit the dependency list to only the chosen package.
+    // This is not even a regression because the old code didn't do this either.
+
     let components: Vec<_> = dependencies
         .values()
         .filter(|p| &p.id != package)
