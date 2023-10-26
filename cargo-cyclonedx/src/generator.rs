@@ -49,7 +49,8 @@ use regex::Regex;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::path::Path;
-use std::{collections::BTreeSet, fs::File, path::PathBuf};
+use std::path::PathBuf;
+use std::fs::File;
 use thiserror::Error;
 use validator::validate_email;
 
