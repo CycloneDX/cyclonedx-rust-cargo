@@ -360,7 +360,7 @@ pub enum GeneratorError {
 
     #[error("Error retrieving package information: {package_id}")]
     PackageError {
-        package_id: cargo::core::package_id::PackageId,
+        package_id: cargo_metadata::PackageId,
         #[source]
         error: anyhow::Error,
     },
