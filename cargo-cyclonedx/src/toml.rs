@@ -103,6 +103,7 @@ impl TryFrom<TomlConfig> for SbomConfig {
             format: value.format,
             included_dependencies: value.included_dependencies.map(Into::into),
             output_options,
+            features: None, // TODO
         })
     }
 }
