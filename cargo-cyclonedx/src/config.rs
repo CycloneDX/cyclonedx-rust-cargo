@@ -126,6 +126,12 @@ pub struct Features {
     pub features: Vec<String>,
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Target {
+    pub all_targets: bool,
+    pub target: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prefix {
     Pattern(Pattern),
