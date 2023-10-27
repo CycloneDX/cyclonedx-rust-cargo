@@ -50,8 +50,8 @@ use regex::Regex;
 
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
-use std::io::BufWriter;
 use std::fs::File;
+use std::io::BufWriter;
 use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
