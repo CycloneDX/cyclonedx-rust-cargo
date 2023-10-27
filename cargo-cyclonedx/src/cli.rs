@@ -157,3 +157,43 @@ pub enum ArgsError {
     #[error("Invalid prefix from CLI")]
     CustomPrefixError(#[from] PrefixError),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_features() {
+        let args = vec!["cyclonedx"];
+        let config = parse_to_config(&args);
+        assert!(config.features.is_none());
+
+        let args = vec!["cyclonedx", "--features=foo"];
+        let config = parse_to_config(&args);
+        assert!(contains_feature(&config, "foo"));
+
+        let args = vec!["cyclonedx", "--features=foo", "--features=bar"];
+        let config = parse_to_config(&args);
+        assert!(contains_feature(&config, "foo"));
+        assert!(contains_feature(&config, "bar"));
+
+        let args = vec!["cyclonedx", "--features=foo,bar baz"];
+        let config = parse_to_config(&args);
+        assert!(contains_feature(&config, "foo"));
+        assert!(contains_feature(&config, "bar"));
+        assert!(contains_feature(&config, "baz"));
+    }
+
+    fn parse_to_config(args: &[&str]) -> SbomConfig {
+        Args::parse_from(args.iter()).as_config().unwrap()
+    }
+
+    fn contains_feature(config: &SbomConfig, feature: &str) -> bool {
+        config
+            .features
+            .as_ref()
+            .unwrap()
+            .features
+            .contains(&feature.to_owned())
+    }
+}
