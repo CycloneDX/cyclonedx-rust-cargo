@@ -55,10 +55,10 @@ pub struct Args {
     #[clap(long = "target")]
     pub target: String,
 
-    /// Include the dependencies from all possible platforms in the SBOM
-    #[clap(long = "all-platforms")]
+    /// Include the dependencies from all possible target platforms in the SBOM
+    #[clap(long = "all-targets")]
     #[clap(conflicts_with = "target")]
-    pub all_platforms: bool,
+    pub all_targets: bool,
 
     /// List all dependencies instead of only top-level ones
     #[clap(long = "all", short = 'a')]
