@@ -37,6 +37,20 @@ pub struct Args {
     #[clap(long = "quiet", short = 'q')]
     pub quiet: bool,
 
+    // The feature selection flags are not mutually exclusive in Cargo,
+    // so we keep the same behavior here too.
+    /// Activate all available features
+    #[clap(long = "all-features")]
+    pub all_features: bool,
+
+    /// Do not activate the `default` feature
+    #[clap(long = "no-default-features")]
+    pub no_default_features: bool,
+
+    /// Space or comma separated list of features to activate
+    #[clap(long = "features", short = 'F')]
+    pub features: Option<Vec<String>>,
+
     /// List all dependencies instead of only top-level ones
     #[clap(long = "all", short = 'a')]
     pub all: bool,
