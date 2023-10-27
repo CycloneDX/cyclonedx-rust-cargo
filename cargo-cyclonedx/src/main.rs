@@ -45,13 +45,13 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use cargo_cyclonedx::generator::SbomGenerator;
+use cargo_cyclonedx::{config::SbomConfig, generator::SbomGenerator};
 use std::{
     io::{self},
     path::{Path, PathBuf},
 };
 
-use cargo_metadata::{self, Metadata};
+use cargo_metadata::{self, CargoOpt, Metadata};
 
 use anyhow::Result;
 use clap::Parser;
@@ -70,7 +70,7 @@ fn main() -> anyhow::Result<()> {
     log::debug!("Found the Cargo.toml file at {}", manifest_path.display());
 
     log::trace!("Running `cargo metadata` started");
-    let metadata = get_metadata(&args, &manifest_path)?;
+    let metadata = get_metadata(&args, &manifest_path, &cli_config)?;
     log::trace!("Running `cargo metadata` finished");
 
     log::trace!("SBOM generation started");
@@ -128,9 +128,27 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
     }
 }
 
-fn get_metadata(_args: &Args, manifest_path: &Path) -> anyhow::Result<Metadata> {
+fn get_metadata(
+    _args: &Args,
+    manifest_path: &Path,
+    config: &SbomConfig,
+) -> anyhow::Result<Metadata> {
     let mut cmd = cargo_metadata::MetadataCommand::new();
     cmd.manifest_path(manifest_path);
-    // TODO: allow customizing the target platform, etc.
-    cmd.exec().map_err(|e| e.into())
+
+    if let Some(feature_configuration) = config.features.as_ref() {
+        if feature_configuration.all_features {
+            cmd.features(CargoOpt::AllFeatures);
+        }
+        if feature_configuration.no_default_features {
+            cmd.features(CargoOpt::NoDefaultFeatures);
+        }
+        if !feature_configuration.features.is_empty() {
+            cmd.features(CargoOpt::SomeFeatures(
+                feature_configuration.features.clone(),
+            ));
+        }
+    }
+
+    Ok(cmd.exec()?)
 }
