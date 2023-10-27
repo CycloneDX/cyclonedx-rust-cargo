@@ -437,7 +437,7 @@ fn all_dependencies(
     let mut out_resolve = ResolveMap::new();
 
     // Run breadth-first search (BFS) over the dependency graph
-    // to determine which nodes are actually dependened on by our package
+    // to determine which nodes are actually depended on by our package
     // (not other packages) and to remove dev-dependencies
     while current_queue.len() != 0 {
         for node in current_queue.drain(..) {
