@@ -17,6 +17,7 @@ pub fn rustc_location() -> OsString {
 
 /// Returns the default target triple for the rustc we're running
 pub fn rustc_host_target_triple(rustc_path: &OsStr) -> String {
+    // While this feels somewhat insane, this is how `cargo` determines the host platform
     Command::new(rustc_path)
         .arg("-vV")
         .output()
