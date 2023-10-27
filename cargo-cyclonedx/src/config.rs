@@ -27,6 +27,7 @@ pub struct SbomConfig {
     pub included_dependencies: Option<IncludedDependencies>,
     pub output_options: Option<OutputOptions>,
     pub features: Option<Features>,
+    pub target: Option<Target>,
 }
 
 impl SbomConfig {
@@ -43,6 +44,7 @@ impl SbomConfig {
                 .clone()
                 .or_else(|| self.output_options.clone()),
             features: other.features.clone().or_else(|| self.features.clone()),
+            target: other.target.clone().or_else(|| self.target.clone()),
         }
     }
 
