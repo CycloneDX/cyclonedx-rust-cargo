@@ -115,7 +115,9 @@ impl Args {
                 // Feature names themselves never contain commas.
                 for space_separated_features in comma_separated_features.split(',') {
                     for feature in space_separated_features.split(' ') {
-                        feature_list.push(feature.to_owned());
+                        if !feature.is_empty() {
+                            feature_list.push(feature.to_owned());
+                        }
                     }
                 }
             }
@@ -182,6 +184,12 @@ mod tests {
         assert!(contains_feature(&config, "foo"));
         assert!(contains_feature(&config, "bar"));
         assert!(contains_feature(&config, "baz"));
+
+        let args = vec!["cyclonedx", "--features=foo, bar"];
+        let config = parse_to_config(&args);
+        assert!(contains_feature(&config, "foo"));
+        assert!(contains_feature(&config, "bar"));
+        assert!(!contains_feature(&config, ""));
     }
 
     fn parse_to_config(args: &[&str]) -> SbomConfig {
