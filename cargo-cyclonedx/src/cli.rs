@@ -109,12 +109,14 @@ impl Args {
             None
         } else {
             let mut feature_list: Vec<String> = Vec::new();
-            // Features can be comma-separated for compatibility with Cargo,
+            // Features can be comma- or space-separated for compatibility with Cargo,
             // but only in command-line arguments.
             for comma_separated_features in &self.features {
                 // Feature names themselves never contain commas.
-                for feature in comma_separated_features.split(',') {
-                    feature_list.push(feature.to_owned());
+                for space_separated_features in comma_separated_features.split(',') {
+                    for feature in space_separated_features.split(' ') {
+                        feature_list.push(feature.to_owned());
+                    }
                 }
             }
 
