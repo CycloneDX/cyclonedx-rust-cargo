@@ -439,7 +439,7 @@ fn all_dependencies(
     // Run breadth-first search (BFS) over the dependency graph
     // to determine which nodes are actually depended on by our package
     // (not other packages) and to remove dev-dependencies
-    while current_queue.len() != 0 {
+    while !current_queue.is_empty() {
         for node in current_queue.drain(..) {
             // If we haven't processed this node yet...
             if !out_resolve.contains_key(&node.id) {
