@@ -52,6 +52,8 @@ use regex::Regex;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -140,7 +142,7 @@ fn create_bom(
     let components: Vec<_> = packages
         .values()
         .filter(|p| &p.id != package)
-        .map(|package| create_component(&package))
+        .map(|package| create_component(package))
         .collect();
 
     bom.components = Some(Components(components));
@@ -443,7 +445,7 @@ fn all_dependencies(
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
-    // Note: using Vec (without deduplication) can theoreticall cause quadratic memory usage,
+    // Note: using Vec (without deduplication) can theoretically cause quadratic memory usage,
     // but since `Node` does not implement `Ord` or `Hash` it's hard to deduplicate them.
     // These are all pointers and there's not a lot of them, it's highly unlikely to be an issue in practice.
     // We can work around this by using a map instead of a set if need be.
@@ -453,9 +455,9 @@ fn all_dependencies(
     let mut out_resolve = ResolveMap::new();
 
     // Run breadth-first search (BFS) over the dependency graph
-    // to determine which nodes are actually dependened on by our package
+    // to determine which nodes are actually depended on by our package
     // (not other packages) and to remove dev-dependencies
-    while current_queue.len() != 0 {
+    while !current_queue.is_empty() {
         for node in current_queue.drain(..) {
             // If we haven't processed this node yet...
             if !out_resolve.contains_key(&node.id) {
@@ -513,19 +515,23 @@ impl GeneratedSbom {
     pub fn write_to_file(self) -> Result<(), SbomWriterError> {
         let path = self.manifest_path.with_file_name(self.filename());
         log::info!("Outputting {}", path.display());
-        let mut file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
+        let file = File::create(path)?;
+        let mut writer = BufWriter::new(file);
         match self.sbom_config.format() {
             Format::Json => {
                 self.bom
-                    .output_as_json_v1_3(&mut file)
+                    .output_as_json_v1_3(&mut writer)
                     .map_err(SbomWriterError::JsonWriteError)?;
             }
             Format::Xml => {
                 self.bom
-                    .output_as_xml_v1_3(&mut file)
+                    .output_as_xml_v1_3(&mut writer)
                     .map_err(SbomWriterError::XmlWriteError)?;
             }
         }
+
+        // Flush the writer explicitly to catch and report any I/O errors
+        writer.flush()?;
 
         Ok(())
     }
@@ -549,8 +555,8 @@ impl GeneratedSbom {
 
 #[derive(Error, Debug)]
 pub enum SbomWriterError {
-    #[error("Error creating file")]
-    FileCreateError(#[source] std::io::Error),
+    #[error("I/O error")]
+    IoError(#[source] std::io::Error),
 
     #[error("Error writing JSON file")]
     JsonWriteError(#[source] cyclonedx_bom::errors::JsonWriteError),
@@ -560,6 +566,12 @@ pub enum SbomWriterError {
 
     #[error("Error serializing to XML")]
     SerializeXmlError(#[source] std::io::Error),
+}
+
+impl From<std::io::Error> for SbomWriterError {
+    fn from(value: std::io::Error) -> Self {
+        Self::IoError(value)
+    }
 }
 
 #[cfg(test)]
