@@ -140,16 +140,10 @@ impl Args {
         };
 
         let target = Some(if self.all_targets {
-            Target {
-                all_targets: true,
-                target: None,
-            }
+            Target::AllTargets
         } else {
-            let target = Some(self.target.clone().unwrap_or_else(host_platform));
-            Target {
-                all_targets: false,
-                target,
-            }
+            let target = self.target.clone().unwrap_or_else(host_platform);
+            Target::SingleTarget(target)
         });
 
         let output_options = match (cdx_extension, prefix) {

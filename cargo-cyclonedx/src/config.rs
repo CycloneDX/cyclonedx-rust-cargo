@@ -130,9 +130,10 @@ pub struct Features {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Target {
-    pub all_targets: bool,
-    pub target: Option<String>,
+pub enum Target {
+    #[default]
+    AllTargets,
+    SingleTarget(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
