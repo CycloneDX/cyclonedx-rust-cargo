@@ -35,6 +35,7 @@ impl SbomConfig {
         Default::default()
     }
 
+    /// The config passed as an argument takes priority over `Self`
     pub fn merge(&self, other: &SbomConfig) -> SbomConfig {
         SbomConfig {
             format: other.format.or(self.format),
