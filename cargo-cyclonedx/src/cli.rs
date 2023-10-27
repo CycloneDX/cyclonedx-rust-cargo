@@ -1,9 +1,10 @@
 use cargo_cyclonedx::{
     config::{
         CdxExtension, CustomPrefix, Features, IncludedDependencies, OutputOptions, Pattern, Prefix,
-        PrefixError, SbomConfig,
+        PrefixError, SbomConfig, Target,
     },
     format::Format,
+    platform::host_platform,
 };
 use clap::{ArgGroup, Parser};
 use std::path;
@@ -53,7 +54,7 @@ pub struct Args {
 
     /// The target to generate the SBOM for, e.g. x86_64-unknown-linux-gnu
     #[clap(long = "target")]
-    pub target: String,
+    pub target: Option<String>,
 
     /// Include the dependencies from all possible target platforms in the SBOM
     #[clap(long = "all-targets")]
@@ -138,6 +139,19 @@ impl Args {
             })
         };
 
+        let target = Some(if self.all_targets {
+            Target {
+                all_targets: true,
+                target: None,
+            }
+        } else {
+            let target = Some(self.target.clone().unwrap_or_else(host_platform));
+            Target {
+                all_targets: false,
+                target,
+            }
+        });
+
         let output_options = match (cdx_extension, prefix) {
             (Some(cdx_extension), Some(prefix)) => Some(OutputOptions {
                 cdx_extension,
@@ -159,6 +173,7 @@ impl Args {
             included_dependencies,
             output_options,
             features,
+            target,
         })
     }
 }
