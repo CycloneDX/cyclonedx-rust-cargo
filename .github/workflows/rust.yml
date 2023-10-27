@@ -31,6 +31,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
       - name: Install Rust Toolchain
         run: |
           rustup update
@@ -67,6 +68,7 @@ jobs:
         run: |
           rustup update
           rustup install ${{ matrix.rust-version }}
+      - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo +${{ matrix.rust-version }} build --verbose
         continue-on-error: ${{ matrix.continue-on-error }}
