@@ -51,6 +51,15 @@ pub struct Args {
     #[clap(long = "features", short = 'F')]
     pub features: Vec<String>,
 
+    /// The target to generate the SBOM for, e.g. x86_64-unknown-linux-gnu
+    #[clap(long = "target")]
+    pub target: String,
+
+    /// Include the dependencies from all possible platforms in the SBOM
+    #[clap(long = "all-platforms")]
+    #[clap(conflicts_with = "target")]
+    pub all_platforms: bool,
+
     /// List all dependencies instead of only top-level ones
     #[clap(long = "all", short = 'a')]
     pub all: bool,
