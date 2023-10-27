@@ -45,36 +45,36 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use cargo::core::Workspace;
-use cargo::Config;
 use cargo_cyclonedx::generator::SbomGenerator;
 use std::{
     io::{self},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
+
+use cargo_metadata::{self, Metadata};
 
 use anyhow::Result;
 use clap::Parser;
 use env_logger::Builder;
 use log::LevelFilter;
 
-#[deny(clippy::all)]
-#[deny(warnings)]
 mod cli;
 use cli::{Args, Opts};
 
 fn main() -> anyhow::Result<()> {
     let Opts::Bom(args) = Opts::parse();
-    let mut config = Config::default()?;
-    setup_logging(&args, &mut config)?;
+    setup_logging(&args)?;
 
-    let manifest_path = locate_manifest(&args)?;
     let cli_config = args.as_config()?;
+    let manifest_path = locate_manifest(&args)?;
+    log::debug!("Found the Cargo.toml file at {}", manifest_path.display());
 
-    let ws = Workspace::new(&manifest_path, &config)?;
+    log::trace!("Running `cargo metadata` started");
+    let metadata = get_metadata(&args, &manifest_path)?;
+    log::trace!("Running `cargo metadata` finished");
 
     log::trace!("SBOM generation started");
-    let boms = SbomGenerator::create_sboms(ws, &cli_config)?;
+    let boms = SbomGenerator::create_sboms(metadata, &cli_config, &manifest_path)?;
     log::trace!("SBOM generation finished");
 
     log::trace!("SBOM output started");
@@ -86,7 +86,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn setup_logging(args: &Args, config: &mut Config) -> anyhow::Result<()> {
+fn setup_logging(args: &Args) -> anyhow::Result<()> {
     let mut builder = Builder::new();
 
     // default cargo internals to quiet unless overridden via an environment variable
@@ -104,22 +104,8 @@ fn setup_logging(args: &Args, config: &mut Config) -> anyhow::Result<()> {
         }
     };
     builder.filter_level(level_filter);
-
     builder.parse_default_env(); // allow overriding CLI arguments
     builder.try_init()?;
-
-    // configure logging level of cargo to match what was passed via CLI
-    config.configure(
-        args.verbose as u32,
-        args.quiet,
-        None,
-        false,
-        false,
-        false,
-        &None,
-        &[],
-        &[],
-    )?;
 
     Ok(())
 }
@@ -140,4 +126,11 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
         );
         Ok(manifest_path)
     }
+}
+
+fn get_metadata(_args: &Args, manifest_path: &Path) -> anyhow::Result<Metadata> {
+    let mut cmd = cargo_metadata::MetadataCommand::new();
+    cmd.manifest_path(manifest_path);
+    // TODO: allow customizing the target platform, etc.
+    cmd.exec().map_err(|e| e.into())
 }

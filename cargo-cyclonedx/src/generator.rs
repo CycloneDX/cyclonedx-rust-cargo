@@ -20,14 +20,16 @@ use crate::config::Pattern;
 use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::format::Format;
-use crate::toml::config_from_toml;
+use crate::toml::config_from_file;
 use crate::toml::ConfigError;
-use cargo::core::dependency::DepKind;
-use cargo::core::Package;
-use cargo::core::PackageSet;
-use cargo::core::Resolve;
-use cargo::core::Workspace;
-use cargo::ops;
+
+use cargo_metadata;
+use cargo_metadata::DependencyKind;
+use cargo_metadata::Metadata as CargoMetadata;
+use cargo_metadata::Node;
+use cargo_metadata::NodeDep;
+use cargo_metadata::Package;
+use cargo_metadata::PackageId;
 
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
@@ -46,39 +48,40 @@ use cyclonedx_bom::validation::Validate;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io::BufWriter;
-use std::{collections::BTreeSet, fs::File, path::PathBuf};
+use std::fs::File;
+use std::path::Path;
+use std::path::PathBuf;
 use thiserror::Error;
 use validator::validate_email;
+
+// Maps from PackageId to Package for efficiency - faster lookups than in a Vec
+type PackageMap = BTreeMap<PackageId, Package>;
+type ResolveMap = BTreeMap<PackageId, Node>;
 
 pub struct SbomGenerator {}
 
 impl SbomGenerator {
     pub fn create_sboms(
-        ws: Workspace,
+        meta: CargoMetadata,
         config_override: &SbomConfig,
+        manifest_path: &Path,
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
         log::trace!(
             "Processing the workspace {} configuration",
-            ws.root_manifest().to_string_lossy()
+            meta.workspace_root
         );
-        let workspace_config = config_from_toml(ws.custom_metadata())?;
-        let members: Vec<Package> = ws.members().cloned().collect();
-
-        let (package_ids, resolve) =
-            ops::resolve_ws(&ws).map_err(|error| GeneratorError::CargoConfigError {
-                config_filepath: ws.root_manifest().to_string_lossy().to_string(),
-                error,
-            })?;
+        let workspace_config = config_from_file(manifest_path)?;
+        let members: Vec<PackageId> = meta.workspace_members;
+        let packages = index_packages(meta.packages);
+        let resolve = index_resolve(meta.resolve.unwrap().nodes);
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
-            log::trace!(
-                "Processing the package {} configuration",
-                member.manifest_path().to_string_lossy()
-            );
-            let package_config = config_from_toml(member.manifest().custom_metadata())?;
+            log::trace!("Processing the package {} configuration", member);
+            let package_config = config_from_file(manifest_path)?;
             let config = workspace_config
                 .merge(&package_config)
                 .merge(config_override);
@@ -88,21 +91,21 @@ impl SbomGenerator {
             log::trace!("Config from config override: {:?}", config_override);
             log::debug!("Config from merged config: {:?}", config);
 
-            let dependencies =
+            let (dependencies, _resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(&members, &package_ids, &resolve)?
+                    all_dependencies(member, &packages, &resolve)
                 } else {
-                    top_level_dependencies(member, &package_ids, &resolve)?
+                    top_level_dependencies(member, &packages, &resolve)
                 };
 
-            let bom = create_bom(member, dependencies)?;
+            let bom = create_bom(member, &dependencies)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
 
             let generated = GeneratedSbom {
                 bom,
-                manifest_path: member.manifest_path().to_path_buf(),
-                package_name: member.name().to_string(),
+                manifest_path: packages[member].manifest_path.clone().into_std_path_buf(),
+                package_name: packages[member].name.clone(),
                 sbom_config: config,
             };
 
@@ -113,17 +116,35 @@ impl SbomGenerator {
     }
 }
 
-fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Result<Bom, GeneratorError> {
+fn index_packages(packages: Vec<Package>) -> PackageMap {
+    packages
+        .into_iter()
+        .map(|pkg| (pkg.id.clone(), pkg))
+        .collect()
+}
+
+fn index_resolve(packages: Vec<Node>) -> ResolveMap {
+    packages
+        .into_iter()
+        .map(|pkg| (pkg.id.clone(), pkg))
+        .collect()
+}
+
+fn create_bom(package: &PackageId, dependencies: &PackageMap) -> Result<Bom, GeneratorError> {
     let mut bom = Bom::default();
 
+    // TODO: add a filter to limit the dependency list to only the chosen package.
+    // This is not even a regression because the old code didn't do this either.
+
     let components: Vec<_> = dependencies
-        .into_iter()
+        .values()
+        .filter(|p| &p.id != package)
         .map(|package| create_component(&package))
         .collect();
 
     bom.components = Some(Components(components));
 
-    let metadata = create_metadata(package)?;
+    let metadata = create_metadata(&dependencies[package])?;
 
     bom.metadata = Some(metadata);
 
@@ -131,13 +152,13 @@ fn create_bom(package: &Package, dependencies: BTreeSet<Package>) -> Result<Bom,
 }
 
 fn create_component(package: &Package) -> Component {
-    let name = package.name().to_owned().trim().to_string();
-    let version = package.version().to_string();
+    let name = package.name.to_owned().trim().to_string();
+    let version = package.version.to_string();
 
     let purl = match Purl::new("cargo", &name, &version) {
         Ok(purl) => Some(purl),
         Err(e) => {
-            log::error!("Package {} has an invalid Purl: {} ", package.name(), e);
+            log::error!("Package {} has an invalid Purl: {} ", package.name, e);
             None
         }
     };
@@ -155,8 +176,6 @@ fn create_component(package: &Package) -> Component {
     component.licenses = get_licenses(package);
 
     component.description = package
-        .manifest()
-        .metadata()
         .description
         .as_ref()
         .map(|s| NormalizedString::new(s));
@@ -165,7 +184,8 @@ fn create_component(package: &Package) -> Component {
 }
 
 fn get_classification(pkg: &Package) -> Classification {
-    if pkg.targets().iter().any(|tgt| tgt.is_bin()) {
+    // FIXME: this is almost certainly wrong
+    if pkg.targets.iter().any(|tgt| tgt.is_bin()) {
         return Classification::Application;
     }
 
@@ -175,9 +195,7 @@ fn get_classification(pkg: &Package) -> Classification {
 fn get_external_references(package: &Package) -> Option<ExternalReferences> {
     let mut references = Vec::new();
 
-    let metadata = package.manifest().metadata();
-
-    if let Some(documentation) = &metadata.documentation {
+    if let Some(documentation) = &package.documentation {
         match Uri::try_from(documentation.to_string()) {
             Ok(uri) => references.push(ExternalReference::new(
                 ExternalReferenceType::Documentation,
@@ -185,43 +203,43 @@ fn get_external_references(package: &Package) -> Option<ExternalReferences> {
             )),
             Err(e) => log::error!(
                 "Package {} has an invalid documentation URI ({}): {} ",
-                package.name(),
+                package.name,
                 documentation,
                 e
             ),
         }
     }
 
-    if let Some(website) = &metadata.homepage {
+    if let Some(website) = &package.homepage {
         match Uri::try_from(website.to_string()) {
             Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Website, uri)),
             Err(e) => log::error!(
                 "Package {} has an invalid homepage URI ({}): {} ",
-                package.name(),
+                package.name,
                 website,
                 e
             ),
         }
     }
 
-    if let Some(other) = &metadata.links {
+    if let Some(other) = &package.links {
         match Uri::try_from(other.to_string()) {
             Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Other, uri)),
             Err(e) => log::error!(
                 "Package {} has an invalid links URI ({}): {} ",
-                package.name(),
+                package.name,
                 other,
                 e
             ),
         }
     }
 
-    if let Some(vcs) = &metadata.repository {
+    if let Some(vcs) = &package.repository {
         match Uri::try_from(vcs.to_string()) {
             Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
             Err(e) => log::error!(
                 "Package {} has an invalid repository URI ({}): {} ",
-                package.name(),
+                package.name,
                 vcs,
                 e
             ),
@@ -238,13 +256,13 @@ fn get_external_references(package: &Package) -> Option<ExternalReferences> {
 fn get_licenses(package: &Package) -> Option<Licenses> {
     let mut licenses = vec![];
 
-    if let Some(license) = package.manifest().metadata().license.as_ref() {
+    if let Some(license) = package.license.as_ref() {
         match SpdxExpression::try_from(license.to_string()) {
             Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
             Err(err) => {
                 log::error!(
                     "Package {} has an invalid license expression, trying lax parsing ({}): {}",
-                    package.name(),
+                    package.name,
                     license,
                     err
                 );
@@ -254,7 +272,7 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
                     Err(err) => {
                         log::error!(
                         "Package {} has an invalid license expression that could not be converted to a valid expression, using named license ({}): {}",
-                        package.name(),
+                        package.name,
                         license,
                         err
                     );
@@ -267,7 +285,7 @@ fn get_licenses(package: &Package) -> Option<Licenses> {
     }
 
     if licenses.is_empty() {
-        log::trace!("Package {} has no licenses", package.name());
+        log::trace!("Package {} has no licenses", package.name);
         return None;
     }
 
@@ -299,7 +317,7 @@ fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
     let mut authors = vec![];
     let mut invalid_authors = vec![];
 
-    for author in &package.manifest().metadata().authors {
+    for author in &package.authors {
         match parse_author(author) {
             Ok(author) => authors.push(author),
             Err(e) => invalid_authors.push((author, e)),
@@ -354,7 +372,7 @@ pub enum GeneratorError {
 
     #[error("Error retrieving package information: {package_id}")]
     PackageError {
-        package_id: cargo::core::package_id::PackageId,
+        package_id: cargo_metadata::PackageId,
         #[source]
         error: anyhow::Error,
     },
@@ -373,65 +391,93 @@ pub enum GeneratorError {
 }
 
 fn top_level_dependencies(
-    member: &Package,
-    package_ids: &PackageSet<'_>,
-    resolve: &Resolve,
-) -> Result<BTreeSet<Package>, GeneratorError> {
+    root: &PackageId,
+    packages: &PackageMap,
+    resolve: &ResolveMap,
+) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
-    let mut dependencies = BTreeSet::new();
 
-    let all_dependencies = resolve
-        .deps(member.package_id())
-        .filter(move |r| r.0 != member.package_id())
-        .flat_map(|(_, dependency)| dependency)
-        .filter(|d| d.kind() == DepKind::Normal);
+    // Only include packages that have dependency kinds other than "Development"
+    let root_node = strip_dev_dependencies(&resolve[root]);
 
-    for dependency in all_dependencies {
-        log::trace!("Dependency: {dependency:?}");
-        match package_ids
-            .package_ids()
-            .find(|id| dependency.matches_id(*id))
-        {
-            Some(package_id) => {
-                let package = package_ids
-                    .get_one(package_id)
-                    .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-                dependencies.insert(package.to_owned());
-            }
-            None => {
-                log::warn!(
-                    "Unable to find package for dependency (name: {}, req: {}, source_id: {})",
-                    dependency.package_name(),
-                    dependency.version_req(),
-                    dependency.source_id(),
-                );
-            }
-        }
+    let mut pkg_result = PackageMap::new();
+    // Record the root package, then its direct non-dev dependencies
+    pkg_result.insert(root.to_owned(), packages[root].to_owned());
+    for id in &root_node.dependencies {
+        pkg_result.insert((*id).to_owned(), packages[id].to_owned());
     }
 
-    Ok(dependencies)
+    let mut resolve_result = ResolveMap::new();
+    for id in &root_node.dependencies {
+        // Clear all depedencies, pretend there is only one level
+        let mut node = resolve[id].clone();
+        node.deps = Vec::new();
+        node.dependencies = Vec::new();
+        resolve_result.insert((*id).to_owned(), node);
+    }
+    // Insert the root node at the end now that we're done iterating over it
+    resolve_result.insert(root.to_owned(), root_node);
+
+    (pkg_result, resolve_result)
 }
 
 fn all_dependencies(
-    members: &[Package],
-    package_ids: &PackageSet<'_>,
-    resolve: &Resolve,
-) -> Result<BTreeSet<Package>, GeneratorError> {
+    root: &PackageId,
+    packages: &PackageMap,
+    resolve: &ResolveMap,
+) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
-    let mut dependencies = BTreeSet::new();
 
-    for package_id in resolve.iter() {
-        let package = package_ids
-            .get_one(package_id)
-            .map_err(|error| GeneratorError::PackageError { package_id, error })?;
-        if members.contains(package) {
-            // Skip listing our own packages in our workspace
-            continue;
+    // Note: using Vec (without deduplication) can theoretically cause quadratic memory usage,
+    // but since `Node` does not implement `Ord` or `Hash` it's hard to deduplicate them.
+    // These are all pointers and there's not a lot of them, it's highly unlikely to be an issue in practice.
+    // We can work around this by using a map instead of a set if need be.
+    let mut current_queue: Vec<&Node> = vec![&resolve[root]];
+    let mut next_queue: Vec<&Node> = Vec::new();
+
+    let mut out_resolve = ResolveMap::new();
+
+    // Run breadth-first search (BFS) over the dependency graph
+    // to determine which nodes are actually depended on by our package
+    // (not other packages) and to remove dev-dependencies
+    while !current_queue.is_empty() {
+        for node in current_queue.drain(..) {
+            // If we haven't processed this node yet...
+            if !out_resolve.contains_key(&node.id) {
+                // Add the node to the output
+                out_resolve.insert(node.id.to_owned(), strip_dev_dependencies(node));
+                // Queue its dependencies for the next BFS loop iteration
+                next_queue.extend(non_dev_dependencies(&node.deps).map(|dep| &resolve[&dep.pkg]));
+            }
         }
-        dependencies.insert(package.to_owned());
+        std::mem::swap(&mut current_queue, &mut next_queue);
     }
 
-    Ok(dependencies)
+    // Remove everything from `packages` that doesn't appear in the `resolve` we've built
+    let out_packages = packages
+        .iter()
+        .filter(|(id, _pkg)| out_resolve.contains_key(id))
+        .map(|(id, pkg)| (id.to_owned(), pkg.to_owned()))
+        .collect();
+
+    (out_packages, out_resolve)
+}
+
+fn strip_dev_dependencies(node: &Node) -> Node {
+    let mut node = node.clone();
+    node.deps = non_dev_dependencies(&node.deps).cloned().collect();
+    node.dependencies = node.deps.iter().map(|d| d.pkg.to_owned()).collect();
+    node
+}
+
+/// Filters out dependencies only used for development, and not affecting the final binary.
+/// These are specified under `[dev-dependencies]` in Cargo.toml.
+fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
+    input.iter().filter(|p| {
+        p.dep_kinds
+            .iter()
+            .any(|dep| dep.kind != DependencyKind::Development)
+    })
 }
 
 /// Contains a generated SBOM and context used in its generation
