@@ -1,6 +1,6 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, CustomPrefix, IncludedDependencies, OutputOptions, Pattern, Prefix,
+        CdxExtension, CustomPrefix, Features, IncludedDependencies, OutputOptions, Pattern, Prefix,
         PrefixError, SbomConfig,
     },
     format::Format,
@@ -49,7 +49,7 @@ pub struct Args {
 
     /// Space or comma separated list of features to activate
     #[clap(long = "features", short = 'F')]
-    pub features: Option<Vec<String>>,
+    pub features: Vec<String>,
 
     /// List all dependencies instead of only top-level ones
     #[clap(long = "all", short = 'a')]
@@ -102,6 +102,29 @@ impl Args {
             false => None,
         };
 
+        let features = if self.all_features == false
+            && self.no_default_features == false
+            && self.features.is_empty()
+        {
+            None
+        } else {
+            let mut feature_list: Vec<String> = Vec::new();
+            // Features can be comma-separated for compatibility with Cargo,
+            // but only in command-line arguments.
+            for comma_separated_features in &self.features {
+                // Feature names themselves never contain commas.
+                for feature in comma_separated_features.split(',') {
+                    feature_list.push(feature.to_owned());
+                }
+            }
+
+            Some(Features {
+                all_features: self.all_features,
+                no_default_features: self.no_default_features,
+                features: feature_list,
+            })
+        };
+
         let output_options = match (cdx_extension, prefix) {
             (Some(cdx_extension), Some(prefix)) => Some(OutputOptions {
                 cdx_extension,
@@ -122,7 +145,7 @@ impl Args {
             format: self.format,
             included_dependencies,
             output_options,
-            features: None, // TODO
+            features,
         })
     }
 }
