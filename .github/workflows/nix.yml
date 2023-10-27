@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3.0.2
     - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@v4
+      uses: DeterminateSystems/nix-installer-action@v6
     - name: Run the Magic Nix Cache
       uses: DeterminateSystems/magic-nix-cache-action@v2
 
