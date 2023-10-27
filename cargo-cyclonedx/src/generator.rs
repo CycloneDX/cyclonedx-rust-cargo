@@ -51,6 +51,8 @@ use regex::Regex;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -497,19 +499,23 @@ impl GeneratedSbom {
     pub fn write_to_file(self) -> Result<(), SbomWriterError> {
         let path = self.manifest_path.with_file_name(self.filename());
         log::info!("Outputting {}", path.display());
-        let mut file = File::create(path).map_err(SbomWriterError::FileCreateError)?;
+        let file = File::create(path)?;
+        let mut writer = BufWriter::new(file);
         match self.sbom_config.format() {
             Format::Json => {
                 self.bom
-                    .output_as_json_v1_3(&mut file)
+                    .output_as_json_v1_3(&mut writer)
                     .map_err(SbomWriterError::JsonWriteError)?;
             }
             Format::Xml => {
                 self.bom
-                    .output_as_xml_v1_3(&mut file)
+                    .output_as_xml_v1_3(&mut writer)
                     .map_err(SbomWriterError::XmlWriteError)?;
             }
         }
+
+        // Flush the writer explicitly to catch and report any I/O errors
+        writer.flush()?;
 
         Ok(())
     }
@@ -533,8 +539,8 @@ impl GeneratedSbom {
 
 #[derive(Error, Debug)]
 pub enum SbomWriterError {
-    #[error("Error creating file")]
-    FileCreateError(#[source] std::io::Error),
+    #[error("I/O error")]
+    IoError(#[source] std::io::Error),
 
     #[error("Error writing JSON file")]
     JsonWriteError(#[source] cyclonedx_bom::errors::JsonWriteError),
@@ -544,6 +550,12 @@ pub enum SbomWriterError {
 
     #[error("Error serializing to XML")]
     SerializeXmlError(#[source] std::io::Error),
+}
+
+impl From<std::io::Error> for SbomWriterError {
+    fn from(value: std::io::Error) -> Self {
+        Self::IoError(value)
+    }
 }
 
 #[cfg(test)]
