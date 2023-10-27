@@ -122,6 +122,7 @@ impl Args {
             format: self.format,
             included_dependencies,
             output_options,
+            features: None, // TODO
         })
     }
 }
