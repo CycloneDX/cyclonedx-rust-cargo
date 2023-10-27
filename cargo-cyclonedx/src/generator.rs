@@ -427,7 +427,7 @@ fn all_dependencies(
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
-    // Note: using Vec (without deduplication) can theoreticall cause quadratic memory usage,
+    // Note: using Vec (without deduplication) can theoretically cause quadratic memory usage,
     // but since `Node` does not implement `Ord` or `Hash` it's hard to deduplicate them.
     // These are all pointers and there's not a lot of them, it's highly unlikely to be an issue in practice.
     // We can work around this by using a map instead of a set if need be.
