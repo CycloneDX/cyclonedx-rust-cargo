@@ -121,6 +121,13 @@ impl Default for CdxExtension {
     }
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Features {
+    pub all_features: bool,
+    pub no_default_features: bool,
+    pub features: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prefix {
     Pattern(Pattern),
