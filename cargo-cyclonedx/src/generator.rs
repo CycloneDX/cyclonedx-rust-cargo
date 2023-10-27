@@ -24,8 +24,10 @@ use crate::toml::config_from_file;
 use crate::toml::ConfigError;
 
 use cargo_metadata;
+use cargo_metadata::DependencyKind;
 use cargo_metadata::Metadata as CargoMetadata;
 use cargo_metadata::Node;
+use cargo_metadata::NodeDep;
 use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
@@ -388,44 +390,93 @@ pub enum GeneratorError {
 }
 
 fn top_level_dependencies(
-    member: &PackageId,
+    root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
-    let direct_dep_ids = resolve[member].dependencies.as_slice();
+
+    // Only include packages that have dependency kinds other than "Development"
+    let root_node = strip_dev_dependencies(&resolve[root]);
 
     let mut pkg_result = PackageMap::new();
-    pkg_result.insert(member.to_owned(), packages[member].to_owned());
-    for id in direct_dep_ids {
-        pkg_result.insert(id.to_owned(), packages[id].to_owned());
+    // Record the root package, then its direct non-dev dependencies
+    pkg_result.insert(root.to_owned(), packages[root].to_owned());
+    for id in &root_node.dependencies {
+        pkg_result.insert((*id).to_owned(), packages[id].to_owned());
     }
 
     let mut resolve_result = ResolveMap::new();
-    resolve_result.insert(member.to_owned(), resolve[member].clone());
-    for id in direct_dep_ids {
-        // Clear all dependencies, pretend there is only one level
+    for id in &root_node.dependencies {
+        // Clear all depedencies, pretend there is only one level
         let mut node = resolve[id].clone();
         node.deps = Vec::new();
         node.dependencies = Vec::new();
-        resolve_result.insert(id.to_owned(), node);
+        resolve_result.insert((*id).to_owned(), node);
     }
+    // Insert the root node at the end now that we're done iterating over it
+    resolve_result.insert(root.to_owned(), root_node);
 
     (pkg_result, resolve_result)
 }
 
 fn all_dependencies(
-    member: &PackageId,
+    root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
-    // FIXME: run BFS to filter out irrelevant dependencies,
-    // such as dev dependencies that do not affect the final binary
-    // or dependencies of other packages in the workspace
+    // Note: using Vec (without deduplication) can theoretically cause quadratic memory usage,
+    // but since `Node` does not implement `Ord` or `Hash` it's hard to deduplicate them.
+    // These are all pointers and there's not a lot of them, it's highly unlikely to be an issue in practice.
+    // We can work around this by using a map instead of a set if need be.
+    let mut current_queue: Vec<&Node> = vec![&resolve[root]];
+    let mut next_queue: Vec<&Node> = Vec::new();
 
-    (packages.clone(), resolve.clone())
+    let mut out_resolve = ResolveMap::new();
+
+    // Run breadth-first search (BFS) over the dependency graph
+    // to determine which nodes are actually depended on by our package
+    // (not other packages) and to remove dev-dependencies
+    while !current_queue.is_empty() {
+        for node in current_queue.drain(..) {
+            // If we haven't processed this node yet...
+            if !out_resolve.contains_key(&node.id) {
+                // Add the node to the output
+                out_resolve.insert(node.id.to_owned(), strip_dev_dependencies(node));
+                // Queue its dependencies for the next BFS loop iteration
+                next_queue.extend(non_dev_dependencies(&node.deps).map(|dep| &resolve[&dep.pkg]));
+            }
+        }
+        std::mem::swap(&mut current_queue, &mut next_queue);
+    }
+
+    // Remove everything from `packages` that doesn't appear in the `resolve` we've built
+    let out_packages = packages
+        .iter()
+        .filter(|(id, _pkg)| out_resolve.contains_key(id))
+        .map(|(id, pkg)| (id.to_owned(), pkg.to_owned()))
+        .collect();
+
+    (out_packages, out_resolve)
+}
+
+fn strip_dev_dependencies(node: &Node) -> Node {
+    let mut node = node.clone();
+    node.deps = non_dev_dependencies(&node.deps).cloned().collect();
+    node.dependencies = node.deps.iter().map(|d| d.pkg.to_owned()).collect();
+    node
+}
+
+/// Filters out dependencies only used for development, and not affecting the final binary.
+/// These are specified under `[dev-dependencies]` in Cargo.toml.
+fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
+    input.iter().filter(|p| {
+        p.dep_kinds
+            .iter()
+            .any(|dep| dep.kind != DependencyKind::Development)
+    })
 }
 
 /// Contains a generated SBOM and context used in its generation
