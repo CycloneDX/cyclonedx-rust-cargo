@@ -18,10 +18,7 @@ jobs:
         run: |
           sudo apt-get install -y jq
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
 
@@ -34,7 +31,7 @@ jobs:
         run: |
           CARGO_VERSION=$(cargo metadata | jq -r '.packages[] | select(.name == "cargo-cyclonedx") | .version')
           echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_OUTPUT
-          TAG_NAME=cyclonedx-bom-$CARGO_VERSION
+          TAG_NAME=cargo-cyclonedx-$CARGO_VERSION
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
         id: version
 
@@ -49,7 +46,7 @@ jobs:
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git commit -am "New development bump of cargo-cylonedx to ${{steps.version.outputs.CARGO_VERSION}}"
-          git tag -a "cargo-cyclonedx-${{steps.version.outputs.CARGO_VERSION}}" -m "cargo-cyclonedx ${{steps.version.outputs.CARGO_VERSION}} release"
+          git tag -a "${{steps.version.outputs.TAG_NAME}}" -m "cargo-cyclonedx ${{steps.version.outputs.CARGO_VERSION}} release"
           git push --follow-tags
 
   build-prod:
@@ -82,7 +79,6 @@ jobs:
 
       - name: Checkout release tag
         run: |
-          echo "${{ needs.deploy.outputs.TAG_NAME }}"
           git checkout ${{ needs.deploy.outputs.TAG_NAME }}
           git status
 
@@ -128,13 +124,12 @@ jobs:
           for file in dist/*; do
             sha256sum "$file" > "${file}.sha256"
           done
-          ls -l dist
 
       - name: Release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: "cyclonedx-bom-${{ needs.deploy.outputs.TAG_NAME }}"
+          name: "${{ needs.deploy.outputs.TAG_NAME }}"
           tag_name: ${{ needs.deploy.outputs.TAG_NAME }}
           files: "dist/*"
