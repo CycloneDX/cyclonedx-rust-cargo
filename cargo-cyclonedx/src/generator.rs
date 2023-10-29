@@ -140,7 +140,7 @@ fn create_bom(package: &PackageId, dependencies: &PackageMap) -> Result<Bom, Gen
     let components: Vec<_> = dependencies
         .values()
         .filter(|p| &p.id != package)
-        .map(|package| create_component(package))
+        .map(create_component)
         .collect();
 
     bom.components = Some(Components(components));
