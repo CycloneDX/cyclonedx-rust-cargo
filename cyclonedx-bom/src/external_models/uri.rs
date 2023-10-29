@@ -60,9 +60,10 @@ impl Validate for Purl {
     }
 }
 
-impl<'a> From<PackageUrl<'a>> for Purl {
-    fn from(value: PackageUrl<'a>) -> Self {
-        Self(value.to_string())
+impl FromStr for Purl {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.to_string()))
     }
 }
 
@@ -116,9 +117,11 @@ pub enum UriError {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::validation::FailureReason;
     use pretty_assertions::assert_eq;
+
+    use crate::validation::FailureReason;
+
+    use super::*;
 
     #[test]
     fn valid_purls_should_pass_validation() {
