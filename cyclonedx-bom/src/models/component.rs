@@ -18,6 +18,7 @@
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use std::str::FromStr;
 
 use crate::models::attached_text::AttachedText;
 use crate::models::code::{Commits, Patches};
@@ -436,6 +437,17 @@ impl Validate for Swid {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Cpe(pub(crate) String);
+
+impl FromStr for Cpe {
+    type Err = ValidationError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = Cpe(s.to_string());
+        result.validate()?;
+        Ok(result)
+    }
+}
+
 impl Validate for Cpe {
     fn validate_with_context(
         &self,
