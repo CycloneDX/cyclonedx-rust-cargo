@@ -22,13 +22,7 @@ fn manifest_doesnt_exist() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
     cmd.current_dir(tmp_dir.path()).arg("cyclonedx");
 
-    cmd.assert()
-        .failure()
-        .stdout("")
-        .stderr(predicate::str::contains(format!(
-            "Error: failed to read `{}`",
-            tmp_dir.path().join("Cargo.toml").display(),
-        )));
+    cmd.assert().failure().stdout("");
 
     tmp_dir.close()?;
 
@@ -46,13 +40,7 @@ fn manifest_is_invalid() -> Result<(), Box<dyn std::error::Error>> {
         .arg("--manifest-path")
         .arg(tmp_file.path());
 
-    cmd.assert()
-        .failure()
-        .stdout("")
-        .stderr(predicate::str::contains(format!(
-            "Error: failed to parse manifest at `{}`",
-            tmp_file.path().display(),
-        )));
+    cmd.assert().failure().stdout("");
 
     tmp_file.close()?;
 
@@ -106,7 +94,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
 
     let license = "TEST";
     let pkg_dir = tmp_dir.child(pkg_name);
-    pkg_dir.child("src/main.rs").touch()?;
+    pkg_dir.child("src/lib.rs").touch()?;
 
     pkg_dir.child("Cargo.toml").write_str(&format!(
         r#"

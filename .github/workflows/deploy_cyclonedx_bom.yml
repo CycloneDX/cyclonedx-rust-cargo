@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       releaseType:
-        description: 'cyclonedx-bom release type (major, minor, patch)'
+        description: "cyclonedx-bom release type (major, minor, patch)"
         required: true
-        default: 'patch'
+        default: "patch"
 
 jobs:
   deploy:
@@ -15,11 +15,14 @@ jobs:
       - name: JQ
         run: |
           sudo apt-get install -y jq
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+
+      - uses: Swatinem/rust-cache@v2
+
       - name: Cargo bump
         run: |
           cargo install cargo-edit

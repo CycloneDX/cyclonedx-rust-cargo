@@ -1,5 +1,14 @@
 [workspace]
+resolver = "2"
 members = [
   "cargo-cyclonedx",
   "cyclonedx-bom",
 ]
+
+[workspace.package]
+authors = [ "Steve Springett <steve.springett@owasp.org>" ]
+edition = "2021"
+homepage = "https://cyclonedx.org/"
+license = "Apache-2.0"
+repository = "https://github.com/CycloneDX/cyclonedx-rust-cargo"
+rust-version = "1.70.0"
