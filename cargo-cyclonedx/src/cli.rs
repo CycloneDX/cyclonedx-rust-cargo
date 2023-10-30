@@ -1,6 +1,6 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, CustomPrefix, IncludedDependencies, OutputOptions, Pattern, Prefix,
+        CdxExtension, CustomPrefix, Features, IncludedDependencies, OutputOptions, Pattern, Prefix,
         PrefixError, SbomConfig,
     },
     format::Format,
@@ -36,6 +36,20 @@ pub struct Args {
     /// No output printed to stdout
     #[clap(long = "quiet", short = 'q')]
     pub quiet: bool,
+
+    // `--all-features`, `--no-default-features` and `--features`
+    // are not mutually exclusive in Cargo, so we keep the same behavior here too.
+    /// Activate all available features
+    #[clap(long = "all-features")]
+    pub all_features: bool,
+
+    /// Do not activate the `default` feature
+    #[clap(long = "no-default-features")]
+    pub no_default_features: bool,
+
+    /// Space or comma separated list of features to activate
+    #[clap(long = "features", short = 'F')]
+    pub features: Vec<String>,
 
     /// List all dependencies instead of only top-level ones
     #[clap(long = "all", short = 'a')]
@@ -88,6 +102,32 @@ impl Args {
             false => None,
         };
 
+        let features =
+            if !self.all_features && !self.no_default_features && self.features.is_empty() {
+                None
+            } else {
+                let mut feature_list: Vec<String> = Vec::new();
+                // Features can be comma- or space-separated for compatibility with Cargo,
+                // but only in command-line arguments (not in config files),
+                // which is why this code lives here.
+                for comma_separated_features in &self.features {
+                    // Feature names themselves never contain commas.
+                    for space_separated_features in comma_separated_features.split(',') {
+                        for feature in space_separated_features.split(' ') {
+                            if !feature.is_empty() {
+                                feature_list.push(feature.to_owned());
+                            }
+                        }
+                    }
+                }
+
+                Some(Features {
+                    all_features: self.all_features,
+                    no_default_features: self.no_default_features,
+                    features: feature_list,
+                })
+            };
+
         let output_options = match (cdx_extension, prefix) {
             (Some(cdx_extension), Some(prefix)) => Some(OutputOptions {
                 cdx_extension,
@@ -108,6 +148,7 @@ impl Args {
             format: self.format,
             included_dependencies,
             output_options,
+            features,
         })
     }
 }
@@ -116,4 +157,50 @@ impl Args {
 pub enum ArgsError {
     #[error("Invalid prefix from CLI")]
     CustomPrefixError(#[from] PrefixError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_features() {
+        let args = vec!["cyclonedx"];
+        let config = parse_to_config(&args);
+        assert!(config.features.is_none());
+
+        let args = vec!["cyclonedx", "--features=foo"];
+        let config = parse_to_config(&args);
+        assert!(contains_feature(&config, "foo"));
+
+        let args = vec!["cyclonedx", "--features=foo", "--features=bar"];
+        let config = parse_to_config(&args);
+        assert!(contains_feature(&config, "foo"));
+        assert!(contains_feature(&config, "bar"));
+
+        let args = vec!["cyclonedx", "--features=foo,bar baz"];
+        let config = parse_to_config(&args);
+        assert!(contains_feature(&config, "foo"));
+        assert!(contains_feature(&config, "bar"));
+        assert!(contains_feature(&config, "baz"));
+
+        let args = vec!["cyclonedx", "--features=foo, bar"];
+        let config = parse_to_config(&args);
+        assert!(contains_feature(&config, "foo"));
+        assert!(contains_feature(&config, "bar"));
+        assert!(!contains_feature(&config, ""));
+    }
+
+    fn parse_to_config(args: &[&str]) -> SbomConfig {
+        Args::parse_from(args.iter()).as_config().unwrap()
+    }
+
+    fn contains_feature(config: &SbomConfig, feature: &str) -> bool {
+        config
+            .features
+            .as_ref()
+            .unwrap()
+            .features
+            .contains(&feature.to_owned())
+    }
 }

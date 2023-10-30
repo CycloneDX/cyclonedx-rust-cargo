@@ -21,20 +21,17 @@ use thiserror::Error;
  */
 use crate::format::Format;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct SbomConfig {
     pub format: Option<Format>,
     pub included_dependencies: Option<IncludedDependencies>,
     pub output_options: Option<OutputOptions>,
+    pub features: Option<Features>,
 }
 
 impl SbomConfig {
     pub fn empty_config() -> Self {
-        Self {
-            format: None,
-            included_dependencies: None,
-            output_options: None,
-        }
+        Default::default()
     }
 
     pub fn merge(&self, other: &SbomConfig) -> SbomConfig {
@@ -45,6 +42,7 @@ impl SbomConfig {
                 .output_options
                 .clone()
                 .or_else(|| self.output_options.clone()),
+            features: other.features.clone().or_else(|| self.features.clone()),
         }
     }
 
@@ -119,6 +117,13 @@ impl Default for CdxExtension {
     fn default() -> Self {
         Self::NotIncluded
     }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Features {
+    pub all_features: bool,
+    pub no_default_features: bool,
+    pub features: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
