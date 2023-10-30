@@ -104,29 +104,29 @@ impl Args {
 
         let features =
             if !self.all_features && !self.no_default_features && self.features.is_empty() {
-            None
-        } else {
-            let mut feature_list: Vec<String> = Vec::new();
-            // Features can be comma- or space-separated for compatibility with Cargo,
-            // but only in command-line arguments (not in config files),
-            // which is why this code lives here.
-            for comma_separated_features in &self.features {
-                // Feature names themselves never contain commas.
-                for space_separated_features in comma_separated_features.split(',') {
-                    for feature in space_separated_features.split(' ') {
-                        if !feature.is_empty() {
-                            feature_list.push(feature.to_owned());
+                None
+            } else {
+                let mut feature_list: Vec<String> = Vec::new();
+                // Features can be comma- or space-separated for compatibility with Cargo,
+                // but only in command-line arguments (not in config files),
+                // which is why this code lives here.
+                for comma_separated_features in &self.features {
+                    // Feature names themselves never contain commas.
+                    for space_separated_features in comma_separated_features.split(',') {
+                        for feature in space_separated_features.split(' ') {
+                            if !feature.is_empty() {
+                                feature_list.push(feature.to_owned());
+                            }
                         }
                     }
                 }
-            }
 
-            Some(Features {
-                all_features: self.all_features,
-                no_default_features: self.no_default_features,
-                features: feature_list,
-            })
-        };
+                Some(Features {
+                    all_features: self.all_features,
+                    no_default_features: self.no_default_features,
+                    features: feature_list,
+                })
+            };
 
         let output_options = match (cdx_extension, prefix) {
             (Some(cdx_extension), Some(prefix)) => Some(OutputOptions {
