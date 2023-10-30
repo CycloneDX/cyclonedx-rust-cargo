@@ -91,7 +91,7 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub output_prefix: Option<String>,
 
-    /// Perform a best-effort interpretation of invalid SPDX license expressions (lax parsing)
+    /// Accept the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as 'MIT OR Apache-2.0'
     #[clap(long = "license-lax")]
     pub license_lax: bool,
 
