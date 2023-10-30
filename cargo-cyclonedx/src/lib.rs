@@ -20,6 +20,5 @@ pub mod config;
 pub mod format;
 pub mod generator;
 pub mod platform;
-pub mod toml;
 
 pub use crate::generator::*;
