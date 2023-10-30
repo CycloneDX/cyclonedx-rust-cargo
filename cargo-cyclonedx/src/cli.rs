@@ -102,10 +102,8 @@ impl Args {
             false => None,
         };
 
-        let features = if self.all_features == false
-            && self.no_default_features == false
-            && self.features.is_empty()
-        {
+        let features =
+            if !self.all_features && !self.no_default_features && self.features.is_empty() {
             None
         } else {
             let mut feature_list: Vec<String> = Vec::new();
