@@ -49,6 +49,7 @@ use cargo_cyclonedx::{
     config::{SbomConfig, Target},
     generator::SbomGenerator,
 };
+
 use std::{
     io::{self},
     path::{Path, PathBuf},

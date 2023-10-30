@@ -38,8 +38,8 @@ pub struct Args {
     #[clap(long = "quiet", short = 'q')]
     pub quiet: bool,
 
-    // The feature selection flags are not mutually exclusive in Cargo,
-    // so we keep the same behavior here too.
+    // `--all-features`, `--no-default-features` and `--features`
+    // are not mutually exclusive in Cargo, so we keep the same behavior here too.
     /// Activate all available features
     #[clap(long = "all-features")]
     pub all_features: bool,
@@ -112,32 +112,30 @@ impl Args {
             false => None,
         };
 
-        let features = if self.all_features == false
-            && self.no_default_features == false
-            && self.features.is_empty()
-        {
-            None
-        } else {
-            let mut feature_list: Vec<String> = Vec::new();
-            // Features can be comma- or space-separated for compatibility with Cargo,
-            // but only in command-line arguments.
-            for comma_separated_features in &self.features {
-                // Feature names themselves never contain commas.
-                for space_separated_features in comma_separated_features.split(',') {
-                    for feature in space_separated_features.split(' ') {
-                        if !feature.is_empty() {
-                            feature_list.push(feature.to_owned());
+        let features =
+            if !self.all_features && !self.no_default_features && self.features.is_empty() {
+                None
+            } else {
+                let mut feature_list: Vec<String> = Vec::new();
+                // Features can be comma- or space-separated for compatibility with Cargo,
+                // but only in command-line arguments.
+                for comma_separated_features in &self.features {
+                    // Feature names themselves never contain commas.
+                    for space_separated_features in comma_separated_features.split(',') {
+                        for feature in space_separated_features.split(' ') {
+                            if !feature.is_empty() {
+                                feature_list.push(feature.to_owned());
+                            }
                         }
                     }
                 }
-            }
 
-            Some(Features {
-                all_features: self.all_features,
-                no_default_features: self.no_default_features,
-                features: feature_list,
-            })
-        };
+                Some(Features {
+                    all_features: self.all_features,
+                    no_default_features: self.no_default_features,
+                    features: feature_list,
+                })
+            };
 
         let target = Some(if self.all_targets {
             Target::AllTargets
