@@ -21,6 +21,7 @@ use std::fmt;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde_json::Value;
 use xml::{EmitterConfig, EventReader, EventWriter, ParserConfig};
 
 use crate::models::component::{Component, Components};
@@ -58,6 +59,13 @@ impl Bom {
         Ok(bom.into())
     }
 
+    /// Parse the input as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
+    /// from an existing [`Value`].
+    pub fn parse_from_json_value_v1_3(value: Value) -> Result<Self, crate::errors::JsonReadError> {
+        let bom: crate::specs::v1_3::bom::Bom = serde_json::from_value(value)?;
+        Ok(bom.into())
+    }
+
     /// Parse the input as an XML document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/xml/)
     pub fn parse_from_xml_v1_3<R: std::io::Read>(
         reader: R,
@@ -77,6 +85,13 @@ impl Bom {
         serde_json::to_writer_pretty(writer, &bom)?;
         Ok(())
     }
+
+    /// Output as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
+    pub fn output_as_json_value_v1_3(self) -> Result<Value, crate::errors::JsonWriteError> {
+        let bom: crate::specs::v1_3::bom::Bom = self.into();
+        Ok(serde_json::to_value(bom)?)
+    }
+
     /// Output as an XML document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/xml/)
     pub fn output_as_xml_v1_3<W: std::io::Write>(
         self,
