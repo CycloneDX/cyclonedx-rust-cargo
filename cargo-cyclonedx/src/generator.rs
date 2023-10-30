@@ -64,11 +64,11 @@ use validator::validate_email;
 type PackageMap = BTreeMap<PackageId, Package>;
 type ResolveMap = BTreeMap<PackageId, Node>;
 
-pub struct SbomGenerator<'g> {
-    config: &'g SbomConfig,
+pub struct SbomGenerator {
+    config: SbomConfig,
 }
 
-impl<'g> SbomGenerator<'g> {
+impl SbomGenerator {
     pub fn create_sboms(
         meta: CargoMetadata,
         config_override: &SbomConfig,
@@ -103,7 +103,7 @@ impl<'g> SbomGenerator<'g> {
                     top_level_dependencies(member, &packages, &resolve)
                 };
 
-            let generator = SbomGenerator { config: &config };
+            let generator = SbomGenerator { config };
             let bom = generator.create_bom(member, &dependencies, &resolve)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
@@ -112,7 +112,7 @@ impl<'g> SbomGenerator<'g> {
                 bom,
                 manifest_path: packages[member].manifest_path.clone().into_std_path_buf(),
                 package_name: packages[member].name.clone(),
-                sbom_config: config,
+                sbom_config: generator.config,
             };
 
             result.push(generated);
