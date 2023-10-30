@@ -61,11 +61,6 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub target: Option<String>,
 
-    /// Include the dependencies from all possible target platforms in the SBOM
-    #[clap(long = "all-targets")]
-    #[clap(conflicts_with = "target")]
-    pub all_targets: bool,
-
     /// List all dependencies instead of only top-level ones
     #[clap(long = "all", short = 'a')]
     pub all: bool,
@@ -142,11 +137,11 @@ impl Args {
                 })
             };
 
-        let target = Some(if self.all_targets {
+        let target_string = self.target.clone().unwrap_or_else(host_platform);
+        let target = Some(if &target_string == "all" {
             Target::AllTargets
         } else {
-            let target = self.target.clone().unwrap_or_else(host_platform);
-            Target::SingleTarget(target)
+            Target::SingleTarget(target_string)
         });
 
         let output_options = match (cdx_extension, prefix) {
