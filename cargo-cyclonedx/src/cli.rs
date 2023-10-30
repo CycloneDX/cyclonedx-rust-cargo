@@ -1,9 +1,10 @@
 use cargo_cyclonedx::{
     config::{
         CdxExtension, CustomPrefix, Features, IncludedDependencies, OutputOptions, Pattern, Prefix,
-        PrefixError, SbomConfig,
+        PrefixError, SbomConfig, Target,
     },
     format::Format,
+    platform::host_platform,
 };
 use clap::{ArgGroup, Parser};
 use std::path;
@@ -50,6 +51,15 @@ pub struct Args {
     /// Space or comma separated list of features to activate
     #[clap(long = "features", short = 'F')]
     pub features: Vec<String>,
+
+    /// The target to generate the SBOM for, or 'all' for all targets.
+    #[clap(
+        long = "target",
+        long_help = "The target to generate the SBOM for, e.g. 'x86_64-unknown-linux-gnu'.
+Use 'all' to include dependencies for all possible targets.
+Defaults to the host target, as printed by 'rustc -vV'"
+    )]
+    pub target: Option<String>,
 
     /// List all dependencies instead of only top-level ones
     #[clap(long = "all", short = 'a')]
@@ -108,8 +118,7 @@ impl Args {
             } else {
                 let mut feature_list: Vec<String> = Vec::new();
                 // Features can be comma- or space-separated for compatibility with Cargo,
-                // but only in command-line arguments (not in config files),
-                // which is why this code lives here.
+                // but only in command-line arguments.
                 for comma_separated_features in &self.features {
                     // Feature names themselves never contain commas.
                     for space_separated_features in comma_separated_features.split(',') {
@@ -127,6 +136,13 @@ impl Args {
                     features: feature_list,
                 })
             };
+
+        let target_string = self.target.clone().unwrap_or_else(host_platform);
+        let target = Some(if &target_string == "all" {
+            Target::AllTargets
+        } else {
+            Target::SingleTarget(target_string)
+        });
 
         let output_options = match (cdx_extension, prefix) {
             (Some(cdx_extension), Some(prefix)) => Some(OutputOptions {
@@ -149,6 +165,7 @@ impl Args {
             included_dependencies,
             output_options,
             features,
+            target,
         })
     }
 }

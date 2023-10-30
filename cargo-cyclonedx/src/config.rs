@@ -27,6 +27,7 @@ pub struct SbomConfig {
     pub included_dependencies: Option<IncludedDependencies>,
     pub output_options: Option<OutputOptions>,
     pub features: Option<Features>,
+    pub target: Option<Target>,
 }
 
 impl SbomConfig {
@@ -34,6 +35,7 @@ impl SbomConfig {
         Default::default()
     }
 
+    /// The config passed as an argument takes priority over `Self`
     pub fn merge(&self, other: &SbomConfig) -> SbomConfig {
         SbomConfig {
             format: other.format.or(self.format),
@@ -43,6 +45,7 @@ impl SbomConfig {
                 .clone()
                 .or_else(|| self.output_options.clone()),
             features: other.features.clone().or_else(|| self.features.clone()),
+            target: other.target.clone().or_else(|| self.target.clone()),
         }
     }
 
@@ -124,6 +127,13 @@ pub struct Features {
     pub all_features: bool,
     pub no_default_features: bool,
     pub features: Vec<String>,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum Target {
+    #[default]
+    AllTargets,
+    SingleTarget(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

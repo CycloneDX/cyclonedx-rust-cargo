@@ -45,7 +45,11 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-use cargo_cyclonedx::{config::SbomConfig, generator::SbomGenerator};
+use cargo_cyclonedx::{
+    config::{SbomConfig, Target},
+    generator::SbomGenerator,
+};
+
 use std::{
     io::{self},
     path::{Path, PathBuf},
@@ -148,6 +152,10 @@ fn get_metadata(
                 feature_configuration.features.clone(),
             ));
         }
+    }
+
+    if let Some(Target::SingleTarget(target)) = config.target.as_ref() {
+        cmd.other_options(vec!["--filter-platform".to_owned(), target.to_owned()]);
     }
 
     Ok(cmd.exec()?)
