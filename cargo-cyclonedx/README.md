@@ -38,7 +38,7 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
   * `bom`: Outputs a prefix of `bom` for the filename
   * `package`: Outputs a prefix using the `Cargo.toml` package name for the filename
 * `--output-prefix`: Outputs a custom prefix for the filename
-* `--license-lax`: Switch license parser to "lax mode", interpreting non-SPDX expressions like `MIT/Apache-2.0` as `MIT or Apache-2.0`
+* `--license-strict`: Switch license parser to "strict mode", failing on non-SPDX expressions like `MIT/Apache-2.0` as `MIT or Apache-2.0`
 * `--license-accept-named`: Adds license names, which will silently be accepted as a named license, in case parsing them as a SPDX license expression fails
 
 Notes:

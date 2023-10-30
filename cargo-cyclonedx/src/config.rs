@@ -238,9 +238,9 @@ impl LicenseParserOptions {
 #[serde(rename_all(deserialize = "kebab-case"))]
 pub enum ParseMode {
     /// Parse licenses in strict mode
-    #[default]
     Strict,
     /// Parse licenses in lax mode
+    #[default]
     Lax,
 }
 

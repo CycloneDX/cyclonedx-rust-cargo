@@ -91,9 +91,9 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub output_prefix: Option<String>,
 
-    /// Accept the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as 'MIT OR Apache-2.0'
-    #[clap(long = "license-lax")]
-    pub license_lax: bool,
+    /// Reject the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as 'MIT OR Apache-2.0'
+    #[clap(long = "license-strict")]
+    pub license_strict: bool,
 
     /// Add license names which will not be warned about when parsing them as a SPDX expression fails
     #[clap(long = "license-accept-named", action=ArgAction::Append)]
@@ -171,9 +171,9 @@ impl Args {
         };
 
         let license_parser = Some(LicenseParserOptions {
-            mode: match self.license_lax {
-                true => ParseMode::Lax,
-                false => ParseMode::Strict,
+            mode: match self.license_strict {
+                true => ParseMode::Strict,
+                false => ParseMode::Lax,
             },
             accept_named: HashSet::from_iter(self.license_accept_named.clone()),
         });
