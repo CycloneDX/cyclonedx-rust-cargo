@@ -37,8 +37,8 @@ pub struct Args {
     #[clap(long = "quiet", short = 'q')]
     pub quiet: bool,
 
-    // The feature selection flags are not mutually exclusive in Cargo,
-    // so we keep the same behavior here too.
+    // `--all-features`, `--no-default-features` and `--features`
+    // are not mutually exclusive in Cargo, so we keep the same behavior here too.
     /// Activate all available features
     #[clap(long = "all-features")]
     pub all_features: bool,
