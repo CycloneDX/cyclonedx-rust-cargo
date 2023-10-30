@@ -142,7 +142,7 @@ fn create_bom(
     let components: Vec<_> = packages
         .values()
         .filter(|p| &p.id != package)
-        .map(|package| create_component(package))
+        .map(create_component)
         .collect();
 
     bom.components = Some(Components(components));
