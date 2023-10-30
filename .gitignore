@@ -10,3 +10,6 @@
 # Nix Flake
 /.direnv/
 /result
+
+# IDEs
+/.idea/

@@ -111,6 +111,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
     cmd.current_dir(tmp_dir.path())
         .arg("cyclonedx")
         .arg("--all")
+        .arg("--license-strict")
         .arg("--verbose");
 
     cmd.assert()
@@ -120,7 +121,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
             tmp_dir.path().join("bom.xml").display(),
         )))
         .stderr(predicate::str::contains(format!(
-            "Package {} has an invalid license expression, trying lax parsing ({})",
+            "Package {} has an invalid license expression ({}), using as named license: Invalid SPDX expression: unknown term",
             pkg_name, license,
         )));
 

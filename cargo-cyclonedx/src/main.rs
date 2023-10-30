@@ -101,7 +101,7 @@ fn setup_logging(args: &Args) -> anyhow::Result<()> {
         LevelFilter::Off
     } else {
         match args.verbose {
-            0 => LevelFilter::Error,
+            0 => LevelFilter::Warn,
             1 => LevelFilter::Info,
             2 => LevelFilter::Debug,
             _ => LevelFilter::Trace,

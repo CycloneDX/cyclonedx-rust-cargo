@@ -1,5 +1,6 @@
+use serde::Deserialize;
+use std::collections::HashSet;
 use std::str::FromStr;
-
 use thiserror::Error;
 
 /*
@@ -28,6 +29,7 @@ pub struct SbomConfig {
     pub output_options: Option<OutputOptions>,
     pub features: Option<Features>,
     pub target: Option<Target>,
+    pub license_parser: Option<LicenseParserOptions>,
 }
 
 impl SbomConfig {
@@ -35,7 +37,6 @@ impl SbomConfig {
         Default::default()
     }
 
-    /// The config passed as an argument takes priority over `Self`
     pub fn merge(&self, other: &SbomConfig) -> SbomConfig {
         SbomConfig {
             format: other.format.or(self.format),
@@ -46,6 +47,11 @@ impl SbomConfig {
                 .or_else(|| self.output_options.clone()),
             features: other.features.clone().or_else(|| self.features.clone()),
             target: other.target.clone().or_else(|| self.target.clone()),
+            license_parser: other
+                .license_parser
+                .clone()
+                .map(|other| self.license_parser.clone().unwrap_or_default().merge(other))
+                .or_else(|| self.license_parser.clone()),
         }
     }
 
@@ -59,6 +65,10 @@ impl SbomConfig {
 
     pub fn output_options(&self) -> OutputOptions {
         self.output_options.clone().unwrap_or_default()
+    }
+
+    pub fn license_parser(&self) -> LicenseParserOptions {
+        self.license_parser.clone().unwrap_or_default()
     }
 }
 
@@ -201,6 +211,39 @@ pub enum PrefixError {
     CustomPrefixError(String),
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+pub struct LicenseParserOptions {
+    /// Use lax or strict parsing
+    #[serde(default)]
+    pub mode: ParseMode,
+
+    /// Silently accept the named licenses
+    #[serde(default)]
+    pub accept_named: HashSet<String>,
+}
+
+impl LicenseParserOptions {
+    pub fn merge(mut self, other: Self) -> Self {
+        Self {
+            mode: other.mode,
+            accept_named: {
+                self.accept_named.extend(other.accept_named);
+                self.accept_named
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all(deserialize = "kebab-case"))]
+pub enum ParseMode {
+    /// Parse licenses in strict mode
+    Strict,
+    /// Parse licenses in lax mode
+    #[default]
+    Lax,
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -227,5 +270,61 @@ mod test {
         let expected = CustomPrefix(prefix);
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_merge_license_names() {
+        let config_1 = SbomConfig {
+            license_parser: Some(LicenseParserOptions {
+                mode: ParseMode::Strict,
+                accept_named: ["Foo".into()].into(),
+            }),
+            ..Default::default()
+        };
+        let config_2 = SbomConfig {
+            license_parser: Some(LicenseParserOptions {
+                mode: ParseMode::Lax,
+                accept_named: ["Bar".into()].into(),
+            }),
+            ..Default::default()
+        };
+
+        let config = config_1.merge(&config_2);
+
+        assert_eq!(
+            config,
+            SbomConfig {
+                license_parser: Some(LicenseParserOptions {
+                    mode: ParseMode::Lax,
+                    accept_named: ["Foo".into(), "Bar".into()].into(),
+                }),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[test]
+    fn it_should_keep_strict() {
+        let config_1 = SbomConfig {
+            license_parser: Some(LicenseParserOptions {
+                mode: ParseMode::Strict,
+                accept_named: ["Foo".into()].into(),
+            }),
+            ..Default::default()
+        };
+        let config_2 = SbomConfig::default();
+
+        let config = config_1.merge(&config_2);
+
+        assert_eq!(
+            config,
+            SbomConfig {
+                license_parser: Some(LicenseParserOptions {
+                    mode: ParseMode::Strict,
+                    accept_named: ["Foo".into()].into(),
+                }),
+                ..Default::default()
+            }
+        );
     }
 }

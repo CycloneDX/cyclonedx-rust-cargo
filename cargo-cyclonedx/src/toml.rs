@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-use crate::config::{self, CdxExtension, PrefixError};
+use crate::config::{self, CdxExtension, LicenseParserOptions, PrefixError};
 use crate::config::{CustomPrefix, SbomConfig};
 use crate::format::Format;
 
@@ -53,7 +53,7 @@ pub fn config_from_toml(value: Option<&toml::value::Value>) -> Result<SbomConfig
         wrapper.try_into()
     } else {
         log::trace!("No Toml provided using default");
-        Ok(SbomConfig::empty_config())
+        Ok(SbomConfig::default())
     }
 }
 
@@ -69,7 +69,7 @@ impl TryFrom<ConfigWrapper> for SbomConfig {
         if let Some(cyclonedx) = value.cyclonedx {
             cyclonedx.try_into()
         } else {
-            Ok(SbomConfig::empty_config())
+            Ok(SbomConfig::default())
         }
     }
 }
@@ -78,6 +78,7 @@ pub struct TomlConfig {
     pub format: Option<Format>,
     pub included_dependencies: Option<IncludedDependencies>,
     pub output_options: Option<OutputOptions>,
+    pub license_parser: Option<LicenseParserOptions>,
 }
 
 impl TomlConfig {
@@ -86,6 +87,7 @@ impl TomlConfig {
             format: None,
             included_dependencies: None,
             output_options: None,
+            license_parser: None,
         }
     }
 }
@@ -105,6 +107,7 @@ impl TryFrom<TomlConfig> for SbomConfig {
             output_options,
             features: None, // Not possible to support on per-Cargo.toml basis
             target: None,   // Ditto
+            license_parser: value.license_parser,
         })
     }
 }
@@ -234,6 +237,7 @@ pub enum ConfigError {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::config::ParseMode;
 
     #[test]
     fn it_should_deserialize_from_toml_value() {
@@ -242,6 +246,7 @@ mod test {
 format = "json"
 included_dependencies = "top-level"
 output_options = { cdx = true, pattern = "bom", prefix = "tacos" }
+license_parser = { mode = "strict", accept_named = [ "Foo License" ]}
 "#;
 
         let actual: ConfigWrapper = toml::from_str(toml).expect("Failed to parse toml");
@@ -253,6 +258,10 @@ output_options = { cdx = true, pattern = "bom", prefix = "tacos" }
                 cdx_extension: Some(true),
                 prefix: Some("tacos".to_string()),
                 pattern: Some(Pattern::Bom),
+            }),
+            license_parser: Some(LicenseParserOptions {
+                mode: ParseMode::Strict,
+                accept_named: ["Foo License".into()].into(),
             }),
         };
 

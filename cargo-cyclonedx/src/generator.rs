@@ -15,10 +15,10 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-use crate::config::IncludedDependencies;
 use crate::config::Pattern;
 use crate::config::Prefix;
 use crate::config::SbomConfig;
+use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
 use crate::toml::config_from_file;
 use crate::toml::ConfigError;
@@ -49,6 +49,7 @@ use cyclonedx_bom::validation::Validate;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use log::Level;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fs::File;
@@ -63,7 +64,9 @@ use validator::validate_email;
 type PackageMap = BTreeMap<PackageId, Package>;
 type ResolveMap = BTreeMap<PackageId, Node>;
 
-pub struct SbomGenerator {}
+pub struct SbomGenerator {
+    config: SbomConfig,
+}
 
 impl SbomGenerator {
     pub fn create_sboms(
@@ -100,7 +103,8 @@ impl SbomGenerator {
                     top_level_dependencies(member, &packages, &resolve)
                 };
 
-            let bom = create_bom(member, &dependencies, &resolve)?;
+            let generator = SbomGenerator { config };
+            let bom = generator.create_bom(member, &dependencies, &resolve)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
 
@@ -108,13 +112,255 @@ impl SbomGenerator {
                 bom,
                 manifest_path: packages[member].manifest_path.clone().into_std_path_buf(),
                 package_name: packages[member].name.clone(),
-                sbom_config: config,
+                sbom_config: generator.config,
             };
 
             result.push(generated);
         }
 
         Ok(result)
+    }
+
+    fn create_bom(
+        &self,
+        package: &PackageId,
+        packages: &PackageMap,
+        resolve: &ResolveMap,
+    ) -> Result<Bom, GeneratorError> {
+        let mut bom = Bom::default();
+
+        let components: Vec<_> = packages
+            .values()
+            .filter(|p| &p.id != package)
+            .map(|component| self.create_component(component))
+            .collect();
+
+        bom.components = Some(Components(components));
+
+        let metadata = self.create_metadata(&packages[package])?;
+
+        bom.metadata = Some(metadata);
+
+        bom.dependencies = Some(create_dependencies(resolve));
+
+        Ok(bom)
+    }
+
+    fn create_component(&self, package: &Package) -> Component {
+        let name = package.name.to_owned().trim().to_string();
+        let version = package.version.to_string();
+
+        let purl = match Purl::new("cargo", &name, &version) {
+            Ok(purl) => Some(purl),
+            Err(e) => {
+                log::error!("Package {} has an invalid Purl: {} ", package.name, e);
+                None
+            }
+        };
+
+        let mut component = Component::new(
+            Classification::Library,
+            &name,
+            &version,
+            Some(package.id.to_string()),
+        );
+
+        component.purl = purl;
+        component.scope = Some(Scope::Required);
+        component.external_references = Self::get_external_references(package);
+        component.licenses = self.get_licenses(package);
+
+        component.description = package
+            .description
+            .as_ref()
+            .map(|s| NormalizedString::new(s));
+
+        component
+    }
+
+    fn get_classification(pkg: &Package) -> Classification {
+        // FIXME: this is almost certainly wrong
+        if pkg.targets.iter().any(|tgt| tgt.is_bin()) {
+            return Classification::Application;
+        }
+
+        Classification::Library
+    }
+
+    fn get_external_references(package: &Package) -> Option<ExternalReferences> {
+        let mut references = Vec::new();
+
+        if let Some(documentation) = &package.documentation {
+            match Uri::try_from(documentation.to_string()) {
+                Ok(uri) => references.push(ExternalReference::new(
+                    ExternalReferenceType::Documentation,
+                    uri,
+                )),
+                Err(e) => log::error!(
+                    "Package {} has an invalid documentation URI ({}): {} ",
+                    package.name,
+                    documentation,
+                    e
+                ),
+            }
+        }
+
+        if let Some(website) = &package.homepage {
+            match Uri::try_from(website.to_string()) {
+                Ok(uri) => {
+                    references.push(ExternalReference::new(ExternalReferenceType::Website, uri))
+                }
+                Err(e) => log::error!(
+                    "Package {} has an invalid homepage URI ({}): {} ",
+                    package.name,
+                    website,
+                    e
+                ),
+            }
+        }
+
+        if let Some(other) = &package.links {
+            match Uri::try_from(other.to_string()) {
+                Ok(uri) => {
+                    references.push(ExternalReference::new(ExternalReferenceType::Other, uri))
+                }
+                Err(e) => log::error!(
+                    "Package {} has an invalid links URI ({}): {} ",
+                    package.name,
+                    other,
+                    e
+                ),
+            }
+        }
+
+        if let Some(vcs) = &package.repository {
+            match Uri::try_from(vcs.to_string()) {
+                Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
+                Err(e) => log::error!(
+                    "Package {} has an invalid repository URI ({}): {} ",
+                    package.name,
+                    vcs,
+                    e
+                ),
+            }
+        }
+
+        if !references.is_empty() {
+            return Some(ExternalReferences(references));
+        }
+
+        None
+    }
+
+    fn get_licenses(&self, package: &Package) -> Option<Licenses> {
+        let mut licenses = vec![];
+
+        if let Some(license) = &package.license {
+            let parse_mode = self
+                .config
+                .license_parser
+                .as_ref()
+                .map(|opts| opts.mode)
+                .unwrap_or_default();
+
+            log::debug!("License parser mode: {:?}", parse_mode);
+
+            let result = match parse_mode {
+                ParseMode::Strict => SpdxExpression::try_from(license.to_string()),
+                ParseMode::Lax => SpdxExpression::parse_lax(license.to_string()),
+            };
+
+            match result {
+                Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
+                Err(err) => {
+                    let level = match &self.config.license_parser {
+                        Some(opts) if opts.accept_named.contains(license) => Level::Info,
+                        _ => Level::Warn,
+                    };
+                    log::log!(
+                        level,
+                        "Package {} has an invalid license expression ({}), using as named license: {}",
+                        package.name,
+                        license,
+                        err,
+                    );
+                    licenses.push(LicenseChoice::License(License::named_license(license)));
+                }
+            }
+        }
+
+        if licenses.is_empty() {
+            log::trace!("Package {} has no licenses", package.name);
+            return None;
+        }
+
+        Some(Licenses(licenses))
+    }
+
+    fn create_metadata(&self, package: &Package) -> Result<Metadata, GeneratorError> {
+        let authors = Self::create_authors(package);
+
+        let mut metadata = Metadata::new()?;
+        if !authors.is_empty() {
+            metadata.authors = Some(authors);
+        }
+
+        let mut component = self.create_component(package);
+
+        component.component_type = Self::get_classification(package);
+
+        metadata.component = Some(component);
+
+        let tool = Tool::new("CycloneDX", "cargo-cyclonedx", env!("CARGO_PKG_VERSION"));
+
+        metadata.tools = Some(Tools(vec![tool]));
+
+        Ok(metadata)
+    }
+
+    fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
+        let mut authors = vec![];
+        let mut invalid_authors = vec![];
+
+        for author in &package.authors {
+            match Self::parse_author(author) {
+                Ok(author) => authors.push(author),
+                Err(e) => invalid_authors.push((author, e)),
+            }
+        }
+
+        invalid_authors
+            .into_iter()
+            .for_each(|(author, error)| log::error!("Invalid author {}: {:?}", author, error));
+
+        authors
+    }
+
+    fn parse_author(author: &str) -> Result<OrganizationalContact, GeneratorError> {
+        static AUTHORS_REGEX: Lazy<Result<Regex, regex::Error>> =
+            Lazy::new(|| Regex::new(r"^(?P<author>[^<]+)\s*(<(?P<email>[^>]+)>)?$"));
+
+        match AUTHORS_REGEX
+            .as_ref()
+            .map_err(|e| GeneratorError::InvalidRegexError(e.to_owned()))?
+            .captures(author)
+        {
+            Some(captures) => {
+                let name = captures.name("author").map_or("", |m| m.as_str().trim());
+                let email = captures.name("email").map(|m| m.as_str());
+
+                if let Some(email) = email {
+                    if !validate_email(email) {
+                        return Err(GeneratorError::AuthorParseError(
+                            "Invalid email, does not conform to HTML5 spec".to_string(),
+                        ));
+                    }
+                }
+
+                Ok(OrganizationalContact::new(name, email))
+            }
+            None => Ok(OrganizationalContact::new(author, None)),
+        }
     }
 }
 
@@ -130,237 +376,6 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
         .into_iter()
         .map(|pkg| (pkg.id.clone(), pkg))
         .collect()
-}
-
-fn create_bom(
-    package: &PackageId,
-    packages: &PackageMap,
-    resolve: &ResolveMap,
-) -> Result<Bom, GeneratorError> {
-    let mut bom = Bom::default();
-
-    let components: Vec<_> = packages
-        .values()
-        .filter(|p| &p.id != package)
-        .map(create_component)
-        .collect();
-
-    bom.components = Some(Components(components));
-
-    let metadata = create_metadata(&packages[package])?;
-
-    bom.metadata = Some(metadata);
-
-    bom.dependencies = Some(create_dependencies(resolve));
-
-    Ok(bom)
-}
-
-fn create_component(package: &Package) -> Component {
-    let name = package.name.to_owned().trim().to_string();
-    let version = package.version.to_string();
-
-    let purl = match Purl::new("cargo", &name, &version) {
-        Ok(purl) => Some(purl),
-        Err(e) => {
-            log::error!("Package {} has an invalid Purl: {} ", package.name, e);
-            None
-        }
-    };
-
-    let mut component = Component::new(
-        Classification::Library,
-        &name,
-        &version,
-        Some(package.id.to_string()),
-    );
-
-    component.purl = purl;
-    component.scope = Some(Scope::Required);
-    component.external_references = get_external_references(package);
-    component.licenses = get_licenses(package);
-
-    component.description = package
-        .description
-        .as_ref()
-        .map(|s| NormalizedString::new(s));
-
-    component
-}
-
-fn get_classification(pkg: &Package) -> Classification {
-    // FIXME: this is almost certainly wrong
-    if pkg.targets.iter().any(|tgt| tgt.is_bin()) {
-        return Classification::Application;
-    }
-
-    Classification::Library
-}
-
-fn get_external_references(package: &Package) -> Option<ExternalReferences> {
-    let mut references = Vec::new();
-
-    if let Some(documentation) = &package.documentation {
-        match Uri::try_from(documentation.to_string()) {
-            Ok(uri) => references.push(ExternalReference::new(
-                ExternalReferenceType::Documentation,
-                uri,
-            )),
-            Err(e) => log::error!(
-                "Package {} has an invalid documentation URI ({}): {} ",
-                package.name,
-                documentation,
-                e
-            ),
-        }
-    }
-
-    if let Some(website) = &package.homepage {
-        match Uri::try_from(website.to_string()) {
-            Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Website, uri)),
-            Err(e) => log::error!(
-                "Package {} has an invalid homepage URI ({}): {} ",
-                package.name,
-                website,
-                e
-            ),
-        }
-    }
-
-    if let Some(other) = &package.links {
-        match Uri::try_from(other.to_string()) {
-            Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Other, uri)),
-            Err(e) => log::error!(
-                "Package {} has an invalid links URI ({}): {} ",
-                package.name,
-                other,
-                e
-            ),
-        }
-    }
-
-    if let Some(vcs) = &package.repository {
-        match Uri::try_from(vcs.to_string()) {
-            Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
-            Err(e) => log::error!(
-                "Package {} has an invalid repository URI ({}): {} ",
-                package.name,
-                vcs,
-                e
-            ),
-        }
-    }
-
-    if !references.is_empty() {
-        return Some(ExternalReferences(references));
-    }
-
-    None
-}
-
-fn get_licenses(package: &Package) -> Option<Licenses> {
-    let mut licenses = vec![];
-
-    if let Some(license) = package.license.as_ref() {
-        match SpdxExpression::try_from(license.to_string()) {
-            Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
-            Err(err) => {
-                log::error!(
-                    "Package {} has an invalid license expression, trying lax parsing ({}): {}",
-                    package.name,
-                    license,
-                    err
-                );
-
-                match SpdxExpression::parse_lax(license.to_string()) {
-                    Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
-                    Err(err) => {
-                        log::error!(
-                        "Package {} has an invalid license expression that could not be converted to a valid expression, using named license ({}): {}",
-                        package.name,
-                        license,
-                        err
-                    );
-
-                        licenses.push(LicenseChoice::License(License::named_license(license)))
-                    }
-                }
-            }
-        }
-    }
-
-    if licenses.is_empty() {
-        log::trace!("Package {} has no licenses", package.name);
-        return None;
-    }
-
-    Some(Licenses(licenses))
-}
-
-fn create_metadata(package: &Package) -> Result<Metadata, GeneratorError> {
-    let authors = create_authors(package);
-
-    let mut metadata = Metadata::new()?;
-    if !authors.is_empty() {
-        metadata.authors = Some(authors);
-    }
-
-    let mut component = create_component(package);
-
-    component.component_type = get_classification(package);
-
-    metadata.component = Some(component);
-
-    let tool = Tool::new("CycloneDX", "cargo-cyclonedx", env!("CARGO_PKG_VERSION"));
-
-    metadata.tools = Some(Tools(vec![tool]));
-
-    Ok(metadata)
-}
-
-fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
-    let mut authors = vec![];
-    let mut invalid_authors = vec![];
-
-    for author in &package.authors {
-        match parse_author(author) {
-            Ok(author) => authors.push(author),
-            Err(e) => invalid_authors.push((author, e)),
-        }
-    }
-
-    invalid_authors
-        .into_iter()
-        .for_each(|(author, error)| log::error!("Invalid author {}: {:?}", author, error));
-
-    authors
-}
-
-fn parse_author(author: &str) -> Result<OrganizationalContact, GeneratorError> {
-    static AUTHORS_REGEX: Lazy<Result<Regex, regex::Error>> =
-        Lazy::new(|| Regex::new(r"^(?P<author>[^<]+)\s*(<(?P<email>[^>]+)>)?$"));
-
-    match AUTHORS_REGEX
-        .as_ref()
-        .map_err(|e| GeneratorError::InvalidRegexError(e.to_owned()))?
-        .captures(author)
-    {
-        Some(captures) => {
-            let name = captures.name("author").map_or("", |m| m.as_str().trim());
-            let email = captures.name("email").map(|m| m.as_str());
-
-            if let Some(email) = email {
-                if !validate_email(email) {
-                    return Err(GeneratorError::AuthorParseError(
-                        "Invalid email, does not conform to HTML5 spec".to_string(),
-                    ));
-                }
-            }
-
-            Ok(OrganizationalContact::new(name, email))
-        }
-        None => Ok(OrganizationalContact::new(author, None)),
-    }
 }
 
 #[derive(Error, Debug)]
@@ -580,14 +595,15 @@ mod test {
 
     #[test]
     fn it_should_parse_author_and_email() {
-        let actual = parse_author("First Last <user@domain.tld>").expect("Failed to parse author");
+        let actual = SbomGenerator::parse_author("First Last <user@domain.tld>")
+            .expect("Failed to parse author");
         let expected = OrganizationalContact::new("First Last", Some("user@domain.tld"));
 
         assert_eq!(actual, expected);
     }
     #[test]
     fn it_should_parse_author_only() {
-        let actual = parse_author("First Last").expect("Failed to parse author");
+        let actual = SbomGenerator::parse_author("First Last").expect("Failed to parse author");
         let expected = OrganizationalContact::new("First Last", None);
 
         assert_eq!(actual, expected);
@@ -595,8 +611,8 @@ mod test {
 
     #[test]
     fn it_should_fail_to_parse_invalid_email() {
-        let actual =
-            parse_author("First Last <userdomain.tld>").expect_err("Failed to throw error");
+        let actual = SbomGenerator::parse_author("First Last <userdomain.tld>")
+            .expect_err("Failed to throw error");
 
         match actual {
             GeneratorError::AuthorParseError(e) => assert_eq!(
@@ -609,7 +625,8 @@ mod test {
 
     #[test]
     fn it_should_parse_author_inside_brackets() {
-        let actual = parse_author("<First Last user@domain.tld>").expect("Failed to parse author");
+        let actual = SbomGenerator::parse_author("<First Last user@domain.tld>")
+            .expect("Failed to parse author");
         let expected = OrganizationalContact::new("<First Last user@domain.tld>", None);
 
         assert_eq!(actual, expected);

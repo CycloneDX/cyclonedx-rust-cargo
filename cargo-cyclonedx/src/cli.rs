@@ -1,12 +1,14 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, CustomPrefix, Features, IncludedDependencies, OutputOptions, Pattern, Prefix,
-        PrefixError, SbomConfig, Target,
+        CdxExtension, CustomPrefix, Features, IncludedDependencies, LicenseParserOptions,
+        OutputOptions, ParseMode, Pattern, Prefix, PrefixError, SbomConfig, Target,
     },
     format::Format,
     platform::host_platform,
 };
-use clap::{ArgGroup, Parser};
+use clap::{ArgAction, ArgGroup, Parser};
+use std::collections::HashSet;
+use std::iter::FromIterator;
 use std::path;
 use thiserror::Error;
 
@@ -88,6 +90,14 @@ Defaults to the host target, as printed by 'rustc -vV'"
         value_name = "FILENAME_PREFIX"
     )]
     pub output_prefix: Option<String>,
+
+    /// Reject the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as 'MIT OR Apache-2.0'
+    #[clap(long = "license-strict")]
+    pub license_strict: bool,
+
+    /// Add license names which will not be warned about when parsing them as a SPDX expression fails
+    #[clap(long = "license-accept-named", action=ArgAction::Append)]
+    pub license_accept_named: Vec<String>,
 }
 
 impl Args {
@@ -160,12 +170,21 @@ impl Args {
             (_, _) => None,
         };
 
+        let license_parser = Some(LicenseParserOptions {
+            mode: match self.license_strict {
+                true => ParseMode::Strict,
+                false => ParseMode::Lax,
+            },
+            accept_named: HashSet::from_iter(self.license_accept_named.clone()),
+        });
+
         Ok(SbomConfig {
             format: self.format,
             included_dependencies,
             output_options,
             features,
             target,
+            license_parser,
         })
     }
 }
