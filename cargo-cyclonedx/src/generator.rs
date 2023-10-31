@@ -186,14 +186,13 @@ impl SbomGenerator {
         if let Some(source) = &package.source {
             if !source.is_crates_io() {
                 match source.repr.split_once('+') {
+                    // qualifier names are taken from the spec, which defines these two for all PURL types:
+                    // https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#known-qualifiers-keyvalue-pairs
                     Some(("git", _git_path)) => {
-                        // vcs_url is not officially defined for Cargo specifically, but it does exist in the generic schema
-                        // and this is what other schemas tend to use as well when they need it.
                         builder = builder.with_qualifier("vcs_url", source_to_vcs_url(&source))?
                     }
                     Some(("registry", registry_url)) => {
-                        // purl spec defines registry URL as the namespace, so this is fully compliant
-                        builder = builder.with_namespace(registry_url)
+                        builder = builder.with_qualifier("repository_url", registry_url)?
                     }
                     Some(("local", _path)) => (), // TODO: decide how to handle local deps, PURL doesn't specify it
                     Some((source, _path)) => log::error!("Unknown source kind {}", source),
