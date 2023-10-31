@@ -189,7 +189,7 @@ impl SbomGenerator {
                     Some(("git", _git_path)) => {
                         // vcs_url is not officially defined for Cargo specifically, but it does exist in the generic schema
                         // and this is what other schemas tend to use as well when they need it.
-                        builder = builder.with_qualifier("vcs_url", &source.repr)?
+                        builder = builder.with_qualifier("vcs_url", source_to_vcs_url(&source))?
                     }
                     Some(("registry", registry_url)) => {
                         // purl spec defines registry URL as the namespace, so this is fully compliant
@@ -540,6 +540,13 @@ fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
             .iter()
             .any(|dep| dep.kind != DependencyKind::Development)
     })
+}
+
+/// Converts the `cargo metadata`'s `source` field to a valid PURL `vcs_url`.
+/// Assumes that the source kind is `git`, panics if it isn't.
+fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
+    assert!(source.repr.starts_with("git+"));
+    source.repr.replace("#", "@")
 }
 
 /// Contains a generated SBOM and context used in its generation
