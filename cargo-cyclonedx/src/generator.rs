@@ -73,19 +73,25 @@ impl SbomGenerator {
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
         log::trace!("Processing the workspace {}", meta.workspace_root);
         let members: Vec<PackageId> = meta.workspace_members;
-        let packages = index_packages(meta.packages);
-        let resolve = index_resolve(meta.resolve.unwrap().nodes);
+        let mut packages = index_packages(meta.packages);
+        // When listing only top-level dependencies, `cargo metadata` will not output the dependency tree
+        let mut resolve = meta.resolve.map(|r| index_resolve(r.nodes));
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
             log::trace!("Processing the package {}", member);
 
-            let (dependencies, pruned_resolve) =
-                prune_dev_dependencies(member, &packages, &resolve);
+            if let Some(res) = resolve {
+                let (pruned_packages, pruned_resolve) =
+                    prune_dev_dependencies(member, &packages, &res);
+                packages = pruned_packages;
+                resolve = Some(pruned_resolve);
+            }
+
             let generator = SbomGenerator {
                 config: config.clone(),
             };
-            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
+            let bom = generator.create_bom(member, &packages, &resolve)?;
 
             if cfg!(debug_assertions) {
                 let result = bom.validate().unwrap();
@@ -111,7 +117,7 @@ impl SbomGenerator {
         &self,
         package: &PackageId,
         packages: &PackageMap,
-        resolve: &ResolveMap,
+        resolve: &Option<ResolveMap>,
     ) -> Result<Bom, GeneratorError> {
         let mut bom = Bom::default();
 
@@ -127,7 +133,9 @@ impl SbomGenerator {
 
         bom.metadata = Some(metadata);
 
-        bom.dependencies = Some(create_dependencies(resolve));
+        if let Some(resolve) = resolve {
+            bom.dependencies = Some(create_dependencies(resolve));
+        }
 
         Ok(bom)
     }
