@@ -254,7 +254,12 @@ impl SbomGenerator {
                 .map(|opts| opts.mode)
                 .unwrap_or_default();
 
-            log::debug!("License parser mode: {:?}", parse_mode);
+            log::trace!(
+                "Using license parser mode [{:?}] for package [{}@{}]",
+                parse_mode,
+                package.name,
+                package.version
+            );
 
             let result = match parse_mode {
                 ParseMode::Strict => SpdxExpression::try_from(license.to_string()),
