@@ -57,6 +57,7 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::FromStr;
 use thiserror::Error;
 use validator::validate_email;
 
@@ -176,6 +177,13 @@ impl SbomGenerator {
             .map(|s| NormalizedString::new(s));
 
         component
+    }
+
+    fn get_purl(package: &Package) -> Result<Purl, purl::PackageError> {
+        let purl = purl::PurlBuilder::new(purl::PackageType::Cargo, &package.name)
+            .with_version(package.version.to_string())
+            .build()?;
+        Ok(Purl::from_str(&purl.to_string()).unwrap())
     }
 
     fn get_classification(pkg: &Package) -> Classification {
