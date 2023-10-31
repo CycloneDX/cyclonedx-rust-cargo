@@ -20,8 +20,6 @@ use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
-use crate::toml::config_from_file;
-use crate::toml::ConfigError;
 use crate::urlencode::urlencode;
 
 use cargo_metadata;
@@ -56,7 +54,6 @@ use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
-use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
 use thiserror::Error;
@@ -73,30 +70,16 @@ pub struct SbomGenerator {
 impl SbomGenerator {
     pub fn create_sboms(
         meta: CargoMetadata,
-        config_override: &SbomConfig,
-        manifest_path: &Path,
+        config: &SbomConfig,
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
-        log::trace!(
-            "Processing the workspace {} configuration",
-            meta.workspace_root
-        );
-        let workspace_config = config_from_file(manifest_path)?;
+        log::trace!("Processing the workspace {}", meta.workspace_root);
         let members: Vec<PackageId> = meta.workspace_members;
         let packages = index_packages(meta.packages);
         let resolve = index_resolve(meta.resolve.unwrap().nodes);
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
-            log::trace!("Processing the package {} configuration", member);
-            let package_config = config_from_file(manifest_path)?;
-            let config = workspace_config
-                .merge(&package_config)
-                .merge(config_override);
-
-            log::trace!("Config from workspace metadata: {:?}", workspace_config);
-            log::trace!("Config from package metadata: {:?}", package_config);
-            log::trace!("Config from config override: {:?}", config_override);
-            log::debug!("Config from merged config: {:?}", config);
+            log::trace!("Processing the package {}", member);
 
             let (dependencies, _resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
@@ -105,7 +88,9 @@ impl SbomGenerator {
                     top_level_dependencies(member, &packages, &resolve)
                 };
 
-            let generator = SbomGenerator { config };
+            let generator = SbomGenerator {
+                config: config.clone(),
+            };
             let bom = generator.create_bom(member, &dependencies, &resolve)?;
 
             log::debug!("Bom validation: {:?}", &bom.validate());
@@ -427,9 +412,6 @@ pub enum GeneratorError {
         #[source]
         error: anyhow::Error,
     },
-
-    #[error("Error with Cargo custom_metadata")]
-    CustomMetadataTomlError(#[from] ConfigError),
 
     #[error("Error creating Metadata")]
     MetadataError(#[from] MetadataError),

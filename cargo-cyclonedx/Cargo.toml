@@ -35,7 +35,6 @@ purl = { version = "0.1.1" }
 regex = "1.9.3"
 serde = { version = "1.0.188", features = ["derive"] }
 thiserror = "1.0.48"
-toml = "0.8.6"
 validator = { version = "0.16.1" }
 
 [dev-dependencies]
