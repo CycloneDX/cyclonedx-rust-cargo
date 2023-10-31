@@ -158,7 +158,7 @@ impl Validate for HashAlgorithm {
 
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashValue)
 #[derive(Debug, PartialEq, Eq)]
-pub struct HashValue(pub(crate) String);
+pub struct HashValue(pub String);
 
 impl Validate for HashValue {
     fn validate_with_context(
