@@ -74,9 +74,11 @@
 //! So the specs failed us, and we have to rely on implementation behavior.
 //!
 //! Percent decoders do not have a whitelist of characters they don't percent-decode, they just decode everything starting with a %. Everything.
+//! That is how the spec defines percent decoding, too: <https://url.spec.whatwg.org/#percent-decode>
 //! So when the PURL spec says "The value is the percent-decoded right side", the decoder should just decode everything starting with a %.
 //!
-//! So, buck it. If no spec can tell us what we should encode, we'll just encode everything non-alphanumeric. Decoders will work.
+//! So, buck it. If no spec can tell us what we should encode, we'll just encode everything non-alphanumeric.
+//! For this to break something, the decoder would have to be *both* non-compliant and over-engineered.
 
 use percent_encoding::{self, utf8_percent_encode, NON_ALPHANUMERIC};
 
