@@ -22,6 +22,7 @@ use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
 use crate::toml::config_from_file;
 use crate::toml::ConfigError;
+use crate::urlencode::urlencode;
 
 use cargo_metadata;
 use cargo_metadata::DependencyKind;
@@ -192,7 +193,8 @@ impl SbomGenerator {
                         builder = builder.with_qualifier("vcs_url", source_to_vcs_url(&source))?
                     }
                     Some(("registry", registry_url)) => {
-                        builder = builder.with_qualifier("repository_url", registry_url)?
+                        builder =
+                            builder.with_qualifier("repository_url", urlencode(registry_url))?
                     }
                     Some(("local", _path)) => (), // TODO: decide how to handle local deps, PURL doesn't specify it
                     Some((source, _path)) => log::error!("Unknown source kind {}", source),
@@ -545,7 +547,7 @@ fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
 /// Assumes that the source kind is `git`, panics if it isn't.
 fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
     assert!(source.repr.starts_with("git+"));
-    source.repr.replace("#", "@")
+    urlencode(&source.repr.replace("#", "@"))
 }
 
 /// Contains a generated SBOM and context used in its generation
