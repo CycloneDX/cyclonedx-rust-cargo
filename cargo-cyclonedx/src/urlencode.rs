@@ -1,7 +1,7 @@
 //! If you are reading this - buckle up, we are going on an adventure!
 //!
 //! So in the purl spec there is this innocuous example of two valid PURLs:
-//! ```
+//! ```text
 //! pkg:generic/openssl@1.1.10g?download_url=https://openssl.org/source/openssl-1.1.0g.tar.gz&checksum=sha256:de4d501267da
 //! pkg:generic/bitwarderl?vcs_url=git%2Bhttps://git.fsfe.org/dxtr/bitwarderl%40cc55108da32
 //! ```
