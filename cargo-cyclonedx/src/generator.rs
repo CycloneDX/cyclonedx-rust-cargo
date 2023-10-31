@@ -80,7 +80,7 @@ impl SbomGenerator {
         for member in members.iter() {
             log::trace!("Processing the package {}", member);
 
-            let (dependencies, _resolve) =
+            let (dependencies, pruned_resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(member, &packages, &resolve)
                 } else {
@@ -90,7 +90,7 @@ impl SbomGenerator {
             let generator = SbomGenerator {
                 config: config.clone(),
             };
-            let bom = generator.create_bom(member, &dependencies, &resolve)?;
+            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
             if cfg!(debug_assertions) {
                 let result = bom.validate().unwrap();
