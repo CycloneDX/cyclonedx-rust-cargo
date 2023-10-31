@@ -15,10 +15,10 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use crate::config::ParseMode;
 use crate::config::Pattern;
 use crate::config::Prefix;
 use crate::config::SbomConfig;
-use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
 
 use cargo_metadata;
@@ -81,12 +81,7 @@ impl SbomGenerator {
             log::trace!("Processing the package {}", member);
 
             let (dependencies, pruned_resolve) =
-                if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(member, &packages, &resolve)
-                } else {
-                    top_level_dependencies(member, &packages, &resolve)
-                };
-
+                prune_dev_dependencies(member, &packages, &resolve);
             let generator = SbomGenerator {
                 config: config.clone(),
             };
@@ -410,38 +405,7 @@ fn create_dependencies(resolve: &ResolveMap) -> Dependencies {
     Dependencies(deps)
 }
 
-fn top_level_dependencies(
-    root: &PackageId,
-    packages: &PackageMap,
-    resolve: &ResolveMap,
-) -> (PackageMap, ResolveMap) {
-    log::trace!("Adding top-level dependencies to SBOM");
-
-    // Only include packages that have dependency kinds other than "Development"
-    let root_node = strip_dev_dependencies(&resolve[root]);
-
-    let mut pkg_result = PackageMap::new();
-    // Record the root package, then its direct non-dev dependencies
-    pkg_result.insert(root.to_owned(), packages[root].to_owned());
-    for id in &root_node.dependencies {
-        pkg_result.insert((*id).to_owned(), packages[id].to_owned());
-    }
-
-    let mut resolve_result = ResolveMap::new();
-    for id in &root_node.dependencies {
-        // Clear all depedencies, pretend there is only one level
-        let mut node = resolve[id].clone();
-        node.deps = Vec::new();
-        node.dependencies = Vec::new();
-        resolve_result.insert((*id).to_owned(), node);
-    }
-    // Insert the root node at the end now that we're done iterating over it
-    resolve_result.insert(root.to_owned(), root_node);
-
-    (pkg_result, resolve_result)
-}
-
-fn all_dependencies(
+fn prune_dev_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,

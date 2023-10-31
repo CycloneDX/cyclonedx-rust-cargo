@@ -46,7 +46,7 @@
 * SOFTWARE.
 */
 use cargo_cyclonedx::{
-    config::{SbomConfig, Target},
+    config::{IncludedDependencies, SbomConfig, Target},
     generator::SbomGenerator,
 };
 
@@ -152,6 +152,10 @@ fn get_metadata(
                 feature_configuration.features.clone(),
             ));
         }
+    }
+
+    if let Some(IncludedDependencies::TopLevelDependencies) = config.included_dependencies {
+        cmd.no_deps();
     }
 
     if let Some(Target::SingleTarget(target)) = config.target.as_ref() {
