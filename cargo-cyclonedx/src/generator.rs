@@ -180,9 +180,31 @@ impl SbomGenerator {
     }
 
     fn get_purl(package: &Package) -> Result<Purl, purl::PackageError> {
-        let purl = purl::PurlBuilder::new(purl::PackageType::Cargo, &package.name)
-            .with_version(package.version.to_string())
-            .build()?;
+        let mut builder = purl::PurlBuilder::new(purl::PackageType::Cargo, &package.name)
+            .with_version(package.version.to_string());
+
+        if let Some(source) = &package.source {
+            if !source.is_crates_io() {
+                match source.repr.split_once('+') {
+                    Some(("git", _git_path)) => {
+                        // vcs_url is not officially defined for Cargo specifically, but it does exist in the generic schema
+                        // and this is what other schemas tend to use as well when they need it.
+                        builder = builder.with_qualifier("vcs_url", &source.repr)?
+                    }
+                    Some(("registry", registry_url)) => {
+                        // purl spec defines registry URL as the namespace, so this is fully compliant
+                        builder = builder.with_namespace(registry_url)
+                    }
+                    Some(("local", _path)) => (), // TODO: decide how to handle local deps, PURL doesn't specify it
+                    Some((source, _path)) => log::error!("Unknown source kind {}", source),
+                    None => {
+                        log::error!("No '+' separator found in source field from `cargo metadata`")
+                    }
+                }
+            }
+        }
+
+        let purl = builder.build()?;
         Ok(Purl::from_str(&purl.to_string()).unwrap())
     }
 
