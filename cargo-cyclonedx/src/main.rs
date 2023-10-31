@@ -78,7 +78,7 @@ fn main() -> anyhow::Result<()> {
     log::trace!("Running `cargo metadata` finished");
 
     log::trace!("SBOM generation started");
-    let boms = SbomGenerator::create_sboms(metadata, &cli_config, &manifest_path)?;
+    let boms = SbomGenerator::create_sboms(metadata, &cli_config)?;
     log::trace!("SBOM generation finished");
 
     log::trace!("SBOM output started");
