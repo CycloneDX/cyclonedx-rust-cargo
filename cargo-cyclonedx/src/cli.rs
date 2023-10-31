@@ -68,7 +68,7 @@ Defaults to the host target, as printed by 'rustc -vV'"
     pub all: bool,
 
     /// List only top-level dependencies (default)
-    #[clap(name = "top-level", long = "top-level")]
+    #[clap(name = "top-level", long = "top-level", conflicts_with = "all")]
     pub top_level: bool,
 
     /// Prepend file extension with .cdx
