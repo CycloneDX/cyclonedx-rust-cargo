@@ -72,16 +72,11 @@ impl SbomConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum IncludedDependencies {
     TopLevelDependencies,
+    #[default]
     AllDependencies,
-}
-
-impl Default for IncludedDependencies {
-    fn default() -> Self {
-        Self::TopLevelDependencies
-    }
 }
 
 impl FromStr for IncludedDependencies {
