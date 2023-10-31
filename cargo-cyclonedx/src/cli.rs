@@ -63,11 +63,11 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub target: Option<String>,
 
-    /// List all dependencies instead of only top-level ones
+    /// List all dependencies instead of only top-level ones (default)
     #[clap(long = "all", short = 'a')]
     pub all: bool,
 
-    /// List only top-level dependencies (default)
+    /// List only top-level dependencies
     #[clap(name = "top-level", long = "top-level", conflicts_with = "all")]
     pub top_level: bool,
 
