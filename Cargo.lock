@@ -158,6 +158,7 @@ dependencies = [
  "env_logger",
  "log",
  "once_cell",
+ "percent-encoding",
  "predicates",
  "purl",
  "regex",
