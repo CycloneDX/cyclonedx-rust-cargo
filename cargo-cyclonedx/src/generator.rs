@@ -18,9 +18,11 @@
 use crate::config::Pattern;
 use crate::config::Prefix;
 use crate::config::SbomConfig;
+use crate::config::Target::AllTargets;
 use crate::config::Target::SingleTarget;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
+use crate::platform::all_known_targets;
 
 use cargo_metadata;
 use cargo_metadata::DependencyKind;
@@ -314,11 +316,14 @@ impl SbomGenerator {
 
         metadata.tools = Some(Tools(vec![tool]));
 
-        if let Some(SingleTarget(target)) = &self.config.target {
-            let property = Property::new("rustcTarget", &target);
-            let properties = Properties(vec![property]);
-            metadata.properties = Some(properties);
-        }
+        let properties = match self.config.target.as_ref().unwrap() {
+            SingleTarget(target) => vec![Property::new("rustcTarget", &target)],
+            AllTargets => all_known_targets()
+                .into_iter()
+                .map(|target| Property::new("rustcTarget", &target))
+                .collect(),
+        };
+        metadata.properties = Some(Properties(properties));
 
         Ok(metadata)
     }
