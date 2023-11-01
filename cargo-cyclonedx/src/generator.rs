@@ -181,13 +181,18 @@ impl SbomGenerator {
                         builder =
                             builder.with_qualifier("repository_url", urlencode(registry_url))?
                     }
-                    Some(("local", _path)) => (), // TODO: decide how to handle local deps, PURL doesn't specify it
                     Some((source, _path)) => log::error!("Unknown source kind {}", source),
                     None => {
                         log::error!("No '+' separator found in source field from `cargo metadata`")
                     }
                 }
             }
+        } else {
+            // source is None for packages from the local filesystem.
+            // url-encode the path to the package manifest to make it a valid URL
+            let manifest_url = format!("file://{}", urlencode(package.manifest_path.as_str()));
+            // url-encode the whole URL *again* because we are embedding this URL inside another URL (PURL)
+            builder = builder.with_qualifier("download_url", urlencode(&manifest_url))?
         }
 
         let purl = builder.build()?;
