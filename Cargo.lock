@@ -680,14 +680,13 @@ dependencies = [
 
 [[package]]
 name = "purl"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9970524438ae20d0f91d587f80f930dc2a1264d8a4904a2f1c0d099b5c9a746"
+checksum = "d153044e55fb5c0a6f0f0f974c3335d15a842263ba4b208d2656120fe530a5ab"
 dependencies = [
  "hex",
  "percent-encoding",
  "phf",
- "smartstring",
  "thiserror",
  "unicase",
 ]
@@ -841,17 +840,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "942b4a808e05215192e39f4ab80813e599068285906cc91aa64f923db842bd5a"
 
 [[package]]
-name = "smartstring"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb72c633efbaa2dd666986505016c32c3044395ceaf881518399d2f4127ee29"
-dependencies = [
- "autocfg",
- "static_assertions",
- "version_check",
-]
-
-[[package]]
 name = "spdx"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -859,12 +847,6 @@ checksum = "b19b32ed6d899ab23174302ff105c1577e45a06b08d4fe0a9dd13ce804bbbf71"
 dependencies = [
  "smallvec",
 ]
-
-[[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strsim"
