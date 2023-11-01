@@ -16,7 +16,7 @@ pub fn rustc_location() -> OsString {
 }
 
 /// Returns the default target triple for the rustc we're running
-pub fn rustc_host_target_triple(rustc_path: &OsStr) -> String {
+fn rustc_host_target_triple(rustc_path: &OsStr) -> String {
     // While this feels somewhat insane, this is how `cargo` determines the host platform
     Command::new(rustc_path)
         .arg("-vV")
@@ -28,4 +28,15 @@ pub fn rustc_host_target_triple(rustc_path: &OsStr) -> String {
         .find(|l| l.starts_with("host: "))
         .map(|l| l[6..].to_string())
         .expect("Failed to parse rustc output to determine the current platform. Please report this bug!")
+}
+
+pub fn all_known_targets() -> Vec<String> {
+    Command::new(rustc_location())
+        .arg("-vV")
+        .output()
+        .expect("Failed to invoke rustc! Is it in your $PATH?")
+        .stdout
+        .lines()
+        .map(|byte_line| byte_line.unwrap())
+        .collect()
 }
