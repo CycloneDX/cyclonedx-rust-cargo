@@ -189,8 +189,10 @@ impl SbomGenerator {
             }
         } else {
             // source is None for packages from the local filesystem.
+            // The manifest path ends with a `Cargo.toml`, so the package directory is its parent
+            let package_dir = package.manifest_path.parent().unwrap();
             // url-encode the path to the package manifest to make it a valid URL
-            let manifest_url = format!("file://{}", urlencode(package.manifest_path.as_str()));
+            let manifest_url = format!("file://{}", urlencode(package_dir.as_str()));
             // url-encode the whole URL *again* because we are embedding this URL inside another URL (PURL)
             builder = builder.with_qualifier("download_url", urlencode(&manifest_url))?
         }
