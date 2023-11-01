@@ -32,7 +32,8 @@ fn rustc_host_target_triple(rustc_path: &OsStr) -> String {
 
 pub fn all_known_targets() -> Vec<String> {
     Command::new(rustc_location())
-        .arg("-vV")
+        .arg("--print")
+        .arg("target-list")
         .output()
         .expect("Failed to invoke rustc! Is it in your $PATH?")
         .stdout
