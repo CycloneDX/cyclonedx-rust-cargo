@@ -45,6 +45,7 @@ use cyclonedx_bom::models::metadata::MetadataError;
 use cyclonedx_bom::models::organization::OrganizationalContact;
 use cyclonedx_bom::models::tool::{Tool, Tools};
 use cyclonedx_bom::validation::Validate;
+use cyclonedx_bom::validation::ValidationResult;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -81,7 +82,7 @@ impl SbomGenerator {
         for member in members.iter() {
             log::trace!("Processing the package {}", member);
 
-            let (dependencies, _resolve) =
+            let (dependencies, pruned_resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(member, &packages, &resolve)
                 } else {
@@ -91,9 +92,14 @@ impl SbomGenerator {
             let generator = SbomGenerator {
                 config: config.clone(),
             };
-            let bom = generator.create_bom(member, &dependencies, &resolve)?;
+            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
-            log::debug!("Bom validation: {:?}", &bom.validate());
+            if cfg!(debug_assertions) {
+                let result = bom.validate().unwrap();
+                if let ValidationResult::Failed { reasons } = result {
+                    panic!("The generated SBOM failed validation: {:?}", &reasons);
+                }
+            }
 
             let generated = GeneratedSbom {
                 bom,
@@ -286,7 +292,12 @@ impl SbomGenerator {
                 .map(|opts| opts.mode)
                 .unwrap_or_default();
 
-            log::debug!("License parser mode: {:?}", parse_mode);
+            log::trace!(
+                "Using license parser mode [{:?}] for package [{}@{}]",
+                parse_mode,
+                package.name,
+                package.version
+            );
 
             let result = match parse_mode {
                 ParseMode::Strict => SpdxExpression::try_from(license.to_string()),
