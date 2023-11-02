@@ -174,6 +174,7 @@ impl SbomGenerator {
     fn create_toplevel_component(&self, package: &Package) -> Component {
         let mut top_component = self.create_component(package);
         let mut subcomponents: Vec<Component> = Vec::new();
+        let mut subcomp_count: u32 = 0;
         for bin_target in &package.targets {
             // Ignore tests, benches, examples and build scripts.
             // They are not part of the final build artifacts, which is what we are after.
@@ -191,11 +192,17 @@ impl SbomGenerator {
                         }
                     };
                     if let Some(cdx_type) = cdx_type {
+                        let bom_ref = format!(
+                            "{} bin-target-{}",
+                            top_component.bom_ref.as_ref().unwrap(),
+                            subcomp_count
+                        );
+                        subcomp_count += 1;
                         subcomponents.push(Component::new(
                             cdx_type,
                             &bin_target.name,
                             &package.version.to_string(),
-                            None,
+                            Some(bom_ref),
                         ));
                     }
                 }
