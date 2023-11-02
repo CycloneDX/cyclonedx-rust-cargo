@@ -317,7 +317,7 @@ impl SbomGenerator {
         metadata.tools = Some(Tools(vec![tool]));
 
         let properties = match self.config.target.as_ref().unwrap() {
-            SingleTarget(target) => vec![Property::new("rustcTarget", &target)],
+            SingleTarget(target) => vec![Property::new("rustcTarget", target)],
             AllTargets => all_known_targets()
                 .into_iter()
                 .map(|target| Property::new("rustcTarget", &target))
