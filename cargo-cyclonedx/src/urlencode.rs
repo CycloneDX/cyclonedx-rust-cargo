@@ -107,6 +107,12 @@
 use percent_encoding::{self, utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
 
 /// https://url.spec.whatwg.org/#application-x-www-form-urlencoded-percent-encode-set
+///
+/// We use the _character set_ but not the _encoding scheme_ of form-urlencoded.
+/// The difference is that on top of the character set it also defines that ' ' (space) should be encoded as '+', not "%20".
+/// However, official decoder implementations are split about 50/50 on whether they decode '+' as '+' or as a space:
+/// <https://github.com/phylum-dev/purl/issues/11#issuecomment-1791544712>
+/// Therefore, we never emit the '+' sign to avoid issues with half of the extant implementations.
 const FORM_URLENCODED: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'*')
     .remove(b'-')
