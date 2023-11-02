@@ -16,9 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#![deny(clippy::all)]
-#![deny(warnings)]
-
 //! The `cyclonedx-bom` library provides JSON and XML serialization and derserialization of Software
 //! Bill-of-Materials (SBOM) files.
 //!
