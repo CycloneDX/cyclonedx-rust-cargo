@@ -170,6 +170,42 @@ impl SbomGenerator {
         component
     }
 
+    /// Same as [Self::create_component] but also includes information
+    /// on binaries and libraries comprising it as subcomponents
+    fn create_toplevel_component(&self, package: &Package) -> Component {
+        let mut top_component = self.create_component(package);
+        let mut subcomponents: Vec<Component> = Vec::new();
+        for bin_target in &package.targets {
+            // Ignore tests, benches, examples and build scripts.
+            // They are not part of the final build artifacts, which is what we are after.
+            if !contains_any(
+                bin_target.kind.iter().map(|s| s.as_str()),
+                &["example", "test", "bench", "custom-build"],
+            ) {
+                for kind in bin_target.kind.iter() {
+                    let cdx_type = match kind.as_str() {
+                        "bin" => Some(Classification::Application),
+                        "lib" => Some(Classification::Library),
+                        other_kind => {
+                            log::error!("Unknown target kind: {}", other_kind);
+                            None
+                        }
+                    };
+                    if let Some(cdx_type) = cdx_type {
+                        subcomponents.push(Component::new(
+                            cdx_type,
+                            &bin_target.name,
+                            &package.version.to_string(),
+                            None,
+                        ));
+                    }
+                }
+            }
+        }
+        top_component.components = Some(Components(subcomponents));
+        top_component
+    }
+
     fn get_classification(pkg: &Package) -> Classification {
         // FIXME: this is almost certainly wrong
         if pkg.targets.iter().any(|tgt| tgt.is_bin()) {
@@ -302,7 +338,7 @@ impl SbomGenerator {
             metadata.authors = Some(authors);
         }
 
-        let mut component = self.create_component(package);
+        let mut component = self.create_toplevel_component(package);
 
         component.component_type = Self::get_classification(package);
 
@@ -504,6 +540,17 @@ fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
             .iter()
             .any(|dep| dep.kind != DependencyKind::Development)
     })
+}
+
+fn contains_any<T: Eq>(mut haystack: impl Iterator<Item = T>, needles: &[T]) -> bool {
+    // This could be done more efficiently with the `memchr` crate,
+    // but the slices we need to run this on are so short that it doesn't matter
+    for needle in needles {
+        if haystack.any(|elem| &elem == needle) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Contains a generated SBOM and context used in its generation
