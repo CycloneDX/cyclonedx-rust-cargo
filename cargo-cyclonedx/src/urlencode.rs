@@ -41,7 +41,7 @@
 //!
 //! > This is used by HTML for registerProtocolHandler(), and could also be used by other standards
 //! > to percent-encode data that can then be embedded in a URL’s path, query, or fragment; or in an opaque host.
-//! > Using it with UTF-8 percent-encode gives identical results to JavaScript’s encodeURIComponent() [sic]. [HTML] [ECMA-262]
+//! > Using it with UTF-8 percent-encode gives identical results to JavaScript’s encodeURIComponent()
 //!
 //! Except it does NOT specify which of these two it refers to - component or form character set!
 //!
