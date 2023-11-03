@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::collections::HashSet;
+use std::default;
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -106,9 +107,10 @@ impl Default for OutputOptions {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum CdxExtension {
     Included,
+    #[default]
     NotIncluded,
 }
 
@@ -118,12 +120,6 @@ impl CdxExtension {
             CdxExtension::Included => ".cdx".to_string(),
             CdxExtension::NotIncluded => "".to_string(),
         }
-    }
-}
-
-impl Default for CdxExtension {
-    fn default() -> Self {
-        Self::NotIncluded
     }
 }
 
@@ -153,16 +149,11 @@ impl Default for Prefix {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Pattern {
+    #[default]
     Bom,
     Package,
-}
-
-impl Default for Pattern {
-    fn default() -> Self {
-        Self::Bom
-    }
 }
 
 impl FromStr for Pattern {
