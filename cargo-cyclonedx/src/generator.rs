@@ -149,7 +149,7 @@ impl SbomGenerator {
         let name = package.name.to_owned().trim().to_string();
         let version = package.version.to_string();
 
-        let purl = match get_purl(&package, None) {
+        let purl = match get_purl(package, None) {
             Ok(purl) => Some(purl),
             Err(e) => {
                 log::error!("Package {} has an invalid Purl: {} ", package.name, e);

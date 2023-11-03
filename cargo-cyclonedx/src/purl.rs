@@ -16,7 +16,7 @@ pub fn get_purl(package: &Package, subpath: Option<&Utf8Path>) -> Result<CdxPurl
                 // qualifier names are taken from the spec, which defines these two for all PURL types:
                 // https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#known-qualifiers-keyvalue-pairs
                 Some(("git", _git_path)) => {
-                    builder = builder.with_qualifier("vcs_url", source_to_vcs_url(&source))?
+                    builder = builder.with_qualifier("vcs_url", source_to_vcs_url(source))?
                 }
                 Some(("registry", registry_url)) => {
                     builder = builder.with_qualifier("repository_url", urlencode(registry_url))?
@@ -53,7 +53,7 @@ pub fn get_purl(package: &Package, subpath: Option<&Utf8Path>) -> Result<CdxPurl
 /// Assumes that the source kind is `git`, panics if it isn't.
 fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
     assert!(source.repr.starts_with("git+"));
-    urlencode(&source.repr.replace("#", "@"))
+    urlencode(&source.repr.replace('#', "@"))
 }
 
 /// Converts a relative path to PURL subpath
