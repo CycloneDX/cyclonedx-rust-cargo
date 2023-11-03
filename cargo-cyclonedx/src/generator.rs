@@ -176,36 +176,32 @@ impl SbomGenerator {
         let mut top_component = self.create_component(package);
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut subcomp_count: u32 = 0;
-        for bin_target in &package.targets {
+        for tgt in &package.targets {
             // Ignore tests, benches, examples and build scripts.
             // They are not part of the final build artifacts, which is what we are after.
-            if !contains_any(
-                bin_target.kind.iter().map(|s| s.as_str()),
-                &["example", "test", "bench", "custom-build"],
-            ) {
-                for kind in bin_target.kind.iter() {
-                    let cdx_type = match kind.as_str() {
-                        "bin" => Some(Classification::Application),
-                        "lib" => Some(Classification::Library),
-                        other_kind => {
-                            log::error!("Unknown target kind: {}", other_kind);
-                            None
-                        }
-                    };
-                    if let Some(cdx_type) = cdx_type {
-                        let bom_ref = format!(
-                            "{} bin-target-{}",
-                            top_component.bom_ref.as_ref().unwrap(),
-                            subcomp_count
-                        );
-                        subcomp_count += 1;
-                        subcomponents.push(Component::new(
-                            cdx_type,
-                            &bin_target.name,
-                            &package.version.to_string(),
-                            Some(bom_ref),
-                        ));
-                    }
+            if !(tgt.is_bench() || tgt.is_example() || tgt.is_test() || tgt.is_custom_build()) {
+                let cdx_type = if tgt.is_bin() {
+                    Some(Classification::Application)
+                } else if tgt.is_lib() {
+                    Some(Classification::Library)
+                } else {
+                    log::error!("Target {} is neither a binary nor a library!", tgt.name);
+                    None
+                };
+
+                if let Some(cdx_type) = cdx_type {
+                    let bom_ref = format!(
+                        "{} bin-target-{}",
+                        top_component.bom_ref.as_ref().unwrap(),
+                        subcomp_count
+                    );
+                    subcomp_count += 1;
+                    subcomponents.push(Component::new(
+                        cdx_type,
+                        &tgt.name,
+                        &package.version.to_string(),
+                        Some(bom_ref),
+                    ));
                 }
             }
         }
@@ -554,17 +550,6 @@ fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
             .iter()
             .any(|dep| dep.kind != DependencyKind::Development)
     })
-}
-
-fn contains_any<T: Eq>(mut haystack: impl Iterator<Item = T>, needles: &[T]) -> bool {
-    // This could be done more efficiently with the `memchr` crate,
-    // but the slices we need to run this on are so short that it doesn't matter
-    for needle in needles {
-        if haystack.any(|elem| &elem == needle) {
-            return true;
-        }
-    }
-    false
 }
 
 /// Contains a generated SBOM and context used in its generation
