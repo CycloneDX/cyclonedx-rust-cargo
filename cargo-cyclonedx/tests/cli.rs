@@ -146,6 +146,7 @@ fn bom_file_name_extension_is_prepended_with_cdx() -> Result<(), Box<dyn std::er
 
     cmd.current_dir(tmp_dir.path())
         .arg("cyclonedx")
+        .arg("--no-target-suffix")
         .arg("--output-cdx");
 
     cmd.assert().success().stdout("");
