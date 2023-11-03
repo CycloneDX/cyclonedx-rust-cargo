@@ -163,6 +163,7 @@ dependencies = [
  "purl",
  "regex",
  "serde",
+ "serde_json",
  "thiserror",
  "validator",
 ]
