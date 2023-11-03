@@ -96,6 +96,7 @@ impl FromStr for IncludedDependencies {
 pub struct OutputOptions {
     pub cdx_extension: CdxExtension,
     pub prefix: Prefix,
+    pub platform_suffix: PlatformSuffix,
 }
 
 impl Default for OutputOptions {
@@ -103,6 +104,7 @@ impl Default for OutputOptions {
         Self {
             cdx_extension: CdxExtension::default(),
             prefix: Prefix::Pattern(Pattern::Bom),
+            platform_suffix: PlatformSuffix::default(),
         }
     }
 }
@@ -195,6 +197,13 @@ impl ToString for CustomPrefix {
 pub enum PrefixError {
     #[error("Illegal characters in custom prefix string: {0}")]
     CustomPrefixError(String),
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum PlatformSuffix {
+    Included,
+    #[default]
+    NotIncluded,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
