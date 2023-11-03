@@ -54,6 +54,7 @@ fn find_content_in_bom_files() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.current_dir(tmp_dir.path())
         .arg("cyclonedx")
+        .arg("--no-target-suffix")
         .arg("--top-level");
 
     cmd.assert().success().stdout("");
@@ -110,6 +111,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.current_dir(tmp_dir.path())
         .arg("cyclonedx")
+        .arg("--no-target-suffix")
         .arg("--all")
         .arg("--license-strict")
         .arg("--verbose");
