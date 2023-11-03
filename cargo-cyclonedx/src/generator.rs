@@ -206,13 +206,27 @@ impl SbomGenerator {
                 );
                 subcomp_count += 1;
 
-                // put it all together
-                subcomponents.push(Component::new(
+                // create the subcomponent
+                let mut subcomponent = Component::new(
                     cdx_type,
                     &tgt.name,
                     &package.version.to_string(),
                     Some(bom_ref),
-                ));
+                );
+
+                // Add a PURL, if we can
+                if let Ok(relative_path) = tgt.src_path.strip_prefix(workspace_root) {
+                    let purl_subpath = to_purl_subpath(relative_path);
+                    subcomponent.purl = Self::get_purl(package, Some(&purl_subpath)).ok();
+                } else {
+                    log::error!(
+                        "Source path \"{}\" is not a subpath of workspace root \"{}\"",
+                        tgt.src_path,
+                        workspace_root
+                    );
+                }
+
+                subcomponents.push(subcomponent);
             }
         }
         top_component.components = Some(Components(subcomponents));
