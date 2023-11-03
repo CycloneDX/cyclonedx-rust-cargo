@@ -20,7 +20,7 @@ use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
-use crate::urlencode::urlencode;
+use crate::purl::get_purl;
 
 use cargo_metadata;
 use cargo_metadata::DependencyKind;
@@ -33,7 +33,7 @@ use cargo_metadata::PackageId;
 use cargo_metadata::camino::Utf8Path;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
-use cyclonedx_bom::external_models::uri::{Purl, Uri};
+use cyclonedx_bom::external_models::uri::Uri;
 use cyclonedx_bom::models::bom::Bom;
 use cyclonedx_bom::models::component::{Classification, Component, Components, Scope};
 use cyclonedx_bom::models::dependency::{Dependencies, Dependency};
@@ -57,7 +57,6 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
 use std::path::PathBuf;
-use std::str::FromStr;
 use thiserror::Error;
 use validator::validate_email;
 
@@ -150,7 +149,7 @@ impl SbomGenerator {
         let name = package.name.to_owned().trim().to_string();
         let version = package.version.to_string();
 
-        let purl = match Self::get_purl(&package, None) {
+        let purl = match get_purl(&package, None) {
             Ok(purl) => Some(purl),
             Err(e) => {
                 log::error!("Package {} has an invalid Purl: {} ", package.name, e);
@@ -216,8 +215,7 @@ impl SbomGenerator {
 
                 // Add a PURL, if we can
                 if let Ok(relative_path) = tgt.src_path.strip_prefix(workspace_root) {
-                    let purl_subpath = to_purl_subpath(relative_path);
-                    subcomponent.purl = Self::get_purl(package, Some(&purl_subpath)).ok();
+                    subcomponent.purl = get_purl(package, Some(relative_path)).ok();
                 } else {
                     log::error!(
                         "Source path \"{}\" is not a subpath of workspace root \"{}\"",
@@ -231,46 +229,6 @@ impl SbomGenerator {
         }
         top_component.components = Some(Components(subcomponents));
         top_component
-    }
-
-    fn get_purl(package: &Package, subpath: Option<&str>) -> Result<Purl, purl::PackageError> {
-        let mut builder = purl::PurlBuilder::new(purl::PackageType::Cargo, &package.name)
-            .with_version(package.version.to_string());
-
-        if let Some(source) = &package.source {
-            if !source.is_crates_io() {
-                match source.repr.split_once('+') {
-                    // qualifier names are taken from the spec, which defines these two for all PURL types:
-                    // https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#known-qualifiers-keyvalue-pairs
-                    Some(("git", _git_path)) => {
-                        builder = builder.with_qualifier("vcs_url", source_to_vcs_url(&source))?
-                    }
-                    Some(("registry", registry_url)) => {
-                        builder =
-                            builder.with_qualifier("repository_url", urlencode(registry_url))?
-                    }
-                    Some((source, _path)) => log::error!("Unknown source kind {}", source),
-                    None => {
-                        log::error!("No '+' separator found in source field from `cargo metadata`")
-                    }
-                }
-            }
-        } else {
-            // source is None for packages from the local filesystem.
-            // The manifest path ends with a `Cargo.toml`, so the package directory is its parent
-            let package_dir = package.manifest_path.parent().unwrap();
-            // url-encode the path to the package manifest to make it a valid URL
-            let manifest_url = format!("file://{}", urlencode(package_dir.as_str()));
-            // url-encode the whole URL *again* because we are embedding this URL inside another URL (PURL)
-            builder = builder.with_qualifier("download_url", urlencode(&manifest_url))?
-        }
-
-        if let Some(subpath) = subpath {
-            builder = builder.with_subpath(subpath);
-        }
-
-        let purl = builder.build()?;
-        Ok(Purl::from_str(&purl.to_string()).unwrap())
     }
 
     fn get_classification(pkg: &Package) -> Classification {
@@ -618,20 +576,6 @@ fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
             .iter()
             .any(|dep| dep.kind != DependencyKind::Development)
     })
-}
-
-/// Converts the `cargo metadata`'s `source` field to a valid PURL `vcs_url`.
-/// Assumes that the source kind is `git`, panics if it isn't.
-fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
-    assert!(source.repr.starts_with("git+"));
-    urlencode(&source.repr.replace("#", "@"))
-}
-
-/// Converts a relative path to PURL subpath
-fn to_purl_subpath(path: &Utf8Path) -> String {
-    assert!(path.is_relative());
-    let parts: Vec<String> = path.components().map(|c| urlencode(c.as_str())).collect();
-    parts.join("/")
 }
 
 /// Contains a generated SBOM and context used in its generation
