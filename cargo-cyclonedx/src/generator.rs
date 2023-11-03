@@ -179,29 +179,29 @@ impl SbomGenerator {
             // Ignore tests, benches, examples and build scripts.
             // They are not part of the final build artifacts, which is what we are after.
             if !(tgt.is_bench() || tgt.is_example() || tgt.is_test() || tgt.is_custom_build()) {
+                // classification
                 let cdx_type = if tgt.is_bin() {
-                    Some(Classification::Application)
+                    Classification::Application
                 } else if tgt.is_lib() {
-                    Some(Classification::Library)
+                    Classification::Library
                 } else {
                     log::error!("Target {} is neither a binary nor a library!", tgt.name);
-                    None
+                    continue;
                 };
-
-                if let Some(cdx_type) = cdx_type {
-                    let bom_ref = format!(
-                        "{} bin-target-{}",
-                        top_component.bom_ref.as_ref().unwrap(),
-                        subcomp_count
-                    );
-                    subcomp_count += 1;
-                    subcomponents.push(Component::new(
-                        cdx_type,
-                        &tgt.name,
-                        &package.version.to_string(),
-                        Some(bom_ref),
-                    ));
-                }
+                // bom_ref
+                let bom_ref = format!(
+                    "{} bin-target-{}",
+                    top_component.bom_ref.as_ref().unwrap(),
+                    subcomp_count
+                );
+                subcomp_count += 1;
+                // put it all together
+                subcomponents.push(Component::new(
+                    cdx_type,
+                    &tgt.name,
+                    &package.version.to_string(),
+                    Some(bom_ref),
+                ));
             }
         }
         top_component.components = Some(Components(subcomponents));
