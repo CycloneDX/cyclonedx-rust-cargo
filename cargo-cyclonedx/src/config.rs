@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use std::collections::HashSet;
-use std::default;
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -137,6 +136,15 @@ pub enum Target {
     #[default]
     AllTargets,
     SingleTarget(String),
+}
+
+impl Target {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Target::AllTargets => "all",
+            Target::SingleTarget(target) => target.as_str(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
