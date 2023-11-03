@@ -213,7 +213,14 @@ impl SbomGenerator {
     }
 
     fn get_classification(pkg: &Package) -> Classification {
-        // FIXME: this is almost certainly wrong
+        // Transitive dependencies that contain both libraries and binaries
+        // get surfaces only as a library by `cargo metadata`.
+        //
+        // Both "bin" and "lib" can only occur together in the toplevel package,
+        // and we record its constituent parts in detail.
+        //
+        // We have to make a judgement call how to summarise having both bin and lib targets,
+        // and that call is "consider it a binary".
         if pkg.targets.iter().any(|tgt| tgt.is_bin()) {
             return Classification::Application;
         }
