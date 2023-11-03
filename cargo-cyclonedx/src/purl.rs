@@ -1,12 +1,13 @@
 use std::str::FromStr;
 
 use cargo_metadata::{camino::Utf8Path, Package};
-use cyclonedx_bom::prelude::Purl;
+use cyclonedx_bom::prelude::Purl as CdxPurl;
+use purl::{PackageError, PackageType, PurlBuilder};
 
 use crate::urlencode::urlencode;
 
-pub fn get_purl(package: &Package, subpath: Option<&Utf8Path>) -> Result<Purl, purl::PackageError> {
-    let mut builder = purl::PurlBuilder::new(purl::PackageType::Cargo, &package.name)
+pub fn get_purl(package: &Package, subpath: Option<&Utf8Path>) -> Result<CdxPurl, PackageError> {
+    let mut builder = PurlBuilder::new(PackageType::Cargo, &package.name)
         .with_version(package.version.to_string());
 
     if let Some(source) = &package.source {
@@ -41,7 +42,7 @@ pub fn get_purl(package: &Package, subpath: Option<&Utf8Path>) -> Result<Purl, p
     }
 
     let purl = builder.build()?;
-    Ok(Purl::from_str(&purl.to_string()).unwrap())
+    Ok(CdxPurl::from_str(&purl.to_string()).unwrap())
 }
 
 /// Converts the `cargo metadata`'s `source` field to a valid PURL `vcs_url`.
