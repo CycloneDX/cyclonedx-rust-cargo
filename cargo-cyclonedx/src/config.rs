@@ -209,8 +209,8 @@ pub enum PrefixError {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum PlatformSuffix {
-    Included,
     #[default]
+    Included,
     NotIncluded,
 }
 
