@@ -20,6 +20,7 @@ use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
+use crate::urlencode::urlencode;
 
 use cargo_metadata;
 use cargo_metadata::DependencyKind;
@@ -55,6 +56,7 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
 use std::path::PathBuf;
+use std::str::FromStr;
 use thiserror::Error;
 use validator::validate_email;
 
@@ -141,7 +143,7 @@ impl SbomGenerator {
         let name = package.name.to_owned().trim().to_string();
         let version = package.version.to_string();
 
-        let purl = match Purl::new("cargo", &name, &version) {
+        let purl = match Self::get_purl(&package) {
             Ok(purl) => Some(purl),
             Err(e) => {
                 log::error!("Package {} has an invalid Purl: {} ", package.name, e);
@@ -210,6 +212,42 @@ impl SbomGenerator {
         }
         top_component.components = Some(Components(subcomponents));
         top_component
+    }
+
+    fn get_purl(package: &Package) -> Result<Purl, purl::PackageError> {
+        let mut builder = purl::PurlBuilder::new(purl::PackageType::Cargo, &package.name)
+            .with_version(package.version.to_string());
+
+        if let Some(source) = &package.source {
+            if !source.is_crates_io() {
+                match source.repr.split_once('+') {
+                    // qualifier names are taken from the spec, which defines these two for all PURL types:
+                    // https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#known-qualifiers-keyvalue-pairs
+                    Some(("git", _git_path)) => {
+                        builder = builder.with_qualifier("vcs_url", source_to_vcs_url(&source))?
+                    }
+                    Some(("registry", registry_url)) => {
+                        builder =
+                            builder.with_qualifier("repository_url", urlencode(registry_url))?
+                    }
+                    Some((source, _path)) => log::error!("Unknown source kind {}", source),
+                    None => {
+                        log::error!("No '+' separator found in source field from `cargo metadata`")
+                    }
+                }
+            }
+        } else {
+            // source is None for packages from the local filesystem.
+            // The manifest path ends with a `Cargo.toml`, so the package directory is its parent
+            let package_dir = package.manifest_path.parent().unwrap();
+            // url-encode the path to the package manifest to make it a valid URL
+            let manifest_url = format!("file://{}", urlencode(package_dir.as_str()));
+            // url-encode the whole URL *again* because we are embedding this URL inside another URL (PURL)
+            builder = builder.with_qualifier("download_url", urlencode(&manifest_url))?
+        }
+
+        let purl = builder.build()?;
+        Ok(Purl::from_str(&purl.to_string()).unwrap())
     }
 
     fn get_classification(pkg: &Package) -> Classification {
@@ -557,6 +595,13 @@ fn contains_any<T: Eq>(mut haystack: impl Iterator<Item = T>, needles: &[T]) -> 
         }
     }
     false
+}
+
+/// Converts the `cargo metadata`'s `source` field to a valid PURL `vcs_url`.
+/// Assumes that the source kind is `git`, panics if it isn't.
+fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
+    assert!(source.repr.starts_with("git+"));
+    urlencode(&source.repr.replace("#", "@"))
 }
 
 /// Contains a generated SBOM and context used in its generation

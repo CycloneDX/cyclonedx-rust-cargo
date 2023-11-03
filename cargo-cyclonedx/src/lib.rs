@@ -20,5 +20,6 @@ pub mod config;
 pub mod format;
 pub mod generator;
 pub mod platform;
+pub mod urlencode;
 
 pub use crate::generator::*;
