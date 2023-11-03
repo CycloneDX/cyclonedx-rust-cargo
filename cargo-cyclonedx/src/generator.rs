@@ -188,6 +188,7 @@ impl SbomGenerator {
                     log::error!("Target {} is neither a binary nor a library!", tgt.name);
                     continue;
                 };
+
                 // bom_ref
                 let bom_ref = format!(
                     "{} bin-target-{}",
@@ -195,6 +196,7 @@ impl SbomGenerator {
                     subcomp_count
                 );
                 subcomp_count += 1;
+
                 // put it all together
                 subcomponents.push(Component::new(
                     cdx_type,
