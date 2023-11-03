@@ -74,9 +74,8 @@ mod tests {
     use purl::Purl;
     use serde_json;
 
-    const CRATES_IO_PACKAGE_JSON: &'static str =
-        include_str!("../tests/fixtures/crates_io_package.json");
-    const GIT_PACKAGE_JSON: &'static str = include_str!("../tests/fixtures/git_package.json");
+    const CRATES_IO_PACKAGE_JSON: &str = include_str!("../tests/fixtures/crates_io_package.json");
+    const GIT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/git_package.json");
 
     #[test]
     fn crates_io_purl() {
