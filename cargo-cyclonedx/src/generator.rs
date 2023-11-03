@@ -143,7 +143,7 @@ impl SbomGenerator {
         let name = package.name.to_owned().trim().to_string();
         let version = package.version.to_string();
 
-        let purl = match Self::get_purl(&package) {
+        let purl = match Self::get_purl(&package, None) {
             Ok(purl) => Some(purl),
             Err(e) => {
                 log::error!("Package {} has an invalid Purl: {} ", package.name, e);
@@ -214,7 +214,7 @@ impl SbomGenerator {
         top_component
     }
 
-    fn get_purl(package: &Package) -> Result<Purl, purl::PackageError> {
+    fn get_purl(package: &Package, subpath: Option<&str>) -> Result<Purl, purl::PackageError> {
         let mut builder = purl::PurlBuilder::new(purl::PackageType::Cargo, &package.name)
             .with_version(package.version.to_string());
 
@@ -244,6 +244,10 @@ impl SbomGenerator {
             let manifest_url = format!("file://{}", urlencode(package_dir.as_str()));
             // url-encode the whole URL *again* because we are embedding this URL inside another URL (PURL)
             builder = builder.with_qualifier("download_url", urlencode(&manifest_url))?
+        }
+
+        if let Some(subpath) = subpath {
+            builder = builder.with_subpath(subpath);
         }
 
         let purl = builder.build()?;
