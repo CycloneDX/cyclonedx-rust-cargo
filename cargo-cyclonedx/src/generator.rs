@@ -169,8 +169,56 @@ impl SbomGenerator {
         component
     }
 
+    /// Same as [Self::create_component] but also includes information
+    /// on binaries and libraries comprising it as subcomponents
+    fn create_toplevel_component(&self, package: &Package) -> Component {
+        let mut top_component = self.create_component(package);
+        let mut subcomponents: Vec<Component> = Vec::new();
+        let mut subcomp_count: u32 = 0;
+        for tgt in &package.targets {
+            // Ignore tests, benches, examples and build scripts.
+            // They are not part of the final build artifacts, which is what we are after.
+            if !(tgt.is_bench() || tgt.is_example() || tgt.is_test() || tgt.is_custom_build()) {
+                // classification
+                let cdx_type = if tgt.is_bin() {
+                    Classification::Application
+                } else if tgt.is_lib() {
+                    Classification::Library
+                } else {
+                    log::error!("Target {} is neither a binary nor a library!", tgt.name);
+                    continue;
+                };
+
+                // bom_ref
+                let bom_ref = format!(
+                    "{} bin-target-{}",
+                    top_component.bom_ref.as_ref().unwrap(),
+                    subcomp_count
+                );
+                subcomp_count += 1;
+
+                // put it all together
+                subcomponents.push(Component::new(
+                    cdx_type,
+                    &tgt.name,
+                    &package.version.to_string(),
+                    Some(bom_ref),
+                ));
+            }
+        }
+        top_component.components = Some(Components(subcomponents));
+        top_component
+    }
+
     fn get_classification(pkg: &Package) -> Classification {
-        // FIXME: this is almost certainly wrong
+        // Transitive dependencies that contain both libraries and binaries
+        // get surfaces only as a library by `cargo metadata`.
+        //
+        // Both "bin" and "lib" can only occur together in the toplevel package,
+        // and we record its constituent parts in detail.
+        //
+        // We have to make a judgement call how to summarise having both bin and lib targets,
+        // and that call is "consider it a binary".
         if pkg.targets.iter().any(|tgt| tgt.is_bin()) {
             return Classification::Application;
         }
@@ -301,7 +349,7 @@ impl SbomGenerator {
             metadata.authors = Some(authors);
         }
 
-        let mut component = self.create_component(package);
+        let mut component = self.create_toplevel_component(package);
 
         component.component_type = Self::get_classification(package);
 
