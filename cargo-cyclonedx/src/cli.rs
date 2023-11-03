@@ -1,7 +1,7 @@
 use cargo_cyclonedx::{
     config::{
         CdxExtension, CustomPrefix, Features, IncludedDependencies, LicenseParserOptions,
-        OutputOptions, ParseMode, Pattern, Prefix, PrefixError, SbomConfig, Target,
+        OutputOptions, ParseMode, Pattern, PlatformSuffix, Prefix, PrefixError, SbomConfig, Target,
     },
     format::Format,
     platform::host_platform,
@@ -62,6 +62,10 @@ Use 'all' to include dependencies for all possible targets.
 Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub target: Option<String>,
+
+    /// Do not include the target platform of the BOM in the filename
+    #[clap(long = "no-target-suffix")]
+    pub no_target_suffix: bool,
 
     /// List all dependencies instead of only top-level ones (default)
     #[clap(long = "all", short = 'a')]
@@ -154,21 +158,19 @@ impl Args {
             Target::SingleTarget(target_string)
         });
 
-        let output_options = match (cdx_extension, prefix) {
-            (Some(cdx_extension), Some(prefix)) => Some(OutputOptions {
-                cdx_extension,
-                prefix,
-            }),
-            (Some(cdx_extension), _) => Some(OutputOptions {
-                cdx_extension,
-                prefix: Prefix::default(),
-            }),
-            (_, Some(prefix)) => Some(OutputOptions {
-                cdx_extension: CdxExtension::default(),
-                prefix,
-            }),
-            (_, _) => None,
-        };
+        let output_options =
+            if cdx_extension.is_none() && prefix.is_none() && !self.no_target_suffix {
+                None
+            } else {
+                Some(OutputOptions {
+                    cdx_extension: cdx_extension.unwrap_or_default(),
+                    prefix: prefix.unwrap_or_default(),
+                    platform_suffix: match self.no_target_suffix {
+                        true => PlatformSuffix::NotIncluded,
+                        false => PlatformSuffix::Included,
+                    },
+                })
+            };
 
         let license_parser = Some(LicenseParserOptions {
             mode: match self.license_strict {
