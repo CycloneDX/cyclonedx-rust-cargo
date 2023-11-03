@@ -626,6 +626,13 @@ fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
     urlencode(&source.repr.replace("#", "@"))
 }
 
+/// Converts a relative path to PURL subpath
+fn to_purl_subpath(path: &Utf8Path) -> String {
+    assert!(path.is_relative());
+    let parts: Vec<String> = path.components().map(|c| urlencode(c.as_str())).collect();
+    parts.join("/")
+}
+
 /// Contains a generated SBOM and context used in its generation
 ///
 /// * `bom` - Generated SBOM
