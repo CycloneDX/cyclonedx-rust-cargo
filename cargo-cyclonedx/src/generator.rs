@@ -31,6 +31,7 @@ use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
 use cargo_metadata::camino::Utf8Path;
+use cargo_metadata::camino::Utf8PathBuf;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
 use cyclonedx_bom::external_models::uri::Uri;
@@ -66,6 +67,7 @@ type ResolveMap = BTreeMap<PackageId, Node>;
 
 pub struct SbomGenerator {
     config: SbomConfig,
+    workspace_root: Utf8PathBuf,
 }
 
 impl SbomGenerator {
@@ -91,13 +93,9 @@ impl SbomGenerator {
 
             let generator = SbomGenerator {
                 config: config.clone(),
+                workspace_root: meta.workspace_root.to_owned(),
             };
-            let bom = generator.create_bom(
-                member,
-                &dependencies,
-                &pruned_resolve,
-                &meta.workspace_root,
-            )?;
+            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
             if cfg!(debug_assertions) {
                 let result = bom.validate().unwrap();
@@ -124,7 +122,6 @@ impl SbomGenerator {
         package: &PackageId,
         packages: &PackageMap,
         resolve: &ResolveMap,
-        workspace_root: &Utf8Path,
     ) -> Result<Bom, GeneratorError> {
         let mut bom = Bom::default();
 
@@ -136,7 +133,7 @@ impl SbomGenerator {
 
         bom.components = Some(Components(components));
 
-        let metadata = self.create_metadata(&packages[package], workspace_root)?;
+        let metadata = self.create_metadata(&packages[package])?;
 
         bom.metadata = Some(metadata);
 
@@ -179,7 +176,7 @@ impl SbomGenerator {
 
     /// Same as [Self::create_component] but also includes information
     /// on binaries and libraries comprising it as subcomponents
-    fn create_toplevel_component(&self, package: &Package, workspace_root: &Utf8Path) -> Component {
+    fn create_toplevel_component(&self, package: &Package) -> Component {
         let mut top_component = self.create_component(package);
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut subcomp_count: u32 = 0;
@@ -214,13 +211,14 @@ impl SbomGenerator {
                 );
 
                 // Add a PURL, if we can
-                if let Ok(relative_path) = tgt.src_path.strip_prefix(workspace_root) {
+                if let Ok(relative_path) = tgt.src_path.strip_prefix(self.workspace_root.as_path())
+                {
                     subcomponent.purl = get_purl(package, Some(relative_path)).ok();
                 } else {
                     log::error!(
                         "Source path \"{}\" is not a subpath of workspace root \"{}\"",
                         tgt.src_path,
-                        workspace_root
+                        self.workspace_root
                     );
                 }
 
@@ -362,11 +360,7 @@ impl SbomGenerator {
         Some(Licenses(licenses))
     }
 
-    fn create_metadata(
-        &self,
-        package: &Package,
-        workspace_root: &Utf8Path,
-    ) -> Result<Metadata, GeneratorError> {
+    fn create_metadata(&self, package: &Package) -> Result<Metadata, GeneratorError> {
         let authors = Self::create_authors(package);
 
         let mut metadata = Metadata::new()?;
@@ -374,7 +368,7 @@ impl SbomGenerator {
             metadata.authors = Some(authors);
         }
 
-        let mut component = self.create_toplevel_component(package, workspace_root);
+        let mut component = self.create_toplevel_component(package);
 
         component.component_type = Self::get_classification(package);
 
