@@ -209,9 +209,15 @@ impl SbomGenerator {
                     Some(bom_ref),
                 );
 
-                // Add a PURL, if we can
-                if let Ok(relative_path) = tgt.src_path.strip_prefix(self.workspace_root.as_path())
-                {
+                // PURL subpaths are computed relative to the directory with the `Cargo.toml`
+                // *for this specific package*, not the workspace root.
+                // This is done because the tarball uploaded to crates.io only contains the package,
+                // not the workspace, so paths resolved relatively to the workspace root would not be valid.
+                let package_dir = package
+                    .manifest_path
+                    .parent()
+                    .expect("manifest_path in `cargo metadata` output is not a file!");
+                if let Ok(relative_path) = tgt.src_path.strip_prefix(package_dir) {
                     subcomponent.purl = get_purl(package, Some(relative_path)).ok();
                 } else {
                     log::error!(
