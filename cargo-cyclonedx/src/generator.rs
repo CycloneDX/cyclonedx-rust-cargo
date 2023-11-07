@@ -213,6 +213,10 @@ impl SbomGenerator {
                 // *for this specific package*, not the workspace root.
                 // This is done because the tarball uploaded to crates.io only contains the package,
                 // not the workspace, so paths resolved relatively to the workspace root would not be valid.
+                //
+                // When using a git repo that contains a workspace, Cargo will automatically select
+                // the right package out of the workspace. Paths can then be resolved relatively to it.
+                // So the information we encode here is sufficient to idenfity the file in git too.
                 let package_dir = package
                     .manifest_path
                     .parent()
