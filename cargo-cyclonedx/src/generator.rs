@@ -30,7 +30,6 @@ use cargo_metadata::NodeDep;
 use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
-use cargo_metadata::camino::Utf8Path;
 use cargo_metadata::camino::Utf8PathBuf;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
