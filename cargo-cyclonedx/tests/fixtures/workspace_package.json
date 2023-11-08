@@ -1,0 +1,242 @@
+{
+  "name": "cyclonedx-bom",
+  "version": "0.4.1",
+  "id": "cyclonedx-bom 0.4.1 (path+file:///home/shnatsel/Code/cargo-cyclonedx/cyclonedx-bom)",
+  "license": "Apache-2.0",
+  "license_file": null,
+  "description": "CycloneDX Software Bill of Materials Library",
+  "source": null,
+  "dependencies": [
+    {
+      "name": "base64",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.21.2",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "http",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.2.9",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "once_cell",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.18.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "packageurl",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.3.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "regex",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.9.3",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "serde",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.188",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "derive"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "serde_json",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.108",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "spdx",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.10.2",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "thiserror",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.48",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "time",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.3.29",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "formatting",
+        "parsing"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "uuid",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.4.1",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "v4"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "xml-rs",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.8.16",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "insta",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.33.0",
+      "kind": "dev",
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "glob",
+        "json"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "pretty_assertions",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.4.0",
+      "kind": "dev",
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    }
+  ],
+  "targets": [
+    {
+      "kind": [
+        "lib"
+      ],
+      "crate_types": [
+        "lib"
+      ],
+      "name": "cyclonedx-bom",
+      "src_path": "/home/shnatsel/Code/cargo-cyclonedx/cyclonedx-bom/src/lib.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": true,
+      "test": true
+    },
+    {
+      "kind": [
+        "test"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "specification_tests",
+      "src_path": "/home/shnatsel/Code/cargo-cyclonedx/cyclonedx-bom/tests/specification_tests.rs",
+      "edition": "2021",
+      "doc": false,
+      "doctest": false,
+      "test": true
+    }
+  ],
+  "features": {},
+  "manifest_path": "/home/shnatsel/Code/cargo-cyclonedx/cyclonedx-bom/Cargo.toml",
+  "metadata": null,
+  "publish": null,
+  "authors": [
+    "Steve Springett <steve.springett@owasp.org>"
+  ],
+  "categories": [],
+  "keywords": [
+    "sbom",
+    "bom",
+    "components",
+    "dependencies",
+    "owasp"
+  ],
+  "readme": "README.md",
+  "repository": "https://github.com/CycloneDX/cyclonedx-rust-cargo",
+  "homepage": "https://cyclonedx.org/",
+  "documentation": null,
+  "edition": "2021",
+  "links": null,
+  "default_run": null,
+  "rust_version": "1.70.0"
+}

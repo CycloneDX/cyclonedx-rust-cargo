@@ -88,11 +88,14 @@ fn assert_validation_passes(purl: &CdxPurl) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use percent_encoding::percent_decode;
     use purl::Purl;
     use serde_json;
 
     const CRATES_IO_PACKAGE_JSON: &str = include_str!("../tests/fixtures/crates_io_package.json");
     const GIT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/git_package.json");
+    const ROOT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/root_package.json");
+    const WORKSPACE_PACKAGE_JSON: &str = include_str!("../tests/fixtures/workspace_package.json");
 
     #[test]
     fn crates_io_purl() {
@@ -125,6 +128,76 @@ mod tests {
         let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
         assert_eq!(qualifier.as_str(), "vcs_url");
         assert_eq!(value, "git+https://github.com/rust-secure-code/cargo-auditable.git@da85607fb1a09435d77288ccf05a92b2e8ec3f71");
+        assert!(parsed_purl.subpath().is_none());
+        assert!(parsed_purl.namespace().is_none());
+    }
+
+    #[test]
+    fn toplevel_package_purl() {
+        let root_package: Package = serde_json::from_str(ROOT_PACKAGE_JSON).unwrap();
+        let purl = get_purl(
+            &root_package,
+            &root_package,
+            &Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
+            None,
+        )
+        .unwrap();
+        // Validate that data roundtripped correctly
+        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        assert_eq!(parsed_purl.name(), "cargo-cyclonedx");
+        assert_eq!(parsed_purl.version(), Some("0.3.8"));
+        assert_eq!(parsed_purl.qualifiers().len(), 1);
+        let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
+        assert_eq!(qualifier.as_str(), "download_url");
+        let decoded_path = percent_decode(value.as_bytes()).decode_utf8().unwrap();
+        assert_eq!(decoded_path, "file://.");
+        assert!(parsed_purl.subpath().is_none());
+        assert!(parsed_purl.namespace().is_none());
+    }
+
+    #[test]
+    fn toplevel_package_with_subpath() {
+        let root_package: Package = serde_json::from_str(ROOT_PACKAGE_JSON).unwrap();
+        let purl = get_purl(
+            &root_package,
+            &root_package,
+            &Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
+            Some("src/кириллица/lib.rs".into()),
+        )
+        .unwrap();
+        // Validate that data roundtripped correctly
+        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        assert_eq!(parsed_purl.name(), "cargo-cyclonedx");
+        assert_eq!(parsed_purl.version(), Some("0.3.8"));
+        assert_eq!(parsed_purl.qualifiers().len(), 1);
+        let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
+        assert_eq!(qualifier.as_str(), "download_url");
+        let decoded_path = percent_decode(value.as_bytes()).decode_utf8().unwrap();
+        assert_eq!(decoded_path, "file://.");
+        assert_eq!(parsed_purl.subpath().unwrap(), "src/кириллица/lib.rs");
+        assert!(parsed_purl.namespace().is_none());
+    }
+
+    #[test]
+    fn workspace_package() {
+        let root_package: Package = serde_json::from_str(ROOT_PACKAGE_JSON).unwrap();
+        let workspace_package: Package = serde_json::from_str(WORKSPACE_PACKAGE_JSON).unwrap();
+        let purl = get_purl(
+            &workspace_package,
+            &root_package,
+            &Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
+            None,
+        )
+        .unwrap();
+        // Validate that data roundtripped correctly
+        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        assert_eq!(parsed_purl.name(), "cyclonedx-bom");
+        assert_eq!(parsed_purl.version(), Some("0.4.1"));
+        assert_eq!(parsed_purl.qualifiers().len(), 1);
+        let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
+        assert_eq!(qualifier.as_str(), "download_url");
+        let decoded_path = percent_decode(value.as_bytes()).decode_utf8().unwrap();
+        assert_eq!(decoded_path, "file://../cyclonedx-bom");
         assert!(parsed_purl.subpath().is_none());
         assert!(parsed_purl.namespace().is_none());
     }
