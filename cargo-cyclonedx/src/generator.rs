@@ -123,11 +123,12 @@ impl SbomGenerator {
         resolve: &ResolveMap,
     ) -> Result<Bom, GeneratorError> {
         let mut bom = Bom::default();
+        let root_package = &packages[package];
 
         let components: Vec<_> = packages
             .values()
             .filter(|p| &p.id != package)
-            .map(|component| self.create_component(component))
+            .map(|component| self.create_component(component, root_package))
             .collect();
 
         bom.components = Some(Components(components));
@@ -141,11 +142,11 @@ impl SbomGenerator {
         Ok(bom)
     }
 
-    fn create_component(&self, package: &Package) -> Component {
+    fn create_component(&self, package: &Package, root_package: &Package) -> Component {
         let name = package.name.to_owned().trim().to_string();
         let version = package.version.to_string();
 
-        let purl = match get_purl(package, None) {
+        let purl = match get_purl(package, root_package, &self.workspace_root, None) {
             Ok(purl) => Some(purl),
             Err(e) => {
                 log::error!("Package {} has an invalid Purl: {} ", package.name, e);
@@ -176,7 +177,7 @@ impl SbomGenerator {
     /// Same as [Self::create_component] but also includes information
     /// on binaries and libraries comprising it as subcomponents
     fn create_toplevel_component(&self, package: &Package) -> Component {
-        let mut top_component = self.create_component(package);
+        let mut top_component = self.create_component(package, package);
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut subcomp_count: u32 = 0;
         for tgt in &package.targets {
@@ -222,7 +223,8 @@ impl SbomGenerator {
                     .parent()
                     .expect("manifest_path in `cargo metadata` output is not a file!");
                 if let Ok(relative_path) = tgt.src_path.strip_prefix(package_dir) {
-                    subcomponent.purl = get_purl(package, Some(relative_path)).ok();
+                    subcomponent.purl =
+                        get_purl(package, package, &self.workspace_root, Some(relative_path)).ok();
                 } else {
                     log::error!(
                         "Source path \"{}\" is not a subpath of workspace root \"{}\"",

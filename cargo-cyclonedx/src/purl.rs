@@ -6,7 +6,12 @@ use purl::{PackageError, PackageType, PurlBuilder};
 
 use crate::urlencode::urlencode;
 
-pub fn get_purl(package: &Package, subpath: Option<&Utf8Path>) -> Result<CdxPurl, PackageError> {
+pub fn get_purl(
+    package: &Package,
+    root_package: &Package,
+    workspace_root: &Utf8Path,
+    subpath: Option<&Utf8Path>,
+) -> Result<CdxPurl, PackageError> {
     let mut builder = PurlBuilder::new(PackageType::Cargo, &package.name)
         .with_version(package.version.to_string());
 
@@ -80,7 +85,13 @@ mod tests {
     #[test]
     fn crates_io_purl() {
         let crates_io_package: Package = serde_json::from_str(CRATES_IO_PACKAGE_JSON).unwrap();
-        let purl = get_purl(&crates_io_package, None).unwrap();
+        let purl = get_purl(
+            &crates_io_package,
+            &crates_io_package,
+            &Utf8Path::new("/foo/bar"),
+            None,
+        )
+        .unwrap();
         // Validate that data roundtripped correctly
         let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
         assert_eq!(parsed_purl.name(), "aho-corasick");
@@ -93,7 +104,7 @@ mod tests {
     #[test]
     fn git_purl() {
         let git_package: Package = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
-        let purl = get_purl(&git_package, None).unwrap();
+        let purl = get_purl(&git_package, &git_package, &Utf8Path::new("/foo/bar"), None).unwrap();
         // Validate that data roundtripped correctly
         let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
         assert_eq!(parsed_purl.name(), "auditable-extract");
