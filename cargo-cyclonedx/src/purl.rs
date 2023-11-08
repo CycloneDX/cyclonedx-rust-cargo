@@ -201,4 +201,28 @@ mod tests {
         assert!(parsed_purl.subpath().is_none());
         assert!(parsed_purl.namespace().is_none());
     }
+
+    #[test]
+    fn local_package() {
+        let root_package: Package = serde_json::from_str(ROOT_PACKAGE_JSON).unwrap();
+        let workspace_package: Package = serde_json::from_str(WORKSPACE_PACKAGE_JSON).unwrap();
+        let purl = get_purl(
+            &workspace_package,
+            &root_package,
+            &Utf8Path::new("/foo/bar/"),
+            None,
+        )
+        .unwrap();
+        // Validate that data roundtripped correctly
+        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        assert_eq!(parsed_purl.name(), "cyclonedx-bom");
+        assert_eq!(parsed_purl.version(), Some("0.4.1"));
+        assert_eq!(parsed_purl.qualifiers().len(), 1);
+        let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
+        assert_eq!(qualifier.as_str(), "download_url");
+        let decoded_path = percent_decode(value.as_bytes()).decode_utf8().unwrap();
+        assert_eq!(decoded_path, "file:///home/shnatsel/Code/cargo-cyclonedx/cyclonedx-bom");
+        assert!(parsed_purl.subpath().is_none());
+        assert!(parsed_purl.namespace().is_none());
+    }
 }
