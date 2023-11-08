@@ -221,7 +221,10 @@ mod tests {
         let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
         assert_eq!(qualifier.as_str(), "download_url");
         let decoded_path = percent_decode(value.as_bytes()).decode_utf8().unwrap();
-        assert_eq!(decoded_path, "file:///home/shnatsel/Code/cargo-cyclonedx/cyclonedx-bom");
+        assert_eq!(
+            decoded_path,
+            "file:///home/shnatsel/Code/cargo-cyclonedx/cyclonedx-bom"
+        );
         assert!(parsed_purl.subpath().is_none());
         assert!(parsed_purl.namespace().is_none());
     }
