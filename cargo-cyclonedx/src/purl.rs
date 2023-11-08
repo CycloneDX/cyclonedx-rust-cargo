@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use cargo_metadata::{camino::Utf8Path, Package};
 use cyclonedx_bom::prelude::Purl as CdxPurl;
+use pathdiff::diff_utf8_paths;
 use purl::{PackageError, PackageType, PurlBuilder};
 
 use crate::urlencode::urlencode;
@@ -35,7 +36,18 @@ pub fn get_purl(
     } else {
         // source is None for packages from the local filesystem.
         // The manifest path ends with a `Cargo.toml`, so the package directory is its parent
-        let package_dir = package.manifest_path.parent().unwrap();
+        let mut package_dir = package.manifest_path.parent().unwrap().to_owned();
+        // If the package is within the workspace, encode the relative path instead of the absolute one
+        // to make the SBOM reproducible(ish) and more clearly signal first-party dependencies.
+        if package_dir.starts_with(workspace_root) {
+            let root_package_dir = root_package.manifest_path.parent().unwrap();
+            debug_assert!(root_package_dir.starts_with(workspace_root));
+            package_dir = diff_utf8_paths(package_dir, root_package_dir).unwrap();
+            if package_dir.as_str() == "" {
+                // if the diff is empty, we are in the current directory
+                package_dir = ".".into();
+            }
+        }
         // url-encode the path to the package manifest to make it a valid URL
         let manifest_url = format!("file://{}", urlencode(package_dir.as_str()));
         // url-encode the whole URL *again* because we are embedding this URL inside another URL (PURL)
