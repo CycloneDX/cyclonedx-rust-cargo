@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-authors = [ "Steve Springett <steve.springett@owasp.org>" ]
+authors = [ "Steve Springett <steve.springett@owasp.org>", "Amy Keibler <3483663+amy-keibler@users.noreply.github.com>", "Sergey \"Shnatsel\" Davidoff <shnatsel@gmail.com>"]
 edition = "2021"
 homepage = "https://cyclonedx.org/"
 license = "Apache-2.0"
