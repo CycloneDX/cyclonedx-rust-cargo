@@ -178,7 +178,7 @@ impl Args {
                 Some(OutputOptions {
                     cdx_extension: cdx_extension.unwrap_or_default(),
                     prefix: prefix.unwrap_or_default(),
-                    platform_suffix: platform_suffix,
+                    platform_suffix,
                 })
             };
 
