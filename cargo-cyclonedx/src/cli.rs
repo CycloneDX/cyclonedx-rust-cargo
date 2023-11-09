@@ -63,9 +63,9 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub target: Option<String>,
 
-    /// Do not include the target platform of the BOM in the filename
-    #[clap(long = "no-target-suffix")]
-    pub no_target_suffix: bool,
+    /// Include the target platform of the BOM in the filename. Implies --output-cdx
+    #[clap(long = "target-in-filename")]
+    pub target_in_filename: bool,
 
     /// List all dependencies instead of only top-level ones (default)
     #[clap(long = "all", short = 'a')]
@@ -122,11 +122,6 @@ impl Args {
             (_, _) => None,
         };
 
-        let cdx_extension = match self.output_cdx {
-            true => Some(CdxExtension::Included),
-            false => None,
-        };
-
         let features =
             if !self.all_features && !self.no_default_features && self.features.is_empty() {
                 None
@@ -159,17 +154,31 @@ impl Args {
             Target::SingleTarget(target_string)
         });
 
+        let mut cdx_extension = match self.output_cdx {
+            true => Some(CdxExtension::Included),
+            false => None,
+        };
+
+        let platform_suffix = match self.target_in_filename {
+            true => PlatformSuffix::Included,
+            false => PlatformSuffix::NotIncluded,
+        };
+
+        // according to the CycloneDX spec, the file has either be called 'bom.xml'
+        // or include the .cdx extension, so including the target in filename
+        // requires also adding the .cdx extension
+        if self.target_in_filename {
+            cdx_extension = Some(CdxExtension::Included)
+        }
+
         let output_options =
-            if cdx_extension.is_none() && prefix.is_none() && !self.no_target_suffix {
+            if cdx_extension.is_none() && prefix.is_none() && !self.target_in_filename {
                 None
             } else {
                 Some(OutputOptions {
                     cdx_extension: cdx_extension.unwrap_or_default(),
                     prefix: prefix.unwrap_or_default(),
-                    platform_suffix: match self.no_target_suffix {
-                        true => PlatformSuffix::NotIncluded,
-                        false => PlatformSuffix::Included,
-                    },
+                    platform_suffix: platform_suffix,
                 })
             };
 
