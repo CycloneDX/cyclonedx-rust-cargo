@@ -91,7 +91,8 @@ Defaults to the host target, as printed by 'rustc -vV'"
     #[clap(
         name = "output-prefix",
         long = "output-prefix",
-        value_name = "FILENAME_PREFIX"
+        value_name = "FILENAME_PREFIX",
+        conflicts_with = "output-pattern"
     )]
     pub output_prefix: Option<String>,
 
