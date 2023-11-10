@@ -18,8 +18,11 @@
 use crate::config::Pattern;
 use crate::config::Prefix;
 use crate::config::SbomConfig;
+use crate::config::Target::AllTargets;
+use crate::config::Target::SingleTarget;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
+use crate::platform::all_known_targets;
 
 use cargo_metadata;
 use cargo_metadata::DependencyKind;
@@ -42,6 +45,8 @@ use cyclonedx_bom::models::license::{License, LicenseChoice, Licenses};
 use cyclonedx_bom::models::metadata::Metadata;
 use cyclonedx_bom::models::metadata::MetadataError;
 use cyclonedx_bom::models::organization::OrganizationalContact;
+use cyclonedx_bom::models::property::Properties;
+use cyclonedx_bom::models::property::Property;
 use cyclonedx_bom::models::tool::{Tool, Tools};
 use cyclonedx_bom::validation::Validate;
 use cyclonedx_bom::validation::ValidationResult;
@@ -358,6 +363,15 @@ impl SbomGenerator {
         let tool = Tool::new("CycloneDX", "cargo-cyclonedx", env!("CARGO_PKG_VERSION"));
 
         metadata.tools = Some(Tools(vec![tool]));
+
+        let properties = match self.config.target.as_ref().unwrap() {
+            SingleTarget(target) => vec![Property::new("rustc:target", target)],
+            AllTargets => all_known_targets()
+                .into_iter()
+                .map(|target| Property::new("rustc:target", &target))
+                .collect(),
+        };
+        metadata.properties = Some(Properties(properties));
 
         Ok(metadata)
     }
