@@ -482,7 +482,7 @@ fn top_level_dependencies(
 
     let mut resolve_result = ResolveMap::new();
     for id in &root_node.dependencies {
-        // Clear all depedencies, pretend there is only one level
+        // Clear all dependencies, pretend there is only one level
         let mut node = resolve[id].clone();
         node.deps = Vec::new();
         node.dependencies = Vec::new();
