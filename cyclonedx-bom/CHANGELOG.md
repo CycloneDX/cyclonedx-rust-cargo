@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added the ability to parse from and serialize to a `JsonValue` ([#518])
 - Added `FromStr` implementations for `Purl` and `Cpe` to enable writing them ([#381])
-- Made the field of the `Depedencies` struct public so that it could be read and written ([#504])
+- Made the field of the `Dependencies` struct public so that it could be read and written ([#504])
 - Made the field of the `HashValue` struct public so that it could be read and written ([#519])
 
 ### Fixed
