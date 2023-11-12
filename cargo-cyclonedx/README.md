@@ -30,78 +30,59 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
 
 #### Command-line options
 
-* `--format` (`xml` or `json`): Defaults to XML output
-* `--all`: Include the transitive dependencies for the project rather than only the top-level dependencies
-* `--manifest-path`: where to find the `Cargo.toml` file if other than the default `cargo` location of the current directory
-* `--output-cdx`: Include `.cdx` in the filename as described in [the recognized file patterns](https://cyclonedx.org/specification/overview/#recognized-file-patterns)
-* `--output-pattern` (`bom` or `package`)
-  * `bom`: Outputs a prefix of `bom` for the filename
-  * `package`: Outputs a prefix using the `Cargo.toml` package name for the filename
-* `--output-prefix`: Outputs a custom prefix for the filename
-* `--license-strict`: Switch license parser to "strict mode", failing on non-SPDX expressions like `MIT/Apache-2.0` as `MIT or Apache-2.0`
-* `--license-accept-named`: Adds license names, which will silently be accepted as a named license, in case parsing them as a SPDX license expression fails
-
-Notes:
-
-* `--output-cdx`, `--output-pattern`, and `--output-prefix` are a group of options. Passing any of them as arguments will override any `output_options` configurations in `Cargo.toml` files.
-* `--output-pattern` and `--output-prefix` cannot be passed as arguments at the same time.
-
-### Manifest Configuration
-
-There are several locations you can set configuration options for convenience. If your project uses a
-[Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html), you can set configuration as
-toml values under `[workspace.metadata.cyclonedx]` in your workspace manifest. These configuration values will
-propagate to your workspace packages unless you override the values either by specifying toml values under
-`[package.metadata.cyclonedx]` in your package manifest or with command-line options.
-
-Option                  | Values (*default)   | Description
------------------------ | ------------------- | --------------------------
-`included_dependencies` | `top-level`*, `all` | Either only direct (`top-level`) or including transitive (`all`) dependencies
-`format`                | `xml`*, `json`      | Output format for the SBOM
-`output_options`        | `<defined below>`   | A collection of options for file output
-
-#### Output Options
-
-Option    | Values (*default)   | Description
---------- | ------------------- | --------------------------
-`cdx`     | `true` / `false`*   | Determines if `.cdx` is included in the filename as described in [the recognized file patterns](https://cyclonedx.org/specification/overview/#recognized-file-patterns)
-`pattern` | `bom`*, `package`   | `bom` outputs `bom`, while `package` outputs the `Cargo.toml` package name as the prefix
-`prefix`  | `<filename prefix>` | Outputs a custom value for the prefix
-
-Notes:
-
-* `output_options` values are merged as a single configuration, so a package-level configuration will override the whole workspace-level configuration.
-* `pattern` and `prefix` cannot be configured at the same time.
-
-#### Precedence
-
-Configuration options will be merged and applied in the following order from lowest to highest precedence.
-
-1. Defaults
-2. Workspace manifest metadata
-3. Package manifest metadata
-4. Command-line options
-
-#### Example Workspace Configuration
-
-``` toml
-[workspace.metadata.cyclonedx]
-included_dependencies = "top-level"
-format = "xml"
-output_options = { cdx = false, prefix = "cyclonedx" }
-license_parser = { mode = "lax", accept_named = [ "My Special License" ] }
 ```
+      --manifest-path <PATH>
+          Path to Cargo.toml
 
-#### Example Package Configuration
+  -f, --format <FORMAT>
+          Output BOM format: json, xml
 
-You can also specify your configuration in using package metadata in your package manifest.
+  -v, --verbose...
+          Use verbose output (-vv very verbose/build.rs output)
 
-``` toml
-[package.metadata.cyclonedx]
-included_dependencies = "all"
-format = "json"
-output_options = { cdx = true, pattern = "package" }
-license_parser = { mode = "lax", accept_named = [ "My Special License" ] }
+  -q, --quiet
+          No output printed to stdout
+
+      --all-features
+          Activate all available features
+
+      --no-default-features
+          Do not activate the `default` feature
+
+  -F, --features <FEATURES>
+          Space or comma separated list of features to activate
+
+      --target <TARGET>
+          The target to generate the SBOM for, e.g. 'x86_64-unknown-linux-gnu'.
+          Use 'all' to include dependencies for all possible targets.
+          Defaults to the host target, as printed by 'rustc -vV'
+
+      --target-in-filename
+          Include the target platform of the BOM in the filename. Implies --output-cdx
+
+  -a, --all
+          List all dependencies instead of only top-level ones (default)
+
+      --top-level
+          List only top-level dependencies
+
+      --output-cdx
+          Prepend file extension with .cdx
+
+      --output-pattern <PATTERN>
+          Prefix patterns to use for the filename: bom, package
+
+      --output-prefix <FILENAME_PREFIX>
+          Custom prefix string to use for the filename
+
+      --license-strict
+          Reject the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as an error
+
+      --license-accept-named <LICENSE_ACCEPT_NAMED>
+          Add license names which will not be warned about when parsing them as a SPDX expression fails
+
+  -h, --help
+          Print help (see a summary with '-h')
 ```
 
 ## Copyright & License
