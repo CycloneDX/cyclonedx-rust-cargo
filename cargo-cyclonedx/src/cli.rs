@@ -96,7 +96,7 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub output_prefix: Option<String>,
 
-    /// Reject the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as 'MIT OR Apache-2.0'
+    /// Reject the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as an error
     #[clap(long = "license-strict")]
     pub license_strict: bool,
 
