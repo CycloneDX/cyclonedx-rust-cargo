@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed incorrect recording of dependencies. Previously all dependencies of the workspace would be included instead of the dependencies of the specified package ([#498])
 - Use actually unique identifiers in `bom-ref` field ([#503])
 - Passing mutually exclusive command-line flags now results in a properly reported error, instead of being silently ignored. ([#526]) ([#535])
+- Present non-fatal issues as warnings rather than errors ([#542])
 - Removed `#[deny(warnings)]` to avoid breakage in production if newer compilers add more warnings ([#496])
 - Encode the origin of the package into the PURL instead of pretending that everything always comes from crates.io ([#523])
 
@@ -58,3 +59,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#530]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/530
 [#533]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/533
 [#535]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/535
+[#542]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/542
