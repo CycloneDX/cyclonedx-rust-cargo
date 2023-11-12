@@ -1,0 +1,58 @@
+{
+  "name": "auditable-extract",
+  "version": "0.3.2",
+  "id": "auditable-extract 0.3.2 (git+https://github.com/rust-secure-code/cargo-auditable.git#da85607fb1a09435d77288ccf05a92b2e8ec3f71)",
+  "license": "MIT OR Apache-2.0",
+  "license_file": null,
+  "description": "Extract the dependency trees embedded in binaries by `cargo auditable`",
+  "source": "git+https://github.com/rust-secure-code/cargo-auditable.git#da85607fb1a09435d77288ccf05a92b2e8ec3f71",
+  "dependencies": [
+    {
+      "name": "binfarce",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.2",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    }
+  ],
+  "targets": [
+    {
+      "kind": [
+        "lib"
+      ],
+      "crate_types": [
+        "lib"
+      ],
+      "name": "auditable-extract",
+      "src_path": "/home/shnatsel/.cargo/git/checkouts/cargo-auditable-1898e5801c96933c/da85607/auditable-extract/src/lib.rs",
+      "edition": "2018",
+      "doc": true,
+      "doctest": true,
+      "test": true
+    }
+  ],
+  "features": {},
+  "manifest_path": "/home/shnatsel/.cargo/git/checkouts/cargo-auditable-1898e5801c96933c/da85607/auditable-extract/Cargo.toml",
+  "metadata": null,
+  "publish": null,
+  "authors": [
+    "Sergey \"Shnatsel\" Davidoff <shnatsel@gmail.com>"
+  ],
+  "categories": [
+    "encoding"
+  ],
+  "keywords": [],
+  "readme": null,
+  "repository": "https://github.com/rust-secure-code/cargo-auditable",
+  "homepage": null,
+  "documentation": null,
+  "edition": "2018",
+  "links": null,
+  "default_run": null,
+  "rust_version": null
+}
