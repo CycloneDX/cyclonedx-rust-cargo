@@ -103,7 +103,7 @@ mod tests {
         let purl = get_purl(
             &crates_io_package,
             &crates_io_package,
-            &Utf8Path::new("/foo/bar"),
+            Utf8Path::new("/foo/bar"),
             None,
         )
         .unwrap();
@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn git_purl() {
         let git_package: Package = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
-        let purl = get_purl(&git_package, &git_package, &Utf8Path::new("/foo/bar"), None).unwrap();
+        let purl = get_purl(&git_package, &git_package, Utf8Path::new("/foo/bar"), None).unwrap();
         // Validate that data roundtripped correctly
         let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
         assert_eq!(parsed_purl.name(), "auditable-extract");
@@ -138,7 +138,7 @@ mod tests {
         let purl = get_purl(
             &root_package,
             &root_package,
-            &Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
+            Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
             None,
         )
         .unwrap();
@@ -161,7 +161,7 @@ mod tests {
         let purl = get_purl(
             &root_package,
             &root_package,
-            &Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
+            Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
             Some("src/кириллица/lib.rs".into()),
         )
         .unwrap();
@@ -185,7 +185,7 @@ mod tests {
         let purl = get_purl(
             &workspace_package,
             &root_package,
-            &Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
+            Utf8Path::new("/home/shnatsel/Code/cargo-cyclonedx/"),
             None,
         )
         .unwrap();
@@ -209,7 +209,7 @@ mod tests {
         let purl = get_purl(
             &workspace_package,
             &root_package,
-            &Utf8Path::new("/foo/bar/"),
+            Utf8Path::new("/foo/bar/"),
             None,
         )
         .unwrap();
