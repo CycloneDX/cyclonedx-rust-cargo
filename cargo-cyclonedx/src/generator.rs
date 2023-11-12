@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 use crate::config::Pattern;
+use crate::config::PlatformSuffix;
 use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
@@ -630,9 +631,18 @@ impl GeneratedSbom {
             Prefix::Custom(c) => c.to_string(),
         };
 
+        let platform_suffix = match output_options.platform_suffix {
+            PlatformSuffix::NotIncluded => "".to_owned(),
+            PlatformSuffix::Included => {
+                let target_string = self.sbom_config.target.as_ref().unwrap();
+                format!("_{}", target_string.as_str())
+            }
+        };
+
         format!(
-            "{}{}.{}",
+            "{}{}{}.{}",
             prefix,
+            platform_suffix,
             output_options.cdx_extension.extension(),
             self.sbom_config.format()
         )

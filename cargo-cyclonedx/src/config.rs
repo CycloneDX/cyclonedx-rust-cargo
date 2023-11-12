@@ -95,6 +95,7 @@ impl FromStr for IncludedDependencies {
 pub struct OutputOptions {
     pub cdx_extension: CdxExtension,
     pub prefix: Prefix,
+    pub platform_suffix: PlatformSuffix,
 }
 
 impl Default for OutputOptions {
@@ -102,13 +103,15 @@ impl Default for OutputOptions {
         Self {
             cdx_extension: CdxExtension::default(),
             prefix: Prefix::Pattern(Pattern::Bom),
+            platform_suffix: PlatformSuffix::default(),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum CdxExtension {
     Included,
+    #[default]
     NotIncluded,
 }
 
@@ -118,12 +121,6 @@ impl CdxExtension {
             CdxExtension::Included => ".cdx".to_string(),
             CdxExtension::NotIncluded => "".to_string(),
         }
-    }
-}
-
-impl Default for CdxExtension {
-    fn default() -> Self {
-        Self::NotIncluded
     }
 }
 
@@ -141,6 +138,15 @@ pub enum Target {
     SingleTarget(String),
 }
 
+impl Target {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Target::AllTargets => "all",
+            Target::SingleTarget(target) => target.as_str(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prefix {
     Pattern(Pattern),
@@ -153,16 +159,11 @@ impl Default for Prefix {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Pattern {
+    #[default]
     Bom,
     Package,
-}
-
-impl Default for Pattern {
-    fn default() -> Self {
-        Self::Bom
-    }
 }
 
 impl FromStr for Pattern {
@@ -204,6 +205,13 @@ impl ToString for CustomPrefix {
 pub enum PrefixError {
     #[error("Illegal characters in custom prefix string: {0}")]
     CustomPrefixError(String),
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum PlatformSuffix {
+    Included,
+    #[default]
+    NotIncluded,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
