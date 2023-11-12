@@ -150,7 +150,7 @@ impl SbomGenerator {
         let purl = match get_purl(package, root_package, &self.workspace_root, None) {
             Ok(purl) => Some(purl),
             Err(e) => {
-                log::error!("Package {} has an invalid Purl: {} ", package.name, e);
+                log::warn!("Package {} has an invalid Purl: {} ", package.name, e);
                 None
             }
         };
@@ -191,7 +191,7 @@ impl SbomGenerator {
                 } else if tgt.is_lib() {
                     Classification::Library
                 } else {
-                    log::error!("Target {} is neither a binary nor a library!", tgt.name);
+                    log::warn!("Target {} is neither a binary nor a library!", tgt.name);
                     continue;
                 };
 
@@ -227,7 +227,7 @@ impl SbomGenerator {
                     subcomponent.purl =
                         get_purl(package, package, &self.workspace_root, Some(relative_path)).ok();
                 } else {
-                    log::error!(
+                    log::warn!(
                         "Source path \"{}\" is not a subpath of workspace root \"{}\"",
                         tgt.src_path,
                         self.workspace_root
@@ -266,7 +266,7 @@ impl SbomGenerator {
                     ExternalReferenceType::Documentation,
                     uri,
                 )),
-                Err(e) => log::error!(
+                Err(e) => log::warn!(
                     "Package {} has an invalid documentation URI ({}): {} ",
                     package.name,
                     documentation,
@@ -280,7 +280,7 @@ impl SbomGenerator {
                 Ok(uri) => {
                     references.push(ExternalReference::new(ExternalReferenceType::Website, uri))
                 }
-                Err(e) => log::error!(
+                Err(e) => log::warn!(
                     "Package {} has an invalid homepage URI ({}): {} ",
                     package.name,
                     website,
@@ -294,7 +294,7 @@ impl SbomGenerator {
                 Ok(uri) => {
                     references.push(ExternalReference::new(ExternalReferenceType::Other, uri))
                 }
-                Err(e) => log::error!(
+                Err(e) => log::warn!(
                     "Package {} has an invalid links URI ({}): {} ",
                     package.name,
                     other,
@@ -306,7 +306,7 @@ impl SbomGenerator {
         if let Some(vcs) = &package.repository {
             match Uri::try_from(vcs.to_string()) {
                 Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
-                Err(e) => log::error!(
+                Err(e) => log::warn!(
                     "Package {} has an invalid repository URI ({}): {} ",
                     package.name,
                     vcs,
@@ -406,7 +406,7 @@ impl SbomGenerator {
 
         invalid_authors
             .into_iter()
-            .for_each(|(author, error)| log::error!("Invalid author {}: {:?}", author, error));
+            .for_each(|(author, error)| log::warn!("Invalid author {}: {:?}", author, error));
 
         authors
     }
