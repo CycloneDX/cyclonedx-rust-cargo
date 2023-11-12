@@ -1,0 +1,113 @@
+{
+  "name": "aho-corasick",
+  "version": "1.1.2",
+  "id": "aho-corasick 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+  "license": "Unlicense OR MIT",
+  "license_file": null,
+  "description": "Fast multiple substring searching.",
+  "source": "registry+https://github.com/rust-lang/crates.io-index",
+  "dependencies": [
+    {
+      "name": "log",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.4.17",
+      "kind": null,
+      "rename": null,
+      "optional": true,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "memchr",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^2.4.0",
+      "kind": null,
+      "rename": null,
+      "optional": true,
+      "uses_default_features": false,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "doc-comment",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.3.3",
+      "kind": "dev",
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    }
+  ],
+  "targets": [
+    {
+      "kind": [
+        "lib"
+      ],
+      "crate_types": [
+        "lib"
+      ],
+      "name": "aho_corasick",
+      "src_path": "/home/shnatsel/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aho-corasick-1.1.2/src/lib.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": true,
+      "test": true
+    }
+  ],
+  "features": {
+    "default": [
+      "std",
+      "perf-literal"
+    ],
+    "logging": [
+      "dep:log"
+    ],
+    "perf-literal": [
+      "dep:memchr"
+    ],
+    "std": [
+      "memchr?/std"
+    ]
+  },
+  "manifest_path": "/home/shnatsel/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aho-corasick-1.1.2/Cargo.toml",
+  "metadata": {
+    "docs": {
+      "rs": {
+        "all-features": true,
+        "rustdoc-args": [
+          "--cfg",
+          "docsrs",
+          "--generate-link-to-definition"
+        ]
+      }
+    }
+  },
+  "publish": null,
+  "authors": [
+    "Andrew Gallant <jamslam@gmail.com>"
+  ],
+  "categories": [
+    "text-processing"
+  ],
+  "keywords": [
+    "string",
+    "search",
+    "text",
+    "pattern",
+    "multi"
+  ],
+  "readme": "README.md",
+  "repository": "https://github.com/BurntSushi/aho-corasick",
+  "homepage": "https://github.com/BurntSushi/aho-corasick",
+  "documentation": null,
+  "edition": "2021",
+  "links": null,
+  "default_run": null,
+  "rust_version": "1.60.0"
+}

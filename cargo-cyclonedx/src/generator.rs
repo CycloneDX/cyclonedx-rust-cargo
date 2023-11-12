@@ -20,6 +20,7 @@ use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
+use crate::purl::get_purl;
 
 use cargo_metadata;
 use cargo_metadata::DependencyKind;
@@ -29,9 +30,10 @@ use cargo_metadata::NodeDep;
 use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
+use cargo_metadata::camino::Utf8PathBuf;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
-use cyclonedx_bom::external_models::uri::{Purl, Uri};
+use cyclonedx_bom::external_models::uri::Uri;
 use cyclonedx_bom::models::bom::Bom;
 use cyclonedx_bom::models::component::{Classification, Component, Components, Scope};
 use cyclonedx_bom::models::dependency::{Dependencies, Dependency};
@@ -64,6 +66,7 @@ type ResolveMap = BTreeMap<PackageId, Node>;
 
 pub struct SbomGenerator {
     config: SbomConfig,
+    workspace_root: Utf8PathBuf,
 }
 
 impl SbomGenerator {
@@ -89,6 +92,7 @@ impl SbomGenerator {
 
             let generator = SbomGenerator {
                 config: config.clone(),
+                workspace_root: meta.workspace_root.to_owned(),
             };
             let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
@@ -119,11 +123,12 @@ impl SbomGenerator {
         resolve: &ResolveMap,
     ) -> Result<Bom, GeneratorError> {
         let mut bom = Bom::default();
+        let root_package = &packages[package];
 
         let components: Vec<_> = packages
             .values()
             .filter(|p| &p.id != package)
-            .map(|component| self.create_component(component))
+            .map(|component| self.create_component(component, root_package))
             .collect();
 
         bom.components = Some(Components(components));
@@ -137,11 +142,11 @@ impl SbomGenerator {
         Ok(bom)
     }
 
-    fn create_component(&self, package: &Package) -> Component {
+    fn create_component(&self, package: &Package, root_package: &Package) -> Component {
         let name = package.name.to_owned().trim().to_string();
         let version = package.version.to_string();
 
-        let purl = match Purl::new("cargo", &name, &version) {
+        let purl = match get_purl(package, root_package, &self.workspace_root, None) {
             Ok(purl) => Some(purl),
             Err(e) => {
                 log::error!("Package {} has an invalid Purl: {} ", package.name, e);
@@ -172,7 +177,7 @@ impl SbomGenerator {
     /// Same as [Self::create_component] but also includes information
     /// on binaries and libraries comprising it as subcomponents
     fn create_toplevel_component(&self, package: &Package) -> Component {
-        let mut top_component = self.create_component(package);
+        let mut top_component = self.create_component(package, package);
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut subcomp_count: u32 = 0;
         for tgt in &package.targets {
@@ -197,13 +202,38 @@ impl SbomGenerator {
                 );
                 subcomp_count += 1;
 
-                // put it all together
-                subcomponents.push(Component::new(
+                // create the subcomponent
+                let mut subcomponent = Component::new(
                     cdx_type,
                     &tgt.name,
                     &package.version.to_string(),
                     Some(bom_ref),
-                ));
+                );
+
+                // PURL subpaths are computed relative to the directory with the `Cargo.toml`
+                // *for this specific package*, not the workspace root.
+                // This is done because the tarball uploaded to crates.io only contains the package,
+                // not the workspace, so paths resolved relatively to the workspace root would not be valid.
+                //
+                // When using a git repo that contains a workspace, Cargo will automatically select
+                // the right package out of the workspace. Paths can then be resolved relatively to it.
+                // So the information we encode here is sufficient to idenfity the file in git too.
+                let package_dir = package
+                    .manifest_path
+                    .parent()
+                    .expect("manifest_path in `cargo metadata` output is not a file!");
+                if let Ok(relative_path) = tgt.src_path.strip_prefix(package_dir) {
+                    subcomponent.purl =
+                        get_purl(package, package, &self.workspace_root, Some(relative_path)).ok();
+                } else {
+                    log::error!(
+                        "Source path \"{}\" is not a subpath of workspace root \"{}\"",
+                        tgt.src_path,
+                        self.workspace_root
+                    );
+                }
+
+                subcomponents.push(subcomponent);
             }
         }
         top_component.components = Some(Components(subcomponents));

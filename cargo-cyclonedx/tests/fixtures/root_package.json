@@ -1,0 +1,281 @@
+{
+  "name": "cargo-cyclonedx",
+  "version": "0.3.8",
+  "id": "cargo-cyclonedx 0.3.8 (path+file:///home/shnatsel/Code/cargo-cyclonedx/cargo-cyclonedx)",
+  "license": "Apache-2.0",
+  "license_file": null,
+  "description": "CycloneDX Software Bill of Materials (SBOM) for Rust Crates",
+  "source": null,
+  "dependencies": [
+    {
+      "name": "anyhow",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.75",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "cargo_metadata",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.18.1",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "clap",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^4.4.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "derive"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "cyclonedx-bom",
+      "source": null,
+      "req": "^0.4.1",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null,
+      "path": "/home/shnatsel/Code/cargo-cyclonedx/cyclonedx-bom"
+    },
+    {
+      "name": "env_logger",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.10.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "log",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.4.20",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "once_cell",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.18.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "percent-encoding",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^2.3.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "purl",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.1.2",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": false,
+      "features": [
+        "package-type"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "regex",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.9.3",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "serde",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.188",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "derive"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "thiserror",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.48",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "validator",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.16.1",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "assert_cmd",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^2.0.12",
+      "kind": "dev",
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "assert_fs",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.13",
+      "kind": "dev",
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "predicates",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^3.0.3",
+      "kind": "dev",
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    }
+  ],
+  "targets": [
+    {
+      "kind": [
+        "lib"
+      ],
+      "crate_types": [
+        "lib"
+      ],
+      "name": "cargo-cyclonedx",
+      "src_path": "/home/shnatsel/Code/cargo-cyclonedx/cargo-cyclonedx/src/lib.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": true,
+      "test": true
+    },
+    {
+      "kind": [
+        "bin"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "cargo-cyclonedx",
+      "src_path": "/home/shnatsel/Code/cargo-cyclonedx/cargo-cyclonedx/src/main.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": false,
+      "test": true
+    },
+    {
+      "kind": [
+        "test"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "cli",
+      "src_path": "/home/shnatsel/Code/cargo-cyclonedx/cargo-cyclonedx/tests/cli.rs",
+      "edition": "2021",
+      "doc": false,
+      "doctest": false,
+      "test": true
+    }
+  ],
+  "features": {},
+  "manifest_path": "/home/shnatsel/Code/cargo-cyclonedx/cargo-cyclonedx/Cargo.toml",
+  "metadata": null,
+  "publish": null,
+  "authors": [
+    "Steve Springett <steve.springett@owasp.org>"
+  ],
+  "categories": [
+    "command-line-utilities",
+    "development-tools",
+    "development-tools::cargo-plugins"
+  ],
+  "keywords": [
+    "sbom",
+    "bom",
+    "components",
+    "dependencies",
+    "owasp"
+  ],
+  "readme": "README.md",
+  "repository": "https://github.com/CycloneDX/cyclonedx-rust-cargo",
+  "homepage": "https://cyclonedx.org/",
+  "documentation": null,
+  "edition": "2021",
+  "links": null,
+  "default_run": null,
+  "rust_version": "1.70.0"
+}
