@@ -1,7 +1,7 @@
 use cargo_cyclonedx::{
     config::{
         CdxExtension, CustomPrefix, Features, IncludedDependencies, LicenseParserOptions,
-        OutputOptions, ParseMode, Pattern, Prefix, PrefixError, SbomConfig, Target,
+        OutputOptions, ParseMode, Pattern, PlatformSuffix, Prefix, PrefixError, SbomConfig, Target,
     },
     format::Format,
     platform::host_platform,
@@ -63,6 +63,10 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub target: Option<String>,
 
+    /// Include the target platform of the BOM in the filename. Implies --output-cdx
+    #[clap(long = "target-in-filename")]
+    pub target_in_filename: bool,
+
     /// List all dependencies instead of only top-level ones (default)
     #[clap(long = "all", short = 'a')]
     pub all: bool,
@@ -87,7 +91,8 @@ Defaults to the host target, as printed by 'rustc -vV'"
     #[clap(
         name = "output-prefix",
         long = "output-prefix",
-        value_name = "FILENAME_PREFIX"
+        value_name = "FILENAME_PREFIX",
+        conflicts_with = "output-pattern"
     )]
     pub output_prefix: Option<String>,
 
@@ -115,11 +120,6 @@ impl Args {
                 Some(Prefix::Custom(prefix))
             }
             (_, _) => None,
-        };
-
-        let cdx_extension = match self.output_cdx {
-            true => Some(CdxExtension::Included),
-            false => None,
         };
 
         let features =
@@ -154,21 +154,33 @@ impl Args {
             Target::SingleTarget(target_string)
         });
 
-        let output_options = match (cdx_extension, prefix) {
-            (Some(cdx_extension), Some(prefix)) => Some(OutputOptions {
-                cdx_extension,
-                prefix,
-            }),
-            (Some(cdx_extension), _) => Some(OutputOptions {
-                cdx_extension,
-                prefix: Prefix::default(),
-            }),
-            (_, Some(prefix)) => Some(OutputOptions {
-                cdx_extension: CdxExtension::default(),
-                prefix,
-            }),
-            (_, _) => None,
+        let mut cdx_extension = match self.output_cdx {
+            true => Some(CdxExtension::Included),
+            false => None,
         };
+
+        let platform_suffix = match self.target_in_filename {
+            true => PlatformSuffix::Included,
+            false => PlatformSuffix::NotIncluded,
+        };
+
+        // according to the CycloneDX spec, the file has either be called 'bom.xml'
+        // or include the .cdx extension, so including the target in filename
+        // requires also adding the .cdx extension
+        if self.target_in_filename {
+            cdx_extension = Some(CdxExtension::Included)
+        }
+
+        let output_options =
+            if cdx_extension.is_none() && prefix.is_none() && !self.target_in_filename {
+                None
+            } else {
+                Some(OutputOptions {
+                    cdx_extension: cdx_extension.unwrap_or_default(),
+                    prefix: prefix.unwrap_or_default(),
+                    platform_suffix,
+                })
+            };
 
         let license_parser = Some(LicenseParserOptions {
             mode: match self.license_strict {
