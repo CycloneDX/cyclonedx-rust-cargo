@@ -19,6 +19,8 @@
 use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
 };
+use std::fmt::Display;
+use std::ops::Deref;
 
 /// A string that does not contain carriage return, line feed, or tab characters
 ///
@@ -45,9 +47,23 @@ impl NormalizedString {
     }
 }
 
-impl ToString for NormalizedString {
-    fn to_string(&self) -> String {
-        self.0.clone()
+impl Deref for NormalizedString {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl AsRef<str> for NormalizedString {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for NormalizedString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
