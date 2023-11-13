@@ -1,6 +1,6 @@
 [package]
 name = "cyclonedx-bom"
-version = "0.4.2"
+version = "0.4.3"
 description = "CycloneDX Software Bill of Materials Library"
 categories = []
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]

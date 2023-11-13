@@ -24,7 +24,7 @@ lto = "thin"
 anyhow = "1.0.75"
 cargo_metadata = "0.18.1"
 clap = { version = "4.4.8", features = ["derive"] }
-cyclonedx-bom = { version = "0.4.1", path = "../cyclonedx-bom" }
+cyclonedx-bom = { version = "0.4.3", path = "../cyclonedx-bom" }
 env_logger = "0.10.0"
 log = "0.4.20"
 once_cell = "1.18.0"
