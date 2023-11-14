@@ -186,10 +186,12 @@ impl SbomGenerator {
             // They are not part of the final build artifacts, which is what we are after.
             if !(tgt.is_bench() || tgt.is_example() || tgt.is_test() || tgt.is_custom_build()) {
                 // classification
+                #[allow(clippy::if_same_then_else)]
                 let cdx_type = if tgt.is_bin() {
                     Classification::Application
                 // sadly no .is_proc_macro() yet
                 } else if tgt.kind.iter().any(|kind| kind == "proc-macro") {
+                    // There isn't a better way to express it with CycloneDX types
                     Classification::Library
                 } else if tgt.kind.iter().any(|kind| kind.contains("lib")) {
                     Classification::Library
