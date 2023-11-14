@@ -188,6 +188,9 @@ impl SbomGenerator {
                 // classification
                 let cdx_type = if tgt.is_bin() {
                     Classification::Application
+                // sadly no .is_proc_macro() yet
+                } else if tgt.kind.iter().any(|kind| kind == "proc-macro") {
+                    Classification::Library
                 } else if tgt.kind.iter().any(|kind| kind.contains("lib")) {
                     Classification::Library
                 } else {
