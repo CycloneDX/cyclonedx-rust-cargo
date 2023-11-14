@@ -191,7 +191,11 @@ impl SbomGenerator {
                 } else if tgt.kind.iter().any(|kind| kind.contains("lib")) {
                     Classification::Library
                 } else {
-                    log::warn!("Target {} is neither a binary nor a library!", tgt.name);
+                    log::warn!(
+                        "Target {} is neither a binary nor a library! Kinds: {}",
+                        tgt.name,
+                        tgt.kind.join(", ")
+                    );
                     continue;
                 };
 
