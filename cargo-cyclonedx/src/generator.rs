@@ -188,7 +188,7 @@ impl SbomGenerator {
                 // classification
                 let cdx_type = if tgt.is_bin() {
                     Classification::Application
-                } else if tgt.is_lib() {
+                } else if tgt.kind.iter().any(|kind| kind.contains("lib")) {
                     Classification::Library
                 } else {
                     log::warn!("Target {} is neither a binary nor a library!", tgt.name);
