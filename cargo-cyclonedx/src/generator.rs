@@ -183,9 +183,11 @@ impl SbomGenerator {
         let mut subcomp_count: u32 = 0;
         for tgt in &package.targets {
             // Classification
+            // Ignore tests, benches, examples and build scripts.
+            // They are not part of the final build artifacts, which is what we are after.
             let cdx_type = match (tgt.is_bin(), tgt.is_lib()) {
-                (true, _) => Classification::Application,
-                (_, true) => Classification::Library,
+                (true, false) => Classification::Application,
+                (false, true) => Classification::Library,
                 _ => {
                     log::warn!(
                         "Target {} is neither a binary nor a library! Kinds: {}",
