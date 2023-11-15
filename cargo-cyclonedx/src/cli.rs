@@ -13,7 +13,7 @@ use std::path;
 use thiserror::Error;
 
 #[derive(Parser, Debug)]
-#[clap(bin_name = "cargo")]
+#[clap(bin_name = "cargo", version)]
 pub enum Opts {
     #[clap(name = "cyclonedx")]
     /// Creates a CycloneDX Software Bill-of-Materials (SBOM) for Rust project
