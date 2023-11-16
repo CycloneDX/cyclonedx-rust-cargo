@@ -164,6 +164,7 @@ pub enum Pattern {
     #[default]
     Bom,
     Package,
+    Binary,
 }
 
 impl FromStr for Pattern {
