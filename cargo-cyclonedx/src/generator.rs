@@ -53,9 +53,10 @@ use regex::Regex;
 
 use log::Level;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::convert::TryFrom;
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::Cursor;
 use std::io::Write;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -603,10 +604,9 @@ pub struct GeneratedSbom {
 impl GeneratedSbom {
     /// Writes SBOM to either a JSON or XML file in the same folder as `Cargo.toml` manifest
     pub fn write_to_file(self) -> Result<(), SbomWriterError> {
-        let path = self.manifest_path.with_file_name(self.filename());
-        log::info!("Outputting {}", path.display());
-        let file = File::create(path)?;
-        let mut writer = BufWriter::new(file);
+        let filenames = self.filenames();
+        let serialized_sbom = Vec::new();
+        let mut writer = Cursor::new(serialized_sbom);
         match self.sbom_config.format() {
             Format::Json => {
                 self.bom
@@ -619,20 +619,31 @@ impl GeneratedSbom {
                     .map_err(SbomWriterError::XmlWriteError)?;
             }
         }
+        let serialized_sbom = writer.into_inner();
 
-        // Flush the writer explicitly to catch and report any I/O errors
-        writer.flush()?;
+        for filename in filenames {
+            let path = self.manifest_path.with_file_name(filename);
+            log::info!("Outputting {}", path.display());
+            let mut file = File::create(path)?;
+            file.write_all(&serialized_sbom)?;
+        }
 
         Ok(())
     }
 
-    fn filename(&self) -> String {
+    fn filenames(&self) -> BTreeSet<String> {
         let output_options = self.sbom_config.output_options();
-        let prefix = match output_options.prefix {
-            Prefix::Pattern(Pattern::Bom) => "bom".to_string(),
-            Prefix::Pattern(Pattern::Package) => self.package_name.clone(),
-            Prefix::Pattern(Pattern::Binary) => todo!(),
-            Prefix::Custom(c) => c.to_string(),
+        let prefixes = match output_options.prefix {
+            Prefix::Pattern(Pattern::Bom) => vec!["bom".to_string()],
+            Prefix::Pattern(Pattern::Package) => vec![self.package_name.clone()],
+            Prefix::Custom(c) => vec![c.to_string()],
+            Prefix::Pattern(Pattern::Binary) => {
+                // different from the others in that we potentially output the same SBOM to multiple files
+                let meta = self.bom.metadata.as_ref().unwrap();
+                let top_component = meta.component.as_ref().unwrap();
+                let components = top_component.components.as_ref().unwrap();
+                components.0.iter().map(|c| c.name.to_string()).collect()
+            }
         };
 
         let platform_suffix = match output_options.platform_suffix {
@@ -643,13 +654,18 @@ impl GeneratedSbom {
             }
         };
 
-        format!(
-            "{}{}{}.{}",
-            prefix,
-            platform_suffix,
-            output_options.cdx_extension.extension(),
-            self.sbom_config.format()
-        )
+        prefixes
+            .iter()
+            .map(|prefix| {
+                format!(
+                    "{}{}{}.{}",
+                    prefix,
+                    platform_suffix,
+                    output_options.cdx_extension.extension(),
+                    self.sbom_config.format()
+                )
+            })
+            .collect()
     }
 }
 
