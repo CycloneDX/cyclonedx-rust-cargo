@@ -174,6 +174,7 @@ impl FromStr for Pattern {
         match s {
             "bom" => Ok(Self::Bom),
             "package" => Ok(Self::Package),
+            "binary" => Ok(Self::Binary),
             _ => Err(format!("Expected bom or package, got `{}`", s)),
         }
     }
