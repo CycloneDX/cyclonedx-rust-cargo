@@ -638,7 +638,8 @@ impl GeneratedSbom {
             Prefix::Pattern(Pattern::Package) => vec![self.package_name.clone()],
             Prefix::Custom(c) => vec![c.to_string()],
             Prefix::Pattern(Pattern::Binary) => {
-                // different from the others in that we potentially output the same SBOM to multiple files
+                // Different from the others in that we potentially output the same SBOM to multiple files.
+                // We can safely `.unwrap()` here because we have just written these fields ourselves.
                 let meta = self.bom.metadata.as_ref().unwrap();
                 let top_component = meta.component.as_ref().unwrap();
                 let components = top_component.components.as_ref().unwrap();
