@@ -621,6 +621,10 @@ impl GeneratedSbom {
         }
         let serialized_sbom = writer.into_inner();
 
+        // Why do we write the exact same SBOM into multiple files?
+        // Good question! And a long story!
+        // See https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/563#issue-1997891622
+        // for a detailed explanation of why this behavior was chosen.
         for filename in filenames {
             let path = self.manifest_path.with_file_name(filename);
             log::info!("Outputting {}", path.display());
