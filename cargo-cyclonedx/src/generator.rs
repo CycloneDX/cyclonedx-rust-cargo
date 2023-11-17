@@ -183,63 +183,69 @@ impl SbomGenerator {
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut subcomp_count: u32 = 0;
         for tgt in &package.targets {
-            // Classification
             // Ignore tests, benches, examples and build scripts.
             // They are not part of the final build artifacts, which is what we are after.
-            let cdx_type = match (tgt.is_bin(), tgt.is_lib()) {
-                (true, false) => Classification::Application,
-                (false, true) => Classification::Library,
-                _ => {
+            if !(tgt.is_bench() || tgt.is_example() || tgt.is_test() || tgt.is_custom_build()) {
+                // classification
+                #[allow(clippy::if_same_then_else)]
+                let cdx_type = if tgt.is_bin() {
+                    Classification::Application
+                // sadly no .is_proc_macro() yet
+                } else if tgt.kind.iter().any(|kind| kind == "proc-macro") {
+                    // There isn't a better way to express it with CycloneDX types
+                    Classification::Library
+                } else if tgt.kind.iter().any(|kind| kind.contains("lib")) {
+                    Classification::Library
+                } else {
                     log::warn!(
                         "Target {} is neither a binary nor a library! Kinds: {}",
                         tgt.name,
                         tgt.kind.join(", ")
                     );
-
                     continue;
-                } // Skip if neither a binary nor a library
-            };
+                };
 
-            // bom_ref
-            let bom_ref = format!(
-                "{} bin-target-{}",
-                top_component.bom_ref.as_ref().unwrap(),
-                subcomp_count
-            );
-            subcomp_count += 1;
-
-            // create the subcomponent
-            let mut subcomponent = Component::new(
-                cdx_type,
-                &tgt.name,
-                &package.version.to_string(),
-                Some(bom_ref),
-            );
-
-            // PURL subpaths are computed relative to the directory with the `Cargo.toml`
-            // *for this specific package*, not the workspace root.
-            // This is done because the tarball uploaded to crates.io only contains the package,
-            // not the workspace, so paths resolved relatively to the workspace root would not be valid.
-            //
-            // When using a git repo that contains a workspace, Cargo will automatically select
-            // the right package out of the workspace. Paths can then be resolved relatively to it.
-            // So the information we encode here is sufficient to idenfity the file in git too.
-            let package_dir = package
-                .manifest_path
-                .parent()
-                .expect("manifest_path in `cargo metadata` output is not a file!");
-            if let Ok(relative_path) = tgt.src_path.strip_prefix(package_dir) {
-                subcomponent.purl =
-                    get_purl(package, package, &self.workspace_root, Some(relative_path)).ok();
-            } else {
-                log::warn!(
-                    "Source path \"{}\" is not a subpath of workspace root \"{}\"",
-                    tgt.src_path,
-                    self.workspace_root
+                // bom_ref
+                let bom_ref = format!(
+                    "{} bin-target-{}",
+                    top_component.bom_ref.as_ref().unwrap(),
+                    subcomp_count
                 );
-            }
+                subcomp_count += 1;
 
-            subcomponents.push(subcomponent);
+                // create the subcomponent
+                let mut subcomponent = Component::new(
+                    cdx_type,
+                    &tgt.name,
+                    &package.version.to_string(),
+                    Some(bom_ref),
+                );
+
+                // PURL subpaths are computed relative to the directory with the `Cargo.toml`
+                // *for this specific package*, not the workspace root.
+                // This is done because the tarball uploaded to crates.io only contains the package,
+                // not the workspace, so paths resolved relatively to the workspace root would not be valid.
+                //
+                // When using a git repo that contains a workspace, Cargo will automatically select
+                // the right package out of the workspace. Paths can then be resolved relatively to it.
+                // So the information we encode here is sufficient to idenfity the file in git too.
+                let package_dir = package
+                    .manifest_path
+                    .parent()
+                    .expect("manifest_path in `cargo metadata` output is not a file!");
+                if let Ok(relative_path) = tgt.src_path.strip_prefix(package_dir) {
+                    subcomponent.purl =
+                        get_purl(package, package, &self.workspace_root, Some(relative_path)).ok();
+                } else {
+                    log::warn!(
+                        "Source path \"{}\" is not a subpath of workspace root \"{}\"",
+                        tgt.src_path,
+                        self.workspace_root
+                    );
+                }
+
+                subcomponents.push(subcomponent);
+            }
         }
         top_component.components = Some(Components(subcomponents));
         top_component
