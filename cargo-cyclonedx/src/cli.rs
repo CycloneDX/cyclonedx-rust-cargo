@@ -21,6 +21,7 @@ pub enum Opts {
 }
 
 #[derive(Parser, Debug)]
+#[clap(version)]
 #[clap(group(ArgGroup::new("dependencies-group").required(false).args(&["all", "top-level"])))]
 #[clap(group(ArgGroup::new("prefix-or-pattern-group").required(false).args(&["output-prefix", "output-pattern"])))]
 pub struct Args {
