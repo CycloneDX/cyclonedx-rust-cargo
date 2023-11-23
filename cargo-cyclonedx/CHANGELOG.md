@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.1 - 2023-11-23
+
+### Added
+
+- Added the `--version` flag to print the version ([#561])
+
+### Changed
+
+- Print a more helpful message on errors related to crate types ([#553])
+
+### Fixed
+
+- The type for procedural macros and certain other exotic crate types is now correctly recorded as library type ([#554])
+
 ## 0.4.0 - 2023-11-13
 
 ### Added
@@ -56,7 +70,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#523]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/523
 [#525]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/525
 [#526]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/526
-[#530]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/530
 [#533]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/533
 [#535]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/535
 [#542]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/542
+[#553]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/553
+[#554]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/554
+[#561]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/561
