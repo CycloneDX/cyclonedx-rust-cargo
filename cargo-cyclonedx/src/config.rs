@@ -175,7 +175,10 @@ impl FromStr for Pattern {
             "bom" => Ok(Self::Bom),
             "package" => Ok(Self::Package),
             "binary" => Ok(Self::Binary),
-            _ => Err(format!("Expected bom or package, got `{}`", s)),
+            _ => Err(format!(
+                "Expected 'bom', 'package' or 'binary', got `{}`",
+                s
+            )),
         }
     }
 }
