@@ -35,6 +35,7 @@ use cargo_metadata::camino::Utf8PathBuf;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
 use cyclonedx_bom::external_models::uri::Uri;
+use cyclonedx_bom::models::attached_text::AttachedText;
 use cyclonedx_bom::models::bom::Bom;
 use cyclonedx_bom::models::component::{Classification, Component, Components, Scope};
 use cyclonedx_bom::models::dependency::{Dependencies, Dependency};
@@ -373,8 +374,33 @@ impl SbomGenerator {
             }
         }
 
+        // Check for license file.
+        // It is possible to specify both a named license and a license file in Cargo.toml.
+        // If that happens, we encode both.
+        if let Some(license_file) = package.license_file().as_ref() {
+            match std::fs::read_to_string(license_file.as_path()) {
+                Ok(content) => {
+                    let mut license = License::named_license("Unknown");
+                    let encoded_text = AttachedText::new(None, content);
+                    license.text = Some(encoded_text);
+                    licenses.push(LicenseChoice::License(license));
+                }
+                Err(error) => {
+                    log::warn!(
+                        "Failed to read license file '{}' for package {}: {}",
+                        package.name,
+                        license_file,
+                        error
+                    );
+                }
+            }
+        }
+
         if licenses.is_empty() {
-            log::trace!("Package {} has no licenses", package.name);
+            log::trace!(
+                "Package {} has no licenses or license file specified",
+                package.name
+            );
             return None;
         }
 
