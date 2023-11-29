@@ -467,11 +467,10 @@ pub(crate) mod test {
     #[test]
     fn it_can_convert_from_the_internal_model() {
         let model = corresponding_internal_model();
-        // todo: check for conversion error with assert, then assert_eq on Bom
-        let spec: Bom = model
-            .try_into()
-            .expect("todo: error handling in it_can_convert_from_the_internal_model");
-        assert_eq!(spec, full_bom_example());
+        let spec = model.try_into();
+        assert!(spec.is_ok());
+        let spec = spec.unwrap();
+        assert_eq!(full_bom_example(), spec);
     }
 
     #[test]
