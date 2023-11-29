@@ -50,14 +50,6 @@ use xml::{reader, writer::XmlEvent};
 #[serde(transparent)]
 pub(crate) struct Components(Vec<Component>);
 
-/*
-impl From<models::component::Components> for Components {
-    fn from(other: models::component::Components) -> Self {
-        Components(try_convert_vec(other.0))
-    }
-}
-*/
-
 impl TryFrom<models::component::Components> for Components {
     type Error = BomError;
 
@@ -168,44 +160,6 @@ pub(crate) struct Component {
     #[serde(skip_serializing_if = "Option::is_none")]
     evidence: Option<ComponentEvidence>,
 }
-
-/*
-impl From<models::component::Component> for Component {
-    fn from(other: models::component::Component) -> Self {
-        Self {
-            component_type: other.component_type.to_string(),
-            mime_type: other.mime_type.map(|m| MimeType(m.0)),
-            bom_ref: other.bom_ref,
-            supplier: convert_optional(other.supplier),
-            author: other.author.map(|a| a.to_string()),
-            publisher: other.publisher.map(|p| p.to_string()),
-            group: other.group.map(|g| g.to_string()),
-            name: other.name.to_string(),
-            version: {
-                // todo: setting version to None is just an interims fix until we decided which way to go for implementing conversion errors
-                match other.version {
-                    None => "None".to_string(),
-                    Some(version) => version.to_string(),
-                }
-            },
-            description: other.description.map(|d| d.to_string()),
-            scope: other.scope.map(|s| s.to_string()),
-            hashes: convert_optional(other.hashes),
-            licenses: convert_optional(other.licenses),
-            copyright: other.copyright.map(|c| c.to_string()),
-            cpe: convert_optional(other.cpe),
-            purl: other.purl.map(|p| p.0),
-            swid: convert_optional(other.swid),
-            modified: other.modified,
-            pedigree: convert_optional(other.pedigree),
-            external_references: convert_optional(other.external_references),
-            properties: convert_optional(other.properties),
-            components: convert_optional(other.components),
-            evidence: convert_optional(other.evidence),
-        }
-    }
-}
-*/
 
 impl TryFrom<models::component::Component> for Component {
     type Error = BomError;
@@ -927,21 +881,6 @@ struct Pedigree {
     #[serde(skip_serializing_if = "Option::is_none")]
     notes: Option<String>,
 }
-
-/*
-impl From<models::component::Pedigree> for Pedigree {
-    fn from(other: models::component::Pedigree) -> Self {
-        Self {
-            ancestors: convert_optional(other.ancestors),
-            descendants: convert_optional(other.descendants),
-            variants: convert_optional(other.variants),
-            commits: convert_optional(other.commits),
-            patches: convert_optional(other.patches),
-            notes: other.notes,
-        }
-    }
-}
-*/
 
 impl TryFrom<models::component::Pedigree> for Pedigree {
     type Error = BomError;
