@@ -46,7 +46,6 @@ pub struct Component {
     pub publisher: Option<NormalizedString>,
     pub group: Option<NormalizedString>,
     pub name: NormalizedString,
-    // todo: 1.3 vs. 1.4 - this field is an Option in 1.4
     pub version: Option<NormalizedString>,
     pub description: Option<NormalizedString>,
     pub scope: Option<Scope>,
