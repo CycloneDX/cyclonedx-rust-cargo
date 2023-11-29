@@ -337,8 +337,10 @@ impl Validate for Bom {
             results.push(properties.validate_with_context(context)?);
         }
 
-        // todo: validate vulnerabilities, not sure about which approach to take
-        // see different approaches for services vs. properties
+        if let Some(vulnerabilities) = &self.vulnerabilities {
+            let context = context.extend_context_with_struct_field("Bom", "vulnerabilities");
+            results.push(vulnerabilities.validate_with_context(context)?);
+        }
 
         Ok(results
             .into_iter()
