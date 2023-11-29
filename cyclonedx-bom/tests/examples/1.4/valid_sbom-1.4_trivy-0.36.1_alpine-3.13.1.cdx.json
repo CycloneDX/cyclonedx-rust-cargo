@@ -13,10 +13,10 @@
       }
     ],
     "component": {
-      "bom-ref": "pkg:oci/alpine@sha256:08d6ca16c60fe7490c03d10dc339d9fd8ea67c6466dea8d558526b1330a85930?repository_url=index.docker.io%2Flibrary%2Falpine\u0026arch=amd64",
+      "bom-ref": "pkg:oci/alpine@sha256:08d6ca16c60fe7490c03d10dc339d9fd8ea67c6466dea8d558526b1330a85930?repository_url=index.docker.io%2Flibrary%2Falpine&arch=amd64",
       "type": "container",
       "name": "alpine:3.13.1",
-      "purl": "pkg:oci/alpine@sha256:08d6ca16c60fe7490c03d10dc339d9fd8ea67c6466dea8d558526b1330a85930?repository_url=index.docker.io%2Flibrary%2Falpine\u0026arch=amd64",
+      "purl": "pkg:oci/alpine@sha256:08d6ca16c60fe7490c03d10dc339d9fd8ea67c6466dea8d558526b1330a85930?repository_url=index.docker.io%2Flibrary%2Falpine&arch=amd64",
       "properties": [
         {
           "name": "aquasecurity:trivy:SchemaVersion",
@@ -624,7 +624,7 @@
       ]
     },
     {
-      "ref": "pkg:oci/alpine@sha256:08d6ca16c60fe7490c03d10dc339d9fd8ea67c6466dea8d558526b1330a85930?repository_url=index.docker.io%2Flibrary%2Falpine\u0026arch=amd64",
+      "ref": "pkg:oci/alpine@sha256:08d6ca16c60fe7490c03d10dc339d9fd8ea67c6466dea8d558526b1330a85930?repository_url=index.docker.io%2Flibrary%2Falpine&arch=amd64",
       "dependsOn": [
         "bd917794-a365-4d70-91f2-3bdd11d27c9f"
       ]
@@ -2739,7 +2739,7 @@
           "url": "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=ccb0a11145ee72b042d10593a64eaf9e8a55ec12"
         },
         {
-          "url": "https://kc.mcafee.com/corporate/index?page=content\u0026id=SB10366"
+          "url": "https://kc.mcafee.com/corporate/index?page=content&id=SB10366"
         },
         {
           "url": "https://linux.oracle.com/cve/CVE-2021-3712.html"
@@ -2781,7 +2781,7 @@
           "url": "https://ubuntu.com/security/notices/USN-5051-3"
         },
         {
-          "url": "https://ubuntu.com/security/notices/USN-5051-4 (regression only in trusty/esm)"
+          "url": "https://ubuntu.com/security/notices/USN-5051-4"
         },
         {
           "url": "https://ubuntu.com/security/notices/USN-5088-1"
@@ -3156,7 +3156,7 @@
           "url": "https://kb.pulsesecure.net/articles/Pulse_Security_Advisories/SA44845"
         },
         {
-          "url": "https://kc.mcafee.com/corporate/index?page=content\u0026id=SB10356"
+          "url": "https://kc.mcafee.com/corporate/index?page=content&id=SB10356"
         },
         {
           "url": "https://linux.oracle.com/cve/CVE-2021-3450.html"
@@ -3347,7 +3347,7 @@
           "url": "https://kb.pulsesecure.net/articles/Pulse_Security_Advisories/SA44845"
         },
         {
-          "url": "https://kc.mcafee.com/corporate/index?page=content\u0026id=SB10356"
+          "url": "https://kc.mcafee.com/corporate/index?page=content&id=SB10356"
         },
         {
           "url": "https://linux.oracle.com/cve/CVE-2021-3449.html"
@@ -3904,7 +3904,7 @@
           "url": "https://kb.pulsesecure.net/articles/Pulse_Security_Advisories/SA44846"
         },
         {
-          "url": "https://kc.mcafee.com/corporate/index?page=content\u0026id=SB10366"
+          "url": "https://kc.mcafee.com/corporate/index?page=content&id=SB10366"
         },
         {
           "url": "https://linux.oracle.com/cve/CVE-2021-23840.html"
