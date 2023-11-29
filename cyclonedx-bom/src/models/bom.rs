@@ -84,9 +84,7 @@ impl Bom {
         self,
         writer: &mut W,
     ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_3::bom::Bom = self
-            .try_into()
-            .expect("todo: error handling in output_as_json_v1_3");
+        let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
         serde_json::to_writer_pretty(writer, &bom)?;
         Ok(())
     }
@@ -99,9 +97,7 @@ impl Bom {
         let config = EmitterConfig::default().perform_indent(true);
         let mut event_writer = EventWriter::new_with_config(writer, config);
 
-        let bom: crate::specs::v1_3::bom::Bom = self
-            .try_into()
-            .expect("todo: error handling in output_as_json_v1_3");
+        let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
         bom.write_xml_element(&mut event_writer)
     }
 

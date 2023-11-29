@@ -37,6 +37,11 @@ pub enum JsonWriteError {
         #[from]
         error: serde_json::Error,
     },
+    #[error("Failed to convert Bom: {error}")]
+    BomError {
+        #[from]
+        error: BomError,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -47,6 +52,11 @@ pub enum XmlWriteError {
         #[source]
         error: xml::writer::Error,
         element: String,
+    },
+    #[error("Failed to convert Bom: {error}")]
+    BomError {
+        #[from]
+        error: BomError,
     },
 }
 
