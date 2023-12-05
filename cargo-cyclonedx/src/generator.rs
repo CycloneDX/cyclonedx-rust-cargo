@@ -332,7 +332,7 @@ impl SbomGenerator {
     }
 
     fn get_licenses(&self, package: &Package) -> Option<Licenses> {
-        let mut licenses: Option<LicenseChoice> = None;
+        let mut licenses = vec![];
 
         if let Some(license) = &package.license {
             let parse_mode = self
@@ -355,7 +355,7 @@ impl SbomGenerator {
             };
 
             match result {
-                Ok(expression) => licenses = Some(LicenseChoice::Expressions(vec![expression])),
+                Ok(expression) => licenses.push(LicenseChoice::Expression(expression)),
                 Err(err) => {
                     let level = match &self.config.license_parser {
                         Some(opts) if opts.accept_named.contains(license) => Level::Info,
@@ -368,19 +368,17 @@ impl SbomGenerator {
                         license,
                         err,
                     );
-                    licenses = Some(LicenseChoice::Licenses(vec![License::named_license(
-                        license,
-                    )]));
+                    licenses.push(LicenseChoice::License(License::named_license(license)))
                 }
             }
         }
 
-        if let Some(licenses) = licenses {
-            Some(Licenses(licenses))
-        } else {
+        if licenses.is_empty() {
             log::trace!("Package {} has no licenses", package.name);
-            None
+            return None;
         }
+
+        Some(Licenses(licenses))
     }
 
     fn create_metadata(&self, package: &Package) -> Result<Metadata, GeneratorError> {

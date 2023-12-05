@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::collections::HashSet;
 use std::convert::TryFrom;
 
 use crate::external_models::spdx::SpdxIdentifierError;
@@ -26,7 +27,8 @@ use crate::external_models::{
 };
 use crate::models::attached_text::AttachedText;
 use crate::validation::{
-    Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
+    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
+    ValidationResult,
 };
 
 /// Represents whether a license is a named license or an SPDX license expression
@@ -34,8 +36,14 @@ use crate::validation::{
 /// As defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseChoiceType)
 #[derive(Debug, PartialEq, Eq)]
 pub enum LicenseChoice {
-    Licenses(Vec<License>),
-    Expressions(Vec<SpdxExpression>),
+    License(License),
+    Expression(SpdxExpression),
+}
+
+impl LicenseChoice {
+    pub fn is_license(&self) -> bool {
+        matches!(self, Self::License(_))
+    }
 }
 
 impl Validate for LicenseChoice {
@@ -46,31 +54,23 @@ impl Validate for LicenseChoice {
         let mut results: Vec<ValidationResult> = vec![];
 
         match self {
-            LicenseChoice::Licenses(licenses) => {
-                for (index, license) in licenses.iter().enumerate() {
-                    let license_context = context.extend_context(vec![
-                        ValidationPathComponent::Array { index },
-                        ValidationPathComponent::EnumVariant {
-                            variant_name: "License".to_string(),
-                        },
-                    ]);
-                    results.push(license.validate_with_context(license_context)?);
-                }
+            LicenseChoice::License(license) => {
+                let license_context =
+                    context.extend_context(vec![ValidationPathComponent::EnumVariant {
+                        variant_name: "License".to_string(),
+                    }]);
+                results.push(license.validate_with_context(license_context)?);
 
                 Ok(results
                     .into_iter()
                     .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
             }
-            LicenseChoice::Expressions(expressions) => {
-                for (index, expression) in expressions.iter().enumerate() {
-                    let expression_context = context.extend_context(vec![
-                        ValidationPathComponent::Array { index },
-                        ValidationPathComponent::EnumVariant {
-                            variant_name: "Expression".to_string(),
-                        },
-                    ]);
-                    results.push(expression.validate_with_context(expression_context)?);
-                }
+            LicenseChoice::Expression(expression) => {
+                let expression_context =
+                    context.extend_context(vec![ValidationPathComponent::EnumVariant {
+                        variant_name: "Expression".to_string(),
+                    }]);
+                results.push(expression.validate_with_context(expression_context)?);
 
                 Ok(results
                     .into_iter()
@@ -156,14 +156,43 @@ impl Validate for License {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Licenses(pub LicenseChoice);
+pub struct Licenses(pub Vec<LicenseChoice>);
 
 impl Validate for Licenses {
     fn validate_with_context(
         &self,
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
-        self.0.validate_with_context(context)
+        let mut results: Vec<ValidationResult> = vec![];
+
+        // Ensure all licenses are of the same variant, either "license" or "expression" but not both
+        let result = self.0.iter().fold(HashSet::new(), |mut result, item| {
+            result.insert(item.is_license());
+            result
+        });
+        if result.len() > 1 {
+            let licenses_context =
+                context.extend_context(vec![ValidationPathComponent::EnumVariant {
+                    variant_name: "license".to_string(),
+                }]);
+
+            results.push(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "Use one of 'license' or 'expression' but not both.".to_string(),
+                    context: licenses_context,
+                }],
+            });
+        }
+
+        for (index, license_choice) in self.0.iter().enumerate() {
+            let license_choice_context =
+                context.extend_context(vec![ValidationPathComponent::Array { index }]);
+            results.push(license_choice.validate_with_context(license_choice_context)?);
+        }
+
+        Ok(results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
     }
 }
 
@@ -208,9 +237,9 @@ mod test {
 
     #[test]
     fn it_should_pass_validation() {
-        let validation_result = Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
+        let validation_result = Licenses(vec![LicenseChoice::Expression(SpdxExpression(
             "MIT OR Apache-2.0".to_string(),
-        )]))
+        ))])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
 
@@ -218,14 +247,42 @@ mod test {
     }
 
     #[test]
+    fn it_should_fail_with_mixed_license_nodes() {
+        let validation_result = Licenses(vec![
+            LicenseChoice::License(License {
+                license_identifier: LicenseIdentifier::Name(NormalizedString(
+                    "MIT OR Apache-2.0".to_string(),
+                )),
+                text: None,
+                url: None,
+            }),
+            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+        ])
+        .validate_with_context(ValidationContext::default())
+        .expect("Error while validating");
+
+        assert_eq!(
+            validation_result,
+            ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "Use one of 'license' or 'expression' but not both.".to_string(),
+                    context: ValidationContext(vec![ValidationPathComponent::EnumVariant {
+                        variant_name: "license".to_string(),
+                    }]),
+                },]
+            }
+        );
+    }
+
+    #[test]
     fn it_should_fail_validation_for_license_name() {
-        let validation_result = Licenses(LicenseChoice::Licenses(vec![License {
+        let validation_result = Licenses(vec![LicenseChoice::License(License {
             license_identifier: LicenseIdentifier::Name(NormalizedString(
                 "spaces and \ttabs".to_string(),
             )),
             text: None,
             url: None,
-        }]))
+        })])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
 
@@ -255,11 +312,11 @@ mod test {
 
     #[test]
     fn it_should_fail_validation_for_license_id() {
-        let validation_result = Licenses(LicenseChoice::Licenses(vec![License {
+        let validation_result = Licenses(vec![LicenseChoice::License(License {
             license_identifier: LicenseIdentifier::SpdxId(SpdxIdentifier("Apache=2.0".to_string())),
             text: None,
             url: None,
-        }]))
+        })])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
 
@@ -288,9 +345,9 @@ mod test {
 
     #[test]
     fn it_should_fail_validation_for_license_expression() {
-        let validation_result = Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
+        let validation_result = Licenses(vec![LicenseChoice::Expression(SpdxExpression(
             "MIT OR".to_string(),
-        )]))
+        ))])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
 
@@ -312,27 +369,27 @@ mod test {
 
     #[test]
     fn it_should_merge_validations_correctly_license_choice_licenses() {
-        let validation_result = Licenses(LicenseChoice::Licenses(vec![
-            License {
+        let validation_result = Licenses(vec![
+            LicenseChoice::License(License {
                 license_identifier: LicenseIdentifier::Name(NormalizedString("MIT".to_string())),
                 text: None,
                 url: None,
-            },
-            License {
+            }),
+            LicenseChoice::License(License {
                 license_identifier: LicenseIdentifier::Name(NormalizedString(
                     "spaces and \ttabs".to_string(),
                 )),
                 text: None,
                 url: None,
-            },
-            License {
+            }),
+            LicenseChoice::License(License {
                 license_identifier: LicenseIdentifier::SpdxId(SpdxIdentifier(
                     "Apache=2.0".to_string(),
                 )),
                 text: None,
                 url: None,
-            },
-        ]))
+            }),
+        ])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
 
@@ -381,11 +438,11 @@ mod test {
 
     #[test]
     fn it_should_merge_validations_correctly_license_choice_expressions() {
-        let validation_result = Licenses(LicenseChoice::Expressions(vec![
-            SpdxExpression("MIT OR Apache-2.0".to_string()),
-            SpdxExpression("MIT OR".to_string()),
-            SpdxExpression("MIT OR".to_string()),
-        ]))
+        let validation_result = Licenses(vec![
+            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+            LicenseChoice::Expression(SpdxExpression("MIT OR".to_string())),
+            LicenseChoice::Expression(SpdxExpression("MIT OR".to_string())),
+        ])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
 
