@@ -1,5 +1,7 @@
 # Contributing
 
+Contributions are welcome!
+
 But please read the
 [CycloneDX contributing guidelines](https://github.com/CycloneDX/.github/blob/master/CONTRIBUTING.md)
 first.
