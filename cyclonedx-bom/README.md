@@ -83,14 +83,6 @@ assert_eq!(
 );
 ```
 
-## Verification and Validation
-
-see [README](./tests/README.md) for details.
-
-## Contributing
-
-see [CONTRIBUTING](./CONTRIBUTING.md) for details.
-
 ## Copyright & License
 
 CycloneDX Rust Cargo is Copyright (c) OWASP Foundation. All Rights Reserved.

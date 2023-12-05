@@ -18,7 +18,6 @@
 
 use std::{convert::TryFrom, str::FromStr};
 
-use fluent_uri::Uri as Url;
 use packageurl::PackageUrl;
 use thiserror::Error;
 
@@ -75,7 +74,7 @@ impl TryFrom<String> for Uri {
     type Error = UriError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        match Url::parse(value.as_str()) {
+        match value.parse::<http::Uri>() {
             Ok(_) => Ok(Uri(value)),
             Err(_) => Err(UriError::InvalidUri(
                 "Uri does not conform to RFC 3986".to_string(),
@@ -89,11 +88,11 @@ impl Validate for Uri {
         &self,
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
-        match Url::parse(&self.0.to_string()) {
+        match self.0.parse::<http::Uri>() {
             Ok(_) => Ok(ValidationResult::Passed),
             Err(_) => Ok(ValidationResult::Failed {
                 reasons: vec![FailureReason {
-                    message: "Uri does not conform to RFC 3986".to_string(),
+                    message: "Uri does not conform to ISO 8601".to_string(),
                     context,
                 }],
             }),
@@ -170,7 +169,7 @@ mod test {
             validation_result,
             ValidationResult::Failed {
                 reasons: vec![FailureReason {
-                    message: "Uri does not conform to RFC 3986".to_string(),
+                    message: "Uri does not conform to ISO 8601".to_string(),
                     context: ValidationContext::default()
                 }]
             }

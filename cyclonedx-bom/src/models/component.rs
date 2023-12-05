@@ -46,7 +46,7 @@ pub struct Component {
     pub publisher: Option<NormalizedString>,
     pub group: Option<NormalizedString>,
     pub name: NormalizedString,
-    pub version: Option<NormalizedString>,
+    pub version: NormalizedString,
     pub description: Option<NormalizedString>,
     pub scope: Option<Scope>,
     pub hashes: Option<Hashes>,
@@ -73,7 +73,7 @@ impl Component {
         Self {
             component_type,
             name: NormalizedString::new(name),
-            version: Some(NormalizedString::new(version)),
+            version: NormalizedString::new(version),
             bom_ref,
             mime_type: None,
             supplier: None,
@@ -147,11 +147,9 @@ impl Validate for Component {
 
         results.push(self.name.validate_with_context(name_context)?);
 
-        if let Some(version) = &self.version {
-            let context = context.extend_context_with_struct_field("Component", "version");
+        let version_context = context.extend_context_with_struct_field("Component", "version");
 
-            results.push(version.validate_with_context(context)?);
-        }
+        results.push(self.version.validate_with_context(version_context)?);
 
         if let Some(description) = &self.description {
             let context = context.extend_context_with_struct_field("Component", "description");
@@ -630,16 +628,16 @@ mod test {
             publisher: Some(NormalizedString::new("publisher")),
             group: Some(NormalizedString::new("group")),
             name: NormalizedString::new("name"),
-            version: Some(NormalizedString::new("version")),
+            version: NormalizedString::new("version"),
             description: Some(NormalizedString::new("description")),
             scope: Some(Scope::Required),
             hashes: Some(Hashes(vec![Hash {
                 alg: HashAlgorithm::MD5,
                 content: HashValue("a3bf1f3d584747e2569483783ddee45b".to_string()),
             }])),
-            licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
+            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                 "MIT".to_string(),
-            )]))),
+            ))])),
             copyright: Some(NormalizedString::new("copyright")),
             cpe: Some(Cpe("cpe:/a:example:mylibrary:1.0.0".to_string())),
             purl: Some(Purl("pkg:cargo/cyclonedx-bom@0.3.1".to_string())),
@@ -687,9 +685,9 @@ mod test {
             }])),
             components: Some(Components(vec![])),
             evidence: Some(ComponentEvidence {
-                licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
+                licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                     "MIT".to_string(),
-                )]))),
+                ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
             }),
         }])
@@ -714,16 +712,16 @@ mod test {
             publisher: Some(NormalizedString("invalid\tpublisher".to_string())),
             group: Some(NormalizedString("invalid\tgroup".to_string())),
             name: NormalizedString("invalid\tname".to_string()),
-            version: Some(NormalizedString("invalid\tversion".to_string())),
+            version: NormalizedString("invalid\tversion".to_string()),
             description: Some(NormalizedString("invalid\tdescription".to_string())),
             scope: Some(Scope::UnknownScope("unknown".to_string())),
             hashes: Some(Hashes(vec![Hash {
                 alg: HashAlgorithm::MD5,
                 content: HashValue("invalid hash content".to_string()),
             }])),
-            licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
+            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                 "invalid license".to_string(),
-            )]))),
+            ))])),
             copyright: Some(NormalizedString("invalid\tcopyright".to_string())),
             cpe: Some(Cpe("invalid cpe".to_string())),
             purl: Some(Purl("invalid purl".to_string())),
@@ -775,9 +773,9 @@ mod test {
             }])),
             components: Some(Components(vec![invalid_component()])),
             evidence: Some(ComponentEvidence {
-                licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
+                licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                     "invalid license".to_string(),
-                )]))),
+                ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
             }),
         }])
@@ -989,7 +987,7 @@ mod test {
                         ])
                     },
                     FailureReason {
-                        message: "Uri does not conform to RFC 3986".to_string(),
+                        message: "Uri does not conform to ISO 8601".to_string(),
                         context: ValidationContext(vec![
                             ValidationPathComponent::Array { index: 0 },
                             ValidationPathComponent::Struct {
@@ -1179,7 +1177,7 @@ mod test {
             publisher: None,
             group: None,
             name: NormalizedString::new("name"),
-            version: Some(NormalizedString::new("version")),
+            version: NormalizedString::new("version"),
             description: None,
             scope: None,
             hashes: None,
