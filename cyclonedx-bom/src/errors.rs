@@ -24,6 +24,9 @@ pub enum BomError {
 
     #[error("Failed to serialize BOM to XML: {0}")]
     XmlSerializationError(String),
+
+    #[error("Failed to serialize BOM to v1.3: {0}")]
+    BomV13SerializationError(String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -33,6 +36,11 @@ pub enum JsonWriteError {
     JsonElementWriteError {
         #[from]
         error: serde_json::Error,
+    },
+    #[error("Failed to convert Bom: {error}")]
+    BomError {
+        #[from]
+        error: BomError,
     },
 }
 
@@ -44,6 +52,11 @@ pub enum XmlWriteError {
         #[source]
         error: xml::writer::Error,
         element: String,
+    },
+    #[error("Failed to convert Bom: {error}")]
+    BomError {
+        #[from]
+        error: BomError,
     },
 }
 

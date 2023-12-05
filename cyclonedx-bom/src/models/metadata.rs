@@ -176,7 +176,7 @@ mod test {
                 publisher: None,
                 group: None,
                 name: NormalizedString::new("name"),
-                version: NormalizedString::new("version"),
+                version: Some(NormalizedString::new("version")),
                 description: None,
                 scope: None,
                 hashes: None,
@@ -202,9 +202,9 @@ mod test {
                 url: None,
                 contact: None,
             }),
-            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
+            licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
                 "MIT".to_string(),
-            ))])),
+            )]))),
             properties: Some(Properties(vec![Property {
                 name: "name".to_string(),
                 value: NormalizedString::new("value"),
@@ -240,7 +240,7 @@ mod test {
                 publisher: None,
                 group: None,
                 name: NormalizedString::new("name"),
-                version: NormalizedString::new("version"),
+                version: Some(NormalizedString::new("version")),
                 description: None,
                 scope: None,
                 hashes: None,
@@ -266,9 +266,9 @@ mod test {
                 url: None,
                 contact: None,
             }),
-            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
+            licenses: Some(Licenses(LicenseChoice::Expressions(vec![SpdxExpression(
                 "invalid license".to_string(),
-            ))])),
+            )]))),
             properties: Some(Properties(vec![Property {
                 name: "name".to_string(),
                 value: NormalizedString("invalid\tvalue".to_string()),

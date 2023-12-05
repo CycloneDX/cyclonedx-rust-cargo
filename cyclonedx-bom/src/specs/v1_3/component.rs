@@ -16,6 +16,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::convert::TryFrom;
+
+use crate::errors::BomError;
+use crate::errors::BomError::BomV13SerializationError;
+use crate::utilities::try_convert_optional;
 use crate::{
     errors::XmlReadError,
     external_models::{
@@ -36,7 +41,7 @@ use crate::{
 };
 use crate::{
     models,
-    utilities::{convert_optional, convert_vec},
+    utilities::{convert_optional, convert_vec, try_convert_vec},
 };
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
@@ -45,9 +50,14 @@ use xml::{reader, writer::XmlEvent};
 #[serde(transparent)]
 pub(crate) struct Components(Vec<Component>);
 
-impl From<models::component::Components> for Components {
-    fn from(other: models::component::Components) -> Self {
-        Components(convert_vec(other.0))
+impl TryFrom<models::component::Components> for Components {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Components) -> Result<Self, Self::Error> {
+        match try_convert_vec(other.0) {
+            Err(e) => Err(e),
+            Ok(result) => Ok(Components(result)),
+        }
     }
 }
 
@@ -151,32 +161,37 @@ pub(crate) struct Component {
     evidence: Option<ComponentEvidence>,
 }
 
-impl From<models::component::Component> for Component {
-    fn from(other: models::component::Component) -> Self {
-        Self {
-            component_type: other.component_type.to_string(),
-            mime_type: other.mime_type.map(|m| MimeType(m.0)),
-            bom_ref: other.bom_ref,
-            supplier: convert_optional(other.supplier),
-            author: other.author.map(|a| a.to_string()),
-            publisher: other.publisher.map(|p| p.to_string()),
-            group: other.group.map(|g| g.to_string()),
-            name: other.name.to_string(),
-            version: other.version.to_string(),
-            description: other.description.map(|d| d.to_string()),
-            scope: other.scope.map(|s| s.to_string()),
-            hashes: convert_optional(other.hashes),
-            licenses: convert_optional(other.licenses),
-            copyright: other.copyright.map(|c| c.to_string()),
-            cpe: convert_optional(other.cpe),
-            purl: other.purl.map(|p| p.0),
-            swid: convert_optional(other.swid),
-            modified: other.modified,
-            pedigree: convert_optional(other.pedigree),
-            external_references: convert_optional(other.external_references),
-            properties: convert_optional(other.properties),
-            components: convert_optional(other.components),
-            evidence: convert_optional(other.evidence),
+impl TryFrom<models::component::Component> for Component {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Component) -> Result<Self, Self::Error> {
+        match other.version {
+            None => Err(BomV13SerializationError("version missing".to_string())),
+            Some(version) => Ok(Self {
+                component_type: other.component_type.to_string(),
+                mime_type: other.mime_type.map(|m| MimeType(m.0)),
+                bom_ref: other.bom_ref,
+                supplier: convert_optional(other.supplier),
+                author: other.author.map(|a| a.to_string()),
+                publisher: other.publisher.map(|p| p.to_string()),
+                group: other.group.map(|g| g.to_string()),
+                name: other.name.to_string(),
+                version: version.to_string(),
+                description: other.description.map(|d| d.to_string()),
+                scope: other.scope.map(|s| s.to_string()),
+                hashes: convert_optional(other.hashes),
+                licenses: convert_optional(other.licenses),
+                copyright: other.copyright.map(|c| c.to_string()),
+                cpe: convert_optional(other.cpe),
+                purl: other.purl.map(|p| p.0),
+                swid: convert_optional(other.swid),
+                modified: other.modified,
+                pedigree: try_convert_optional(other.pedigree)?,
+                external_references: convert_optional(other.external_references),
+                properties: convert_optional(other.properties),
+                components: try_convert_optional(other.components)?,
+                evidence: convert_optional(other.evidence),
+            }),
         }
     }
 }
@@ -192,7 +207,7 @@ impl From<Component> for models::component::Component {
             publisher: other.publisher.map(NormalizedString::new_unchecked),
             group: other.group.map(NormalizedString::new_unchecked),
             name: NormalizedString::new_unchecked(other.name),
-            version: NormalizedString::new_unchecked(other.version),
+            version: Some(NormalizedString::new_unchecked(other.version)),
             description: other.description.map(NormalizedString::new_unchecked),
             scope: other.scope.map(models::component::Scope::new_unchecked),
             hashes: convert_optional(other.hashes),
@@ -867,16 +882,18 @@ struct Pedigree {
     notes: Option<String>,
 }
 
-impl From<models::component::Pedigree> for Pedigree {
-    fn from(other: models::component::Pedigree) -> Self {
-        Self {
-            ancestors: convert_optional(other.ancestors),
-            descendants: convert_optional(other.descendants),
-            variants: convert_optional(other.variants),
+impl TryFrom<models::component::Pedigree> for Pedigree {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Pedigree) -> Result<Self, Self::Error> {
+        Ok(Self {
+            ancestors: try_convert_optional(other.ancestors)?,
+            descendants: try_convert_optional(other.descendants)?,
+            variants: try_convert_optional(other.variants)?,
             commits: convert_optional(other.commits),
             patches: convert_optional(other.patches),
             notes: other.notes,
-        }
+        })
     }
 }
 
@@ -1220,7 +1237,7 @@ pub(crate) mod test {
             publisher: Some(NormalizedString::new_unchecked("publisher".to_string())),
             group: Some(NormalizedString::new_unchecked("group".to_string())),
             name: NormalizedString::new_unchecked("name".to_string()),
-            version: NormalizedString::new_unchecked("version".to_string()),
+            version: Some(NormalizedString::new_unchecked("version".to_string())),
             description: Some(NormalizedString::new_unchecked("description".to_string())),
             scope: Some(models::component::Scope::UnknownScope("scope".to_string())),
             hashes: Some(corresponding_hashes()),

@@ -4,8 +4,10 @@
 # SBOM documents
 **/bom.xml
 **/*.cdx.xml
+!cyclonedx-bom/tests/examples/**/*.cdx.xml
 **/bom.json
 **/*.cdx.json
+!cyclonedx-bom/tests/examples/**/*.cdx.json
 
 # Nix Flake
 /.direnv/

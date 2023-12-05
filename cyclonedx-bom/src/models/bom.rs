@@ -17,6 +17,7 @@
  */
 
 use std::collections::HashSet;
+use std::convert::TryInto;
 use std::fmt;
 
 use once_cell::sync::Lazy;
@@ -31,6 +32,7 @@ use crate::models::external_reference::ExternalReferences;
 use crate::models::metadata::Metadata;
 use crate::models::property::Properties;
 use crate::models::service::{Service, Services};
+use crate::models::vulnerability::Vulnerabilities;
 use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
     ValidationResult,
@@ -48,6 +50,7 @@ pub struct Bom {
     pub dependencies: Option<Dependencies>,
     pub compositions: Option<Compositions>,
     pub properties: Option<Properties>,
+    pub vulnerabilities: Option<Vulnerabilities>,
 }
 
 impl Bom {
@@ -81,15 +84,9 @@ impl Bom {
         self,
         writer: &mut W,
     ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_3::bom::Bom = self.into();
+        let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
         serde_json::to_writer_pretty(writer, &bom)?;
         Ok(())
-    }
-
-    /// Output as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
-    pub fn output_as_json_value_v1_3(self) -> Result<Value, crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_3::bom::Bom = self.into();
-        Ok(serde_json::to_value(bom)?)
     }
 
     /// Output as an XML document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/xml/)
@@ -100,7 +97,47 @@ impl Bom {
         let config = EmitterConfig::default().perform_indent(true);
         let mut event_writer = EventWriter::new_with_config(writer, config);
 
-        let bom: crate::specs::v1_3::bom::Bom = self.into();
+        let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
+        bom.write_xml_element(&mut event_writer)
+    }
+
+    /// Parse the input as a JSON document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/json/)
+    pub fn parse_from_json_v1_4<R: std::io::Read>(
+        mut reader: R,
+    ) -> Result<Self, crate::errors::JsonReadError> {
+        let bom: crate::specs::v1_4::bom::Bom = serde_json::from_reader(&mut reader)?;
+        Ok(bom.into())
+    }
+
+    /// Parse the input as an XML document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/xml/)
+    pub fn parse_from_xml_v1_4<R: std::io::Read>(
+        reader: R,
+    ) -> Result<Self, crate::errors::XmlReadError> {
+        let config = ParserConfig::default().trim_whitespace(true);
+        let mut event_reader = EventReader::new_with_config(reader, config);
+        let bom = crate::specs::v1_4::bom::Bom::read_xml_document(&mut event_reader)?;
+        Ok(bom.into())
+    }
+
+    /// Output as a JSON document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/json/)
+    pub fn output_as_json_v1_4<W: std::io::Write>(
+        self,
+        writer: &mut W,
+    ) -> Result<(), crate::errors::JsonWriteError> {
+        let bom: crate::specs::v1_4::bom::Bom = self.into();
+        serde_json::to_writer_pretty(writer, &bom)?;
+        Ok(())
+    }
+
+    /// Output as an XML document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/xml/)
+    pub fn output_as_xml_v1_4<W: std::io::Write>(
+        self,
+        writer: &mut W,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        let config = EmitterConfig::default().perform_indent(true);
+        let mut event_writer = EventWriter::new_with_config(writer, config);
+
+        let bom: crate::specs::v1_4::bom::Bom = self.into();
         bom.write_xml_element(&mut event_writer)
     }
 }
@@ -118,6 +155,7 @@ impl Default for Bom {
             dependencies: None,
             compositions: None,
             properties: None,
+            vulnerabilities: None,
         }
     }
 }
@@ -297,6 +335,11 @@ impl Validate for Bom {
             let context = context.extend_context_with_struct_field("Bom", "properties");
 
             results.push(properties.validate_with_context(context)?);
+        }
+
+        if let Some(vulnerabilities) = &self.vulnerabilities {
+            let context = context.extend_context_with_struct_field("Bom", "vulnerabilities");
+            results.push(vulnerabilities.validate_with_context(context)?);
         }
 
         Ok(results
@@ -482,6 +525,7 @@ mod test {
             external_reference::{ExternalReference, ExternalReferenceType},
             property::Property,
             service::Service,
+            vulnerability::Vulnerability,
         },
         validation::ValidationPathComponent,
     };
@@ -501,6 +545,7 @@ mod test {
             dependencies: None,
             compositions: None,
             properties: None,
+            vulnerabilities: None,
         };
 
         let actual = bom
@@ -525,6 +570,7 @@ mod test {
             }])),
             compositions: None,
             properties: None,
+            vulnerabilities: None,
         };
 
         let actual = bom.validate().expect("Failed to validate bom");
@@ -583,6 +629,7 @@ mod test {
                 dependencies: Some(vec![BomReference("dependencies".to_string())]),
             }])),
             properties: None,
+            vulnerabilities: None,
         };
 
         let actual = bom.validate().expect("Failed to validate bom");
@@ -650,7 +697,7 @@ mod test {
                 publisher: None,
                 group: None,
                 name: NormalizedString::new("name"),
-                version: NormalizedString::new("version"),
+                version: Some(NormalizedString::new("version")),
                 description: None,
                 scope: None,
                 hashes: None,
@@ -702,6 +749,26 @@ mod test {
             properties: Some(Properties(vec![Property {
                 name: "name".to_string(),
                 value: NormalizedString("invalid\tvalue".to_string()),
+            }])),
+            vulnerabilities: Some(Vulnerabilities(vec![Vulnerability {
+                bom_ref: None,
+                id: None,
+                vulnerability_source: None,
+                vulnerability_references: None,
+                vulnerability_ratings: None,
+                cwes: None,
+                description: None,
+                detail: None,
+                recommendation: None,
+                advisories: None,
+                created: None,
+                published: None,
+                updated: None,
+                vulnerability_credits: None,
+                tools: None,
+                vulnerability_analysis: None,
+                vulnerability_targets: None,
+                properties: None,
             }])),
         };
 
@@ -862,6 +929,7 @@ mod test {
             dependencies: None,
             compositions: None,
             properties: None,
+            vulnerabilities: None,
         }
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");

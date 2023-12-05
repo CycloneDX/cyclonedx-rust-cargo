@@ -1,0 +1,15 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_4.rs
+expression: bom_output
+input_file: cyclonedx-bom/tests/data/1.4/valid-metadata-timestamp-1.4.json
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "metadata": {
+    "timestamp": "2020-04-13T20:20:39+00:00"
+  },
+  "components": []
+}
