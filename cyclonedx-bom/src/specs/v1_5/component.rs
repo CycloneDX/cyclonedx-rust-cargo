@@ -22,12 +22,20 @@ use crate::{
         normalized_string::NormalizedString,
         uri::{Purl, Uri},
     },
-    specs::common::{
-        attached_text::AttachedText, code::Commits, code::Patches,
-        external_reference::ExternalReferences, hash::Hashes, organization::OrganizationalEntity,
-        property::Properties, signature::Signature,
+    prelude::{Validate, ValidationResult},
+    specs::{
+        common::{
+            attached_text::AttachedText,
+            code::{Commits, Patches},
+            external_reference::ExternalReferences,
+            hash::Hashes,
+            organization::OrganizationalEntity,
+            property::Properties,
+            signature::Signature,
+        },
+        v1_5::license::Licenses,
     },
-    specs::v1_5::license::Licenses,
+    validation::{ValidationContext, ValidationPathComponent},
     xml::{
         attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -45,6 +53,21 @@ use xml::{reader, writer::XmlEvent};
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
 pub(crate) struct Components(Vec<Component>);
+
+impl Validate for Components {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        for (index, component) in self.0.iter().enumerate() {
+            let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
+            results.push(component.validate_with_context(context));
+        }
+
+        results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    }
+}
 
 impl From<models::component::Components> for Components {
     fn from(other: models::component::Components) -> Self {
@@ -154,6 +177,21 @@ pub(crate) struct Component {
     /// Available since version 1.4
     #[serde(skip_serializing_if = "Option::is_none")]
     signature: Option<Signature>,
+}
+
+impl Validate for Component {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        if let Some(licenses) = &self.licenses {
+            let context = context.with_struct("Component", "licenses");
+            results.push(licenses.validate_with_context(context));
+        }
+
+        results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    }
 }
 
 impl From<models::component::Component> for Component {

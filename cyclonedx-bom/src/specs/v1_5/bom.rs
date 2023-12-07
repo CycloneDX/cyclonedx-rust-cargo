@@ -18,7 +18,9 @@
 
 use crate::{
     models::{self, bom::SpecVersion},
+    prelude::{Validate, ValidationResult},
     utilities::convert_optional,
+    validation::ValidationContext,
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, FromXmlDocument,
@@ -66,11 +68,26 @@ pub(crate) struct Bom {
     signature: Option<Signature>,
 }
 
+impl Validate for Bom {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+        let mut results: Vec<ValidationResult> = vec![];
+
+        if let Some(components) = &self.components {
+            let context = context.with_struct("Bom", "components");
+            results.push(components.validate_with_context(context));
+        }
+
+        results
+            .into_iter()
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    }
+}
+
 impl From<models::bom::Bom> for Bom {
     fn from(other: models::bom::Bom) -> Self {
         Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: SpecVersion::V1_4,
+            spec_version: SpecVersion::V1_5,
             version: other.version,
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
@@ -115,7 +132,7 @@ impl ToXml for Bom {
     ) -> Result<(), crate::errors::XmlWriteError> {
         let version = format!("{}", self.version);
         let mut bom_start_element =
-            XmlEvent::start_element(BOM_TAG).default_ns("http://cyclonedx.org/schema/bom/1.4");
+            XmlEvent::start_element(BOM_TAG).default_ns("http://cyclonedx.org/schema/bom/1.5");
 
         if let Some(serial_number) = &self.serial_number {
             bom_start_element = bom_start_element.attr(SERIAL_NUMBER_ATTR, &serial_number.0);
@@ -201,7 +218,7 @@ impl FromXmlDocument for Bom {
                     attributes,
                     namespace,
                 } if name.local_name == BOM_TAG => {
-                    expected_namespace_or_error("1.4", &namespace)?;
+                    expected_namespace_or_error("1.5", &namespace)?;
                     let version =
                         if let Some(version) = optional_attribute(&attributes, VERSION_ATTR) {
                             u32::from_xml_value(VERSION_ATTR, version)?
@@ -331,7 +348,7 @@ impl FromXmlDocument for Bom {
             })?;
         Ok(Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: SpecVersion::V1_4,
+            spec_version: SpecVersion::V1_5,
             version,
             serial_number,
             metadata,
@@ -396,7 +413,7 @@ pub(crate) mod test {
     pub(crate) fn minimal_bom_example() -> Bom {
         Bom {
             bom_format: BomFormat::CycloneDX,
-            spec_version: SpecVersion::V1_4,
+            spec_version: SpecVersion::V1_5,
             version: 1,
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: None,
@@ -414,7 +431,7 @@ pub(crate) mod test {
     pub(crate) fn full_bom_example() -> Bom {
         Bom {
             bom_format: BomFormat::CycloneDX,
-            spec_version: SpecVersion::V1_4,
+            spec_version: SpecVersion::V1_5,
             version: 1,
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: Some(example_metadata()),
@@ -487,7 +504,7 @@ pub(crate) mod test {
     fn it_should_deserialize_from_xml() {
         let input = r#"
 <?xml version="1.0" encoding="utf-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="fake-uuid" version="1" />
+<bom xmlns="http://cyclonedx.org/schema/bom/1.5" serialNumber="fake-uuid" version="1" />
 "#
         .trim_start();
         let actual: Bom = read_document_from_string(input);
@@ -499,7 +516,7 @@ pub(crate) mod test {
     fn it_should_deserialize_a_complex_example_from_xml() {
         let input = r#"
 <?xml version="1.0" encoding="utf-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" xmlns:example="https://example.com" serialNumber="fake-uuid" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.5" xmlns:example="https://example.com" serialNumber="fake-uuid" version="1">
   <metadata>
     <timestamp>timestamp</timestamp>
     <tools>

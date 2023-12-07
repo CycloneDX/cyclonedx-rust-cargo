@@ -4,7 +4,7 @@ assertion_line: 466
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="fake-uuid" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.5" serialNumber="fake-uuid" version="1">
   <metadata>
     <timestamp>timestamp</timestamp>
     <tools>
