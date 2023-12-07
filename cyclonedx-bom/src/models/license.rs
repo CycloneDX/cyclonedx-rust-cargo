@@ -16,7 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::collections::HashSet;
 use std::convert::TryFrom;
 
 use crate::external_models::spdx::SpdxIdentifierError;
@@ -27,8 +26,7 @@ use crate::external_models::{
 };
 use crate::models::attached_text::AttachedText;
 use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
-    ValidationResult,
+    Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
 };
 
 /// Represents whether a license is a named license or an SPDX license expression
@@ -165,25 +163,6 @@ impl Validate for Licenses {
     ) -> Result<ValidationResult, ValidationError> {
         let mut results: Vec<ValidationResult> = vec![];
 
-        // Ensure all licenses are of the same variant, either "license" or "expression" but not both
-        let result = self.0.iter().fold(HashSet::new(), |mut result, item| {
-            result.insert(item.is_license());
-            result
-        });
-        if result.len() > 1 {
-            let licenses_context =
-                context.extend_context(vec![ValidationPathComponent::EnumVariant {
-                    variant_name: "license".to_string(),
-                }]);
-
-            results.push(ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Use one of 'license' or 'expression' but not both.".to_string(),
-                    context: licenses_context,
-                }],
-            });
-        }
-
         for (index, license_choice) in self.0.iter().enumerate() {
             let license_choice_context =
                 context.extend_context(vec![ValidationPathComponent::Array { index }]);
@@ -244,34 +223,6 @@ mod test {
         .expect("Error while validating");
 
         assert_eq!(validation_result, ValidationResult::Passed);
-    }
-
-    #[test]
-    fn it_should_fail_with_mixed_license_nodes() {
-        let validation_result = Licenses(vec![
-            LicenseChoice::License(License {
-                license_identifier: LicenseIdentifier::Name(NormalizedString(
-                    "MIT OR Apache-2.0".to_string(),
-                )),
-                text: None,
-                url: None,
-            }),
-            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
-        ])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
-
-        assert_eq!(
-            validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Use one of 'license' or 'expression' but not both.".to_string(),
-                    context: ValidationContext(vec![ValidationPathComponent::EnumVariant {
-                        variant_name: "license".to_string(),
-                    }]),
-                },]
-            }
-        );
     }
 
     #[test]
