@@ -1,0 +1,16 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_4.rs
+expression: bom_output
+input_file: cyclonedx-bom/tests/data/1.4/valid-metadata-license-1.4.xml
+---
+<?xml version="1.0" encoding="utf-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79" version="1">
+  <metadata>
+    <licenses>
+      <license>
+        <id>Apache-2.0</id>
+      </license>
+    </licenses>
+  </metadata>
+  <components />
+</bom>

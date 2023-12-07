@@ -38,27 +38,41 @@ pub enum LicenseChoice {
     Expression(SpdxExpression),
 }
 
+impl LicenseChoice {
+    pub fn is_license(&self) -> bool {
+        matches!(self, Self::License(_))
+    }
+}
+
 impl Validate for LicenseChoice {
     fn validate_with_context(
         &self,
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
+        let mut results: Vec<ValidationResult> = vec![];
+
         match self {
             LicenseChoice::License(license) => {
                 let license_context =
                     context.extend_context(vec![ValidationPathComponent::EnumVariant {
                         variant_name: "License".to_string(),
                     }]);
+                results.push(license.validate_with_context(license_context)?);
 
-                Ok(license.validate_with_context(license_context)?)
+                Ok(results
+                    .into_iter()
+                    .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
             }
             LicenseChoice::Expression(expression) => {
                 let expression_context =
                     context.extend_context(vec![ValidationPathComponent::EnumVariant {
                         variant_name: "Expression".to_string(),
                     }]);
+                results.push(expression.validate_with_context(expression_context)?);
 
-                Ok(expression.validate_with_context(expression_context)?)
+                Ok(results
+                    .into_iter()
+                    .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
             }
         }
     }
@@ -305,9 +319,13 @@ mod test {
     }
 
     #[test]
-    fn it_should_merge_validations_correctly() {
+    fn it_should_merge_validations_correctly_license_choice_licenses() {
         let validation_result = Licenses(vec![
-            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+            LicenseChoice::License(License {
+                license_identifier: LicenseIdentifier::Name(NormalizedString("MIT".to_string())),
+                text: None,
+                url: None,
+            }),
             LicenseChoice::License(License {
                 license_identifier: LicenseIdentifier::Name(NormalizedString(
                     "spaces and \ttabs".to_string(),
@@ -362,6 +380,43 @@ mod test {
                             ValidationPathComponent::EnumVariant {
                                 variant_name: "SpdxId".to_string()
                             },
+                        ])
+                    }
+                ]
+            }
+        );
+    }
+
+    #[test]
+    fn it_should_merge_validations_correctly_license_choice_expressions() {
+        let validation_result = Licenses(vec![
+            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+            LicenseChoice::Expression(SpdxExpression("MIT OR".to_string())),
+            LicenseChoice::Expression(SpdxExpression("MIT OR".to_string())),
+        ])
+        .validate_with_context(ValidationContext::default())
+        .expect("Error while validating");
+
+        assert_eq!(
+            validation_result,
+            ValidationResult::Failed {
+                reasons: vec![
+                    FailureReason {
+                        message: "SPDX expression is not valid".to_string(),
+                        context: ValidationContext(vec![
+                            ValidationPathComponent::Array { index: 1 },
+                            ValidationPathComponent::EnumVariant {
+                                variant_name: "Expression".to_string()
+                            }
+                        ])
+                    },
+                    FailureReason {
+                        message: "SPDX expression is not valid".to_string(),
+                        context: ValidationContext(vec![
+                            ValidationPathComponent::Array { index: 2 },
+                            ValidationPathComponent::EnumVariant {
+                                variant_name: "Expression".to_string()
+                            }
                         ])
                     }
                 ]

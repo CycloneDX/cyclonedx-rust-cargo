@@ -46,7 +46,7 @@ pub struct Component {
     pub publisher: Option<NormalizedString>,
     pub group: Option<NormalizedString>,
     pub name: NormalizedString,
-    pub version: NormalizedString,
+    pub version: Option<NormalizedString>,
     pub description: Option<NormalizedString>,
     pub scope: Option<Scope>,
     pub hashes: Option<Hashes>,
@@ -73,7 +73,7 @@ impl Component {
         Self {
             component_type,
             name: NormalizedString::new(name),
-            version: NormalizedString::new(version),
+            version: Some(NormalizedString::new(version)),
             bom_ref,
             mime_type: None,
             supplier: None,
@@ -147,9 +147,11 @@ impl Validate for Component {
 
         results.push(self.name.validate_with_context(name_context)?);
 
-        let version_context = context.extend_context_with_struct_field("Component", "version");
+        if let Some(version) = &self.version {
+            let context = context.extend_context_with_struct_field("Component", "version");
 
-        results.push(self.version.validate_with_context(version_context)?);
+            results.push(version.validate_with_context(context)?);
+        }
 
         if let Some(description) = &self.description {
             let context = context.extend_context_with_struct_field("Component", "description");
@@ -628,7 +630,7 @@ mod test {
             publisher: Some(NormalizedString::new("publisher")),
             group: Some(NormalizedString::new("group")),
             name: NormalizedString::new("name"),
-            version: NormalizedString::new("version"),
+            version: Some(NormalizedString::new("version")),
             description: Some(NormalizedString::new("description")),
             scope: Some(Scope::Required),
             hashes: Some(Hashes(vec![Hash {
@@ -712,7 +714,7 @@ mod test {
             publisher: Some(NormalizedString("invalid\tpublisher".to_string())),
             group: Some(NormalizedString("invalid\tgroup".to_string())),
             name: NormalizedString("invalid\tname".to_string()),
-            version: NormalizedString("invalid\tversion".to_string()),
+            version: Some(NormalizedString("invalid\tversion".to_string())),
             description: Some(NormalizedString("invalid\tdescription".to_string())),
             scope: Some(Scope::UnknownScope("unknown".to_string())),
             hashes: Some(Hashes(vec![Hash {
@@ -987,7 +989,7 @@ mod test {
                         ])
                     },
                     FailureReason {
-                        message: "Uri does not conform to ISO 8601".to_string(),
+                        message: "Uri does not conform to RFC 3986".to_string(),
                         context: ValidationContext(vec![
                             ValidationPathComponent::Array { index: 0 },
                             ValidationPathComponent::Struct {
@@ -1177,7 +1179,7 @@ mod test {
             publisher: None,
             group: None,
             name: NormalizedString::new("name"),
-            version: NormalizedString::new("version"),
+            version: Some(NormalizedString::new("version")),
             description: None,
             scope: None,
             hashes: None,

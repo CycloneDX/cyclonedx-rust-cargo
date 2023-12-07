@@ -369,7 +369,7 @@ impl SbomGenerator {
                         license,
                         err,
                     );
-                    licenses.push(LicenseChoice::License(License::named_license(license)));
+                    licenses.push(LicenseChoice::License(License::named_license(license)))
                 }
             }
         }

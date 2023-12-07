@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::utilities::convert_vec;
+use crate::xml::write_simple_tag;
 use crate::{
     errors::XmlReadError,
     external_models::{
@@ -31,7 +33,6 @@ use crate::{
     },
 };
 use crate::{specs::v1_3::attached_text::AttachedText, utilities::convert_optional};
-use crate::{utilities::convert_vec, xml::write_simple_tag};
 use serde::{Deserialize, Serialize};
 use xml::{name::OwnedName, reader, writer};
 
@@ -266,11 +267,22 @@ impl FromXml for License {
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
                 } if name.local_name == ID_TAG || name.local_name == NAME_TAG => {
-                    license_identifier = Some(LicenseIdentifier::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
+                    // ID_TAG and NAME_TAG are only allowed once within a LICENSE_TAG
+                    if license_identifier.is_none() {
+                        license_identifier = Some(LicenseIdentifier::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    } else {
+                        return Err(XmlReadError::UnexpectedElementReadError {
+                            error: format!(
+                                "Got a second {} not allowed within {}",
+                                name.local_name, LICENSE_TAG
+                            ),
+                            element: LICENSE_TAG.to_string(),
+                        });
+                    }
                 }
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
@@ -359,7 +371,7 @@ impl FromXml for LicenseIdentifier {
         event_reader: &mut xml::EventReader<R>,
         name: &OwnedName,
         _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, crate::errors::XmlReadError>
+    ) -> Result<Self, XmlReadError>
     where
         Self: Sized,
     {
@@ -385,7 +397,7 @@ impl FromXml for LicenseIdentifier {
 
                 event_reader
                     .next()
-                    .map_err(to_xml_read_error(ID_TAG))
+                    .map_err(to_xml_read_error(NAME_TAG))
                     .and_then(closing_tag_or_error(name))?;
 
                 Ok(Self::Name(license_name))
@@ -400,13 +412,12 @@ impl FromXml for LicenseIdentifier {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use super::*;
     use crate::{
         external_models::spdx::SpdxExpression,
         specs::v1_3::attached_text::test::{corresponding_attached_text, example_attached_text},
         xml::test::{read_element_from_string, write_element_to_string},
     };
-
-    use super::*;
 
     pub(crate) fn example_licenses() -> Licenses {
         Licenses(vec![example_license_expression()])
@@ -463,10 +474,35 @@ pub(crate) mod test {
     }
 
     #[test]
-    fn it_should_handle_licenses_correctly() {
+    fn it_should_read_licenses_without_license_choices_correctly() {
+        let input = r#"
+<licenses>
+</licenses>
+"#;
+        let actual: Licenses = read_element_from_string(input);
+        let expected = Licenses(vec![]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_write_licenses_without_license_choices_correctly() {
+        let xml_output = write_element_to_string(Licenses(vec![]));
+
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_handle_licenses_correctly_license_choice_licenses() {
+        let actual = Licenses(vec![example_spdx_license(), example_named_license()]);
+
+        insta::assert_json_snapshot!(actual);
+    }
+
+    #[test]
+    fn it_should_handle_licenses_correctly_license_choice_expressions() {
         let actual = Licenses(vec![
-            example_spdx_license(),
-            example_named_license(),
+            example_license_expression(),
             example_license_expression(),
         ]);
 
@@ -474,17 +510,25 @@ pub(crate) mod test {
     }
 
     #[test]
-    fn it_should_write_xml_full() {
+    fn it_should_write_xml_full_license_choice_licenses() {
         let xml_output = write_element_to_string(Licenses(vec![
             example_spdx_license(),
             example_named_license(),
+        ]));
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_write_xml_full_license_choice_expressions() {
+        let xml_output = write_element_to_string(Licenses(vec![
+            example_license_expression(),
             example_license_expression(),
         ]));
         insta::assert_snapshot!(xml_output);
     }
 
     #[test]
-    fn it_should_read_xml_full() {
+    fn it_should_read_xml_full_license_choice_licenses() {
         let input = r#"
 <licenses>
   <license>
@@ -497,13 +541,24 @@ pub(crate) mod test {
     <text content-type="content type" encoding="encoding">content</text>
     <url>url</url>
   </license>
+</licenses>
+"#;
+        let actual: Licenses = read_element_from_string(input);
+        let expected = Licenses(vec![example_spdx_license(), example_named_license()]);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_xml_full_license_choice_expressions() {
+        let input = r#"
+<licenses>
+  <expression>expression</expression>
   <expression>expression</expression>
 </licenses>
 "#;
         let actual: Licenses = read_element_from_string(input);
         let expected = Licenses(vec![
-            example_spdx_license(),
-            example_named_license(),
+            example_license_expression(),
             example_license_expression(),
         ]);
         assert_eq!(actual, expected);

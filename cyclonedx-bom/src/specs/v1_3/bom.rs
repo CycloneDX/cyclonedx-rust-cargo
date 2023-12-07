@@ -16,9 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::errors::BomError;
 use crate::{
     models::{self},
-    utilities::convert_optional,
+    utilities::{convert_optional, try_convert_optional},
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, FromXmlDocument,
@@ -34,7 +35,12 @@ use crate::{
     xml::ToXml,
 };
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use xml::{reader, writer::XmlEvent};
+
+// Placeholders for types defined in other versions of the spec
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+struct Vulnerabilities();
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -57,8 +63,11 @@ pub(crate) struct Bom {
     compositions: Option<Compositions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    vulnerabilities: Option<Vulnerabilities>,
 }
 
+/*
 impl From<models::bom::Bom> for Bom {
     fn from(other: models::bom::Bom) -> Self {
         Self {
@@ -73,7 +82,30 @@ impl From<models::bom::Bom> for Bom {
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
+            vulnerabilities: None,
         }
+    }
+}
+*/
+
+impl TryFrom<models::bom::Bom> for Bom {
+    type Error = BomError;
+
+    fn try_from(other: models::bom::Bom) -> Result<Self, Self::Error> {
+        Ok(Self {
+            bom_format: BomFormat::CycloneDX,
+            spec_version: "1.3".to_string(),
+            version: Some(other.version),
+            serial_number: convert_optional(other.serial_number),
+            metadata: try_convert_optional(other.metadata)?,
+            components: try_convert_optional(other.components)?,
+            services: convert_optional(other.services),
+            external_references: convert_optional(other.external_references),
+            dependencies: convert_optional(other.dependencies),
+            compositions: convert_optional(other.compositions),
+            properties: convert_optional(other.properties),
+            vulnerabilities: None,
+        })
     }
 }
 
@@ -89,6 +121,7 @@ impl From<Bom> for models::bom::Bom {
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
+            vulnerabilities: None,
         }
     }
 }
@@ -306,6 +339,7 @@ impl FromXmlDocument for Bom {
             dependencies,
             compositions,
             properties,
+            vulnerabilities: None,
         })
     }
 }
@@ -346,6 +380,7 @@ pub(crate) mod test {
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };
+    use std::convert::TryInto;
 
     use super::*;
 
@@ -362,6 +397,7 @@ pub(crate) mod test {
             dependencies: None,
             compositions: None,
             properties: None,
+            vulnerabilities: None,
         }
     }
 
@@ -378,6 +414,7 @@ pub(crate) mod test {
             dependencies: Some(example_dependencies()),
             compositions: Some(example_compositions()),
             properties: Some(example_properties()),
+            vulnerabilities: None,
         }
     }
 
@@ -392,6 +429,7 @@ pub(crate) mod test {
             dependencies: Some(corresponding_dependencies()),
             compositions: Some(corresponding_compositions()),
             properties: Some(corresponding_properties()),
+            vulnerabilities: None,
         }
     }
 
@@ -429,8 +467,10 @@ pub(crate) mod test {
     #[test]
     fn it_can_convert_from_the_internal_model() {
         let model = corresponding_internal_model();
-        let spec: Bom = model.into();
-        assert_eq!(spec, full_bom_example());
+        let spec = model.try_into();
+        assert!(spec.is_ok());
+        let spec = spec.unwrap();
+        assert_eq!(full_bom_example(), spec);
     }
 
     #[test]

@@ -8,9 +8,9 @@
 
 # `cargo-cyclonedx`
 
-The [CycloneDX](https://cyclonedx.org/) plugin for `cargo` creates a [custom `cargo` subcommand](https://doc.rust-lang.org/cargo/reference/external-tools.html#custom-subcommands) that generates a Software Bill-of-Materials (SBOM) file that describes the `cargo` project.
+This [CycloneDX](https://cyclonedx.org/) plugin for `cargo` creates a [custom `cargo` subcommand](https://doc.rust-lang.org/cargo/reference/external-tools.html#custom-subcommands) that generates a Software Bill of Materials (SBOM) file that describes the `cargo` project.
 
-CycloneDX is a lightweight SBOM specification that is easily created, human and machine readable, and simple to parse.
+CycloneDX is a lightweight SBOM specification that is easily created, human and machine-readable, and simple to parse.
 
 ## Usage
 
@@ -87,6 +87,10 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
   -V, --version
           Print version
 ```
+
+## Contributing
+
+See [CONTRIBUTING](../CONTRIBUTING.md) for details.
 
 ## Copyright & License
 

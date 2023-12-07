@@ -10,13 +10,17 @@
 
 The [CycloneDX](https://cyclonedx.org/) library provides JSON and XML serialization and derserialization of Software Bill-of-Materials (SBOM) files.
 
-CycloneDX is a lightweight SBOM specification that is easily created, human and machine readable, and simple to parse.
+CycloneDX is a lightweight SBOM specification that is easily created, human and machine-readable, and simple to parse.
 
 The library is intended to enable developers to:
 
 - Construct SBOM documents that conform the CycloneDX specification
 - Parse and validate JSON and XML SBOM documents
 - Perform modifications to BOM documents (e.g. merging multiple BOMs using a variety of algorithms)
+         
+## Supported CycloneDX versions
+
+This library currently supports CycloneDX 1.3 and 1.4.
 
 ## Usage
 
@@ -82,6 +86,14 @@ assert_eq!(
 }"#
 );
 ```
+
+## Verification and Validation
+
+See [README](./tests/README.md) for details.
+
+## Contributing
+
+See [CONTRIBUTING](../CONTRIBUTING.md) for details.
 
 ## Copyright & License
 

@@ -119,6 +119,17 @@ pub(crate) fn inner_text_or_error(
     }
 }
 
+pub(crate) fn inner_text_or_none(
+    element_name: impl AsRef<str>,
+) -> impl FnOnce(xml::reader::XmlEvent) -> Result<Option<String>, XmlReadError> {
+    let element_name = element_name.as_ref().to_owned();
+    |event| match event {
+        reader::XmlEvent::Characters(s) | reader::XmlEvent::CData(s) => Ok(Some(s)),
+        reader::XmlEvent::EndElement { name } if name.to_string() == element_name => Ok(None),
+        unexpected => Err(unexpected_element_error(element_name, unexpected)),
+    }
+}
+
 pub(crate) fn closing_tag_or_error(
     element: &OwnedName,
 ) -> impl FnOnce(xml::reader::XmlEvent) -> Result<(), XmlReadError> {
@@ -208,6 +219,26 @@ impl FromXmlType for u32 {
     }
 }
 
+impl FromXmlType for f32 {
+    fn xml_type_display() -> String {
+        "xs:decimal".to_string()
+    }
+
+    fn from_xml_value(
+        element: impl ToString,
+        value: impl AsRef<str>,
+    ) -> Result<Self, XmlReadError> {
+        let value = value.as_ref();
+        let value: f32 = value.parse().map_err(|_| XmlReadError::InvalidParseError {
+            value: value.to_string(),
+            data_type: Self::xml_type_display(),
+            element: element.to_string(),
+        })?;
+
+        Ok(value)
+    }
+}
+
 pub(crate) fn read_simple_tag<R: Read>(
     event_reader: &mut EventReader<R>,
     element: &OwnedName,
@@ -224,6 +255,85 @@ pub(crate) fn read_simple_tag<R: Read>(
         .and_then(closing_tag_or_error(element))?;
 
     Ok(content)
+}
+
+pub(crate) fn read_optional_tag<R: Read>(
+    event_reader: &mut EventReader<R>,
+    element: &OwnedName,
+) -> Result<Option<String>, XmlReadError> {
+    let element_display = element.to_string();
+    let content = event_reader
+        .next()
+        .map_err(to_xml_read_error(&element_display))
+        .and_then(inner_text_or_none(&element_display))?;
+
+    // If XML tag has content, read next element
+    if content.is_some() {
+        event_reader
+            .next()
+            .map_err(to_xml_read_error(&element_display))
+            .and_then(closing_tag_or_error(element))?;
+    }
+
+    Ok(content)
+}
+
+pub(crate) fn read_u32_tag<R: Read>(
+    event_reader: &mut EventReader<R>,
+    element: &OwnedName,
+) -> Result<u32, XmlReadError> {
+    let element_display = element.to_string();
+    let content = event_reader
+        .next()
+        .map_err(to_xml_read_error(&element_display))
+        .and_then(inner_text_or_error(&element_display))?;
+
+    let number = match content.trim().parse::<u32>() {
+        Ok(n) => n,
+        Err(_) => {
+            return Err(XmlReadError::InvalidParseError {
+                value: content,
+                data_type: "u32".to_string(),
+                element: element_display,
+            })
+        }
+    };
+
+    event_reader
+        .next()
+        .map_err(to_xml_read_error(&element_display))
+        .and_then(closing_tag_or_error(element))?;
+
+    Ok(number)
+}
+
+pub(crate) fn read_f32_tag<R: Read>(
+    event_reader: &mut EventReader<R>,
+    element: &OwnedName,
+) -> Result<f32, XmlReadError> {
+    let element_display = element.to_string();
+    let content = event_reader
+        .next()
+        .map_err(to_xml_read_error(&element_display))
+        .and_then(inner_text_or_error(&element_display))?;
+
+    let number = match content.trim().parse::<f32>() {
+        Ok(n) => n,
+        Err(_) => {
+            return Err(XmlReadError::InvalidParseError {
+                value: content,
+                data_type: "f32".to_string(),
+                element: element_display,
+            })
+        }
+    };
+
+    event_reader
+        .next()
+        .map_err(to_xml_read_error(&element_display))
+        .and_then(closing_tag_or_error(element))?;
+
+    Ok(number)
 }
 
 pub(crate) fn read_boolean_tag<R: Read>(
@@ -244,6 +354,32 @@ impl FromXml for String {
         Self: Sized,
     {
         read_simple_tag(event_reader, element_name)
+    }
+}
+
+impl FromXml for u32 {
+    fn read_xml_element<R: Read>(
+        event_reader: &mut EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_u32_tag(event_reader, element_name)
+    }
+}
+
+impl FromXml for f32 {
+    fn read_xml_element<R: Read>(
+        event_reader: &mut EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_f32_tag(event_reader, element_name)
     }
 }
 

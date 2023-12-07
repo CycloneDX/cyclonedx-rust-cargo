@@ -1,0 +1,22 @@
+---
+source: cyclonedx-bom/src/specs/v1_4/code.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<commits>
+  <commit>
+    <uid>uid</uid>
+    <url>url</url>
+    <author>
+      <timestamp>timestamp</timestamp>
+      <name>name</name>
+      <email>email</email>
+    </author>
+    <committer>
+      <timestamp>timestamp</timestamp>
+      <name>name</name>
+      <email>email</email>
+    </committer>
+    <message>message</message>
+  </commit>
+</commits>
