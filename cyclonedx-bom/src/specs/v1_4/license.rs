@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::xml::read_list_tag;
+use crate::xml::write_simple_tag;
 use crate::{
     errors::XmlReadError,
     external_models::{
@@ -25,6 +25,7 @@ use crate::{
         uri::Uri,
     },
     models,
+    utilities::convert_vec,
     xml::{
         closing_tag_or_error, inner_text_or_error, read_lax_validation_tag, read_simple_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, ToInnerXml,
@@ -32,23 +33,22 @@ use crate::{
     },
 };
 use crate::{specs::v1_4::attached_text::AttachedText, utilities::convert_optional};
-use crate::{utilities::convert, xml::write_simple_tag};
 use serde::{Deserialize, Serialize};
 use xml::{name::OwnedName, reader, writer};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
-pub(crate) struct Licenses(pub LicenseChoice);
+pub(crate) struct Licenses(Vec<LicenseChoice>);
 
 impl From<models::license::Licenses> for Licenses {
     fn from(other: models::license::Licenses) -> Self {
-        Licenses(convert(other.0))
+        Licenses(convert_vec(other.0))
     }
 }
 
 impl From<Licenses> for models::license::Licenses {
     fn from(other: Licenses) -> Self {
-        models::license::Licenses(convert(other.0))
+        models::license::Licenses(convert_vec(other.0))
     }
 }
 
@@ -63,7 +63,9 @@ impl ToXml for Licenses {
             .write(writer::XmlEvent::start_element(LICENSES_TAG))
             .map_err(to_xml_write_error(LICENSES_TAG))?;
 
-        self.0.write_xml_element(writer)?;
+        for license in &self.0 {
+            license.write_xml_element(writer)?;
+        }
 
         writer
             .write(writer::XmlEvent::end_element())
@@ -81,8 +83,7 @@ impl FromXml for Licenses {
     where
         Self: Sized,
     {
-        let mut licenses: Vec<Lic> = Vec::new();
-        let mut expressions: Vec<Expr> = Vec::new();
+        let mut licenses = Vec::new();
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -92,15 +93,12 @@ impl FromXml for Licenses {
             match next_element {
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
-                } if name.local_name == LICENSE_TAG => {
-                    let license = License::read_xml_element(event_reader, &name, &attributes)?;
-                    licenses.push(Lic::Lic(license));
-                }
-                reader::XmlEvent::StartElement { name, .. }
-                    if name.local_name == EXPRESSION_TAG =>
-                {
-                    let expression = read_simple_tag(event_reader, &name)?;
-                    expressions.push(Expr::Expr(expression));
+                } if name.local_name == LICENSE_TAG || name.local_name == EXPRESSION_TAG => {
+                    licenses.push(LicenseChoice::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
@@ -109,34 +107,15 @@ impl FromXml for Licenses {
             }
         }
 
-        if !licenses.is_empty() && !expressions.is_empty() {
-            Err(XmlReadError::UnexpectedElementReadError {
-                error: "Got unexpected element. Either license or expression is allowed."
-                    .to_string(),
-                element: "Licenses".to_string(),
-            })
-        } else if !licenses.is_empty() {
-            Ok(Licenses(LicenseChoice::Licenses(licenses)))
-        } else if !expressions.is_empty() {
-            Ok(Licenses(LicenseChoice::Expressions(expressions)))
-        } else {
-            Ok(Licenses(LicenseChoice::Licenses(Vec::new())))
-        }
-
-        /*
-        let license_choice = license_choice.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: format!("Either {} or {}", LICENSE_TAG.to_string(), EXPRESSION_TAG.to_string()),
-            element: element_name.local_name.to_string(),
-        })?;
-        */
+        Ok(Licenses(licenses))
     }
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(untagged)]
+#[serde(rename_all = "camelCase")]
 pub(crate) enum LicenseChoice {
-    Licenses(Vec<Lic>),
-    Expressions(Vec<Expr>),
+    License(License),
+    Expression(String),
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -154,20 +133,8 @@ pub(crate) enum Expr {
 impl From<models::license::LicenseChoice> for LicenseChoice {
     fn from(other: models::license::LicenseChoice) -> Self {
         match other {
-            models::license::LicenseChoice::Licenses(l) => {
-                let mut licenses = Vec::new();
-                for license in l {
-                    licenses.push(Lic::Lic(convert(license)));
-                }
-                Self::Licenses(licenses)
-            }
-            models::license::LicenseChoice::Expressions(e) => {
-                let mut expressions = Vec::new();
-                for expression in e {
-                    expressions.push(Expr::Expr(expression.0));
-                }
-                Self::Expressions(expressions)
-            }
+            models::license::LicenseChoice::License(l) => Self::License(l.into()),
+            models::license::LicenseChoice::Expression(e) => Self::Expression(e.0),
         }
     }
 }
@@ -175,28 +142,8 @@ impl From<models::license::LicenseChoice> for LicenseChoice {
 impl From<LicenseChoice> for models::license::LicenseChoice {
     fn from(other: LicenseChoice) -> Self {
         match other {
-            LicenseChoice::Licenses(l) => {
-                let mut licenses = Vec::new();
-                for license in l {
-                    match license {
-                        Lic::Lic(license) => {
-                            licenses.push(convert(license));
-                        }
-                    }
-                }
-                Self::Licenses(licenses)
-            }
-            LicenseChoice::Expressions(e) => {
-                let mut expressions = Vec::new();
-                for expression in e {
-                    match expression {
-                        Expr::Expr(expression) => {
-                            expressions.push(SpdxExpression(expression));
-                        }
-                    }
-                }
-                Self::Expressions(expressions)
-            }
+            LicenseChoice::License(l) => Self::License(l.into()),
+            LicenseChoice::Expression(e) => Self::Expression(SpdxExpression(e)),
         }
     }
 }
@@ -209,23 +156,11 @@ impl ToXml for LicenseChoice {
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
         match self {
-            LicenseChoice::Licenses(licenses) => {
-                for license in licenses {
-                    match license {
-                        Lic::Lic(license) => {
-                            license.write_xml_element(writer)?;
-                        }
-                    }
-                }
+            LicenseChoice::License(l) => {
+                l.write_xml_element(writer)?;
             }
-            LicenseChoice::Expressions(expressions) => {
-                for expression in expressions {
-                    match expression {
-                        Expr::Expr(expression) => {
-                            write_simple_tag(writer, EXPRESSION_TAG, expression)?;
-                        }
-                    }
-                }
+            LicenseChoice::Expression(e) => {
+                write_simple_tag(writer, EXPRESSION_TAG, e)?;
             }
         }
 
@@ -237,25 +172,24 @@ impl FromXml for LicenseChoice {
     fn read_xml_element<R: std::io::Read>(
         event_reader: &mut xml::EventReader<R>,
         element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
+        attributes: &[xml::attribute::OwnedAttribute],
     ) -> Result<Self, XmlReadError>
     where
         Self: Sized,
     {
         match element_name.local_name.as_ref() {
-            LICENSE_TAG => Ok(Self::Licenses(read_list_tag(
+            LICENSE_TAG => Ok(Self::License(License::read_xml_element(
                 event_reader,
                 element_name,
-                LICENSE_TAG,
+                attributes,
             )?)),
-            EXPRESSION_TAG => Ok(Self::Expressions(read_list_tag(
+            EXPRESSION_TAG => Ok(Self::Expression(read_simple_tag(
                 event_reader,
                 element_name,
-                EXPRESSION_TAG,
             )?)),
             unexpected => Err(XmlReadError::UnexpectedElementReadError {
-                error: format!("Got unexpected HUGO2 element {:?}", unexpected),
-                element: "Licenses".to_string(),
+                error: format!("Got unexpected element {:?}", unexpected),
+                element: "LicenseChoice".to_string(),
             }),
         }
     }
@@ -576,59 +510,59 @@ pub(crate) mod test {
     };
 
     pub(crate) fn example_licenses() -> Licenses {
-        Licenses(LicenseChoice::Expressions(vec![
-            example_license_expression(),
-        ]))
+        Licenses(vec![
+            LicenseChoice::Expression(example_license_expression()),
+        ])
     }
 
     pub(crate) fn corresponding_licenses() -> models::license::Licenses {
-        models::license::Licenses(corresponding_license_expression())
+        models::license::Licenses(vec![corresponding_license_expression()])
     }
 
-    pub(crate) fn example_spdx_license() -> License {
-        License {
+    pub(crate) fn example_spdx_license() -> LicenseChoice {
+        LicenseChoice::License(License {
             license_identifier: LicenseIdentifier::SpdxId("spdx id".to_string()),
             text: Some(example_attached_text()),
             url: Some("url".to_string()),
-        }
+        })
     }
 
     #[allow(unused)]
     pub(crate) fn corresponding_spdx_license() -> models::license::LicenseChoice {
-        models::license::LicenseChoice::Licenses(vec![models::license::License {
+        models::license::LicenseChoice::License(models::license::License {
             license_identifier: models::license::LicenseIdentifier::SpdxId(SpdxIdentifier(
                 "spdx id".to_string(),
             )),
             text: Some(corresponding_attached_text()),
             url: Some(Uri("url".to_string())),
-        }])
+        })
     }
 
-    pub(crate) fn example_named_license() -> License {
-        License {
+    pub(crate) fn example_named_license() -> LicenseChoice {
+        LicenseChoice::License(License {
             license_identifier: LicenseIdentifier::Name("name".to_string()),
             text: Some(example_attached_text()),
             url: Some("url".to_string()),
-        }
+        })
     }
 
     #[allow(unused)]
     pub(crate) fn corresponding_named_license() -> models::license::LicenseChoice {
-        models::license::LicenseChoice::Licenses(vec![models::license::License {
+        models::license::LicenseChoice::License(models::license::License {
             license_identifier: models::license::LicenseIdentifier::Name(
                 NormalizedString::new_unchecked("name".to_string()),
             ),
             text: Some(corresponding_attached_text()),
             url: Some(Uri("url".to_string())),
-        }])
+        })
     }
 
-    pub(crate) fn example_license_expression() -> Expr {
-        Expr::Expr("expression".to_string())
+    pub(crate) fn example_license_expression() -> String {
+        "expression".to_string()
     }
 
     pub(crate) fn corresponding_license_expression() -> models::license::LicenseChoice {
-        models::license::LicenseChoice::Expressions(vec![SpdxExpression("expression".to_string())])
+        models::license::LicenseChoice::Expression(SpdxExpression("expression".to_string()))
     }
 
     #[test]
@@ -638,53 +572,50 @@ pub(crate) mod test {
 </licenses>
 "#;
         let actual: Licenses = read_element_from_string(input);
-        let expected = Licenses(LicenseChoice::Licenses(Vec::new()));
+        let expected = Licenses(vec![]);
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn it_should_write_licenses_without_license_choices_correctly() {
-        let xml_output = write_element_to_string(Licenses(LicenseChoice::Licenses(Vec::new())));
+        let xml_output = write_element_to_string(Licenses(vec![]));
 
         insta::assert_snapshot!(xml_output);
     }
 
     #[test]
     fn it_should_handle_licenses_correctly_license_choice_licenses() {
-        let actual = Licenses(LicenseChoice::Licenses(vec![
-            Lic::Lic(example_spdx_license()),
-            Lic::Lic(example_named_license()),
-        ]));
+        let actual = Licenses(vec![example_spdx_license(), example_named_license()]);
 
         insta::assert_json_snapshot!(actual);
     }
 
     #[test]
     fn it_should_handle_licenses_correctly_license_choice_expressions() {
-        let actual = Licenses(LicenseChoice::Expressions(vec![
-            example_license_expression(),
-            example_license_expression(),
-        ]));
+        let actual = Licenses(vec![
+            LicenseChoice::Expression(example_license_expression()),
+            LicenseChoice::Expression(example_license_expression()),
+        ]);
 
         insta::assert_json_snapshot!(actual);
     }
 
     #[test]
     fn it_should_write_xml_full_license_choice_licenses() {
-        let xml_output = write_element_to_string(Licenses(LicenseChoice::Licenses(vec![
-            Lic::Lic(example_spdx_license()),
-            Lic::Lic(example_named_license()),
-        ])));
+        let xml_output = write_element_to_string(Licenses(vec![
+            example_spdx_license(),
+            example_named_license(),
+        ]));
         insta::assert_snapshot!(xml_output);
     }
 
     #[test]
     fn it_should_write_xml_full_license_choice_expressions() {
-        let xml_output = write_element_to_string(Licenses(LicenseChoice::Expressions(vec![
-            example_license_expression(),
-            example_license_expression(),
-        ])));
+        let xml_output = write_element_to_string(Licenses(vec![
+            LicenseChoice::Expression(example_license_expression()),
+            LicenseChoice::Expression(example_license_expression()),
+        ]));
         insta::assert_snapshot!(xml_output);
     }
 
@@ -705,10 +636,7 @@ pub(crate) mod test {
 </licenses>
 "#;
         let actual: Licenses = read_element_from_string(input);
-        let expected = Licenses(LicenseChoice::Licenses(vec![
-            Lic::Lic(example_spdx_license()),
-            Lic::Lic(example_named_license()),
-        ]));
+        let expected = Licenses(vec![example_spdx_license(), example_named_license()]);
         assert_eq!(actual, expected);
     }
 
@@ -721,39 +649,10 @@ pub(crate) mod test {
 </licenses>
 "#;
         let actual: Licenses = read_element_from_string(input);
-        let expected = Licenses(LicenseChoice::Expressions(vec![
-            example_license_expression(),
-            example_license_expression(),
-        ]));
+        let expected = Licenses(vec![
+            LicenseChoice::Expression(example_license_expression()),
+            LicenseChoice::Expression(example_license_expression()),
+        ]);
         assert_eq!(actual, expected);
     }
-
-    /*
-        todo: check this test
-        #[test]
-        fn it_should_fail_xml_full_license_choice_mixed() {
-            let input = r#"
-    <licenses>
-      <license>
-        <id>spdx id</id>
-        <text content-type="content type" encoding="encoding">content</text>
-        <url>url</url>
-      </license>
-      <license>
-        <name>name</name>
-        <text content-type="content type" encoding="encoding">content</text>
-        <url>url</url>
-      </license>
-      <expression>MIT</expression>
-    </licenses>
-    "#;
-            let actual: Licenses = read_element_from_string(input);
-            let expected = Licenses(
-                LicenseChoice::Licenses(vec![
-                    Lic::Lic(example_spdx_license()),
-                    Lic::Lic(example_named_license()),
-                ]));
-            assert_eq!(actual, expected);
-        }
-        */
 }
