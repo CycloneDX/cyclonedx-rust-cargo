@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::models::bom::SpecVersion;
+
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum BomError {
@@ -25,8 +27,8 @@ pub enum BomError {
     #[error("Failed to serialize BOM to XML: {0}")]
     XmlSerializationError(String),
 
-    #[error("Failed to serialize BOM to v1.3: {0}")]
-    BomV13SerializationError(String),
+    #[error("Failed to serialize BOM with version {0:?}: {1}")]
+    BomSerializationError(SpecVersion, String),
 
     #[error("Unsupported Spec Version '{0}'")]
     UnsupportedSpecVersion(String),
