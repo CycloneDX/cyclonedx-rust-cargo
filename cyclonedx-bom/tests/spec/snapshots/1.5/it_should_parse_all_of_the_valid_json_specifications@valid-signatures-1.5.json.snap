@@ -1,0 +1,68 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_5.rs
+assertion_line: 54
+expression: bom_output
+input_file: cyclonedx-bom/tests/spec/1.5/valid-signatures-1.5.json
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "components": [
+    {
+      "type": "application",
+      "bom-ref": "5366293e-0740-4dcf-b1d0-0c1fc26e4981",
+      "name": "amce app",
+      "version": "1.0",
+      "signature": {
+        "algorithm": "ES256",
+        "value": "tqITqIm0gUMWXIjqDgwqzqPw1CwTUKRewZQ5YpX3VwFMWV68NJgX4npU91cSwSC-MRlx1QfOYwSQkeU26VpXSg"
+      }
+    }
+  ],
+  "services": [
+    {
+      "bom-ref": "ee10d0a2-baba-4656-a5ac-d49e172a0d3d",
+      "group": "org.partner",
+      "name": "Stock ticker service",
+      "version": "2020-Q2",
+      "endpoints": [
+        "https://partner.org/api/v1/lookup",
+        "https://partner.org/api/v1/stock"
+      ],
+      "authenticated": true,
+      "x-trust-boundary": true,
+      "data": [
+        {
+          "flow": "inbound",
+          "classification": "PII"
+        }
+      ],
+      "signature": {
+        "algorithm": "ES256",
+        "value": "6A77T3RBTAuVpZOgFFFfOvGOQ1hqMbfSQ91VucRM1RIP6QqX9kEF1Pi1_vCl37qpVzK51kIyppgUF_i9s999XA"
+      }
+    }
+  ],
+  "compositions": [
+    {
+      "aggregate": "complete",
+      "assemblies": [
+        "5366293e-0740-4dcf-b1d0-0c1fc26e4981",
+        "ee10d0a2-baba-4656-a5ac-d49e172a0d3d"
+      ],
+      "dependencies": [
+        "5366293e-0740-4dcf-b1d0-0c1fc26e4981"
+      ],
+      "signature": {
+        "algorithm": "ES256",
+        "value": "lm6wx-elyBTbNMKNF8riooZhvrm6f5j8JpvgP9JtVv50dd7sXQLH7PqJcn9fmKV8eoF8cszPllEsQQhEQOM4hA"
+      }
+    }
+  ],
+  "signature": {
+    "algorithm": "ES256",
+    "value": "m4pMbQQVV61TlP4Og7a75SeY8lh00LkkUDXZ4PIhXsR512MPRgZmusFYorJlYq9wM3P9n9gM3T8BTg9XdFdQkQ"
+  }
+}

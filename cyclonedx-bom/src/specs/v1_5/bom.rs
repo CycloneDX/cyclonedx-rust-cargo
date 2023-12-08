@@ -18,9 +18,7 @@
 
 use crate::{
     models::{self, bom::SpecVersion},
-    prelude::{Validate, ValidationResult},
     utilities::convert_optional,
-    validation::ValidationContext,
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, FromXmlDocument,
@@ -66,21 +64,6 @@ pub(crate) struct Bom {
     vulnerabilities: Option<Vulnerabilities>,
     #[serde(skip_serializing_if = "Option::is_none")]
     signature: Option<Signature>,
-}
-
-impl Validate for Bom {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(components) = &self.components {
-            let context = context.with_struct("Bom", "components");
-            results.push(components.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
-    }
 }
 
 impl From<models::bom::Bom> for Bom {

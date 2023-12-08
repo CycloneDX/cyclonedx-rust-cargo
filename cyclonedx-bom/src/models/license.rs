@@ -42,6 +42,12 @@ pub enum LicenseChoice {
     Expression(SpdxExpression),
 }
 
+impl LicenseChoice {
+    pub fn is_license(&self) -> bool {
+        matches!(self, LicenseChoice::License(_))
+    }
+}
+
 impl Validate for LicenseChoice {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         let mut context = ValidationContext::new();
@@ -116,9 +122,30 @@ pub struct Licenses(pub Vec<LicenseChoice>);
 
 impl Validate for Licenses {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_list("inner", &self.0, |choice| choice.validate_version(version))
-            .into()
+        let mut context = ValidationContext::new();
+        context.add_list("inner", &self.0, |choice| choice.validate_version(version));
+
+        // In version 1.5 the `licenses` field contains either an array of [`LicenseChoice::License`] or
+        // a single entry of [`LicenseChoice::Expression`], but not both.
+        // See https://cyclonedx.org/docs/1.5/json/#components_items_licenses for more details.
+        if version >= SpecVersion::V1_5 {
+            let (licenses, expressions): (Vec<_>, Vec<_>) =
+                self.0.iter().partition(|l| l.is_license());
+            match (licenses.len(), expressions.len()) {
+                (0, e) if e > 1 => {
+                    context.add_custom("licenses", "More than one 'expression' entry found.");
+                }
+                (l, e) if l > 0 && e > 0 => {
+                    context.add_custom(
+                        "licenses",
+                        "Use either array of 'license' or a single 'expression', but not both.",
+                    );
+                }
+                _ => {}
+            }
+        }
+
+        context.into()
     }
 }
 
@@ -324,6 +351,37 @@ mod test {
                     )
                 ]
             )
+        );
+    }
+
+    #[test]
+    fn it_should_fail_with_mixed_license_nodes_in_version_15() {
+        let licenses = Licenses(vec![
+            LicenseChoice::License(License::named_license("MIT OR Apache-2.0")),
+            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+        ]);
+        let validation_result = licenses.validate_version(SpecVersion::V1_5);
+
+        assert_eq!(
+            validation_result,
+            validation::custom(
+                "licenses",
+                ["Use either array of 'license' or a single 'expression', but not both."]
+            )
+        );
+    }
+
+    #[test]
+    fn it_should_fail_with_multiple_license_expressions_in_version_15() {
+        let validation_result = Licenses(vec![
+            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+        ])
+        .validate_version(SpecVersion::V1_5);
+
+        assert_eq!(
+            validation_result,
+            validation::custom("licenses", ["More than one 'expression' entry found."])
         );
     }
 }

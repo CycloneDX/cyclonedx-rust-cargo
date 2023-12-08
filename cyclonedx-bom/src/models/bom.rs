@@ -43,15 +43,16 @@ use crate::xml::{FromXmlDocument, ToXml};
 use super::composition::BomReference;
 
 /// Represents the spec version of a BOM.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy, PartialOrd)]
+#[repr(u16)]
 #[non_exhaustive]
 pub enum SpecVersion {
     #[serde(rename = "1.3")]
-    V1_3,
+    V1_3 = 1,
     #[serde(rename = "1.4")]
-    V1_4,
+    V1_4 = 2,
     #[serde(rename = "1.5")]
-    V1_5,
+    V1_5 = 3,
 }
 
 impl Default for SpecVersion {

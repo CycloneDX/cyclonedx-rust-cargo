@@ -16,8 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::prelude::{Validate, ValidationResult};
-use crate::validation::ValidationContext;
 use crate::xml::write_simple_tag;
 use crate::{
     errors::XmlReadError,
@@ -41,17 +39,6 @@ use xml::{name::OwnedName, reader, writer};
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
 pub(crate) struct Licenses(Vec<LicenseChoice>);
-
-/// This implements the validation of the licenses field as defined by spec 1.5
-/// See https://cyclonedx.org/docs/1.5/json/#components_items_licenses for details.
-impl Validate for Licenses {
-    fn validate_with_context(&self, _context: ValidationContext) -> ValidationResult {
-        // TODO either there are multiple licenses of type [`LicenseChoice::License`] or a
-        // single [`LicenseChoice::Expression`]
-
-        todo!()
-    }
-}
 
 impl From<models::license::Licenses> for Licenses {
     fn from(other: models::license::Licenses) -> Self {
@@ -521,7 +508,6 @@ pub(crate) mod test {
     use crate::{
         external_models::spdx::SpdxExpression,
         specs::common::attached_text::test::{corresponding_attached_text, example_attached_text},
-        validation::{FailureReason, ValidationPathComponent},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 
@@ -579,52 +565,6 @@ pub(crate) mod test {
 
     pub(crate) fn corresponding_license_expression() -> models::license::LicenseChoice {
         models::license::LicenseChoice::Expression(SpdxExpression("expression".to_string()))
-    }
-
-    #[test]
-    fn it_should_fail_with_mixed_license_nodes() {
-        let validation_result = Licenses(vec![
-            LicenseChoice::License(License {
-                license_identifier: LicenseIdentifier::Name("MIT OR Apache-2.0".to_string()),
-                text: None,
-                url: None,
-            }),
-            LicenseChoice::Expression("MIT OR Apache-2.0".to_string()),
-        ])
-        .validate();
-
-        assert_eq!(
-            validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Use one of 'license' or 'expression' but not both.".to_string(),
-                    context: ValidationContext(vec![ValidationPathComponent::EnumVariant {
-                        variant_name: "license".to_string(),
-                    }]),
-                },]
-            }
-        );
-    }
-
-    #[test]
-    fn it_should_fail_with_multiple_license_expressions() {
-        let validation_result = Licenses(vec![
-            LicenseChoice::Expression("MIT OR Apache-2.0".to_string()),
-            LicenseChoice::Expression("MIT OR Apache-2.0".to_string()),
-        ])
-        .validate();
-
-        assert_eq!(
-            validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Use one of 'license' or 'expression' but not both.".to_string(),
-                    context: ValidationContext(vec![ValidationPathComponent::EnumVariant {
-                        variant_name: "license".to_string(),
-                    }]),
-                },]
-            }
-        );
     }
 
     #[test]
