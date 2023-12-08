@@ -89,6 +89,29 @@ pub struct Bom {
 }
 
 impl Bom {
+    /// General function to parse a JSON file, fetches the `specVersion` field first then applies the right conversion.
+    pub fn parse_from_json<R: std::io::Read>(
+        mut reader: R,
+    ) -> Result<Self, crate::errors::JsonReadError> {
+        let json: serde_json::Value = serde_json::from_reader(&mut reader)?;
+
+        if let Some(version) = json.get("specVersion") {
+            let version = version
+                .as_str()
+                .ok_or_else(|| BomError::UnsupportedSpecVersion(version.to_string()))?;
+
+            match SpecVersion::from_str(version)? {
+                SpecVersion::V1_3 => Ok(crate::specs::v1_3::bom::Bom::deserialize(json)?.into()),
+                SpecVersion::V1_4 => Ok(crate::specs::v1_4::bom::Bom::deserialize(json)?.into()),
+            }
+        } else {
+            return Err(BomError::UnsupportedSpecVersion(
+                "No field 'specVersion' found".to_string(),
+            )
+            .into());
+        }
+    }
+
     /// Parse the input as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
     pub fn parse_from_json_v1_3<R: std::io::Read>(
         mut reader: R,
@@ -567,6 +590,19 @@ mod test {
 
     use super::*;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn it_should_parse_json_using_function_without_suffix() {
+        let input = r#"{
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.3",
+            "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+            "version": 1,
+            "components": []
+        }"#;
+        let result = Bom::parse_from_json(input.as_bytes());
+        assert!(result.is_ok());
+    }
 
     #[test]
     fn it_should_validate_an_empty_bom_as_passed() {

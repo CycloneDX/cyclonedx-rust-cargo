@@ -68,9 +68,6 @@ pub enum XmlWriteError {
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum JsonReadError {
-    #[error("IO Error #{0}")]
-    IoError(#[from] std::io::Error),
-
     #[error("Failed to deserialize JSON: {error}")]
     JsonElementReadError {
         #[from]
