@@ -17,7 +17,7 @@
  */
 
 use crate::{
-    models::{self},
+    models::{self, bom::SpecVersion},
     utilities::convert_optional,
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
@@ -40,7 +40,7 @@ use xml::{reader, writer::XmlEvent};
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Bom {
     bom_format: BomFormat,
-    spec_version: String,
+    spec_version: SpecVersion,
     version: Option<u32>,
     serial_number: Option<UrnUuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,7 +65,7 @@ impl From<models::bom::Bom> for Bom {
     fn from(other: models::bom::Bom) -> Self {
         Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.4".to_string(),
+            spec_version: SpecVersion::V1_4,
             version: Some(other.version),
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
@@ -316,7 +316,7 @@ impl FromXmlDocument for Bom {
             })?;
         Ok(Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.4".to_string(),
+            spec_version: SpecVersion::V1_4,
             version,
             serial_number,
             metadata,
@@ -376,7 +376,7 @@ pub(crate) mod test {
     pub(crate) fn minimal_bom_example() -> Bom {
         Bom {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.4".to_string(),
+            spec_version: SpecVersion::V1_4,
             version: Some(1),
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: None,
@@ -393,7 +393,7 @@ pub(crate) mod test {
     pub(crate) fn full_bom_example() -> Bom {
         Bom {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.4".to_string(),
+            spec_version: SpecVersion::V1_4,
             version: Some(1),
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: Some(example_metadata()),

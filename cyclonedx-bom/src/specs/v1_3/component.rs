@@ -19,7 +19,7 @@
 use std::convert::TryFrom;
 
 use crate::errors::BomError;
-use crate::errors::BomError::BomV13SerializationError;
+use crate::errors::BomError::BomSerializationError;
 use crate::utilities::try_convert_optional;
 use crate::{
     errors::XmlReadError,
@@ -166,7 +166,10 @@ impl TryFrom<models::component::Component> for Component {
 
     fn try_from(other: models::component::Component) -> Result<Self, Self::Error> {
         match other.version {
-            None => Err(BomV13SerializationError("version missing".to_string())),
+            None => Err(BomSerializationError(
+                models::bom::SpecVersion::V1_3,
+                "version missing".to_string(),
+            )),
             Some(version) => Ok(Self {
                 component_type: other.component_type.to_string(),
                 mime_type: other.mime_type.map(|m| MimeType(m.0)),
@@ -1171,6 +1174,7 @@ impl From<MimeType> for models::component::MimeType {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
+        models::bom::SpecVersion,
         specs::v1_3::{
             attached_text::test::{corresponding_attached_text, example_attached_text},
             code::test::{
@@ -1462,5 +1466,17 @@ pub(crate) mod test {
         let actual: Components = read_element_from_string(input);
         let expected = example_components();
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_fail_conversion_without_version_field() {
+        let mut component = corresponding_component();
+        component.version = None;
+
+        let result = Component::try_from(component);
+        assert!(matches!(
+            result,
+            Err(BomError::BomSerializationError(SpecVersion::V1_3, _))
+        ));
     }
 }
