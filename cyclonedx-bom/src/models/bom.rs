@@ -19,12 +19,15 @@
 use std::collections::HashSet;
 use std::convert::TryInto;
 use std::fmt;
+use std::str::FromStr;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use xml::{EmitterConfig, EventReader, EventWriter, ParserConfig};
 
+use crate::errors::BomError;
 use crate::models::component::{Component, Components};
 use crate::models::composition::{BomReference, Compositions};
 use crate::models::dependency::Dependencies;
@@ -38,6 +41,38 @@ use crate::validation::{
     ValidationResult,
 };
 use crate::xml::{FromXmlDocument, ToXml};
+
+/// Represents the spec version of a BOM.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy)]
+#[non_exhaustive]
+pub enum SpecVersion {
+    #[serde(rename = "1.3")]
+    V1_3,
+    #[serde(rename = "1.4")]
+    V1_4,
+}
+
+impl FromStr for SpecVersion {
+    type Err = BomError;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input {
+            "1.3" => Ok(SpecVersion::V1_3),
+            "1.4" => Ok(SpecVersion::V1_4),
+            s => Err(BomError::UnsupportedSpecVersion(s.to_string())),
+        }
+    }
+}
+
+impl ToString for SpecVersion {
+    fn to_string(&self) -> String {
+        let s = match self {
+            SpecVersion::V1_3 => "1.3",
+            SpecVersion::V1_4 => "1.4",
+        };
+        s.to_string()
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Bom {

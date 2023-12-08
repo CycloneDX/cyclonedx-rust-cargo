@@ -27,6 +27,9 @@ pub enum BomError {
 
     #[error("Failed to serialize BOM to v1.3: {0}")]
     BomV13SerializationError(String),
+
+    #[error("Unsupported Spec Version '{0}'")]
+    UnsupportedSpecVersion(String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -63,10 +66,18 @@ pub enum XmlWriteError {
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum JsonReadError {
+    #[error("IO Error #{0}")]
+    IoError(#[from] std::io::Error),
+
     #[error("Failed to deserialize JSON: {error}")]
     JsonElementReadError {
         #[from]
         error: serde_json::Error,
+    },
+    #[error("Invalid input format found: {error}")]
+    BomError {
+        #[from]
+        error: BomError,
     },
 }
 

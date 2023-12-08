@@ -17,6 +17,7 @@
  */
 
 use crate::errors::BomError;
+use crate::models::bom::SpecVersion;
 use crate::{
     models::{self},
     utilities::{convert_optional, try_convert_optional},
@@ -46,7 +47,7 @@ struct Vulnerabilities();
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Bom {
     bom_format: BomFormat,
-    spec_version: String,
+    spec_version: SpecVersion,
     version: Option<u32>,
     serial_number: Option<UrnUuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -72,7 +73,7 @@ impl From<models::bom::Bom> for Bom {
     fn from(other: models::bom::Bom) -> Self {
         Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.3".to_string(),
+            spec_version: SpecVersion::V1_3,
             version: Some(other.version),
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
@@ -94,7 +95,7 @@ impl TryFrom<models::bom::Bom> for Bom {
     fn try_from(other: models::bom::Bom) -> Result<Self, Self::Error> {
         Ok(Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.3".to_string(),
+            spec_version: SpecVersion::V1_3,
             version: Some(other.version),
             serial_number: convert_optional(other.serial_number),
             metadata: try_convert_optional(other.metadata)?,
@@ -329,7 +330,7 @@ impl FromXmlDocument for Bom {
             })?;
         Ok(Self {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.3".to_string(),
+            spec_version: SpecVersion::V1_3,
             version,
             serial_number,
             metadata,
@@ -387,7 +388,7 @@ pub(crate) mod test {
     pub(crate) fn minimal_bom_example() -> Bom {
         Bom {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.3".to_string(),
+            spec_version: SpecVersion::V1_3,
             version: Some(1),
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: None,
@@ -404,7 +405,7 @@ pub(crate) mod test {
     pub(crate) fn full_bom_example() -> Bom {
         Bom {
             bom_format: BomFormat::CycloneDX,
-            spec_version: "1.3".to_string(),
+            spec_version: SpecVersion::V1_3,
             version: Some(1),
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: Some(example_metadata()),
