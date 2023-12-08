@@ -64,7 +64,7 @@ pub enum XmlWriteError {
 #[non_exhaustive]
 pub enum JsonReadError {
     #[error("Failed to deserialize JSON: {error}")]
-    JsonElementWriteError {
+    JsonElementReadError {
         #[from]
         error: serde_json::Error,
     },
