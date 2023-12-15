@@ -791,6 +791,7 @@ mod test {
                 properties: None,
                 components: None,
                 evidence: None,
+                signature: None,
             }])),
             services: Some(Services(vec![Service {
                 bom_ref: None,

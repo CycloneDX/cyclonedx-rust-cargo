@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/v1_4/bom.rs
-assertion_line: 444
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -121,6 +120,10 @@ expression: xml_output
           <text><![CDATA[copyright]]></text>
         </copyright>
       </evidence>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </component>
     <manufacture>
       <name>name</name>
@@ -245,6 +248,10 @@ expression: xml_output
           <text><![CDATA[copyright]]></text>
         </copyright>
       </evidence>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </component>
   </components>
   <services>

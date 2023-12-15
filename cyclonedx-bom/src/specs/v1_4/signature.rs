@@ -19,12 +19,15 @@
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
-use xml::reader;
+use xml::{reader, writer::XmlEvent};
 
 use crate::{
     errors::XmlReadError,
     models,
-    xml::{read_simple_tag, to_xml_read_error, unexpected_element_error, FromXml},
+    xml::{
+        read_simple_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
+        write_simple_tag, FromXml, ToXml,
+    },
 };
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -135,6 +138,26 @@ impl From<Algorithm> for models::signature::Algorithm {
     }
 }
 
+impl ToXml for Signature {
+    fn write_xml_element<W: std::io::prelude::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        writer
+            .write(XmlEvent::start_element(SIGNATURE_TAG))
+            .map_err(to_xml_write_error(SIGNATURE_TAG))?;
+
+        write_simple_tag(writer, ALGORITHM_TAG, &self.algorithm.to_string())?;
+        write_simple_tag(writer, VALUE_TAG, &self.value)?;
+
+        writer
+            .write(XmlEvent::end_element())
+            .map_err(to_xml_write_error(SIGNATURE_TAG))?;
+
+        Ok(())
+    }
+}
+
 const SIGNATURE_TAG: &str = "signature";
 const ALGORITHM_TAG: &str = "algorithm";
 const VALUE_TAG: &str = "value";
@@ -195,11 +218,11 @@ impl FromXml for Signature {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use xml::{name::OwnedName, EventReader, ParserConfig};
+    use xml::{name::OwnedName, EmitterConfig, EventReader, EventWriter, ParserConfig};
 
     use crate::{
         models,
-        xml::{test::read_element_from_string, FromXml},
+        xml::{test::read_element_from_string, FromXml, ToXml},
     };
 
     use super::{Algorithm, Signature};
@@ -233,6 +256,22 @@ pub(crate) mod test {
         let element_name = OwnedName::local("signature");
         let actual = Signature::read_xml_element(&mut event_reader, &element_name, &[]);
         assert!(actual.is_err());
+    }
+
+    #[track_caller]
+    fn assert_write_xml(signature: Signature, expected_output: &str) {
+        let mut writer = Vec::new();
+        let config = EmitterConfig::default()
+            .perform_indent(true)
+            .write_document_declaration(false);
+        let mut event_writer = EventWriter::new_with_config(&mut writer, config);
+
+        signature
+            .write_xml_element(&mut event_writer)
+            .expect("Failed to write signature");
+        let actual_output = String::from_utf8_lossy(&writer);
+
+        assert_eq!(actual_output, expected_output);
     }
 
     #[test]
@@ -279,5 +318,19 @@ pub(crate) mod test {
 </signature>
 "#;
         assert_invalid_signature(input);
+    }
+
+    #[test]
+    fn it_should_write_xml_successfully() {
+        let expected = r#"<signature>
+  <algorithm>ES256</algorithm>
+  <value>abcdefgh</value>
+</signature>"#;
+        let signature = Signature {
+            algorithm: Algorithm::ES256,
+            value: "abcdefgh".to_string(),
+        };
+
+        assert_write_xml(signature, expected);
     }
 }

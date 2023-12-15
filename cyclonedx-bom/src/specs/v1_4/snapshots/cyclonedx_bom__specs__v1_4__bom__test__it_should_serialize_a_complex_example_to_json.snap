@@ -163,6 +163,10 @@ expression: actual
             "text": "copyright"
           }
         ]
+      },
+      "signature": {
+        "algorithm": "HS512",
+        "value": "1234567890"
       }
     },
     "manufacture": {
@@ -338,6 +342,10 @@ expression: actual
             "text": "copyright"
           }
         ]
+      },
+      "signature": {
+        "algorithm": "HS512",
+        "value": "1234567890"
       }
     }
   ],
