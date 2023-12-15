@@ -35,6 +35,7 @@ use crate::models::external_reference::ExternalReferences;
 use crate::models::metadata::Metadata;
 use crate::models::property::Properties;
 use crate::models::service::{Service, Services};
+use crate::models::signature::Signature;
 use crate::models::vulnerability::Vulnerabilities;
 use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
@@ -85,7 +86,10 @@ pub struct Bom {
     pub dependencies: Option<Dependencies>,
     pub compositions: Option<Compositions>,
     pub properties: Option<Properties>,
+    /// Added in version 1.4
     pub vulnerabilities: Option<Vulnerabilities>,
+    /// Added in version 1.4
+    pub signature: Option<Signature>,
 }
 
 impl Bom {
@@ -214,6 +218,7 @@ impl Default for Bom {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         }
     }
 }
@@ -617,6 +622,7 @@ mod test {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         };
 
         let actual = bom
@@ -642,6 +648,7 @@ mod test {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         };
 
         let actual = bom.validate().expect("Failed to validate bom");
@@ -701,6 +708,7 @@ mod test {
             }])),
             properties: None,
             vulnerabilities: None,
+            signature: None,
         };
 
         let actual = bom.validate().expect("Failed to validate bom");
@@ -841,6 +849,7 @@ mod test {
                 vulnerability_targets: None,
                 properties: None,
             }])),
+            signature: None,
         };
 
         let actual = bom
@@ -1001,6 +1010,7 @@ mod test {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         }
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");

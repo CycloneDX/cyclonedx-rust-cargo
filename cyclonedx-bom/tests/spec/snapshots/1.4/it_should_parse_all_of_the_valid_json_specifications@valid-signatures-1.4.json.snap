@@ -1,7 +1,7 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_4.rs
 expression: bom_output
-input_file: cyclonedx-bom/tests/data/1.4/valid-signatures-1.4.json
+input_file: cyclonedx-bom/tests/spec/1.4/valid-signatures-1.4.json
 ---
 {
   "bomFormat": "CycloneDX",
@@ -47,5 +47,9 @@ input_file: cyclonedx-bom/tests/data/1.4/valid-signatures-1.4.json
         "5366293e-0740-4dcf-b1d0-0c1fc26e4981"
       ]
     }
-  ]
+  ],
+  "signature": {
+    "algorithm": "ES256",
+    "value": "m4pMbQQVV61TlP4Og7a75SeY8lh00LkkUDXZ4PIhXsR512MPRgZmusFYorJlYq9wM3P9n9gM3T8BTg9XdFdQkQ"
+  }
 }

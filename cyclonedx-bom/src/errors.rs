@@ -98,6 +98,9 @@ pub enum XmlReadError {
         element: String,
     },
 
+    #[error("Invalid enum value '{value}' given in {element}")]
+    InvalidEnumVariant { value: String, element: String },
+
     #[error("Could not parse {value} as {data_type} on {element}")]
     InvalidParseError {
         value: String,
