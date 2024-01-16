@@ -160,6 +160,7 @@ impl From<Service> for models::service::Service {
             external_references: convert_optional(other.external_references),
             properties: convert_optional(other.properties),
             services: convert_optional(other.services),
+            signature: None,
         }
     }
 }
@@ -540,6 +541,7 @@ pub(crate) mod test {
             external_references: Some(corresponding_external_references()),
             properties: Some(corresponding_properties()),
             services: Some(models::service::Services(vec![])),
+            signature: None,
         }
     }
 

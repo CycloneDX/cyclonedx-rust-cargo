@@ -786,6 +786,10 @@ pub(crate) mod test {
         <property name="name">value</property>
       </properties>
       <services />
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </service>
   </services>
   <externalReferences>

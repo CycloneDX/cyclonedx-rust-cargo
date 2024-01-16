@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_4.rs
+assertion_line: 54
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.4/valid-signatures-1.4.json
 ---
@@ -37,7 +38,11 @@ input_file: cyclonedx-bom/tests/spec/1.4/valid-signatures-1.4.json
           "flow": "inbound",
           "classification": "PII"
         }
-      ]
+      ],
+      "signature": {
+        "algorithm": "ES256",
+        "value": "6A77T3RBTAuVpZOgFFFfOvGOQ1hqMbfSQ91VucRM1RIP6QqX9kEF1Pi1_vCl37qpVzK51kIyppgUF_i9s999XA"
+      }
     }
   ],
   "compositions": [

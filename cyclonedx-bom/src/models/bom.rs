@@ -805,6 +805,7 @@ mod test {
                 external_references: None,
                 properties: None,
                 services: None,
+                signature: None,
             }])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
