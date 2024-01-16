@@ -702,6 +702,7 @@ mod test {
                 aggregate: AggregateType::Complete,
                 assemblies: Some(vec![BomReference("assembly".to_string())]),
                 dependencies: Some(vec![BomReference("dependencies".to_string())]),
+                signature: None,
             }])),
             properties: None,
             vulnerabilities: None,
@@ -823,6 +824,7 @@ mod test {
                 aggregate: AggregateType::UnknownAggregateType("unknown".to_string()),
                 assemblies: None,
                 dependencies: None,
+                signature: None,
             }])),
             properties: Some(Properties(vec![Property {
                 name: "name".to_string(),

@@ -441,7 +441,11 @@ expression: actual
       ],
       "dependencies": [
         "dependency"
-      ]
+      ],
+      "signature": {
+        "algorithm": "HS512",
+        "value": "1234567890"
+      }
     }
   ],
   "properties": [

@@ -815,6 +815,10 @@ pub(crate) mod test {
       <dependencies>
         <dependency ref="dependency" />
       </dependencies>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </composition>
   </compositions>
   <properties>

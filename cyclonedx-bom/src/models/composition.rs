@@ -21,11 +21,14 @@ use crate::validation::{
     ValidationResult,
 };
 
+use super::signature::Signature;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Composition {
     pub aggregate: AggregateType,
     pub assemblies: Option<Vec<BomReference>>,
     pub dependencies: Option<Vec<BomReference>>,
+    pub signature: Option<Signature>,
 }
 
 impl Validate for Composition {
@@ -131,6 +134,8 @@ pub struct BomReference(pub(crate) String);
 
 #[cfg(test)]
 mod test {
+    use crate::models::signature::Algorithm;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -140,6 +145,10 @@ mod test {
             aggregate: AggregateType::Complete,
             assemblies: Some(vec![BomReference("reference".to_string())]),
             dependencies: Some(vec![BomReference("reference".to_string())]),
+            signature: Some(Signature {
+                algorithm: Algorithm::HS512,
+                value: "abcdefgh".to_string(),
+            }),
         }])
         .validate()
         .expect("Error while validating");
@@ -153,6 +162,10 @@ mod test {
             aggregate: AggregateType::UnknownAggregateType("unknown aggregate type".to_string()),
             assemblies: Some(vec![BomReference("reference".to_string())]),
             dependencies: Some(vec![BomReference("reference".to_string())]),
+            signature: Some(Signature {
+                algorithm: Algorithm::HS512,
+                value: "abcdefgh".to_string(),
+            }),
         }])
         .validate()
         .expect("Error while validating");
