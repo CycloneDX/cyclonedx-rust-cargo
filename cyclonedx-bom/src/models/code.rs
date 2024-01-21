@@ -26,7 +26,7 @@ use crate::{
 
 use super::attached_text::AttachedText;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Commit {
     pub uid: Option<NormalizedString>,
     pub url: Option<Uri>,
@@ -78,7 +78,7 @@ impl Validate for Commit {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Commits(pub Vec<Commit>);
 
 impl Validate for Commits {
@@ -100,7 +100,7 @@ impl Validate for Commits {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Diff {
     pub text: Option<AttachedText>,
     pub url: Option<Uri>,
@@ -131,7 +131,7 @@ impl Validate for Diff {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IdentifiableAction {
     pub timestamp: Option<DateTime>,
     pub name: Option<NormalizedString>,
@@ -170,7 +170,7 @@ impl Validate for IdentifiableAction {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Issue {
     pub issue_type: IssueClassification,
     pub id: Option<NormalizedString>,
@@ -234,7 +234,7 @@ impl Validate for Issue {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum IssueClassification {
     Defect,
     Enhancement,
@@ -283,7 +283,7 @@ impl Validate for IssueClassification {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Patch {
     pub patch_type: PatchClassification,
     pub diff: Option<Diff>,
@@ -326,7 +326,7 @@ impl Validate for Patch {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Patches(pub Vec<Patch>);
 
 impl Validate for Patches {
@@ -347,7 +347,7 @@ impl Validate for Patches {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PatchClassification {
     Unofficial,
     Monkey,
@@ -399,7 +399,7 @@ impl Validate for PatchClassification {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Source {
     pub name: Option<NormalizedString>,
     pub url: Option<Uri>,

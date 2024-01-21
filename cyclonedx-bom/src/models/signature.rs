@@ -19,7 +19,7 @@
 use std::str::FromStr;
 
 /// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Signature {
     /// Signature algorithm.
     pub algorithm: Algorithm,
@@ -29,7 +29,7 @@ pub struct Signature {
 
 /*
 /// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Signature {
     /// Multiple signatures
     Signers(Vec<Signer>),
@@ -40,7 +40,7 @@ pub enum Signature {
 }
 
 /// For now the [`Signer`] struct only holds algorithm and value
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Signer {
     /// Signature algorithm.
     pub algorithm: Algorithm,
@@ -50,7 +50,7 @@ pub struct Signer {
 */
 
 /// Supported signature algorithms.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Algorithm {
     RS256,
     RS384,

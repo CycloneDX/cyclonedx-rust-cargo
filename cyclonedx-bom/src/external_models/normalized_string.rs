@@ -25,7 +25,7 @@ use std::ops::Deref;
 /// A string that does not contain carriage return, line feed, or tab characters
 ///
 /// Defined via the [XML schema](https://www.w3.org/TR/xmlschema-2/#normalizedString)
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct NormalizedString(pub(crate) String);
 
 impl NormalizedString {

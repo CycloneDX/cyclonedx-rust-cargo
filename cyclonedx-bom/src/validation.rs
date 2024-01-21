@@ -65,7 +65,7 @@ pub enum ValidationPathComponent {
     },
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ValidationResult {
     Passed,
     Failed { reasons: Vec<FailureReason> },

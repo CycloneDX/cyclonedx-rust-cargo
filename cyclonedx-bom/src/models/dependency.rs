@@ -16,10 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Dependencies(pub Vec<Dependency>);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Dependency {
     pub dependency_ref: String,
     pub dependencies: Vec<String>,
