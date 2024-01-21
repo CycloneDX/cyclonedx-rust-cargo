@@ -166,11 +166,15 @@ impl Args {
         };
 
         // according to the CycloneDX spec, the file has either be called 'bom.xml'
-        // or include the .cdx extension, so including the target in filename
-        // requires also adding the .cdx extension
+        // or include the .cdx extension:
+        // https://cyclonedx.org/specification/overview/#recognized-file-patterns
         if self.target_in_filename {
             cdx_extension = Some(CdxExtension::Included)
         }
+        // Ditto for any kind of prefix or anything not named 'bom'
+        if prefix.is_some() {
+            cdx_extension = Some(CdxExtension::Included)
+        };
 
         let output_options =
             if cdx_extension.is_none() && prefix.is_none() && !self.target_in_filename {
