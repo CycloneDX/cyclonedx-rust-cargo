@@ -663,6 +663,8 @@ impl GeneratedSbom {
         let prefix = match output_options.prefix {
             Prefix::Pattern(Pattern::Bom) => "bom".to_string(),
             Prefix::Pattern(Pattern::Package) => self.package_name.clone(),
+            Prefix::Pattern(Pattern::Binary) => todo!(),
+            Prefix::Pattern(Pattern::CargoTarget) => todo!(),
             Prefix::Custom(c) => c.to_string(),
         };
 

@@ -164,6 +164,10 @@ pub enum Pattern {
     #[default]
     Bom,
     Package,
+    Binary,
+    /// Not to be confused with a compilation target:
+    /// https://doc.rust-lang.org/cargo/reference/cargo-targets.html
+    CargoTarget,
 }
 
 impl FromStr for Pattern {
@@ -173,6 +177,8 @@ impl FromStr for Pattern {
         match s {
             "bom" => Ok(Self::Bom),
             "package" => Ok(Self::Package),
+            "binary" => Ok(Self::Binary),
+            "cargo-target" => Ok(Self::CargoTarget),
             _ => Err(format!("Expected bom or package, got `{}`", s)),
         }
     }
