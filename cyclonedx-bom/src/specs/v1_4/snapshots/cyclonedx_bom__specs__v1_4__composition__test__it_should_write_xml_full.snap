@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/v1_4/composition.rs
+assertion_line: 347
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -12,5 +13,9 @@ expression: xml_output
     <dependencies>
       <dependency ref="dependency" />
     </dependencies>
+    <signature>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signature>
   </composition>
 </compositions>

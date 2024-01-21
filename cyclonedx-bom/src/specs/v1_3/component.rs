@@ -225,6 +225,7 @@ impl From<Component> for models::component::Component {
             properties: convert_optional(other.properties),
             components: convert_optional(other.components),
             evidence: convert_optional(other.evidence),
+            signature: None, // Not supported in 1.3
         }
     }
 }
@@ -1256,6 +1257,7 @@ pub(crate) mod test {
             properties: Some(corresponding_properties()),
             components: Some(corresponding_empty_components()),
             evidence: Some(corresponding_evidence()),
+            signature: None,
         }
     }
 

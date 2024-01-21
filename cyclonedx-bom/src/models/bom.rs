@@ -35,6 +35,7 @@ use crate::models::external_reference::ExternalReferences;
 use crate::models::metadata::Metadata;
 use crate::models::property::Properties;
 use crate::models::service::{Service, Services};
+use crate::models::signature::Signature;
 use crate::models::vulnerability::Vulnerabilities;
 use crate::validation::{
     FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
@@ -85,7 +86,10 @@ pub struct Bom {
     pub dependencies: Option<Dependencies>,
     pub compositions: Option<Compositions>,
     pub properties: Option<Properties>,
+    /// Added in version 1.4
     pub vulnerabilities: Option<Vulnerabilities>,
+    /// Added in version 1.4
+    pub signature: Option<Signature>,
 }
 
 impl Bom {
@@ -105,10 +109,7 @@ impl Bom {
                 SpecVersion::V1_4 => Ok(crate::specs::v1_4::bom::Bom::deserialize(json)?.into()),
             }
         } else {
-            return Err(BomError::UnsupportedSpecVersion(
-                "No field 'specVersion' found".to_string(),
-            )
-            .into());
+            Err(BomError::UnsupportedSpecVersion("No field 'specVersion' found".to_string()).into())
         }
     }
 
@@ -214,6 +215,7 @@ impl Default for Bom {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         }
     }
 }
@@ -617,6 +619,7 @@ mod test {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         };
 
         let actual = bom
@@ -642,6 +645,7 @@ mod test {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         };
 
         let actual = bom.validate().expect("Failed to validate bom");
@@ -698,9 +702,11 @@ mod test {
                 aggregate: AggregateType::Complete,
                 assemblies: Some(vec![BomReference("assembly".to_string())]),
                 dependencies: Some(vec![BomReference("dependencies".to_string())]),
+                signature: None,
             }])),
             properties: None,
             vulnerabilities: None,
+            signature: None,
         };
 
         let actual = bom.validate().expect("Failed to validate bom");
@@ -783,6 +789,7 @@ mod test {
                 properties: None,
                 components: None,
                 evidence: None,
+                signature: None,
             }])),
             services: Some(Services(vec![Service {
                 bom_ref: None,
@@ -799,6 +806,7 @@ mod test {
                 external_references: None,
                 properties: None,
                 services: None,
+                signature: None,
             }])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
@@ -816,6 +824,7 @@ mod test {
                 aggregate: AggregateType::UnknownAggregateType("unknown".to_string()),
                 assemblies: None,
                 dependencies: None,
+                signature: None,
             }])),
             properties: Some(Properties(vec![Property {
                 name: "name".to_string(),
@@ -841,6 +850,7 @@ mod test {
                 vulnerability_targets: None,
                 properties: None,
             }])),
+            signature: None,
         };
 
         let actual = bom
@@ -1001,6 +1011,7 @@ mod test {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         }
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");

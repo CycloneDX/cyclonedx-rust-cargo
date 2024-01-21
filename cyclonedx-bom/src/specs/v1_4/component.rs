@@ -41,6 +41,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
 
+use super::signature::Signature;
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
 pub(crate) struct Components(Vec<Component>);
@@ -150,6 +152,9 @@ pub(crate) struct Component {
     components: Option<Components>,
     #[serde(skip_serializing_if = "Option::is_none")]
     evidence: Option<ComponentEvidence>,
+    /// Available since version 1.4
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signature: Option<Signature>,
 }
 
 impl From<models::component::Component> for Component {
@@ -178,6 +183,7 @@ impl From<models::component::Component> for Component {
             properties: convert_optional(other.properties),
             components: convert_optional(other.components),
             evidence: convert_optional(other.evidence),
+            signature: convert_optional(other.signature),
         }
     }
 }
@@ -208,6 +214,7 @@ impl From<Component> for models::component::Component {
             properties: convert_optional(other.properties),
             components: convert_optional(other.components),
             evidence: convert_optional(other.evidence),
+            signature: convert_optional(other.signature),
         }
     }
 }
@@ -227,6 +234,7 @@ const SCOPE_TAG: &str = "scope";
 const COPYRIGHT_TAG: &str = "copyright";
 const PURL_TAG: &str = "purl";
 const MODIFIED_TAG: &str = "modified";
+const SIGNATURE_TAG: &str = "signature";
 
 impl ToXml for Component {
     fn write_xml_element<W: std::io::Write>(
@@ -330,6 +338,10 @@ impl ToXml for Component {
             }
         }
 
+        if let Some(signature) = &self.signature {
+            signature.write_xml_element(writer)?;
+        }
+
         writer
             .write(XmlEvent::end_element())
             .map_err(to_xml_write_error(COMPONENT_TAG))?;
@@ -376,6 +388,7 @@ impl FromXml for Component {
         let mut properties: Option<Properties> = None;
         let mut components: Option<Components> = None;
         let mut evidence: Option<ComponentEvidence> = None;
+        let mut signature: Option<Signature> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -513,6 +526,16 @@ impl FromXml for Component {
                     )?)
                 }
 
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SIGNATURE_TAG => {
+                    signature = Some(Signature::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+
                 // lax validation of any elements from a different schema
                 reader::XmlEvent::StartElement { name, .. } => {
                     read_lax_validation_tag(event_reader, &name)?
@@ -553,6 +576,7 @@ impl FromXml for Component {
             properties,
             components,
             evidence,
+            signature,
         })
     }
 }
@@ -1185,6 +1209,7 @@ pub(crate) mod test {
             license::test::{corresponding_licenses, example_licenses},
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
+            signature::test::{corresponding_signature, example_signature},
         },
         xml::test::{read_element_from_string, write_element_to_string},
     };
@@ -1224,6 +1249,7 @@ pub(crate) mod test {
             properties: Some(example_properties()),
             components: Some(example_empty_components()),
             evidence: Some(example_evidence()),
+            signature: Some(example_signature()),
         }
     }
 
@@ -1254,6 +1280,7 @@ pub(crate) mod test {
             properties: Some(corresponding_properties()),
             components: Some(corresponding_empty_components()),
             evidence: Some(corresponding_evidence()),
+            signature: Some(corresponding_signature()),
         }
     }
 
@@ -1458,6 +1485,10 @@ pub(crate) mod test {
         <text><![CDATA[copyright]]></text>
       </copyright>
     </evidence>
+    <signature>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signature>
   </component>
 </components>
 "#;

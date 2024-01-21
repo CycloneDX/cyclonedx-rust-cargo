@@ -30,6 +30,7 @@ pub mod metadata;
 pub mod organization;
 pub mod property;
 pub mod service;
+pub mod signature;
 pub mod tool;
 pub mod vulnerability;
 pub mod vulnerability_analysis;

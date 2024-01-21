@@ -29,7 +29,7 @@ use crate::{
     specs::v1_4::{
         component::Components, composition::Compositions, dependency::Dependencies,
         external_reference::ExternalReferences, metadata::Metadata, property::Properties,
-        service::Services, vulnerability::Vulnerabilities,
+        service::Services, signature::Signature, vulnerability::Vulnerabilities,
     },
     xml::ToXml,
 };
@@ -59,6 +59,8 @@ pub(crate) struct Bom {
     properties: Option<Properties>,
     #[serde(skip_serializing_if = "Option::is_none")]
     vulnerabilities: Option<Vulnerabilities>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signature: Option<Signature>,
 }
 
 impl From<models::bom::Bom> for Bom {
@@ -76,6 +78,7 @@ impl From<models::bom::Bom> for Bom {
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
             vulnerabilities: convert_optional(other.vulnerabilities),
+            signature: convert_optional(other.signature),
         }
     }
 }
@@ -93,6 +96,7 @@ impl From<Bom> for models::bom::Bom {
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
             vulnerabilities: convert_optional(other.vulnerabilities),
+            signature: convert_optional(other.signature),
         }
     }
 }
@@ -170,6 +174,7 @@ const DEPENDENCIES_TAG: &str = "dependencies";
 const COMPOSITIONS_TAG: &str = "compositions";
 const PROPERTIES_TAG: &str = "properties";
 const VULNERABILITIES_TAG: &str = "vulnerabilities";
+const SIGNATURE_TAG: &str = "signature";
 
 impl FromXmlDocument for Bom {
     fn read_xml_document<R: std::io::Read>(
@@ -218,6 +223,7 @@ impl FromXmlDocument for Bom {
         let mut compositions: Option<Compositions> = None;
         let mut properties: Option<Properties> = None;
         let mut vulnerabilities: Option<Vulnerabilities> = None;
+        let mut signature: Option<Signature> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -295,6 +301,15 @@ impl FromXmlDocument for Bom {
                         &attributes,
                     )?)
                 }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SIGNATURE_TAG => {
+                    signature = Some(Signature::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
 
                 // lax validation of any elements from a different schema
                 reader::XmlEvent::StartElement { name, .. } => {
@@ -327,6 +342,7 @@ impl FromXmlDocument for Bom {
             compositions,
             properties,
             vulnerabilities,
+            signature,
         })
     }
 }
@@ -367,6 +383,7 @@ pub(crate) mod test {
             metadata::test::{corresponding_metadata, example_metadata},
             property::test::{corresponding_properties, example_properties},
             service::test::{corresponding_services, example_services},
+            signature::test::{corresponding_signature, example_signature},
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };
@@ -387,6 +404,7 @@ pub(crate) mod test {
             compositions: None,
             properties: None,
             vulnerabilities: None,
+            signature: None,
         }
     }
 
@@ -404,6 +422,7 @@ pub(crate) mod test {
             compositions: Some(example_compositions()),
             properties: Some(example_properties()),
             vulnerabilities: Some(example_vulnerabilities()),
+            signature: Some(example_signature()),
         }
     }
 
@@ -419,6 +438,7 @@ pub(crate) mod test {
             compositions: Some(corresponding_compositions()),
             properties: Some(corresponding_properties()),
             vulnerabilities: Some(corresponding_vulnerabilities()),
+            signature: Some(corresponding_signature()),
         }
     }
 
@@ -593,6 +613,10 @@ pub(crate) mod test {
           <text><![CDATA[copyright]]></text>
         </copyright>
       </evidence>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </component>
     <manufacture>
       <name>name</name>
@@ -717,6 +741,10 @@ pub(crate) mod test {
           <text><![CDATA[copyright]]></text>
         </copyright>
       </evidence>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </component>
   </components>
   <services>
@@ -758,6 +786,10 @@ pub(crate) mod test {
         <property name="name">value</property>
       </properties>
       <services />
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </service>
   </services>
   <externalReferences>
@@ -783,6 +815,10 @@ pub(crate) mod test {
       <dependencies>
         <dependency ref="dependency" />
       </dependencies>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </composition>
   </compositions>
   <properties>
@@ -892,6 +928,10 @@ pub(crate) mod test {
       </properties>
     </vulnerability>
   </vulnerabilities>
+  <signature>
+    <algorithm>HS512</algorithm>
+    <value>1234567890</value>
+  </signature>
   <example:laxValidation>
     <example:innerElement id="test" />
   </example:laxValidation>

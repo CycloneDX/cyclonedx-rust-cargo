@@ -35,6 +35,8 @@ use crate::specs::v1_4::{
     property::Properties,
 };
 
+use super::signature::Signature;
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
 pub(crate) struct Services(Vec<Service>);
@@ -117,6 +119,8 @@ pub(crate) struct Service {
     properties: Option<Properties>,
     #[serde(skip_serializing_if = "Option::is_none")]
     services: Option<Services>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signature: Option<Signature>,
 }
 
 impl From<models::service::Service> for Service {
@@ -138,6 +142,7 @@ impl From<models::service::Service> for Service {
             external_references: convert_optional(other.external_references),
             properties: convert_optional(other.properties),
             services: convert_optional(other.services),
+            signature: convert_optional(other.signature),
         }
     }
 }
@@ -161,6 +166,7 @@ impl From<Service> for models::service::Service {
             external_references: convert_optional(other.external_references),
             properties: convert_optional(other.properties),
             services: convert_optional(other.services),
+            signature: convert_optional(other.signature),
         }
     }
 }
@@ -177,6 +183,7 @@ const ENDPOINT_TAG: &str = "endpoint";
 const AUTHENTICATED_TAG: &str = "authenticated";
 const X_TRUST_BOUNDARY_TAG: &str = "x-trust-boundary";
 const DATA_TAG: &str = "data";
+const SIGNATURE_TAG: &str = "signature";
 
 impl ToXml for Service {
     fn write_xml_element<W: std::io::Write>(
@@ -263,6 +270,10 @@ impl ToXml for Service {
             services.write_xml_element(writer)?;
         }
 
+        if let Some(signature) = &self.signature {
+            signature.write_xml_element(writer)?;
+        }
+
         writer
             .write(XmlEvent::end_element())
             .map_err(to_xml_write_error(SERVICE_TAG))?;
@@ -299,6 +310,7 @@ impl FromXml for Service {
         let mut external_references: Option<ExternalReferences> = None;
         let mut properties: Option<Properties> = None;
         let mut services: Option<Services> = None;
+        let mut signature: Option<Signature> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -394,6 +406,16 @@ impl FromXml for Service {
                     )?)
                 }
 
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SIGNATURE_TAG => {
+                    signature = Some(Signature::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
+
                 // lax validation of any elements from a different schema
                 reader::XmlEvent::StartElement { name, .. } => {
                     read_lax_validation_tag(event_reader, &name)?
@@ -425,6 +447,7 @@ impl FromXml for Service {
             external_references,
             properties,
             services,
+            signature,
         })
     }
 }
@@ -507,6 +530,7 @@ pub(crate) mod test {
             license::test::{corresponding_licenses, example_licenses},
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
+            signature::test::{corresponding_signature, example_signature},
         },
         xml::test::{read_element_from_string, write_element_to_string},
     };
@@ -535,6 +559,7 @@ pub(crate) mod test {
             external_references: Some(example_external_references()),
             properties: Some(example_properties()),
             services: Some(Services(vec![])),
+            signature: Some(example_signature()),
         }
     }
 
@@ -554,6 +579,7 @@ pub(crate) mod test {
             external_references: Some(corresponding_external_references()),
             properties: Some(corresponding_properties()),
             services: Some(models::service::Services(vec![])),
+            signature: Some(corresponding_signature()),
         }
     }
 
@@ -619,6 +645,10 @@ pub(crate) mod test {
       <property name="name">value</property>
     </properties>
     <services />
+    <signature>
+      <algorithm>HS512</algorithm>
+     <value>1234567890</value>
+    </signature>
   </service>
 </services>
 "#;

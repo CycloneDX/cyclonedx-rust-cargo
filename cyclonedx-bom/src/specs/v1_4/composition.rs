@@ -19,7 +19,7 @@
 use crate::{
     errors::XmlReadError,
     models,
-    utilities::{convert_optional_vec, convert_vec},
+    utilities::{convert_optional, convert_optional_vec, convert_vec},
     xml::{
         attribute_or_error, closing_tag_or_error, read_lax_validation_list_tag, read_simple_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml,
@@ -28,6 +28,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
+
+use super::signature::Signature;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -88,6 +90,8 @@ pub(crate) struct Composition {
     assemblies: Option<Vec<BomReference>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     dependencies: Option<Vec<BomReference>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signature: Option<Signature>,
 }
 
 impl From<models::composition::Composition> for Composition {
@@ -96,6 +100,7 @@ impl From<models::composition::Composition> for Composition {
             aggregate: other.aggregate.to_string(),
             assemblies: convert_optional_vec(other.assemblies),
             dependencies: convert_optional_vec(other.dependencies),
+            signature: convert_optional(other.signature),
         }
     }
 }
@@ -106,6 +111,7 @@ impl From<Composition> for models::composition::Composition {
             aggregate: models::composition::AggregateType::new_unchecked(other.aggregate),
             assemblies: convert_optional_vec(other.assemblies),
             dependencies: convert_optional_vec(other.dependencies),
+            signature: convert_optional(other.signature),
         }
     }
 }
@@ -116,6 +122,7 @@ const ASSEMBLIES_TAG: &str = "assemblies";
 const ASSEMBLY_TAG: &str = "assembly";
 const DEPENDENCIES_TAG: &str = "dependencies";
 const DEPENDENCY_TAG: &str = "dependency";
+const SIGNATURE_TAG: &str = "signature";
 
 impl ToXml for Composition {
     fn write_xml_element<W: std::io::Write>(
@@ -156,6 +163,10 @@ impl ToXml for Composition {
                 .map_err(to_xml_write_error(DEPENDENCIES_TAG))?;
         }
 
+        if let Some(signature) = &self.signature {
+            signature.write_xml_element(writer)?;
+        }
+
         writer
             .write(XmlEvent::end_element())
             .map_err(to_xml_write_error(COMPOSITION_TAG))?;
@@ -176,6 +187,7 @@ impl FromXml for Composition {
         let mut aggregate: Option<String> = None;
         let mut assemblies: Option<Vec<BomReference>> = None;
         let mut dependencies: Option<Vec<BomReference>> = None;
+        let mut signature: Option<Signature> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -204,6 +216,15 @@ impl FromXml for Composition {
                         DEPENDENCY_TAG,
                     )?)
                 }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SIGNATURE_TAG => {
+                    signature = Some(Signature::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -220,6 +241,7 @@ impl FromXml for Composition {
             aggregate,
             assemblies,
             dependencies,
+            signature,
         })
     }
 }
@@ -280,7 +302,10 @@ impl FromXml for BomReference {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::xml::test::{read_element_from_string, write_element_to_string};
+    use crate::{
+        specs::v1_4::signature::test::{corresponding_signature, example_signature},
+        xml::test::{read_element_from_string, write_element_to_string},
+    };
 
     use super::*;
 
@@ -297,6 +322,7 @@ pub(crate) mod test {
             aggregate: "aggregate".to_string(),
             assemblies: Some(vec![BomReference("assembly".to_string())]),
             dependencies: Some(vec![BomReference("dependency".to_string())]),
+            signature: Some(example_signature()),
         }
     }
 
@@ -311,6 +337,7 @@ pub(crate) mod test {
             dependencies: Some(vec![models::composition::BomReference(
                 "dependency".to_string(),
             )]),
+            signature: Some(corresponding_signature()),
         }
     }
 
@@ -332,6 +359,10 @@ pub(crate) mod test {
     <dependencies>
       <dependency ref="dependency" />
     </dependencies>
+    <signature>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signature>
   </composition>
 </compositions>
 "#;

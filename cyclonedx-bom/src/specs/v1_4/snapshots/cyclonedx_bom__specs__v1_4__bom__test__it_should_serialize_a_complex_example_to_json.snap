@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/v1_4/bom.rs
+assertion_line: 460
 expression: actual
 ---
 {
@@ -163,6 +164,10 @@ expression: actual
             "text": "copyright"
           }
         ]
+      },
+      "signature": {
+        "algorithm": "HS512",
+        "value": "1234567890"
       }
     },
     "manufacture": {
@@ -338,6 +343,10 @@ expression: actual
             "text": "copyright"
           }
         ]
+      },
+      "signature": {
+        "algorithm": "HS512",
+        "value": "1234567890"
       }
     }
   ],
@@ -396,7 +405,11 @@ expression: actual
           "value": "value"
         }
       ],
-      "services": []
+      "services": [],
+      "signature": {
+        "algorithm": "HS512",
+        "value": "1234567890"
+      }
     }
   ],
   "externalReferences": [
@@ -428,7 +441,11 @@ expression: actual
       ],
       "dependencies": [
         "dependency"
-      ]
+      ],
+      "signature": {
+        "algorithm": "HS512",
+        "value": "1234567890"
+      }
     }
   ],
   "properties": [
@@ -551,5 +568,9 @@ expression: actual
         }
       ]
     }
-  ]
+  ],
+  "signature": {
+    "algorithm": "HS512",
+    "value": "1234567890"
+  }
 }

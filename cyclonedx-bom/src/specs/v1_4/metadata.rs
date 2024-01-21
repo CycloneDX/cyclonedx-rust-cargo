@@ -439,6 +439,10 @@ pub(crate) mod test {
         <text><![CDATA[copyright]]></text>
       </copyright>
     </evidence>
+    <signature>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signature>
   </component>
   <manufacture>
     <name>name</name>

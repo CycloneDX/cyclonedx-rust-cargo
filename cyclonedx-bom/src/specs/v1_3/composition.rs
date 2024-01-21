@@ -106,6 +106,7 @@ impl From<Composition> for models::composition::Composition {
             aggregate: models::composition::AggregateType::new_unchecked(other.aggregate),
             assemblies: convert_optional_vec(other.assemblies),
             dependencies: convert_optional_vec(other.dependencies),
+            signature: None,
         }
     }
 }
@@ -311,6 +312,7 @@ pub(crate) mod test {
             dependencies: Some(vec![models::composition::BomReference(
                 "dependency".to_string(),
             )]),
+            signature: None,
         }
     }
 

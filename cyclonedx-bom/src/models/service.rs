@@ -26,6 +26,8 @@ use crate::validation::{
     ValidationResult,
 };
 
+use super::signature::Signature;
+
 /// Represents a service as described in the [CycloneDX use cases](https://cyclonedx.org/use-cases/#service-definition)
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_service)
@@ -45,6 +47,8 @@ pub struct Service {
     pub external_references: Option<ExternalReferences>,
     pub properties: Option<Properties>,
     pub services: Option<Services>,
+    /// Added in version 1.4
+    pub signature: Option<Signature>,
 }
 
 impl Service {
@@ -70,6 +74,7 @@ impl Service {
             external_references: None,
             properties: None,
             services: None,
+            signature: None,
         }
     }
 }
@@ -284,6 +289,7 @@ mod test {
             external_reference::{ExternalReference, ExternalReferenceType},
             license::LicenseChoice,
             property::Property,
+            signature::Algorithm,
         },
     };
 
@@ -324,6 +330,10 @@ mod test {
                 value: NormalizedString::new("value"),
             }])),
             services: Some(Services(vec![])),
+            signature: Some(Signature {
+                algorithm: Algorithm::HS512,
+                value: "abcdefgh".to_string(),
+            }),
         }])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
@@ -381,7 +391,12 @@ mod test {
                 external_references: None,
                 properties: None,
                 services: None,
+                signature: None,
             }])),
+            signature: Some(Signature {
+                algorithm: Algorithm::HS512,
+                value: "abcdefgh".to_string(),
+            }),
         }])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");

@@ -123,6 +123,7 @@ impl From<Bom> for models::bom::Bom {
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
             vulnerabilities: None,
+            signature: None,
         }
     }
 }
@@ -431,6 +432,7 @@ pub(crate) mod test {
             compositions: Some(corresponding_compositions()),
             properties: Some(corresponding_properties()),
             vulnerabilities: None,
+            signature: None,
         }
     }
 

@@ -36,6 +36,8 @@ use crate::{
     validation::{Validate, ValidationContext, ValidationError, ValidationResult},
 };
 
+use super::signature::Signature;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Component {
     pub component_type: Classification,
@@ -61,6 +63,8 @@ pub struct Component {
     pub properties: Option<Properties>,
     pub components: Option<Components>,
     pub evidence: Option<ComponentEvidence>,
+    /// Added in version 1.4
+    pub signature: Option<Signature>,
 }
 
 impl Component {
@@ -94,6 +98,7 @@ impl Component {
             properties: None,
             components: None,
             evidence: None,
+            signature: None,
         }
     }
 }
@@ -608,6 +613,7 @@ mod test {
             hash::{Hash, HashAlgorithm, HashValue},
             license::LicenseChoice,
             property::Property,
+            signature::Algorithm,
         },
         validation::ValidationPathComponent,
     };
@@ -691,6 +697,10 @@ mod test {
                     "MIT".to_string(),
                 ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
+            }),
+            signature: Some(Signature {
+                algorithm: Algorithm::HS512,
+                value: "abcdefgh".to_string(),
             }),
         }])
         .validate_with_context(ValidationContext::default())
@@ -779,6 +789,10 @@ mod test {
                     "invalid license".to_string(),
                 ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
+            }),
+            signature: Some(Signature {
+                algorithm: Algorithm::HS512,
+                value: "abcdefgh".to_string(),
             }),
         }])
         .validate_with_context(ValidationContext::default())
@@ -1194,6 +1208,7 @@ mod test {
             properties: None,
             components: None,
             evidence: None,
+            signature: None,
         }
     }
 }
