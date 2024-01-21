@@ -40,7 +40,7 @@ use crate::validation::{
 ///
 /// assert_eq!(date_time.to_string(), timestamp);
 /// ```
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DateTime(pub(crate) String);
 
 impl DateTime {

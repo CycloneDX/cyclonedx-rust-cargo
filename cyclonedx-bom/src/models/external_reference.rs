@@ -26,7 +26,7 @@ use crate::validation::{
 /// Represents a way to document systems, sites, and information that may be relevant but which are not included with the BOM.
 ///
 /// Please see the [CycloneDX use case](https://cyclonedx.org/use-cases/#external-references) for more information and examples.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExternalReference {
     pub external_reference_type: ExternalReferenceType,
     pub url: Uri,
@@ -86,7 +86,7 @@ impl Validate for ExternalReference {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExternalReferences(pub Vec<ExternalReference>);
 
 impl Validate for ExternalReferences {
@@ -108,7 +108,7 @@ impl Validate for ExternalReferences {
 }
 
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_externalReferenceType).
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExternalReferenceType {
     Vcs,
     IssueTracker,

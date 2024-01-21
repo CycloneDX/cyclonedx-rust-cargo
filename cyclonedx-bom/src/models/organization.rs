@@ -26,7 +26,7 @@ use crate::{
 /// Represents the contact information for an organization
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalContact)
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct OrganizationalContact {
     pub name: Option<NormalizedString>,
     pub email: Option<NormalizedString>,
@@ -85,7 +85,7 @@ impl Validate for OrganizationalContact {
 /// Represents an organization with name, url, and contact information
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalEntity)
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrganizationalEntity {
     pub name: Option<NormalizedString>,
     pub url: Option<Vec<Uri>>,

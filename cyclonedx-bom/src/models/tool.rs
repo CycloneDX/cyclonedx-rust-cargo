@@ -25,7 +25,7 @@ use crate::validation::{
 /// Represents the tool used to create the BOM
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_toolType)
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Tool {
     pub vendor: Option<NormalizedString>,
     pub name: Option<NormalizedString>,
@@ -87,7 +87,7 @@ impl Validate for Tool {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Tools(pub Vec<Tool>);
 
 impl Validate for Tools {

@@ -31,7 +31,7 @@ use crate::validation::{
 /// Represents additional information about a BOM
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_metadata)
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Metadata {
     pub timestamp: Option<DateTime>,
     pub tools: Option<Tools>,

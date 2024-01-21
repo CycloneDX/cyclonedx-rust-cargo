@@ -24,7 +24,7 @@ use crate::validation::{
 /// Represents an advisory, a notification of a threat to a component, service, or system.
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.4/xml/#type_advisoryType)
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Advisory {
     pub title: Option<NormalizedString>,
     pub url: Uri,
@@ -68,7 +68,7 @@ impl Validate for Advisory {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Advisories(pub Vec<Advisory>);
 
 impl Validate for Advisories {

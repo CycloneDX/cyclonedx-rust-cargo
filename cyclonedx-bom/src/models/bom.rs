@@ -75,7 +75,7 @@ impl ToString for SpecVersion {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bom {
     pub version: u32,
     pub serial_number: Option<UrnUuid>,
@@ -510,7 +510,7 @@ fn validate_services(
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UrnUuid(pub(crate) String);
 
 impl UrnUuid {
@@ -558,7 +558,7 @@ impl Validate for UrnUuid {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UrnUuidError {
     InvalidUrnUuid(String),
 }
