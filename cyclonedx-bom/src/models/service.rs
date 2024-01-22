@@ -330,10 +330,7 @@ mod test {
                 value: NormalizedString::new("value"),
             }])),
             services: Some(Services(vec![])),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
@@ -393,10 +390,7 @@ mod test {
                 services: None,
                 signature: None,
             }])),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate_with_context(ValidationContext::default())
         .expect("Error while validating");
