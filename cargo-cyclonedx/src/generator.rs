@@ -181,10 +181,7 @@ impl SbomGenerator {
     fn create_toplevel_component(&self, package: &Package) -> Component {
         let mut top_component = self.create_component(package, package);
         let mut subcomponents: Vec<Component> = Vec::new();
-        for tgt in &package.targets {
-            // Ignore tests, benches, examples and build scripts.
-            // They are not part of the final build artifacts, which is what we are after.
-            if !(tgt.is_bench() || tgt.is_example() || tgt.is_test() || tgt.is_custom_build()) {
+        for tgt in filter_targets(&package.targets) {
                 // classification
                 #[allow(clippy::if_same_then_else)]
                 let cdx_type = if tgt.is_bin() {
@@ -243,7 +240,6 @@ impl SbomGenerator {
                 }
 
                 subcomponents.push(subcomponent);
-            }
         }
         top_component.components = Some(Components(subcomponents));
         top_component
@@ -470,6 +466,14 @@ impl SbomGenerator {
             None => Ok(OrganizationalContact::new(author, None)),
         }
     }
+}
+
+/// Ignore tests, benches, examples and build scripts.
+/// They are not part of the final build artifacts, which is what we are after.
+fn filter_targets(targets: &[cargo_metadata::Target]) -> impl Iterator<Item = &cargo_metadata::Target> {
+    targets.iter().filter(|tgt| {
+        !(tgt.is_bench() || tgt.is_example() || tgt.is_test() || tgt.is_custom_build())
+    })
 }
 
 fn index_packages(packages: Vec<Package>) -> PackageMap {
