@@ -105,11 +105,20 @@ impl SbomGenerator {
                 }
             }
 
+            // Figure out the types of the various produced artifacts.
+            // This is additional information on top of the SBOM structure
+            // that is used to implement emitting a separate SBOM for each binary or artifact.
+            let root_package = &packages[member];
+            let target_kinds: Vec<Vec<String>> = filter_targets(&root_package.targets).map(|tgt| {
+                tgt.kind.clone()
+            }).collect();
+
             let generated = GeneratedSbom {
                 bom,
                 manifest_path: packages[member].manifest_path.clone().into_std_path_buf(),
                 package_name: packages[member].name.clone(),
                 sbom_config: generator.config,
+                target_kinds,
             };
 
             result.push(generated);
@@ -632,6 +641,7 @@ pub struct GeneratedSbom {
     pub manifest_path: PathBuf,
     pub package_name: String,
     pub sbom_config: SbomConfig,
+    pub target_kinds: Vec<Vec<String>>,
 }
 
 impl GeneratedSbom {
