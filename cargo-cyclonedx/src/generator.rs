@@ -58,6 +58,7 @@ use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
 use validator::validate_email;
@@ -636,6 +637,7 @@ fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
 /// * `manifest_path` - Folder containing the `Cargo.toml` manifest
 /// * `package_name` - Package from which this SBOM was generated
 /// * `sbom_config` - Configuration options used during generation
+/// * `target_kinds` - Detailed information on the kinds of targets in `sbom`
 pub struct GeneratedSbom {
     pub bom: Bom,
     pub manifest_path: PathBuf,
@@ -646,19 +648,29 @@ pub struct GeneratedSbom {
 
 impl GeneratedSbom {
     /// Writes SBOM to either a JSON or XML file in the same folder as `Cargo.toml` manifest
-    pub fn write_to_file(self) -> Result<(), SbomWriterError> {
-        let path = self.manifest_path.with_file_name(self.filename());
+    pub fn write_to_files(self) -> Result<(), SbomWriterError> {
+        match self.sbom_config.output_options().prefix {
+            Prefix::Pattern(Pattern::Bom | Pattern::Package) | Prefix::Custom(_) => {
+                let path = self.manifest_path.with_file_name(self.filename());
+                Self::write_to_file(self.bom, &path, &self.sbom_config)
+            },
+            Prefix::Pattern(Pattern::Binary) => todo!(),
+            Prefix::Pattern(Pattern::CargoTarget) => todo!(),
+        }
+    }
+
+    fn write_to_file(bom: Bom, path: &Path, config: &SbomConfig) -> Result<(), SbomWriterError> {
         log::info!("Outputting {}", path.display());
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
-        match self.sbom_config.format() {
+        match config.format() {
             Format::Json => {
-                self.bom
+                bom
                     .output_as_json_v1_3(&mut writer)
                     .map_err(SbomWriterError::JsonWriteError)?;
             }
             Format::Xml => {
-                self.bom
+                bom
                     .output_as_xml_v1_3(&mut writer)
                     .map_err(SbomWriterError::XmlWriteError)?;
             }
