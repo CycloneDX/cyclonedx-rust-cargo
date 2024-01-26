@@ -651,11 +651,15 @@ impl GeneratedSbom {
     pub fn write_to_files(self) -> Result<(), SbomWriterError> {
         match self.sbom_config.output_options().prefix {
             Prefix::Pattern(Pattern::Bom | Pattern::Package) | Prefix::Custom(_) => {
-                let path = self.manifest_path.with_file_name(self.filename());
+                let path = self.manifest_path.with_file_name(self.filename(&[]));
                 Self::write_to_file(self.bom, &path, &self.sbom_config)
             },
-            Prefix::Pattern(Pattern::Binary) => todo!(),
-            Prefix::Pattern(Pattern::CargoTarget) => todo!(),
+            Prefix::Pattern(pattern @ (Pattern::Binary | Pattern::CargoTarget)) => {
+                for (sbom, target_kind) in Self::per_artifact_sboms(&self.bom, &self.target_kinds, pattern) {
+                    todo!();
+                }
+                Ok(())
+            },
         }
     }
 
@@ -682,11 +686,11 @@ impl GeneratedSbom {
         Ok(())
     }
 
-    fn per_artifact_sboms<'a>(bom: &'a Bom, target_kinds: &'a [Vec<String>], pattern: Pattern) -> impl Iterator<Item = Bom> + 'a {
+    fn per_artifact_sboms<'a>(bom: &'a Bom, target_kinds: &'a [Vec<String>], pattern: Pattern) -> impl Iterator<Item = (Bom, Vec<String>)> + 'a {
         let meta = bom.metadata.as_ref().unwrap();
         let component = meta.component.as_ref().unwrap();
         let components = component.components.as_ref().unwrap();
-        components.0.iter().zip(target_kinds.iter()).filter(move |(component, target_kind)| {
+        components.0.iter().zip(target_kinds.iter()).filter(move |(_component, target_kind)| {
             match pattern {
                 Pattern::Binary => {
                     // only record binary artifacts
@@ -696,23 +700,30 @@ impl GeneratedSbom {
                 },
                 Pattern::CargoTarget => true, // pass everything through
                 Pattern::Bom | Pattern::Package => unreachable!(),
-            }
+            }        
         }).map(|(component, target_kind)| {
             let bom = bom.clone();
             // BIG FAT TODO
 
-            bom
+            (bom, target_kind.clone())
         })
     }
 
-    fn filename(&self) -> String {
+    fn filename(&self, target_kind: &[String]) -> String {
         let output_options = self.sbom_config.output_options();
-        let prefix = match output_options.prefix {
+        let prefix = match &output_options.prefix {
             Prefix::Pattern(Pattern::Bom) => "bom".to_string(),
             Prefix::Pattern(Pattern::Package) => self.package_name.clone(),
             Prefix::Pattern(Pattern::Binary) => todo!(),
             Prefix::Pattern(Pattern::CargoTarget) => todo!(),
             Prefix::Custom(c) => c.to_string(),
+        };
+
+        let target_kind_suffix = if !target_kind.is_empty() {
+            debug_assert!(matches!(&output_options.prefix, Prefix::Pattern(Pattern::Binary | Pattern::CargoTarget)));
+            format!("_{}", target_kind.join("-"))
+        } else {
+            "".to_owned()
         };
 
         let platform_suffix = match output_options.platform_suffix {
@@ -724,8 +735,9 @@ impl GeneratedSbom {
         };
 
         format!(
-            "{}{}{}.{}",
+            "{}{}{}{}.{}",
             prefix,
+            target_kind_suffix,
             platform_suffix,
             output_options.cdx_extension.extension(),
             self.sbom_config.format()
