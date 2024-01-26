@@ -682,6 +682,29 @@ impl GeneratedSbom {
         Ok(())
     }
 
+    fn per_artifact_sboms<'a>(bom: &'a Bom, target_kinds: &'a [Vec<String>], pattern: Pattern) -> impl Iterator<Item = Bom> + 'a {
+        let meta = bom.metadata.as_ref().unwrap();
+        let component = meta.component.as_ref().unwrap();
+        let components = component.components.as_ref().unwrap();
+        components.0.iter().zip(target_kinds.iter()).filter(move |(component, target_kind)| {
+            match pattern {
+                Pattern::Binary => {
+                    // only record binary artifacts
+                    // TODO: refactor this to use an enum, coming Soon(tm) to cargo-metadata:
+                    // https://github.com/oli-obk/cargo_metadata/pull/258
+                    target_kind.contains(&"bin".to_owned()) || target_kind.contains(&"cdylib".to_owned())
+                },
+                Pattern::CargoTarget => true, // pass everything through
+                Pattern::Bom | Pattern::Package => unreachable!(),
+            }
+        }).map(|(component, target_kind)| {
+            let bom = bom.clone();
+            // BIG FAT TODO
+
+            bom
+        })
+    }
+
     fn filename(&self) -> String {
         let output_options = self.sbom_config.output_options();
         let prefix = match output_options.prefix {
