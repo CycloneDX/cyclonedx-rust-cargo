@@ -18,7 +18,6 @@
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::str::FromStr;
 
 use crate::models::attached_text::AttachedText;
 use crate::models::code::{Commits, Patches};
@@ -33,7 +32,7 @@ use crate::{
         normalized_string::NormalizedString,
         uri::{Purl, Uri},
     },
-    validation::{Validate, ValidationContext, ValidationError, ValidationResult},
+    validation::{Validate, ValidationContext, ValidationResult},
 };
 
 use super::signature::Signature;
@@ -104,10 +103,7 @@ impl Component {
 }
 
 impl Validate for Component {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let component_type_context =
@@ -115,131 +111,131 @@ impl Validate for Component {
 
         results.push(
             self.component_type
-                .validate_with_context(component_type_context)?,
+                .validate_with_context(component_type_context),
         );
 
         if let Some(mime_type) = &self.mime_type {
             let context = context.extend_context_with_struct_field("Component", "mime_type");
 
-            results.push(mime_type.validate_with_context(context)?);
+            results.push(mime_type.validate_with_context(context));
         }
 
         if let Some(supplier) = &self.supplier {
             let context = context.extend_context_with_struct_field("Component", "supplier");
 
-            results.push(supplier.validate_with_context(context)?);
+            results.push(supplier.validate_with_context(context));
         }
 
         if let Some(author) = &self.author {
             let context = context.extend_context_with_struct_field("Component", "author");
 
-            results.push(author.validate_with_context(context)?);
+            results.push(author.validate_with_context(context));
         }
 
         if let Some(publisher) = &self.publisher {
             let context = context.extend_context_with_struct_field("Component", "publisher");
 
-            results.push(publisher.validate_with_context(context)?);
+            results.push(publisher.validate_with_context(context));
         }
 
         if let Some(group) = &self.group {
             let context = context.extend_context_with_struct_field("Component", "group");
 
-            results.push(group.validate_with_context(context)?);
+            results.push(group.validate_with_context(context));
         }
 
         let name_context = context.extend_context_with_struct_field("Component", "name");
 
-        results.push(self.name.validate_with_context(name_context)?);
+        results.push(self.name.validate_with_context(name_context));
 
         if let Some(version) = &self.version {
             let context = context.extend_context_with_struct_field("Component", "version");
 
-            results.push(version.validate_with_context(context)?);
+            results.push(version.validate_with_context(context));
         }
 
         if let Some(description) = &self.description {
             let context = context.extend_context_with_struct_field("Component", "description");
 
-            results.push(description.validate_with_context(context)?);
+            results.push(description.validate_with_context(context));
         }
 
         if let Some(scope) = &self.scope {
             let context = context.extend_context_with_struct_field("Component", "scope");
 
-            results.push(scope.validate_with_context(context)?);
+            results.push(scope.validate_with_context(context));
         }
 
         if let Some(hashes) = &self.hashes {
             let context = context.extend_context_with_struct_field("Component", "hashes");
 
-            results.push(hashes.validate_with_context(context)?);
+            results.push(hashes.validate_with_context(context));
         }
 
         if let Some(licenses) = &self.licenses {
             let context = context.extend_context_with_struct_field("Component", "licenses");
 
-            results.push(licenses.validate_with_context(context)?);
+            results.push(licenses.validate_with_context(context));
         }
 
         if let Some(copyright) = &self.copyright {
             let context = context.extend_context_with_struct_field("Component", "copyright");
 
-            results.push(copyright.validate_with_context(context)?);
+            results.push(copyright.validate_with_context(context));
         }
 
         if let Some(cpe) = &self.cpe {
             let context = context.extend_context_with_struct_field("Component", "cpe");
 
-            results.push(cpe.validate_with_context(context)?);
+            results.push(cpe.validate_with_context(context));
         }
 
         if let Some(purl) = &self.purl {
             let context = context.extend_context_with_struct_field("Component", "purl");
 
-            results.push(purl.validate_with_context(context)?);
+            results.push(purl.validate_with_context(context));
         }
 
         if let Some(swid) = &self.swid {
             let context = context.extend_context_with_struct_field("Component", "swid");
 
-            results.push(swid.validate_with_context(context)?);
+            results.push(swid.validate_with_context(context));
         }
 
         if let Some(pedigree) = &self.pedigree {
             let context = context.extend_context_with_struct_field("Component", "pedigree");
 
-            results.push(pedigree.validate_with_context(context)?);
+            results.push(pedigree.validate_with_context(context));
         }
 
         if let Some(external_references) = &self.external_references {
             let context =
                 context.extend_context_with_struct_field("Component", "external_references");
 
-            results.push(external_references.validate_with_context(context)?);
+            results.push(external_references.validate_with_context(context));
         }
 
         if let Some(properties) = &self.properties {
             let context = context.extend_context_with_struct_field("Component", "properties");
 
-            results.push(properties.validate_with_context(context)?);
+            results.push(properties.validate_with_context(context));
         }
 
         if let Some(components) = &self.components {
             let context = context.extend_context_with_struct_field("Component", "components");
 
-            results.push(components.validate_with_context(context)?);
+            results.push(components.validate_with_context(context));
         }
 
         if let Some(evidence) = &self.evidence {
             let context = context.extend_context_with_struct_field("Component", "evidence");
 
-            results.push(evidence.validate_with_context(context)?);
+            results.push(evidence.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -247,20 +243,17 @@ impl Validate for Component {
 pub struct Components(pub Vec<Component>);
 
 impl Validate for Components {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, component) in self.0.iter().enumerate() {
             let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(component.validate_with_context(context)?);
+            results.push(component.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -312,18 +305,15 @@ impl Classification {
 }
 
 impl Validate for Classification {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            Classification::UnknownClassification(_) => Ok(ValidationResult::Failed {
+            Classification::UnknownClassification(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "Unknown classification".to_string(),
                     context,
                 }],
-            }),
-            _ => Ok(ValidationResult::Passed),
+            },
+            _ => ValidationResult::Passed,
         }
     }
 }
@@ -361,18 +351,15 @@ impl Scope {
 }
 
 impl Validate for Scope {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            Scope::UnknownScope(_) => Ok(ValidationResult::Failed {
+            Scope::UnknownScope(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "Unknown scope".to_string(),
                     context,
                 }],
-            }),
-            _ => Ok(ValidationResult::Passed),
+            },
+            _ => ValidationResult::Passed,
         }
     }
 }
@@ -381,22 +368,19 @@ impl Validate for Scope {
 pub struct MimeType(pub(crate) String);
 
 impl Validate for MimeType {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
             Regex::new(r"^[-+a-z0-9.]+/[-+a-z0-9.]+$").expect("Failed to compile regex.")
         });
 
         match UUID_REGEX.is_match(&self.0) {
-            true => Ok(ValidationResult::Passed),
-            false => Ok(ValidationResult::Failed {
+            true => ValidationResult::Passed,
+            false => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "MimeType does not match regular expression".to_string(),
                     context,
                 }],
-            }),
+            },
         }
     }
 }
@@ -413,48 +397,32 @@ pub struct Swid {
 }
 
 impl Validate for Swid {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(text) = &self.text {
             let context = context.extend_context_with_struct_field("Swid", "text");
 
-            results.push(text.validate_with_context(context)?);
+            results.push(text.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
             let context = context.extend_context_with_struct_field("Swid", "url");
 
-            results.push(url.validate_with_context(context)?);
+            results.push(url.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cpe(pub(crate) String);
 
-impl FromStr for Cpe {
-    type Err = ValidationError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let result = Cpe(s.to_string());
-        result.validate()?;
-        Ok(result)
-    }
-}
-
 impl Validate for Cpe {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
             Regex::new(
                 r##"([c][pP][eE]:/[AHOaho]?(:[A-Za-z0-9\._\-~%]*){0,6})|(cpe:2\.3:[aho\*\-](:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){5}(:(([a-zA-Z]{2,3}(-([a-zA-Z]{2}|[0-9]{3}))?)|[\*\-]))(:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){4})"##,
@@ -462,14 +430,14 @@ impl Validate for Cpe {
         });
 
         if UUID_REGEX.is_match(&self.0) {
-            Ok(ValidationResult::Passed)
+            ValidationResult::Passed
         } else {
-            Ok(ValidationResult::Failed {
+            ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "Cpe does not match regular expression".to_string(),
                     context,
                 }],
-            })
+            }
         }
     }
 }
@@ -481,28 +449,25 @@ pub struct ComponentEvidence {
 }
 
 impl Validate for ComponentEvidence {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(licenses) = &self.licenses {
             let context = context.extend_context_with_struct_field("ComponentEvidence", "licenses");
 
-            results.push(licenses.validate_with_context(context)?);
+            results.push(licenses.validate_with_context(context));
         }
 
         if let Some(copyright) = &self.copyright {
             let context =
                 context.extend_context_with_struct_field("ComponentEvidence", "copyright");
 
-            results.push(copyright.validate_with_context(context)?);
+            results.push(copyright.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -517,45 +482,42 @@ pub struct Pedigree {
 }
 
 impl Validate for Pedigree {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(ancestors) = &self.ancestors {
             let context = context.extend_context_with_struct_field("Pedigree", "ancestors");
 
-            results.push(ancestors.validate_with_context(context)?);
+            results.push(ancestors.validate_with_context(context));
         }
 
         if let Some(descendants) = &self.descendants {
             let context = context.extend_context_with_struct_field("Pedigree", "descendants");
 
-            results.push(descendants.validate_with_context(context)?);
+            results.push(descendants.validate_with_context(context));
         }
 
         if let Some(variants) = &self.variants {
             let context = context.extend_context_with_struct_field("Pedigree", "variants");
 
-            results.push(variants.validate_with_context(context)?);
+            results.push(variants.validate_with_context(context));
         }
 
         if let Some(commits) = &self.commits {
             let context = context.extend_context_with_struct_field("Pedigree", "commits");
 
-            results.push(commits.validate_with_context(context)?);
+            results.push(commits.validate_with_context(context));
         }
 
         if let Some(patches) = &self.patches {
             let context = context.extend_context_with_struct_field("Pedigree", "patches");
 
-            results.push(patches.validate_with_context(context)?);
+            results.push(patches.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -563,11 +525,8 @@ impl Validate for Pedigree {
 pub struct Copyright(pub String);
 
 impl Validate for Copyright {
-    fn validate_with_context(
-        &self,
-        _context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
-        Ok(ValidationResult::default())
+    fn validate_with_context(&self, _context: ValidationContext) -> ValidationResult {
+        ValidationResult::default()
     }
 }
 
@@ -575,20 +534,17 @@ impl Validate for Copyright {
 pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
 
 impl Validate for CopyrightTexts {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, copyright) in self.0.iter().enumerate() {
             let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(copyright.validate_with_context(context)?);
+            results.push(copyright.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -693,8 +649,7 @@ mod test {
                 value: "abcdefgh".to_string(),
             }),
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -785,8 +740,7 @@ mod test {
                 value: "abcdefgh".to_string(),
             }),
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,

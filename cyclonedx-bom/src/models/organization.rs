@@ -18,9 +18,7 @@
 
 use crate::{
     external_models::{normalized_string::NormalizedString, uri::Uri},
-    validation::{
-        Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
-    },
+    validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult},
 };
 
 /// Represents the contact information for an organization
@@ -50,16 +48,13 @@ impl OrganizationalContact {
 }
 
 impl Validate for OrganizationalContact {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut name_result = ValidationResult::default();
         if let Some(name) = &self.name {
             let name_context =
                 context.extend_context_with_struct_field("OrganizationalContact", "name");
 
-            name_result = name.validate_with_context(name_context)?;
+            name_result = name.validate_with_context(name_context);
         }
 
         let mut email_result = ValidationResult::default();
@@ -67,7 +62,7 @@ impl Validate for OrganizationalContact {
             let email_context =
                 context.extend_context_with_struct_field("OrganizationalContact", "email");
 
-            email_result = email.validate_with_context(email_context)?;
+            email_result = email.validate_with_context(email_context);
         }
 
         let mut phone_result = ValidationResult::default();
@@ -75,10 +70,10 @@ impl Validate for OrganizationalContact {
             let phone_context =
                 context.extend_context_with_struct_field("OrganizationalContact", "phone");
 
-            phone_result = phone.validate_with_context(phone_context)?;
+            phone_result = phone.validate_with_context(phone_context);
         }
 
-        Ok(name_result.merge(email_result).merge(phone_result))
+        name_result.merge(email_result).merge(phone_result)
     }
 }
 
@@ -93,17 +88,14 @@ pub struct OrganizationalEntity {
 }
 
 impl Validate for OrganizationalEntity {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(name) = &self.name {
             let name_context =
                 context.extend_context_with_struct_field("OrganizationalEntity", "name");
 
-            results.push(name.validate_with_context(name_context)?);
+            results.push(name.validate_with_context(name_context));
         }
 
         if let Some(urls) = &self.url {
@@ -116,7 +108,7 @@ impl Validate for OrganizationalEntity {
                     ValidationPathComponent::Array { index },
                 ]);
 
-                results.push(url.validate_with_context(uri_context)?);
+                results.push(url.validate_with_context(uri_context));
             }
         }
 
@@ -129,13 +121,13 @@ impl Validate for OrganizationalEntity {
                     },
                     ValidationPathComponent::Array { index },
                 ]);
-                results.push(contact.validate_with_context(uri_context)?);
+                results.push(contact.validate_with_context(uri_context));
             }
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -153,9 +145,7 @@ mod test {
             email: None,
             phone: None,
         };
-        let actual = contact
-            .validate_with_context(ValidationContext::default())
-            .expect("Failed to validate contact");
+        let actual = contact.validate();
         assert_eq!(actual, ValidationResult::Passed);
     }
 
@@ -166,9 +156,7 @@ mod test {
             email: None,
             phone: None,
         };
-        let actual = contact
-            .validate_with_context(ValidationContext::default())
-            .expect("Failed to validate contact");
+        let actual = contact.validate();
         assert_eq!(
             actual,
             ValidationResult::Failed {
@@ -195,9 +183,7 @@ mod test {
                 "invalid\tphone".to_string(),
             )),
         };
-        let actual = contact
-            .validate_with_context(ValidationContext::default())
-            .expect("Failed to validate contact");
+        let actual = contact.validate();
         assert_eq!(
             actual,
             ValidationResult::Failed {
@@ -241,9 +227,7 @@ mod test {
             url: None,
             contact: None,
         };
-        let actual = entity
-            .validate_with_context(ValidationContext::default())
-            .expect("Failed to validate entity");
+        let actual = entity.validate();
         assert_eq!(
             actual,
             ValidationResult::Failed {
@@ -270,9 +254,7 @@ mod test {
                 phone: None,
             }]),
         };
-        let actual = entity
-            .validate_with_context(ValidationContext::default())
-            .expect("Failed to validate entity");
+        let actual = entity.validate();
         assert_eq!(
             actual,
             ValidationResult::Failed {

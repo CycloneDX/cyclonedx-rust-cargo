@@ -38,8 +38,7 @@ use crate::models::service::{Service, Services};
 use crate::models::signature::Signature;
 use crate::models::vulnerability::Vulnerabilities;
 use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
-    ValidationResult,
+    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
 };
 use crate::xml::{FromXmlDocument, ToXml};
 
@@ -221,10 +220,7 @@ impl Default for Bom {
 }
 
 impl Validate for Bom {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let mut bom_refs_context = BomReferencesContext::default();
@@ -232,7 +228,7 @@ impl Validate for Bom {
         if let Some(serial_number) = &self.serial_number {
             let context = context.extend_context_with_struct_field("Bom", "serial_number");
 
-            results.push(serial_number.validate_with_context(context)?);
+            results.push(serial_number.validate_with_context(context));
         }
 
         if let Some(metadata) = &self.metadata {
@@ -240,7 +236,7 @@ impl Validate for Bom {
             let component_bom_ref_context =
                 context.extend_context_with_struct_field("Metadata", "component");
 
-            results.push(metadata.validate_with_context(context)?);
+            results.push(metadata.validate_with_context(context));
 
             if let Some(component) = &metadata.component {
                 validate_component_bom_refs(
@@ -256,7 +252,7 @@ impl Validate for Bom {
             let context = context.extend_context_with_struct_field("Bom", "components");
             let component_bom_ref_context = context.clone();
 
-            results.push(components.validate_with_context(context)?);
+            results.push(components.validate_with_context(context));
 
             // record the component references
             validate_components(
@@ -271,7 +267,7 @@ impl Validate for Bom {
             let context = context.extend_context_with_struct_field("Bom", "services");
             let service_bom_ref_context = context.clone();
 
-            results.push(services.validate_with_context(context)?);
+            results.push(services.validate_with_context(context));
 
             // record the service references
             validate_services(
@@ -285,7 +281,7 @@ impl Validate for Bom {
         if let Some(external_references) = &self.external_references {
             let context = context.extend_context_with_struct_field("Bom", "external_references");
 
-            results.push(external_references.validate_with_context(context)?);
+            results.push(external_references.validate_with_context(context));
         }
 
         if let Some(dependencies) = &self.dependencies {
@@ -337,7 +333,7 @@ impl Validate for Bom {
             let context = context.extend_context_with_struct_field("Bom", "compositions");
             let compositions_context = context.clone();
 
-            results.push(compositions.validate_with_context(context)?);
+            results.push(compositions.validate_with_context(context));
 
             for (composition_index, composition) in compositions.0.iter().enumerate() {
                 let compositions_context =
@@ -394,17 +390,17 @@ impl Validate for Bom {
         if let Some(properties) = &self.properties {
             let context = context.extend_context_with_struct_field("Bom", "properties");
 
-            results.push(properties.validate_with_context(context)?);
+            results.push(properties.validate_with_context(context));
         }
 
         if let Some(vulnerabilities) = &self.vulnerabilities {
             let context = context.extend_context_with_struct_field("Bom", "vulnerabilities");
-            results.push(vulnerabilities.validate_with_context(context)?);
+            results.push(vulnerabilities.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -541,18 +537,15 @@ impl From<uuid::Uuid> for UrnUuid {
 }
 
 impl Validate for UrnUuid {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match matches_urn_uuid_regex(&self.0) {
-            true => Ok(ValidationResult::Passed),
-            false => Ok(ValidationResult::Failed {
+            true => ValidationResult::Passed,
+            false => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "UrnUuid does not match regular expression".to_string(),
                     context,
                 }],
-            }),
+            },
         }
     }
 }
@@ -618,9 +611,7 @@ mod test {
             signature: None,
         };
 
-        let actual = bom
-            .validate_with_context(ValidationContext::default())
-            .expect("Failed to validate bom");
+        let actual = bom.validate();
 
         assert_eq!(actual, ValidationResult::Passed);
     }
@@ -644,7 +635,7 @@ mod test {
             signature: None,
         };
 
-        let actual = bom.validate().expect("Failed to validate bom");
+        let actual = bom.validate();
 
         assert_eq!(
             actual,
@@ -705,7 +696,7 @@ mod test {
             signature: None,
         };
 
-        let actual = bom.validate().expect("Failed to validate bom");
+        let actual = bom.validate();
 
         assert_eq!(
             actual,
@@ -849,9 +840,7 @@ mod test {
             signature: None,
         };
 
-        let actual = bom
-            .validate_with_context(ValidationContext::default())
-            .expect("Failed to validate bom");
+        let actual = bom.validate();
 
         assert_eq!(
             actual,
@@ -1009,8 +998,7 @@ mod test {
             vulnerabilities: None,
             signature: None,
         }
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,
@@ -1117,18 +1105,14 @@ mod test {
 
     #[test]
     fn valid_uuids_should_pass_validation() {
-        let validation_result = UrnUuid::from(uuid::Uuid::new_v4())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = UrnUuid::from(uuid::Uuid::new_v4()).validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
 
     #[test]
     fn invalid_uuids_should_fail_validation() {
-        let validation_result = UrnUuid("invalid uuid".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = UrnUuid("invalid uuid".to_string()).validate();
 
         assert_eq!(
             validation_result,

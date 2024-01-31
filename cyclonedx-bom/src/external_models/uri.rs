@@ -22,9 +22,7 @@ use fluent_uri::Uri as Url;
 use packageurl::PackageUrl;
 use thiserror::Error;
 
-use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Purl(pub(crate) String);
@@ -45,18 +43,13 @@ impl ToString for Purl {
 }
 
 impl Validate for Purl {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match PackageUrl::from_str(&self.0.to_string()) {
-            Ok(_) => Ok(ValidationResult::Passed),
-            Err(e) => Ok(ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: format!("Purl does not conform to Package URL spec: {}", e),
-                    context,
-                }],
-            }),
+            Ok(_) => ValidationResult::Passed,
+            Err(e) => ValidationResult::failure(
+                &format!("Purl does not conform to Package URL spec: {}", e),
+                context,
+            ),
         }
     }
 }
@@ -85,18 +78,10 @@ impl TryFrom<String> for Uri {
 }
 
 impl Validate for Uri {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match Url::parse(&self.0.to_string()) {
-            Ok(_) => Ok(ValidationResult::Passed),
-            Err(_) => Ok(ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Uri does not conform to RFC 3986".to_string(),
-                    context,
-                }],
-            }),
+            Ok(_) => ValidationResult::Passed,
+            Err(_) => ValidationResult::failure("Uri does not conform to RFC 3986", context),
         }
     }
 }
@@ -126,18 +111,14 @@ mod test {
 
     #[test]
     fn valid_purls_should_pass_validation() {
-        let validation_result = Purl("pkg:cargo/cyclonedx-bom@0.3.1".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = Purl("pkg:cargo/cyclonedx-bom@0.3.1".to_string()).validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
 
     #[test]
     fn invalid_purls_should_fail_validation() {
-        let validation_result = Purl("invalid purl".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = Purl("invalid purl".to_string()).validate();
 
         assert_eq!(
             validation_result,
@@ -153,18 +134,14 @@ mod test {
 
     #[test]
     fn valid_uris_should_pass_validation() {
-        let validation_result = Uri("https://example.com".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = Uri("https://example.com".to_string()).validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
 
     #[test]
     fn invalid_uris_should_fail_validation() {
-        let validation_result = Uri("invalid uri".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = Uri("invalid uri".to_string()).validate();
 
         assert_eq!(
             validation_result,

@@ -18,9 +18,7 @@
 
 use crate::{
     external_models::normalized_string::NormalizedString,
-    validation::{
-        Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
-    },
+    validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult},
 };
 
 /// Represents a name-value store that can be used to describe additional data about the components, services, or the BOM that
@@ -32,21 +30,18 @@ use crate::{
 pub struct Properties(pub Vec<Property>);
 
 impl Validate for Properties {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, property) in self.0.iter().enumerate() {
             let property_context =
                 context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(property.validate_with_context(property_context)?);
+            results.push(property.validate_with_context(property_context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -75,19 +70,16 @@ impl Property {
 }
 
 impl Validate for Property {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let value_context = context.extend_context_with_struct_field("Property", "value");
 
-        results.push(self.value.validate_with_context(value_context)?);
+        results.push(self.value.validate_with_context(value_context));
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -103,8 +95,7 @@ mod test {
             name: "property name".to_string(),
             value: NormalizedString("property value".to_string()),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -115,8 +106,7 @@ mod test {
             name: "property name".to_string(),
             value: NormalizedString("spaces and \ttabs".to_string()),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,

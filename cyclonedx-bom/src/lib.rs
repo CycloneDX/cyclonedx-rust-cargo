@@ -46,7 +46,7 @@
 //! }"#;
 //! let bom = Bom::parse_from_json_v1_3(bom_json.as_bytes()).expect("Failed to parse BOM");
 //!
-//! let validation_result = bom.validate().expect("Failed to validate BOM");
+//! let validation_result = bom.validate();
 //! assert_eq!(validation_result, ValidationResult::Passed);
 //! ```
 //!

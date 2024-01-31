@@ -21,9 +21,7 @@ use std::convert::TryFrom;
 use thiserror::Error;
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 
-use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
-};
+use crate::validation::{FailureReason, Validate, ValidationContext, ValidationResult};
 
 /// For the purposes of CycloneDX SBOM documents, `DateTime` is a ISO8601 formatted timestamp
 ///
@@ -67,18 +65,15 @@ impl TryFrom<String> for DateTime {
 }
 
 impl Validate for DateTime {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match OffsetDateTime::parse(&self.0.to_string(), &Iso8601::DEFAULT) {
-            Ok(_) => Ok(ValidationResult::Passed),
-            Err(_) => Ok(ValidationResult::Failed {
+            Ok(_) => ValidationResult::Passed,
+            Err(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "DateTime does not conform to ISO 8601".to_string(),
                     context,
                 }],
-            }),
+            },
         }
     }
 }
@@ -106,18 +101,14 @@ mod test {
 
     #[test]
     fn valid_datetimes_should_pass_validation() {
-        let validation_result = DateTime("1969-06-28T01:20:00.00-04:00".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = DateTime("1969-06-28T01:20:00.00-04:00".to_string()).validate();
 
         assert_eq!(validation_result, ValidationResult::Passed)
     }
 
     #[test]
     fn invalid_datetimes_should_fail_validation() {
-        let validation_result = DateTime("invalid date".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = DateTime("invalid date".to_string()).validate();
 
         assert_eq!(
             validation_result,

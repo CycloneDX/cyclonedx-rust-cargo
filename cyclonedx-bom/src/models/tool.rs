@@ -18,9 +18,7 @@
 
 use crate::external_models::normalized_string::NormalizedString;
 use crate::models::hash::Hashes;
-use crate::validation::{
-    Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult};
 
 /// Represents the tool used to create the BOM
 ///
@@ -51,39 +49,36 @@ impl Tool {
 }
 
 impl Validate for Tool {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(vendor) = &self.vendor {
             let context = context.extend_context_with_struct_field("Tool", "vendor");
 
-            results.push(vendor.validate_with_context(context)?);
+            results.push(vendor.validate_with_context(context));
         }
 
         if let Some(name) = &self.name {
             let context = context.extend_context_with_struct_field("Tool", "name");
 
-            results.push(name.validate_with_context(context)?);
+            results.push(name.validate_with_context(context));
         }
 
         if let Some(version) = &self.version {
             let context = context.extend_context_with_struct_field("Tool", "version");
 
-            results.push(version.validate_with_context(context)?);
+            results.push(version.validate_with_context(context));
         }
 
         if let Some(hashes) = &self.hashes {
             let context = context.extend_context_with_struct_field("Tool", "hashes");
 
-            results.push(hashes.validate_with_context(context)?);
+            results.push(hashes.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -91,21 +86,18 @@ impl Validate for Tool {
 pub struct Tools(pub Vec<Tool>);
 
 impl Validate for Tools {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, tool) in self.0.iter().enumerate() {
             let tool_context =
                 context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(tool.validate_with_context(tool_context)?);
+            results.push(tool.validate_with_context(tool_context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -124,8 +116,7 @@ mod test {
             version: None,
             hashes: None,
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -138,8 +129,7 @@ mod test {
             version: None,
             hashes: None,
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,
@@ -181,8 +171,7 @@ mod test {
                 hashes: None,
             },
         ])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,

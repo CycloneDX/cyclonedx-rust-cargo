@@ -20,8 +20,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
-    ValidationResult,
+    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
 };
 
 /// Represents the hash of the component
@@ -34,23 +33,20 @@ pub struct Hash {
 }
 
 impl Validate for Hash {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let alg_context = context.extend_context_with_struct_field("Hash", "alg");
 
-        results.push(self.alg.validate_with_context(alg_context)?);
+        results.push(self.alg.validate_with_context(alg_context));
 
         let content_context = context.extend_context_with_struct_field("Hash", "content");
 
-        results.push(self.content.validate_with_context(content_context)?);
+        results.push(self.content.validate_with_context(content_context));
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -58,21 +54,18 @@ impl Validate for Hash {
 pub struct Hashes(pub Vec<Hash>);
 
 impl Validate for Hashes {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, hash) in self.0.iter().enumerate() {
             let tool_context =
                 context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(hash.validate_with_context(tool_context)?);
+            results.push(hash.validate_with_context(tool_context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -140,18 +133,15 @@ impl HashAlgorithm {
 }
 
 impl Validate for HashAlgorithm {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            HashAlgorithm::UnknownHashAlgorithm(_) => Ok(ValidationResult::Failed {
+            HashAlgorithm::UnknownHashAlgorithm(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "Unknown HashAlgorithm".to_string(),
                     context,
                 }],
-            }),
-            _ => Ok(ValidationResult::Passed),
+            },
+            _ => ValidationResult::Passed,
         }
     }
 }
@@ -161,10 +151,7 @@ impl Validate for HashAlgorithm {
 pub struct HashValue(pub String);
 
 impl Validate for HashValue {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         static HASH_VALUE_REGEX: Lazy<Regex> = Lazy::new(|| {
             Regex::new(
                 r"^([a-fA-F0-9]{32})|([a-fA-F0-9]{40})|([a-fA-F0-9]{64})|([a-fA-F0-9]{96})|([a-fA-F0-9]{128})$",
@@ -172,14 +159,14 @@ impl Validate for HashValue {
         });
 
         if HASH_VALUE_REGEX.is_match(&self.0) {
-            Ok(ValidationResult::Passed)
+            ValidationResult::Passed
         } else {
-            Ok(ValidationResult::Failed {
+            ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "HashValue does not match regular expression".to_string(),
                     context,
                 }],
-            })
+            }
         }
     }
 }
@@ -195,8 +182,7 @@ mod test {
             alg: HashAlgorithm::MD5,
             content: HashValue("a3bf1f3d584747e2569483783ddee45b".to_string()),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -207,8 +193,7 @@ mod test {
             alg: HashAlgorithm::UnknownHashAlgorithm("unknown algorithm".to_string()),
             content: HashValue("not a hash".to_string()),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,

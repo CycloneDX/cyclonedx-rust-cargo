@@ -17,14 +17,11 @@
  */
 
 pub trait Validate {
-    fn validate(&self) -> Result<ValidationResult, ValidationError> {
+    fn validate(&self) -> ValidationResult {
         self.validate_with_context(ValidationContext::default())
     }
 
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError>;
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult;
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -92,6 +89,13 @@ impl ValidationResult {
             }
         }
     }
+
+    /// Returns a [`ValidationResult::Failed`] with a single failure.
+    pub fn failure(reason: &str, context: ValidationContext) -> Self {
+        Self::Failed {
+            reasons: vec![FailureReason::new(reason, context)],
+        }
+    }
 }
 
 impl Default for ValidationResult {
@@ -105,8 +109,12 @@ pub struct FailureReason {
     pub message: String,
     pub context: ValidationContext,
 }
-#[derive(Debug, PartialEq, thiserror::Error)]
-pub enum ValidationError {
-    #[error("Failed to compile regular expression: {0}")]
-    InvalidRegularExpressionError(#[from] regex::Error),
+
+impl FailureReason {
+    pub fn new(message: &str, context: ValidationContext) -> Self {
+        Self {
+            message: message.to_string(),
+            context,
+        }
+    }
 }

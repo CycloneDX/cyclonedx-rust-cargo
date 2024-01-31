@@ -22,8 +22,7 @@ use crate::models::license::Licenses;
 use crate::models::organization::OrganizationalEntity;
 use crate::models::property::Properties;
 use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
-    ValidationResult,
+    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
 };
 
 use super::signature::Signature;
@@ -80,38 +79,35 @@ impl Service {
 }
 
 impl Validate for Service {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(provider) = &self.provider {
             let context = context.extend_context_with_struct_field("Service", "provider");
 
-            results.push(provider.validate_with_context(context)?);
+            results.push(provider.validate_with_context(context));
         }
 
         if let Some(group) = &self.group {
             let context = context.extend_context_with_struct_field("Service", "group");
 
-            results.push(group.validate_with_context(context)?);
+            results.push(group.validate_with_context(context));
         }
 
         let name_context = context.extend_context_with_struct_field("Service", "name");
 
-        results.push(self.name.validate_with_context(name_context)?);
+        results.push(self.name.validate_with_context(name_context));
 
         if let Some(version) = &self.version {
             let context = context.extend_context_with_struct_field("Service", "version");
 
-            results.push(version.validate_with_context(context)?);
+            results.push(version.validate_with_context(context));
         }
 
         if let Some(description) = &self.description {
             let context = context.extend_context_with_struct_field("Service", "description");
 
-            results.push(description.validate_with_context(context)?);
+            results.push(description.validate_with_context(context));
         }
 
         if let Some(endpoints) = &self.endpoints {
@@ -123,7 +119,7 @@ impl Validate for Service {
                     },
                     ValidationPathComponent::Array { index },
                 ]);
-                results.push(endpoint.validate_with_context(context)?);
+                results.push(endpoint.validate_with_context(context));
             }
         }
 
@@ -136,38 +132,38 @@ impl Validate for Service {
                     },
                     ValidationPathComponent::Array { index },
                 ]);
-                results.push(classification.validate_with_context(context)?);
+                results.push(classification.validate_with_context(context));
             }
         }
 
         if let Some(licenses) = &self.licenses {
             let context = context.extend_context_with_struct_field("Service", "licenses");
 
-            results.push(licenses.validate_with_context(context)?);
+            results.push(licenses.validate_with_context(context));
         }
 
         if let Some(external_references) = &self.external_references {
             let context =
                 context.extend_context_with_struct_field("Service", "external_references");
 
-            results.push(external_references.validate_with_context(context)?);
+            results.push(external_references.validate_with_context(context));
         }
 
         if let Some(properties) = &self.properties {
             let context = context.extend_context_with_struct_field("Service", "properties");
 
-            results.push(properties.validate_with_context(context)?);
+            results.push(properties.validate_with_context(context));
         }
 
         if let Some(services) = &self.services {
             let context = context.extend_context_with_struct_field("Service", "services");
 
-            results.push(services.validate_with_context(context)?);
+            results.push(services.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -175,20 +171,17 @@ impl Validate for Service {
 pub struct Services(pub Vec<Service>);
 
 impl Validate for Services {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, service) in self.0.iter().enumerate() {
             let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(service.validate_with_context(context)?);
+            results.push(service.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -202,27 +195,24 @@ pub struct DataClassification {
 }
 
 impl Validate for DataClassification {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let flow_context = context.extend_context_with_struct_field("DataClassification", "flow");
 
-        results.push(self.flow.validate_with_context(flow_context)?);
+        results.push(self.flow.validate_with_context(flow_context));
 
         let classification_context =
             context.extend_context_with_struct_field("DataClassification", "classification");
 
         results.push(
             self.classification
-                .validate_with_context(classification_context)?,
+                .validate_with_context(classification_context),
         );
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -265,18 +255,15 @@ impl DataFlowType {
 }
 
 impl Validate for DataFlowType {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            DataFlowType::UnknownDataFlow(_) => Ok(ValidationResult::Failed {
+            DataFlowType::UnknownDataFlow(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "Unknown data flow type".to_string(),
                     context,
                 }],
-            }),
-            _ => Ok(ValidationResult::Passed),
+            },
+            _ => ValidationResult::Passed,
         }
     }
 }
@@ -335,8 +322,7 @@ mod test {
                 value: "abcdefgh".to_string(),
             }),
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -398,8 +384,7 @@ mod test {
                 value: "abcdefgh".to_string(),
             }),
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,

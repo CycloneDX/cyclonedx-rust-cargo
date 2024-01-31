@@ -16,9 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationResult};
 use std::fmt::Display;
 use std::ops::Deref;
 
@@ -68,25 +66,19 @@ impl Display for NormalizedString {
 }
 
 impl Validate for NormalizedString {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         if self.0.contains("\r\n")
             || self.0.contains('\r')
             || self.0.contains('\n')
             || self.0.contains('\t')
         {
-            return Ok(ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context,
-                }],
-            });
+            return ValidationResult::failure(
+                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
+                context,
+            );
         }
 
-        Ok(ValidationResult::Passed)
+        ValidationResult::Passed
     }
 }
 
@@ -114,18 +106,14 @@ mod test {
 
     #[test]
     fn it_should_pass_validation() {
-        let validation_result = NormalizedString("no_whitespace".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = NormalizedString("no_whitespace".to_string()).validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
 
     #[test]
     fn it_should_fail_validation() {
-        let validation_result = NormalizedString("spaces and\ttabs".to_string())
-            .validate_with_context(ValidationContext::default())
-            .expect("Error while validating");
+        let validation_result = NormalizedString("spaces and\ttabs".to_string()).validate();
 
         assert_eq!(
             validation_result,

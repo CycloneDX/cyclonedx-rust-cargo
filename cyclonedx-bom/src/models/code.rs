@@ -19,8 +19,7 @@
 use crate::{
     external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri},
     validation::{
-        FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
-        ValidationResult,
+        FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
     },
 };
 
@@ -36,45 +35,42 @@ pub struct Commit {
 }
 
 impl Validate for Commit {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(uid) = &self.uid {
             let context = context.extend_context_with_struct_field("Commit", "uid");
 
-            results.push(uid.validate_with_context(context)?);
+            results.push(uid.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
             let context = context.extend_context_with_struct_field("Commit", "url");
 
-            results.push(url.validate_with_context(context)?);
+            results.push(url.validate_with_context(context));
         }
 
         if let Some(author) = &self.author {
             let context = context.extend_context_with_struct_field("Commit", "author");
 
-            results.push(author.validate_with_context(context)?);
+            results.push(author.validate_with_context(context));
         }
 
         if let Some(committer) = &self.committer {
             let context = context.extend_context_with_struct_field("Commit", "committer");
 
-            results.push(committer.validate_with_context(context)?);
+            results.push(committer.validate_with_context(context));
         }
 
         if let Some(message) = &self.message {
             let context = context.extend_context_with_struct_field("Commit", "message");
 
-            results.push(message.validate_with_context(context)?);
+            results.push(message.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -82,21 +78,18 @@ impl Validate for Commit {
 pub struct Commits(pub Vec<Commit>);
 
 impl Validate for Commits {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, commit) in self.0.iter().enumerate() {
             let commit_context =
                 context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(commit.validate_with_context(commit_context)?);
+            results.push(commit.validate_with_context(commit_context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -107,27 +100,24 @@ pub struct Diff {
 }
 
 impl Validate for Diff {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(text) = &self.text {
             let context = context.extend_context_with_struct_field("Diff", "text");
 
-            results.push(text.validate_with_context(context)?);
+            results.push(text.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
             let context = context.extend_context_with_struct_field("Diff", "url");
 
-            results.push(url.validate_with_context(context)?);
+            results.push(url.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -139,34 +129,31 @@ pub struct IdentifiableAction {
 }
 
 impl Validate for IdentifiableAction {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(timestamp) = &self.timestamp {
             let context =
                 context.extend_context_with_struct_field("IdentifiableAction", "timestamp");
 
-            results.push(timestamp.validate_with_context(context)?);
+            results.push(timestamp.validate_with_context(context));
         }
 
         if let Some(name) = &self.name {
             let context = context.extend_context_with_struct_field("IdentifiableAction", "name");
 
-            results.push(name.validate_with_context(context)?);
+            results.push(name.validate_with_context(context));
         }
 
         if let Some(email) = &self.email {
             let context = context.extend_context_with_struct_field("IdentifiableAction", "email");
 
-            results.push(email.validate_with_context(context)?);
+            results.push(email.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -181,38 +168,35 @@ pub struct Issue {
 }
 
 impl Validate for Issue {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let issue_context = context.extend_context_with_struct_field("Issue", "issue_type");
 
-        results.push(self.issue_type.validate_with_context(issue_context)?);
+        results.push(self.issue_type.validate_with_context(issue_context));
 
         if let Some(id) = &self.id {
             let context = context.extend_context_with_struct_field("Issue", "id");
 
-            results.push(id.validate_with_context(context)?);
+            results.push(id.validate_with_context(context));
         }
 
         if let Some(name) = &self.name {
             let context = context.extend_context_with_struct_field("Issue", "name");
 
-            results.push(name.validate_with_context(context)?);
+            results.push(name.validate_with_context(context));
         }
 
         if let Some(description) = &self.description {
             let context = context.extend_context_with_struct_field("Issue", "description");
 
-            results.push(description.validate_with_context(context)?);
+            results.push(description.validate_with_context(context));
         }
 
         if let Some(source) = &self.source {
             let context = context.extend_context_with_struct_field("Issue", "source");
 
-            results.push(source.validate_with_context(context)?);
+            results.push(source.validate_with_context(context));
         }
 
         if let Some(reference) = &self.references {
@@ -224,13 +208,13 @@ impl Validate for Issue {
                     },
                     ValidationPathComponent::Array { index },
                 ]);
-                results.push(reference.validate_with_context(context)?);
+                results.push(reference.validate_with_context(context));
             }
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -267,18 +251,15 @@ impl IssueClassification {
 }
 
 impl Validate for IssueClassification {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            IssueClassification::UnknownIssueClassification(_) => Ok(ValidationResult::Failed {
+            IssueClassification::UnknownIssueClassification(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "Unknown issue classification".to_string(),
                     context,
                 }],
-            }),
-            _ => Ok(ValidationResult::Passed),
+            },
+            _ => ValidationResult::Passed,
         }
     }
 }
@@ -291,20 +272,17 @@ pub struct Patch {
 }
 
 impl Validate for Patch {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let patch_type_context = context.extend_context_with_struct_field("Patch", "patch_type");
 
-        results.push(self.patch_type.validate_with_context(patch_type_context)?);
+        results.push(self.patch_type.validate_with_context(patch_type_context));
 
         if let Some(diff) = &self.diff {
             let context = context.extend_context_with_struct_field("Patch", "diff");
 
-            results.push(diff.validate_with_context(context)?);
+            results.push(diff.validate_with_context(context));
         }
 
         if let Some(resolves) = &self.resolves {
@@ -316,13 +294,13 @@ impl Validate for Patch {
                     },
                     ValidationPathComponent::Array { index },
                 ]);
-                results.push(resolve.validate_with_context(context)?);
+                results.push(resolve.validate_with_context(context));
             }
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -330,20 +308,17 @@ impl Validate for Patch {
 pub struct Patches(pub Vec<Patch>);
 
 impl Validate for Patches {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, patch) in self.0.iter().enumerate() {
             let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(patch.validate_with_context(context)?);
+            results.push(patch.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -383,18 +358,15 @@ impl PatchClassification {
 }
 
 impl Validate for PatchClassification {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            PatchClassification::UnknownPatchClassification(_) => Ok(ValidationResult::Failed {
+            PatchClassification::UnknownPatchClassification(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "Unknown patch classification".to_string(),
                     context,
                 }],
-            }),
-            _ => Ok(ValidationResult::Passed),
+            },
+            _ => ValidationResult::Passed,
         }
     }
 }
@@ -406,27 +378,24 @@ pub struct Source {
 }
 
 impl Validate for Source {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(name) = &self.name {
             let context = context.extend_context_with_struct_field("Source", "name");
 
-            results.push(name.validate_with_context(context)?);
+            results.push(name.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
             let context = context.extend_context_with_struct_field("Source", "url");
 
-            results.push(url.validate_with_context(context)?);
+            results.push(url.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -454,8 +423,7 @@ mod test {
             }),
             message: Some(NormalizedString("no_whitespace".to_string())),
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -477,8 +445,7 @@ mod test {
             }),
             message: Some(NormalizedString("spaces and\ttabs".to_string())),
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,
@@ -639,8 +606,7 @@ mod test {
                 references: Some(vec![Uri("https://example.com".to_string())]),
             }]),
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -669,8 +635,7 @@ mod test {
                 references: Some(vec![Uri("invalid uri".to_string())]),
             }]),
         }])
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,
