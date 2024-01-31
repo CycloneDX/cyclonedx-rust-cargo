@@ -165,26 +165,21 @@ impl Validate for HashValue {
         &self,
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
-        static HASH_VALUE_REGEX: Lazy<Result<Regex, regex::Error>> = Lazy::new(|| {
+        static HASH_VALUE_REGEX: Lazy<Regex> = Lazy::new(|| {
             Regex::new(
                 r"^([a-fA-F0-9]{32})|([a-fA-F0-9]{40})|([a-fA-F0-9]{64})|([a-fA-F0-9]{96})|([a-fA-F0-9]{128})$",
-            )
+            ).expect("Failed to compile regex.")
         });
 
-        match HASH_VALUE_REGEX.as_ref() {
-            Ok(regex) => {
-                if regex.is_match(&self.0) {
-                    Ok(ValidationResult::Passed)
-                } else {
-                    Ok(ValidationResult::Failed {
-                        reasons: vec![FailureReason {
-                            message: "HashValue does not match regular expression".to_string(),
-                            context,
-                        }],
-                    })
-                }
-            }
-            Err(e) => Err(e.clone().into()),
+        if HASH_VALUE_REGEX.is_match(&self.0) {
+            Ok(ValidationResult::Passed)
+        } else {
+            Ok(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "HashValue does not match regular expression".to_string(),
+                    context,
+                }],
+            })
         }
     }
 }

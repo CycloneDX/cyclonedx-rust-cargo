@@ -385,23 +385,18 @@ impl Validate for MimeType {
         &self,
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
-        static UUID_REGEX: Lazy<Result<Regex, regex::Error>> =
-            Lazy::new(|| Regex::new(r"^[-+a-z0-9.]+/[-+a-z0-9.]+$"));
+        static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(r"^[-+a-z0-9.]+/[-+a-z0-9.]+$").expect("Failed to compile regex.")
+        });
 
-        match UUID_REGEX.as_ref() {
-            Ok(regex) => {
-                if regex.is_match(&self.0) {
-                    Ok(ValidationResult::Passed)
-                } else {
-                    Ok(ValidationResult::Failed {
-                        reasons: vec![FailureReason {
-                            message: "MimeType does not match regular expression".to_string(),
-                            context,
-                        }],
-                    })
-                }
-            }
-            Err(e) => Err(e.clone().into()),
+        match UUID_REGEX.is_match(&self.0) {
+            true => Ok(ValidationResult::Passed),
+            false => Ok(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "MimeType does not match regular expression".to_string(),
+                    context,
+                }],
+            }),
         }
     }
 }
@@ -460,26 +455,21 @@ impl Validate for Cpe {
         &self,
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
-        static UUID_REGEX: Lazy<Result<Regex, regex::Error>> = Lazy::new(|| {
+        static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
             Regex::new(
                 r##"([c][pP][eE]:/[AHOaho]?(:[A-Za-z0-9\._\-~%]*){0,6})|(cpe:2\.3:[aho\*\-](:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){5}(:(([a-zA-Z]{2,3}(-([a-zA-Z]{2}|[0-9]{3}))?)|[\*\-]))(:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){4})"##,
-            )
+            ).expect("Failed to compile regex.")
         });
 
-        match UUID_REGEX.as_ref() {
-            Ok(regex) => {
-                if regex.is_match(&self.0) {
-                    Ok(ValidationResult::Passed)
-                } else {
-                    Ok(ValidationResult::Failed {
-                        reasons: vec![FailureReason {
-                            message: "Cpe does not match regular expression".to_string(),
-                            context,
-                        }],
-                    })
-                }
-            }
-            Err(e) => Err(e.clone().into()),
+        if UUID_REGEX.is_match(&self.0) {
+            Ok(ValidationResult::Passed)
+        } else {
+            Ok(ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "Cpe does not match regular expression".to_string(),
+                    context,
+                }],
+            })
         }
     }
 }
