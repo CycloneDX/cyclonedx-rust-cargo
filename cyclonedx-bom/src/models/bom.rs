@@ -37,9 +37,7 @@ use crate::models::property::Properties;
 use crate::models::service::{Service, Services};
 use crate::models::signature::Signature;
 use crate::models::vulnerability::Vulnerabilities;
-use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult};
 use crate::xml::{FromXmlDocument, ToXml};
 
 /// Represents the spec version of a BOM.
@@ -233,8 +231,7 @@ impl Validate for Bom {
 
         if let Some(metadata) = &self.metadata {
             let context = context.with_struct("Bom", "metadata");
-            let component_bom_ref_context =
-                context.with_struct("Metadata", "component");
+            let component_bom_ref_context = context.with_struct("Metadata", "component");
 
             results.push(metadata.validate_with_context(context));
 
@@ -292,15 +289,12 @@ impl Validate for Bom {
                     index: dependency_index,
                 }]);
                 if !bom_refs_context.contains(&dependency.dependency_ref) {
-                    let dependency_context =
-                        context.with_struct("Dependency", "dependency_ref");
+                    let dependency_context = context.with_struct("Dependency", "dependency_ref");
 
-                    results.push(ValidationResult::Failed {
-                        reasons: vec![FailureReason {
-                            message: "Dependency reference does not exist in the BOM".to_string(),
-                            context: dependency_context,
-                        }],
-                    })
+                    results.push(ValidationResult::failure(
+                        "Dependency reference does not exist in the BOM",
+                        dependency_context,
+                    ));
                 }
 
                 for (sub_dependency_index, sub_dependency) in
@@ -317,13 +311,10 @@ impl Validate for Bom {
                             },
                         ]);
 
-                        results.push(ValidationResult::Failed {
-                            reasons: vec![FailureReason {
-                                message: "Dependency reference does not exist in the BOM"
-                                    .to_string(),
-                                context,
-                            }],
-                        })
+                        results.push(ValidationResult::failure(
+                            "Dependency reference does not exist in the BOM",
+                            context,
+                        ));
                     }
                 }
             }
@@ -342,8 +333,8 @@ impl Validate for Bom {
                     }]);
 
                 if let Some(assemblies) = &composition.assemblies {
-                    let compositions_context = compositions_context
-                        .with_struct("Composition", "assemblies");
+                    let compositions_context =
+                        compositions_context.with_struct("Composition", "assemblies");
                     for (assembly_index, BomReference(assembly)) in assemblies.iter().enumerate() {
                         if !bom_refs_context.contains(assembly) {
                             let compositions_context = compositions_context.extend_context(vec![
@@ -351,20 +342,17 @@ impl Validate for Bom {
                                     index: assembly_index,
                                 },
                             ]);
-                            results.push(ValidationResult::Failed {
-                                reasons: vec![FailureReason {
-                                    message: "Composition reference does not exist in the BOM"
-                                        .to_string(),
-                                    context: compositions_context,
-                                }],
-                            });
+                            results.push(ValidationResult::failure(
+                                "Composition reference does not exist in the BOM",
+                                compositions_context,
+                            ));
                         }
                     }
                 }
 
                 if let Some(dependencies) = &composition.dependencies {
-                    let compositions_context = compositions_context
-                        .with_struct("Composition", "dependencies");
+                    let compositions_context =
+                        compositions_context.with_struct("Composition", "dependencies");
                     for (dependency_index, BomReference(dependency)) in
                         dependencies.iter().enumerate()
                     {
@@ -374,13 +362,10 @@ impl Validate for Bom {
                                     index: dependency_index,
                                 },
                             ]);
-                            results.push(ValidationResult::Failed {
-                                reasons: vec![FailureReason {
-                                    message: "Composition reference does not exist in the BOM"
-                                        .to_string(),
-                                    context: compositions_context,
-                                }],
-                            });
+                            results.push(ValidationResult::failure(
+                                "Composition reference does not exist in the BOM",
+                                compositions_context,
+                            ));
                         }
                     }
                 }
@@ -433,12 +418,10 @@ fn validate_component_bom_refs(
     if let Some(bom_ref) = &component.bom_ref {
         if bom_refs.contains(bom_ref) {
             let context = context.with_struct("Component", "bom_ref");
-            results.push(ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: format!(r#"Bom ref "{bom_ref}" is not unique"#),
-                    context,
-                }],
-            });
+            results.push(ValidationResult::failure(
+                &format!(r#"Bom ref "{bom_ref}" is not unique"#),
+                context,
+            ));
         }
         bom_refs.add_component_bom_ref(bom_ref);
     }
@@ -474,12 +457,10 @@ fn validate_service_bom_refs(
     if let Some(bom_ref) = &service.bom_ref {
         if bom_refs.contains(bom_ref) {
             let context = context.with_struct("Service", "bom_ref");
-            results.push(ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: format!(r#"Bom ref "{bom_ref}" is not unique"#),
-                    context,
-                }],
-            });
+            results.push(ValidationResult::failure(
+                &format!(r#"Bom ref "{bom_ref}" is not unique"#),
+                context,
+            ));
         }
         bom_refs.add_service_bom_ref(bom_ref);
     }
@@ -540,12 +521,9 @@ impl Validate for UrnUuid {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match matches_urn_uuid_regex(&self.0) {
             true => ValidationResult::Passed,
-            false => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "UrnUuid does not match regular expression".to_string(),
-                    context,
-                }],
-            },
+            false => {
+                ValidationResult::failure("UrnUuid does not match regular expression", context)
+            }
         }
     }
 }
@@ -576,7 +554,7 @@ mod test {
             service::Service,
             vulnerability::Vulnerability,
         },
-        validation::ValidationPathComponent,
+        validation::{FailureReason, ValidationPathComponent},
     };
 
     use super::*;
@@ -641,35 +619,21 @@ mod test {
             actual,
             ValidationResult::Failed {
                 reasons: vec![
-                    FailureReason {
-                        message: "Dependency reference does not exist in the BOM".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Struct {
-                                struct_name: "Bom".to_string(),
-                                field_name: "dependencies".to_string(),
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Dependency".to_string(),
-                                field_name: "dependency_ref".to_string(),
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message: "Dependency reference does not exist in the BOM".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Struct {
-                                struct_name: "Bom".to_string(),
-                                field_name: "dependencies".to_string(),
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Dependency".to_string(),
-                                field_name: "dependencies".to_string(),
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                        ])
-                    },
+                    FailureReason::new(
+                        "Dependency reference does not exist in the BOM",
+                        ValidationContext::new()
+                            .with_struct("Bom", "dependencies")
+                            .with_index(0)
+                            .with_struct("Dependency", "dependency_ref")
+                    ),
+                    FailureReason::new(
+                        "Dependency reference does not exist in the BOM",
+                        ValidationContext::new()
+                            .with_struct("Bom", "dependencies")
+                            .with_index(0)
+                            .with_struct("Dependency", "dependencies")
+                            .with_index(0)
+                    ),
                 ]
             }
         );
@@ -702,36 +666,22 @@ mod test {
             actual,
             ValidationResult::Failed {
                 reasons: vec![
-                    FailureReason {
-                        message: "Composition reference does not exist in the BOM".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Struct {
-                                struct_name: "Bom".to_string(),
-                                field_name: "compositions".to_string(),
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Composition".to_string(),
-                                field_name: "assemblies".to_string(),
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                        ])
-                    },
-                    FailureReason {
-                        message: "Composition reference does not exist in the BOM".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Struct {
-                                struct_name: "Bom".to_string(),
-                                field_name: "compositions".to_string(),
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Composition".to_string(),
-                                field_name: "dependencies".to_string(),
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                        ])
-                    },
+                    FailureReason::new(
+                        "Composition reference does not exist in the BOM",
+                        ValidationContext::new()
+                            .with_struct("Bom", "compositions")
+                            .with_index(0)
+                            .with_struct("Composition", "assemblies")
+                            .with_index(0)
+                    ),
+                    FailureReason::new(
+                        "Composition reference does not exist in the BOM",
+                        ValidationContext::new()
+                            .with_struct("Bom", "compositions")
+                            .with_index(0)
+                            .with_struct("Composition", "dependencies")
+                            .with_index(0)
+                    )
                 ]
             }
         );

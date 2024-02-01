@@ -58,8 +58,8 @@ impl Validate for ExternalReference {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let external_reference_type_context = context
-            .with_struct("ExternalReference", "external_reference_type");
+        let external_reference_type_context =
+            context.with_struct("ExternalReference", "external_reference_type");
 
         results.push(
             self.external_reference_type

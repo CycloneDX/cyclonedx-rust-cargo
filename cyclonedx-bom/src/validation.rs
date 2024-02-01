@@ -39,6 +39,12 @@ impl ValidationContext {
         Self(extended_context)
     }
 
+    /// Extends the [`ValidationContext`] with an index, e.g. to specify the index in array.
+    pub(crate) fn with_index(&self, index: usize) -> Self {
+        let component = vec![ValidationPathComponent::Array { index }];
+        self.extend_context(component)
+    }
+
     /// Extends the [`ValidationContext`] with a struct field.
     pub(crate) fn with_struct(
         &self,

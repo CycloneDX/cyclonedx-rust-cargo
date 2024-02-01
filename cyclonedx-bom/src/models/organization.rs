@@ -51,24 +51,21 @@ impl Validate for OrganizationalContact {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut name_result = ValidationResult::default();
         if let Some(name) = &self.name {
-            let name_context =
-                context.with_struct("OrganizationalContact", "name");
+            let name_context = context.with_struct("OrganizationalContact", "name");
 
             name_result = name.validate_with_context(name_context);
         }
 
         let mut email_result = ValidationResult::default();
         if let Some(email) = &self.email {
-            let email_context =
-                context.with_struct("OrganizationalContact", "email");
+            let email_context = context.with_struct("OrganizationalContact", "email");
 
             email_result = email.validate_with_context(email_context);
         }
 
         let mut phone_result = ValidationResult::default();
         if let Some(phone) = &self.phone {
-            let phone_context =
-                context.with_struct("OrganizationalContact", "phone");
+            let phone_context = context.with_struct("OrganizationalContact", "phone");
 
             phone_result = phone.validate_with_context(phone_context);
         }
@@ -92,8 +89,7 @@ impl Validate for OrganizationalEntity {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(name) = &self.name {
-            let name_context =
-                context.with_struct("OrganizationalEntity", "name");
+            let name_context = context.with_struct("OrganizationalEntity", "name");
 
             results.push(name.validate_with_context(name_context));
         }

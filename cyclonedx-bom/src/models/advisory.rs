@@ -17,7 +17,7 @@
  */
 
 use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
-use crate::validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult};
+use crate::validation::{Validate, ValidationContext, ValidationResult};
 
 /// Represents an advisory, a notification of a threat to a component, service, or system.
 ///
@@ -71,7 +71,7 @@ impl Validate for Advisories {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, advisory) in self.0.iter().enumerate() {
-            let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
+            let context = context.with_index(index);
             results.push(advisory.validate_with_context(context));
         }
 
@@ -114,28 +114,18 @@ mod test {
             validation_result,
             ValidationResult::Failed {
                 reasons: vec![
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Advisory".to_string(),
-                                field_name: "title".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message: "Uri does not conform to RFC 3986".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Advisory".to_string(),
-                                field_name: "url".to_string()
-                            }
-                        ])
-                    },
+                    FailureReason::new(
+                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
+                        ValidationContext::new()
+                            .with_index(0)
+                            .with_struct("Advisory", "title")
+                    ),
+                    FailureReason::new(
+                        "Uri does not conform to RFC 3986",
+                        ValidationContext::new()
+                            .with_index(0)
+                            .with_struct("Advisory", "url")
+                    )
                 ]
             }
         );

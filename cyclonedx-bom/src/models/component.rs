@@ -106,8 +106,7 @@ impl Validate for Component {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let component_type_context =
-            context.with_struct("Component", "component_type");
+        let component_type_context = context.with_struct("Component", "component_type");
 
         results.push(
             self.component_type
@@ -209,8 +208,7 @@ impl Validate for Component {
         }
 
         if let Some(external_references) = &self.external_references {
-            let context =
-                context.with_struct("Component", "external_references");
+            let context = context.with_struct("Component", "external_references");
 
             results.push(external_references.validate_with_context(context));
         }
@@ -459,8 +457,7 @@ impl Validate for ComponentEvidence {
         }
 
         if let Some(copyright) = &self.copyright {
-            let context =
-                context.with_struct("ComponentEvidence", "copyright");
+            let context = context.with_struct("ComponentEvidence", "copyright");
 
             results.push(copyright.validate_with_context(context));
         }

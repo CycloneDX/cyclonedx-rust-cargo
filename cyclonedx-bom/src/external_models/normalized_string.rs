@@ -85,7 +85,6 @@ impl Validate for NormalizedString {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::validation::FailureReason;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -117,13 +116,10 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context: ValidationContext::default()
-                }]
-            }
+            ValidationResult::failure(
+                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
+                ValidationContext::default()
+            )
         );
     }
 }

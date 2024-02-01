@@ -105,8 +105,6 @@ pub enum UriError {
 mod test {
     use pretty_assertions::assert_eq;
 
-    use crate::validation::FailureReason;
-
     use super::*;
 
     #[test]
@@ -122,13 +120,10 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Purl does not conform to Package URL spec: missing scheme"
-                        .to_string(),
-                    context: ValidationContext::default()
-                }]
-            }
+            ValidationResult::failure(
+                "Purl does not conform to Package URL spec: missing scheme",
+                ValidationContext::default()
+            ),
         );
     }
 
@@ -145,12 +140,10 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Uri does not conform to RFC 3986".to_string(),
-                    context: ValidationContext::default()
-                }]
-            }
+            ValidationResult::failure(
+                "Uri does not conform to RFC 3986",
+                ValidationContext::default()
+            )
         );
     }
 }

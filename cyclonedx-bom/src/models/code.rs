@@ -133,8 +133,7 @@ impl Validate for IdentifiableAction {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(timestamp) = &self.timestamp {
-            let context =
-                context.with_struct("IdentifiableAction", "timestamp");
+            let context = context.with_struct("IdentifiableAction", "timestamp");
 
             results.push(timestamp.validate_with_context(context));
         }

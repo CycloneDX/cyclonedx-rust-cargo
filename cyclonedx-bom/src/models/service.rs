@@ -143,8 +143,7 @@ impl Validate for Service {
         }
 
         if let Some(external_references) = &self.external_references {
-            let context =
-                context.with_struct("Service", "external_references");
+            let context = context.with_struct("Service", "external_references");
 
             results.push(external_references.validate_with_context(context));
         }
@@ -202,8 +201,7 @@ impl Validate for DataClassification {
 
         results.push(self.flow.validate_with_context(flow_context));
 
-        let classification_context =
-            context.with_struct("DataClassification", "classification");
+        let classification_context = context.with_struct("DataClassification", "classification");
 
         results.push(
             self.classification

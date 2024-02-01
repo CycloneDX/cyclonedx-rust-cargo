@@ -119,8 +119,7 @@ impl Validate for License {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let license_identifier_context =
-            context.with_struct("License", "license_identifier");
+        let license_identifier_context = context.with_struct("License", "license_identifier");
 
         results.push(
             self.license_identifier

@@ -21,7 +21,7 @@ use std::convert::TryFrom;
 use spdx::{Expression, ParseMode};
 use thiserror::Error;
 
-use crate::validation::{FailureReason, Validate, ValidationResult};
+use crate::validation::{Validate, ValidationResult};
 
 /// An identifier for a single, specific license
 ///
@@ -87,12 +87,7 @@ impl Validate for SpdxIdentifier {
     ) -> ValidationResult {
         match Self::try_from(self.0.clone()) {
             Ok(_) => ValidationResult::Passed,
-            Err(_) => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "SPDX identifier is not valid".to_string(),
-                    context,
-                }],
-            },
+            Err(_) => ValidationResult::failure("SPDX identifier is not valid", context),
         }
     }
 }
@@ -187,12 +182,7 @@ impl Validate for SpdxExpression {
     ) -> ValidationResult {
         match SpdxExpression::try_from(self.0.clone()) {
             Ok(_) => ValidationResult::Passed,
-            Err(_) => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "SPDX expression is not valid".to_string(),
-                    context,
-                }],
-            },
+            Err(_) => ValidationResult::failure("SPDX expression is not valid", context),
         }
     }
 }
@@ -208,7 +198,7 @@ pub enum SpdxExpressionError {
 
 #[cfg(test)]
 mod test {
-    use crate::validation::{FailureReason, ValidationContext, ValidationResult};
+    use crate::validation::{ValidationContext, ValidationResult};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -268,12 +258,7 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "SPDX identifier is not valid".to_string(),
-                    context: ValidationContext::default()
-                }]
-            }
+            ValidationResult::failure("SPDX identifier is not valid", ValidationContext::default()),
         );
     }
 
@@ -314,12 +299,7 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "SPDX expression is not valid".to_string(),
-                    context: ValidationContext::default()
-                }]
-            }
+            ValidationResult::failure("SPDX expression is not valid", ValidationContext::default())
         );
     }
 }

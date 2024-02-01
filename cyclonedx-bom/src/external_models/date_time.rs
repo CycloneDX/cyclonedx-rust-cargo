@@ -21,7 +21,7 @@ use std::convert::TryFrom;
 use thiserror::Error;
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 
-use crate::validation::{FailureReason, Validate, ValidationContext, ValidationResult};
+use crate::validation::{Validate, ValidationContext, ValidationResult};
 
 /// For the purposes of CycloneDX SBOM documents, `DateTime` is a ISO8601 formatted timestamp
 ///
@@ -68,12 +68,7 @@ impl Validate for DateTime {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match OffsetDateTime::parse(&self.0.to_string(), &Iso8601::DEFAULT) {
             Ok(_) => ValidationResult::Passed,
-            Err(_) => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "DateTime does not conform to ISO 8601".to_string(),
-                    context,
-                }],
-            },
+            Err(_) => ValidationResult::failure("DateTime does not conform to ISO 8601", context),
         }
     }
 }
@@ -96,7 +91,6 @@ pub enum DateTimeError {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::validation::FailureReason;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -112,12 +106,10 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "DateTime does not conform to ISO 8601".to_string(),
-                    context: ValidationContext::default()
-                }]
-            }
+            ValidationResult::failure(
+                "DateTime does not conform to ISO 8601",
+                ValidationContext::default()
+            )
         )
     }
 }
