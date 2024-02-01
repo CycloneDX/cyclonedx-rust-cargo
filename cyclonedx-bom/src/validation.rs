@@ -27,14 +27,20 @@ pub trait Validate {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ValidationContext(pub(crate) Vec<ValidationPathComponent>);
 
+#[allow(dead_code)]
 impl ValidationContext {
+    pub(crate) fn new() -> Self {
+        ValidationContext::default()
+    }
+
     pub(crate) fn extend_context(&self, components: Vec<ValidationPathComponent>) -> Self {
         let mut extended_context = self.0.clone();
         extended_context.extend(components);
         Self(extended_context)
     }
 
-    pub(crate) fn extend_context_with_struct_field(
+    /// Extends the [`ValidationContext`] with a struct field.
+    pub(crate) fn with_struct(
         &self,
         struct_name: impl ToString,
         field_name: impl ToString,
@@ -43,7 +49,6 @@ impl ValidationContext {
             struct_name: struct_name.to_string(),
             field_name: field_name.to_string(),
         }];
-
         self.extend_context(component)
     }
 }

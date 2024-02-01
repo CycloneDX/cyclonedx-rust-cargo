@@ -83,29 +83,29 @@ impl Validate for Service {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(provider) = &self.provider {
-            let context = context.extend_context_with_struct_field("Service", "provider");
+            let context = context.with_struct("Service", "provider");
 
             results.push(provider.validate_with_context(context));
         }
 
         if let Some(group) = &self.group {
-            let context = context.extend_context_with_struct_field("Service", "group");
+            let context = context.with_struct("Service", "group");
 
             results.push(group.validate_with_context(context));
         }
 
-        let name_context = context.extend_context_with_struct_field("Service", "name");
+        let name_context = context.with_struct("Service", "name");
 
         results.push(self.name.validate_with_context(name_context));
 
         if let Some(version) = &self.version {
-            let context = context.extend_context_with_struct_field("Service", "version");
+            let context = context.with_struct("Service", "version");
 
             results.push(version.validate_with_context(context));
         }
 
         if let Some(description) = &self.description {
-            let context = context.extend_context_with_struct_field("Service", "description");
+            let context = context.with_struct("Service", "description");
 
             results.push(description.validate_with_context(context));
         }
@@ -137,26 +137,26 @@ impl Validate for Service {
         }
 
         if let Some(licenses) = &self.licenses {
-            let context = context.extend_context_with_struct_field("Service", "licenses");
+            let context = context.with_struct("Service", "licenses");
 
             results.push(licenses.validate_with_context(context));
         }
 
         if let Some(external_references) = &self.external_references {
             let context =
-                context.extend_context_with_struct_field("Service", "external_references");
+                context.with_struct("Service", "external_references");
 
             results.push(external_references.validate_with_context(context));
         }
 
         if let Some(properties) = &self.properties {
-            let context = context.extend_context_with_struct_field("Service", "properties");
+            let context = context.with_struct("Service", "properties");
 
             results.push(properties.validate_with_context(context));
         }
 
         if let Some(services) = &self.services {
-            let context = context.extend_context_with_struct_field("Service", "services");
+            let context = context.with_struct("Service", "services");
 
             results.push(services.validate_with_context(context));
         }
@@ -198,12 +198,12 @@ impl Validate for DataClassification {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let flow_context = context.extend_context_with_struct_field("DataClassification", "flow");
+        let flow_context = context.with_struct("DataClassification", "flow");
 
         results.push(self.flow.validate_with_context(flow_context));
 
         let classification_context =
-            context.extend_context_with_struct_field("DataClassification", "classification");
+            context.with_struct("DataClassification", "classification");
 
         results.push(
             self.classification

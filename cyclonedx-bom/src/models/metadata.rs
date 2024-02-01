@@ -68,13 +68,13 @@ impl Validate for Metadata {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(timestamp) = &self.timestamp {
-            let context = context.extend_context_with_struct_field("Metadata", "timestamp");
+            let context = context.with_struct("Metadata", "timestamp");
 
             results.push(timestamp.validate_with_context(context));
         }
 
         if let Some(tools) = &self.tools {
-            let context = context.extend_context_with_struct_field("Metadata", "tools");
+            let context = context.with_struct("Metadata", "tools");
 
             results.push(tools.validate_with_context(context));
         }
@@ -93,31 +93,31 @@ impl Validate for Metadata {
         }
 
         if let Some(component) = &self.component {
-            let context = context.extend_context_with_struct_field("Metadata", "component");
+            let context = context.with_struct("Metadata", "component");
 
             results.push(component.validate_with_context(context));
         }
 
         if let Some(manufacture) = &self.manufacture {
-            let context = context.extend_context_with_struct_field("Metadata", "manufacture");
+            let context = context.with_struct("Metadata", "manufacture");
 
             results.push(manufacture.validate_with_context(context));
         }
 
         if let Some(supplier) = &self.supplier {
-            let context = context.extend_context_with_struct_field("Metadata", "supplier");
+            let context = context.with_struct("Metadata", "supplier");
 
             results.push(supplier.validate_with_context(context));
         }
 
         if let Some(licenses) = &self.licenses {
-            let context = context.extend_context_with_struct_field("Metadata", "licenses");
+            let context = context.with_struct("Metadata", "licenses");
 
             results.push(licenses.validate_with_context(context));
         }
 
         if let Some(properties) = &self.properties {
-            let context = context.extend_context_with_struct_field("Metadata", "properties");
+            let context = context.with_struct("Metadata", "properties");
 
             results.push(properties.validate_with_context(context));
         }

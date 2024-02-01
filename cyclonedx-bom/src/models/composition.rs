@@ -35,7 +35,7 @@ impl Validate for Composition {
         let mut results: Vec<ValidationResult> = vec![];
 
         let aggregate_context =
-            context.extend_context_with_struct_field("Composition", "aggregate");
+            context.with_struct("Composition", "aggregate");
 
         results.push(self.aggregate.validate_with_context(aggregate_context));
 

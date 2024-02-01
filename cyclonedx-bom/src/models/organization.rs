@@ -52,7 +52,7 @@ impl Validate for OrganizationalContact {
         let mut name_result = ValidationResult::default();
         if let Some(name) = &self.name {
             let name_context =
-                context.extend_context_with_struct_field("OrganizationalContact", "name");
+                context.with_struct("OrganizationalContact", "name");
 
             name_result = name.validate_with_context(name_context);
         }
@@ -60,7 +60,7 @@ impl Validate for OrganizationalContact {
         let mut email_result = ValidationResult::default();
         if let Some(email) = &self.email {
             let email_context =
-                context.extend_context_with_struct_field("OrganizationalContact", "email");
+                context.with_struct("OrganizationalContact", "email");
 
             email_result = email.validate_with_context(email_context);
         }
@@ -68,7 +68,7 @@ impl Validate for OrganizationalContact {
         let mut phone_result = ValidationResult::default();
         if let Some(phone) = &self.phone {
             let phone_context =
-                context.extend_context_with_struct_field("OrganizationalContact", "phone");
+                context.with_struct("OrganizationalContact", "phone");
 
             phone_result = phone.validate_with_context(phone_context);
         }
@@ -93,7 +93,7 @@ impl Validate for OrganizationalEntity {
 
         if let Some(name) = &self.name {
             let name_context =
-                context.extend_context_with_struct_field("OrganizationalEntity", "name");
+                context.with_struct("OrganizationalEntity", "name");
 
             results.push(name.validate_with_context(name_context));
         }

@@ -73,7 +73,7 @@ impl Validate for Property {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let value_context = context.extend_context_with_struct_field("Property", "value");
+        let value_context = context.with_struct("Property", "value");
 
         results.push(self.value.validate_with_context(value_context));
 

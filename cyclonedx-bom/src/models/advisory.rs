@@ -49,12 +49,12 @@ impl Validate for Advisory {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(title) = &self.title {
-            let context = context.extend_context_with_struct_field("Advisory", "title");
+            let context = context.with_struct("Advisory", "title");
 
             results.push(title.validate_with_context(context));
         }
 
-        let url_context = context.extend_context_with_struct_field("Advisory", "url");
+        let url_context = context.with_struct("Advisory", "url");
         results.push(self.url.validate_with_context(url_context));
 
         results

@@ -39,31 +39,31 @@ impl Validate for Commit {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(uid) = &self.uid {
-            let context = context.extend_context_with_struct_field("Commit", "uid");
+            let context = context.with_struct("Commit", "uid");
 
             results.push(uid.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
-            let context = context.extend_context_with_struct_field("Commit", "url");
+            let context = context.with_struct("Commit", "url");
 
             results.push(url.validate_with_context(context));
         }
 
         if let Some(author) = &self.author {
-            let context = context.extend_context_with_struct_field("Commit", "author");
+            let context = context.with_struct("Commit", "author");
 
             results.push(author.validate_with_context(context));
         }
 
         if let Some(committer) = &self.committer {
-            let context = context.extend_context_with_struct_field("Commit", "committer");
+            let context = context.with_struct("Commit", "committer");
 
             results.push(committer.validate_with_context(context));
         }
 
         if let Some(message) = &self.message {
-            let context = context.extend_context_with_struct_field("Commit", "message");
+            let context = context.with_struct("Commit", "message");
 
             results.push(message.validate_with_context(context));
         }
@@ -104,13 +104,13 @@ impl Validate for Diff {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(text) = &self.text {
-            let context = context.extend_context_with_struct_field("Diff", "text");
+            let context = context.with_struct("Diff", "text");
 
             results.push(text.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
-            let context = context.extend_context_with_struct_field("Diff", "url");
+            let context = context.with_struct("Diff", "url");
 
             results.push(url.validate_with_context(context));
         }
@@ -134,19 +134,19 @@ impl Validate for IdentifiableAction {
 
         if let Some(timestamp) = &self.timestamp {
             let context =
-                context.extend_context_with_struct_field("IdentifiableAction", "timestamp");
+                context.with_struct("IdentifiableAction", "timestamp");
 
             results.push(timestamp.validate_with_context(context));
         }
 
         if let Some(name) = &self.name {
-            let context = context.extend_context_with_struct_field("IdentifiableAction", "name");
+            let context = context.with_struct("IdentifiableAction", "name");
 
             results.push(name.validate_with_context(context));
         }
 
         if let Some(email) = &self.email {
-            let context = context.extend_context_with_struct_field("IdentifiableAction", "email");
+            let context = context.with_struct("IdentifiableAction", "email");
 
             results.push(email.validate_with_context(context));
         }
@@ -171,30 +171,30 @@ impl Validate for Issue {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let issue_context = context.extend_context_with_struct_field("Issue", "issue_type");
+        let issue_context = context.with_struct("Issue", "issue_type");
 
         results.push(self.issue_type.validate_with_context(issue_context));
 
         if let Some(id) = &self.id {
-            let context = context.extend_context_with_struct_field("Issue", "id");
+            let context = context.with_struct("Issue", "id");
 
             results.push(id.validate_with_context(context));
         }
 
         if let Some(name) = &self.name {
-            let context = context.extend_context_with_struct_field("Issue", "name");
+            let context = context.with_struct("Issue", "name");
 
             results.push(name.validate_with_context(context));
         }
 
         if let Some(description) = &self.description {
-            let context = context.extend_context_with_struct_field("Issue", "description");
+            let context = context.with_struct("Issue", "description");
 
             results.push(description.validate_with_context(context));
         }
 
         if let Some(source) = &self.source {
-            let context = context.extend_context_with_struct_field("Issue", "source");
+            let context = context.with_struct("Issue", "source");
 
             results.push(source.validate_with_context(context));
         }
@@ -275,12 +275,12 @@ impl Validate for Patch {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let patch_type_context = context.extend_context_with_struct_field("Patch", "patch_type");
+        let patch_type_context = context.with_struct("Patch", "patch_type");
 
         results.push(self.patch_type.validate_with_context(patch_type_context));
 
         if let Some(diff) = &self.diff {
-            let context = context.extend_context_with_struct_field("Patch", "diff");
+            let context = context.with_struct("Patch", "diff");
 
             results.push(diff.validate_with_context(context));
         }
@@ -382,13 +382,13 @@ impl Validate for Source {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(name) = &self.name {
-            let context = context.extend_context_with_struct_field("Source", "name");
+            let context = context.with_struct("Source", "name");
 
             results.push(name.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
-            let context = context.extend_context_with_struct_field("Source", "url");
+            let context = context.with_struct("Source", "url");
 
             results.push(url.validate_with_context(context));
         }

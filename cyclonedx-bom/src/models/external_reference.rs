@@ -59,19 +59,19 @@ impl Validate for ExternalReference {
         let mut results: Vec<ValidationResult> = vec![];
 
         let external_reference_type_context = context
-            .extend_context_with_struct_field("ExternalReference", "external_reference_type");
+            .with_struct("ExternalReference", "external_reference_type");
 
         results.push(
             self.external_reference_type
                 .validate_with_context(external_reference_type_context),
         );
 
-        let url_context = context.extend_context_with_struct_field("ExternalReference", "url");
+        let url_context = context.with_struct("ExternalReference", "url");
 
         results.push(self.url.validate_with_context(url_context));
 
         if let Some(hashes) = &self.hashes {
-            let context = context.extend_context_with_struct_field("ExternalReference", "hashes");
+            let context = context.with_struct("ExternalReference", "hashes");
 
             results.push(hashes.validate_with_context(context));
         }

@@ -107,7 +107,7 @@ impl Validate for Component {
         let mut results: Vec<ValidationResult> = vec![];
 
         let component_type_context =
-            context.extend_context_with_struct_field("Component", "component_type");
+            context.with_struct("Component", "component_type");
 
         results.push(
             self.component_type
@@ -115,120 +115,120 @@ impl Validate for Component {
         );
 
         if let Some(mime_type) = &self.mime_type {
-            let context = context.extend_context_with_struct_field("Component", "mime_type");
+            let context = context.with_struct("Component", "mime_type");
 
             results.push(mime_type.validate_with_context(context));
         }
 
         if let Some(supplier) = &self.supplier {
-            let context = context.extend_context_with_struct_field("Component", "supplier");
+            let context = context.with_struct("Component", "supplier");
 
             results.push(supplier.validate_with_context(context));
         }
 
         if let Some(author) = &self.author {
-            let context = context.extend_context_with_struct_field("Component", "author");
+            let context = context.with_struct("Component", "author");
 
             results.push(author.validate_with_context(context));
         }
 
         if let Some(publisher) = &self.publisher {
-            let context = context.extend_context_with_struct_field("Component", "publisher");
+            let context = context.with_struct("Component", "publisher");
 
             results.push(publisher.validate_with_context(context));
         }
 
         if let Some(group) = &self.group {
-            let context = context.extend_context_with_struct_field("Component", "group");
+            let context = context.with_struct("Component", "group");
 
             results.push(group.validate_with_context(context));
         }
 
-        let name_context = context.extend_context_with_struct_field("Component", "name");
+        let name_context = context.with_struct("Component", "name");
 
         results.push(self.name.validate_with_context(name_context));
 
         if let Some(version) = &self.version {
-            let context = context.extend_context_with_struct_field("Component", "version");
+            let context = context.with_struct("Component", "version");
 
             results.push(version.validate_with_context(context));
         }
 
         if let Some(description) = &self.description {
-            let context = context.extend_context_with_struct_field("Component", "description");
+            let context = context.with_struct("Component", "description");
 
             results.push(description.validate_with_context(context));
         }
 
         if let Some(scope) = &self.scope {
-            let context = context.extend_context_with_struct_field("Component", "scope");
+            let context = context.with_struct("Component", "scope");
 
             results.push(scope.validate_with_context(context));
         }
 
         if let Some(hashes) = &self.hashes {
-            let context = context.extend_context_with_struct_field("Component", "hashes");
+            let context = context.with_struct("Component", "hashes");
 
             results.push(hashes.validate_with_context(context));
         }
 
         if let Some(licenses) = &self.licenses {
-            let context = context.extend_context_with_struct_field("Component", "licenses");
+            let context = context.with_struct("Component", "licenses");
 
             results.push(licenses.validate_with_context(context));
         }
 
         if let Some(copyright) = &self.copyright {
-            let context = context.extend_context_with_struct_field("Component", "copyright");
+            let context = context.with_struct("Component", "copyright");
 
             results.push(copyright.validate_with_context(context));
         }
 
         if let Some(cpe) = &self.cpe {
-            let context = context.extend_context_with_struct_field("Component", "cpe");
+            let context = context.with_struct("Component", "cpe");
 
             results.push(cpe.validate_with_context(context));
         }
 
         if let Some(purl) = &self.purl {
-            let context = context.extend_context_with_struct_field("Component", "purl");
+            let context = context.with_struct("Component", "purl");
 
             results.push(purl.validate_with_context(context));
         }
 
         if let Some(swid) = &self.swid {
-            let context = context.extend_context_with_struct_field("Component", "swid");
+            let context = context.with_struct("Component", "swid");
 
             results.push(swid.validate_with_context(context));
         }
 
         if let Some(pedigree) = &self.pedigree {
-            let context = context.extend_context_with_struct_field("Component", "pedigree");
+            let context = context.with_struct("Component", "pedigree");
 
             results.push(pedigree.validate_with_context(context));
         }
 
         if let Some(external_references) = &self.external_references {
             let context =
-                context.extend_context_with_struct_field("Component", "external_references");
+                context.with_struct("Component", "external_references");
 
             results.push(external_references.validate_with_context(context));
         }
 
         if let Some(properties) = &self.properties {
-            let context = context.extend_context_with_struct_field("Component", "properties");
+            let context = context.with_struct("Component", "properties");
 
             results.push(properties.validate_with_context(context));
         }
 
         if let Some(components) = &self.components {
-            let context = context.extend_context_with_struct_field("Component", "components");
+            let context = context.with_struct("Component", "components");
 
             results.push(components.validate_with_context(context));
         }
 
         if let Some(evidence) = &self.evidence {
-            let context = context.extend_context_with_struct_field("Component", "evidence");
+            let context = context.with_struct("Component", "evidence");
 
             results.push(evidence.validate_with_context(context));
         }
@@ -401,13 +401,13 @@ impl Validate for Swid {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(text) = &self.text {
-            let context = context.extend_context_with_struct_field("Swid", "text");
+            let context = context.with_struct("Swid", "text");
 
             results.push(text.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
-            let context = context.extend_context_with_struct_field("Swid", "url");
+            let context = context.with_struct("Swid", "url");
 
             results.push(url.validate_with_context(context));
         }
@@ -453,14 +453,14 @@ impl Validate for ComponentEvidence {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(licenses) = &self.licenses {
-            let context = context.extend_context_with_struct_field("ComponentEvidence", "licenses");
+            let context = context.with_struct("ComponentEvidence", "licenses");
 
             results.push(licenses.validate_with_context(context));
         }
 
         if let Some(copyright) = &self.copyright {
             let context =
-                context.extend_context_with_struct_field("ComponentEvidence", "copyright");
+                context.with_struct("ComponentEvidence", "copyright");
 
             results.push(copyright.validate_with_context(context));
         }
@@ -486,31 +486,31 @@ impl Validate for Pedigree {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(ancestors) = &self.ancestors {
-            let context = context.extend_context_with_struct_field("Pedigree", "ancestors");
+            let context = context.with_struct("Pedigree", "ancestors");
 
             results.push(ancestors.validate_with_context(context));
         }
 
         if let Some(descendants) = &self.descendants {
-            let context = context.extend_context_with_struct_field("Pedigree", "descendants");
+            let context = context.with_struct("Pedigree", "descendants");
 
             results.push(descendants.validate_with_context(context));
         }
 
         if let Some(variants) = &self.variants {
-            let context = context.extend_context_with_struct_field("Pedigree", "variants");
+            let context = context.with_struct("Pedigree", "variants");
 
             results.push(variants.validate_with_context(context));
         }
 
         if let Some(commits) = &self.commits {
-            let context = context.extend_context_with_struct_field("Pedigree", "commits");
+            let context = context.with_struct("Pedigree", "commits");
 
             results.push(commits.validate_with_context(context));
         }
 
         if let Some(patches) = &self.patches {
-            let context = context.extend_context_with_struct_field("Pedigree", "patches");
+            let context = context.with_struct("Pedigree", "patches");
 
             results.push(patches.validate_with_context(context));
         }

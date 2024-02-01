@@ -120,7 +120,7 @@ impl Validate for License {
         let mut results: Vec<ValidationResult> = vec![];
 
         let license_identifier_context =
-            context.extend_context_with_struct_field("License", "license_identifier");
+            context.with_struct("License", "license_identifier");
 
         results.push(
             self.license_identifier
@@ -128,13 +128,13 @@ impl Validate for License {
         );
 
         if let Some(text) = &self.text {
-            let context = context.extend_context_with_struct_field("License", "text");
+            let context = context.with_struct("License", "text");
 
             results.push(text.validate_with_context(context));
         }
 
         if let Some(url) = &self.url {
-            let context = context.extend_context_with_struct_field("License", "url");
+            let context = context.with_struct("License", "url");
 
             results.push(url.validate_with_context(context));
         }

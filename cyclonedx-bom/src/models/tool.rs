@@ -53,25 +53,25 @@ impl Validate for Tool {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(vendor) = &self.vendor {
-            let context = context.extend_context_with_struct_field("Tool", "vendor");
+            let context = context.with_struct("Tool", "vendor");
 
             results.push(vendor.validate_with_context(context));
         }
 
         if let Some(name) = &self.name {
-            let context = context.extend_context_with_struct_field("Tool", "name");
+            let context = context.with_struct("Tool", "name");
 
             results.push(name.validate_with_context(context));
         }
 
         if let Some(version) = &self.version {
-            let context = context.extend_context_with_struct_field("Tool", "version");
+            let context = context.with_struct("Tool", "version");
 
             results.push(version.validate_with_context(context));
         }
 
         if let Some(hashes) = &self.hashes {
-            let context = context.extend_context_with_struct_field("Tool", "hashes");
+            let context = context.with_struct("Tool", "hashes");
 
             results.push(hashes.validate_with_context(context));
         }

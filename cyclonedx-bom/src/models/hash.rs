@@ -36,11 +36,11 @@ impl Validate for Hash {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let alg_context = context.extend_context_with_struct_field("Hash", "alg");
+        let alg_context = context.with_struct("Hash", "alg");
 
         results.push(self.alg.validate_with_context(alg_context));
 
-        let content_context = context.extend_context_with_struct_field("Hash", "content");
+        let content_context = context.with_struct("Hash", "content");
 
         results.push(self.content.validate_with_context(content_context));
 

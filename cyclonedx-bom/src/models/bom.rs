@@ -226,15 +226,15 @@ impl Validate for Bom {
         let mut bom_refs_context = BomReferencesContext::default();
 
         if let Some(serial_number) = &self.serial_number {
-            let context = context.extend_context_with_struct_field("Bom", "serial_number");
+            let context = context.with_struct("Bom", "serial_number");
 
             results.push(serial_number.validate_with_context(context));
         }
 
         if let Some(metadata) = &self.metadata {
-            let context = context.extend_context_with_struct_field("Bom", "metadata");
+            let context = context.with_struct("Bom", "metadata");
             let component_bom_ref_context =
-                context.extend_context_with_struct_field("Metadata", "component");
+                context.with_struct("Metadata", "component");
 
             results.push(metadata.validate_with_context(context));
 
@@ -249,7 +249,7 @@ impl Validate for Bom {
         }
 
         if let Some(components) = &self.components {
-            let context = context.extend_context_with_struct_field("Bom", "components");
+            let context = context.with_struct("Bom", "components");
             let component_bom_ref_context = context.clone();
 
             results.push(components.validate_with_context(context));
@@ -264,7 +264,7 @@ impl Validate for Bom {
         }
 
         if let Some(services) = &self.services {
-            let context = context.extend_context_with_struct_field("Bom", "services");
+            let context = context.with_struct("Bom", "services");
             let service_bom_ref_context = context.clone();
 
             results.push(services.validate_with_context(context));
@@ -279,13 +279,13 @@ impl Validate for Bom {
         }
 
         if let Some(external_references) = &self.external_references {
-            let context = context.extend_context_with_struct_field("Bom", "external_references");
+            let context = context.with_struct("Bom", "external_references");
 
             results.push(external_references.validate_with_context(context));
         }
 
         if let Some(dependencies) = &self.dependencies {
-            let context = context.extend_context_with_struct_field("Bom", "dependencies");
+            let context = context.with_struct("Bom", "dependencies");
 
             for (dependency_index, dependency) in dependencies.0.iter().enumerate() {
                 let context = context.extend_context(vec![ValidationPathComponent::Array {
@@ -293,7 +293,7 @@ impl Validate for Bom {
                 }]);
                 if !bom_refs_context.contains(&dependency.dependency_ref) {
                     let dependency_context =
-                        context.extend_context_with_struct_field("Dependency", "dependency_ref");
+                        context.with_struct("Dependency", "dependency_ref");
 
                     results.push(ValidationResult::Failed {
                         reasons: vec![FailureReason {
@@ -330,7 +330,7 @@ impl Validate for Bom {
         }
 
         if let Some(compositions) = &self.compositions {
-            let context = context.extend_context_with_struct_field("Bom", "compositions");
+            let context = context.with_struct("Bom", "compositions");
             let compositions_context = context.clone();
 
             results.push(compositions.validate_with_context(context));
@@ -343,7 +343,7 @@ impl Validate for Bom {
 
                 if let Some(assemblies) = &composition.assemblies {
                     let compositions_context = compositions_context
-                        .extend_context_with_struct_field("Composition", "assemblies");
+                        .with_struct("Composition", "assemblies");
                     for (assembly_index, BomReference(assembly)) in assemblies.iter().enumerate() {
                         if !bom_refs_context.contains(assembly) {
                             let compositions_context = compositions_context.extend_context(vec![
@@ -364,7 +364,7 @@ impl Validate for Bom {
 
                 if let Some(dependencies) = &composition.dependencies {
                     let compositions_context = compositions_context
-                        .extend_context_with_struct_field("Composition", "dependencies");
+                        .with_struct("Composition", "dependencies");
                     for (dependency_index, BomReference(dependency)) in
                         dependencies.iter().enumerate()
                     {
@@ -388,13 +388,13 @@ impl Validate for Bom {
         }
 
         if let Some(properties) = &self.properties {
-            let context = context.extend_context_with_struct_field("Bom", "properties");
+            let context = context.with_struct("Bom", "properties");
 
             results.push(properties.validate_with_context(context));
         }
 
         if let Some(vulnerabilities) = &self.vulnerabilities {
-            let context = context.extend_context_with_struct_field("Bom", "vulnerabilities");
+            let context = context.with_struct("Bom", "vulnerabilities");
             results.push(vulnerabilities.validate_with_context(context));
         }
 
@@ -432,7 +432,7 @@ fn validate_component_bom_refs(
 ) {
     if let Some(bom_ref) = &component.bom_ref {
         if bom_refs.contains(bom_ref) {
-            let context = context.extend_context_with_struct_field("Component", "bom_ref");
+            let context = context.with_struct("Component", "bom_ref");
             results.push(ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: format!(r#"Bom ref "{bom_ref}" is not unique"#),
@@ -444,7 +444,7 @@ fn validate_component_bom_refs(
     }
 
     if let Some(components) = &component.components {
-        let context = context.extend_context_with_struct_field("Component", "components");
+        let context = context.with_struct("Component", "components");
         validate_components(components, bom_refs, &context, results);
     }
 }
@@ -473,7 +473,7 @@ fn validate_service_bom_refs(
 ) {
     if let Some(bom_ref) = &service.bom_ref {
         if bom_refs.contains(bom_ref) {
-            let context = context.extend_context_with_struct_field("Service", "bom_ref");
+            let context = context.with_struct("Service", "bom_ref");
             results.push(ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: format!(r#"Bom ref "{bom_ref}" is not unique"#),
@@ -485,7 +485,7 @@ fn validate_service_bom_refs(
     }
 
     if let Some(services) = &service.services {
-        let context = context.extend_context_with_struct_field("Service", "services");
+        let context = context.with_struct("Service", "services");
         validate_services(services, bom_refs, &context, results);
     }
 }
