@@ -75,7 +75,6 @@ fn find_content_in_bom_files() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-#[ignore]
 fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
     let tmp_dir = make_temp_rust_project()?;
 
