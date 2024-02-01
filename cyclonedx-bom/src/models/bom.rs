@@ -516,8 +516,8 @@ pub struct UrnUuid(pub(crate) String);
 impl UrnUuid {
     pub fn new(value: String) -> Result<Self, UrnUuidError> {
         match matches_urn_uuid_regex(&value) {
-            Ok(true) => Ok(Self(value)),
-            Ok(false) | Err(_) => Err(UrnUuidError::InvalidUrnUuid(
+            true => Ok(Self(value)),
+            false => Err(UrnUuidError::InvalidUrnUuid(
                 "UrnUuid does not match regular expression".to_string(),
             )),
         }
@@ -546,14 +546,13 @@ impl Validate for UrnUuid {
         context: ValidationContext,
     ) -> Result<ValidationResult, ValidationError> {
         match matches_urn_uuid_regex(&self.0) {
-            Ok(true) => Ok(ValidationResult::Passed),
-            Ok(false) => Ok(ValidationResult::Failed {
+            true => Ok(ValidationResult::Passed),
+            false => Ok(ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "UrnUuid does not match regular expression".to_string(),
                     context,
                 }],
             }),
-            Err(e) => Err(e.into()),
         }
     }
 }
@@ -563,15 +562,12 @@ pub enum UrnUuidError {
     InvalidUrnUuid(String),
 }
 
-fn matches_urn_uuid_regex(value: &str) -> Result<bool, regex::Error> {
-    static UUID_REGEX: Lazy<Result<Regex, regex::Error>> = Lazy::new(|| {
+fn matches_urn_uuid_regex(value: &str) -> bool {
+    static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
         Regex::new(r"^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+            .expect("Failed to compile regex.")
     });
-
-    UUID_REGEX
-        .as_ref()
-        .map(|regex| regex.is_match(value))
-        .map_err(Clone::clone)
+    UUID_REGEX.is_match(value)
 }
 
 #[cfg(test)]
@@ -1121,7 +1117,7 @@ mod test {
 
     #[test]
     fn valid_uuids_should_pass_validation() {
-        let validation_result = UrnUuid(format!("urn:uuid:{}", uuid::Uuid::new_v4()))
+        let validation_result = UrnUuid::from(uuid::Uuid::new_v4())
             .validate_with_context(ValidationContext::default())
             .expect("Error while validating");
 
