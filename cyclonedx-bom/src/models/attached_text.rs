@@ -20,7 +20,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 
 use crate::{
     external_models::normalized_string::NormalizedString,
-    validation::{FailureReason, Validate, ValidationContext, ValidationError, ValidationResult},
+    validation::{Validate, ValidationContext, ValidationResult},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,44 +45,37 @@ impl AttachedText {
 }
 
 impl Validate for AttachedText {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(content_type) = &self.content_type {
-            let context = context.extend_context_with_struct_field("AttachedText", "content_type");
+            let context = context.with_struct("AttachedText", "content_type");
 
-            results.push(content_type.validate_with_context(context)?);
+            results.push(content_type.validate_with_context(context));
         }
 
         if let Some(encoding) = &self.encoding {
             match (encoding, STANDARD.decode(self.content.clone())) {
                 (Encoding::Base64, Ok(_)) => results.push(ValidationResult::Passed),
                 (Encoding::Base64, Err(_)) => {
-                    let context =
-                        context.extend_context_with_struct_field("AttachedText", "content");
+                    let context = context.with_struct("AttachedText", "content");
 
-                    results.push(ValidationResult::Failed {
-                        reasons: vec![FailureReason {
-                            message: "Content is not Base64 encoded".to_string(),
-                            context,
-                        }],
-                    })
+                    results.push(ValidationResult::failure(
+                        "Content is not Base64 encoded",
+                        context,
+                    ))
                 }
                 (Encoding::UnknownEncoding(_), _) => {
-                    let context =
-                        context.extend_context_with_struct_field("AttachedText", "encoding");
+                    let context = context.with_struct("AttachedText", "encoding");
 
-                    results.push(encoding.validate_with_context(context)?);
+                    results.push(encoding.validate_with_context(context));
                 }
             }
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -112,25 +105,17 @@ impl Encoding {
 }
 
 impl Validate for Encoding {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            Encoding::UnknownEncoding(_) => Ok(ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Unknown encoding".to_string(),
-                    context,
-                }],
-            }),
-            _ => Ok(ValidationResult::Passed),
+            Encoding::UnknownEncoding(_) => ValidationResult::failure("Unknown encoding", context),
+            _ => ValidationResult::Passed,
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{models::attached_text::Encoding, validation::ValidationPathComponent};
+    use crate::{models::attached_text::Encoding, validation::FailureReason};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -158,8 +143,7 @@ mod test {
             encoding: Some(Encoding::Base64),
             content: "dGhpcyB0ZXh0IGlzIHBsYWlu".to_string(),
         }
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -171,29 +155,20 @@ mod test {
             encoding: Some(Encoding::Base64),
             content: "not base64 encoded".to_string(),
         }
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,
             ValidationResult::Failed {
                 reasons: vec![
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "AttachedText".to_string(),
-                            field_name: "content_type".to_string()
-                        }])
-                    },
-                    FailureReason {
-                        message: "Content is not Base64 encoded".to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "AttachedText".to_string(),
-                            field_name: "content".to_string()
-                        }])
-                    }
+                    FailureReason::new(
+                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
+                        ValidationContext::new().with_struct("AttachedText", "content_type")
+                    ),
+                    FailureReason::new(
+                        "Content is not Base64 encoded",
+                        ValidationContext::new().with_struct("AttachedText", "content")
+                    )
                 ]
             }
         );
@@ -206,21 +181,15 @@ mod test {
             encoding: Some(Encoding::UnknownEncoding("unknown".to_string())),
             content: "not base64 encoded".to_string(),
         }
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Unknown encoding".to_string(),
-                    context: ValidationContext(vec![ValidationPathComponent::Struct {
-                        struct_name: "AttachedText".to_string(),
-                        field_name: "encoding".to_string()
-                    }])
-                }]
-            }
-        );
+            ValidationResult::failure(
+                "Unknown encoding",
+                ValidationContext::new().with_struct("AttachedText", "encoding")
+            )
+        )
     }
 
     #[test]
@@ -230,8 +199,7 @@ mod test {
             encoding: None,
             content: "not base64 encoded".to_string(),
         }
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }

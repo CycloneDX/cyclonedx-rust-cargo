@@ -99,7 +99,7 @@ impl SbomGenerator {
             let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
             if cfg!(debug_assertions) {
-                let result = bom.validate().unwrap();
+                let result = bom.validate();
                 if let ValidationResult::Failed { reasons } = result {
                     panic!("The generated SBOM failed validation: {:?}", &reasons);
                 }
