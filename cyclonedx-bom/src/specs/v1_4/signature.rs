@@ -19,44 +19,189 @@
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
-use xml::{reader, writer::XmlEvent};
+use xml::reader;
 
 use crate::{
     errors::XmlReadError,
     models,
     xml::{
-        read_simple_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
-        write_simple_tag, FromXml, ToXml,
+        read_list_tag, read_simple_tag, to_xml_read_error, unexpected_element_error,
+        write_close_tag, write_simple_tag, write_start_tag, FromXml, ToXml,
     },
 };
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct Signature {
+/// For now the [`Signer`] struct only holds algorithm and value
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct Signer {
+    /// Signature algorithm.
     pub algorithm: Algorithm,
+    /// The signature data.
     pub value: String,
+}
+
+impl Signer {
+    pub fn new(algorithm: Algorithm, value: &str) -> Self {
+        Self {
+            algorithm,
+            value: value.to_string(),
+        }
+    }
+}
+
+impl ToXml for Signer {
+    fn write_xml_element<W: std::io::prelude::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_simple_tag(writer, ALGORITHM_TAG, &self.algorithm.to_string())?;
+        write_simple_tag(writer, VALUE_TAG, &self.value)?;
+
+        Ok(())
+    }
+}
+
+impl FromXml for Signer {
+    fn read_xml_element<R: std::io::prelude::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut algorithm: Option<String> = None;
+        let mut value: Option<String> = None;
+        let mut got_end_tag = false;
+
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(SIGNATURE_TAG))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == ALGORITHM_TAG => {
+                    algorithm = Some(read_simple_tag(event_reader, &name)?);
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == VALUE_TAG => {
+                    value = Some(read_simple_tag(event_reader, &name)?);
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => {
+                    return Err(unexpected_element_error(element_name, unexpected));
+                }
+            }
+        }
+
+        let algorithm = algorithm.ok_or_else(|| XmlReadError::RequiredDataMissing {
+            required_field: ALGORITHM_TAG.to_string(),
+            element: element_name.local_name.to_string(),
+        })?;
+        let value = value.ok_or_else(|| XmlReadError::RequiredDataMissing {
+            required_field: VALUE_TAG.to_string(),
+            element: element_name.local_name.to_string(),
+        })?;
+
+        let algorithm =
+            algorithm
+                .parse::<Algorithm>()
+                .map_err(|_| XmlReadError::InvalidEnumVariant {
+                    value: algorithm.to_string(),
+                    element: ALGORITHM_TAG.to_string(),
+                })?;
+
+        Ok(Self { algorithm, value })
+    }
+}
+
+/// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", untagged)]
+pub enum Signature {
+    /// Multiple signatures
+    Signers(Vec<Signer>),
+    /// A single signature chain
+    Chain(Vec<Signer>),
+    /// A single signature
+    Single(Signer),
+}
+
+impl Signature {
+    /// Creates a single [`Signature::Single`].
+    pub fn single(algorithm: Algorithm, value: &str) -> Self {
+        Self::Single(Signer::new(algorithm, value))
+    }
+
+    /// Creates a [`Signature::Chain`].
+    pub fn chain(chain: &[(Algorithm, &str)]) -> Self {
+        Self::Chain(
+            chain
+                .iter()
+                .map(|(algorithm, value)| Signer::new(*algorithm, value))
+                .collect(),
+        )
+    }
+
+    /// Creates a [`Signature::Signers`].
+    pub fn signers(signers: &[(Algorithm, &str)]) -> Self {
+        Self::Signers(
+            signers
+                .iter()
+                .map(|(algorithm, value)| Signer::new(*algorithm, value))
+                .collect(),
+        )
+    }
 }
 
 impl From<models::signature::Signature> for Signature {
     fn from(other: models::signature::Signature) -> Self {
-        Signature {
-            algorithm: other.algorithm.into(),
-            value: other.value,
+        match other {
+            models::signature::Signature::Signers(signers) => {
+                Signature::Signers(signers.into_iter().map(From::from).collect())
+            }
+            models::signature::Signature::Chain(chain) => {
+                Signature::Chain(chain.into_iter().map(From::from).collect())
+            }
+            models::signature::Signature::Single(signer) => Signature::Single(signer.into()),
+        }
+    }
+}
+
+impl From<models::signature::Signer> for Signer {
+    fn from(signer: models::signature::Signer) -> Self {
+        Self {
+            algorithm: signer.algorithm.into(),
+            value: signer.value.clone(),
+        }
+    }
+}
+
+impl From<Signer> for models::signature::Signer {
+    fn from(signer: Signer) -> Self {
+        Self {
+            algorithm: signer.algorithm.into(),
+            value: signer.value.to_string(),
         }
     }
 }
 
 impl From<Signature> for models::signature::Signature {
-    fn from(other: Signature) -> Self {
-        models::signature::Signature {
-            algorithm: other.algorithm.into(),
-            value: other.value,
+    fn from(signature: Signature) -> Self {
+        match signature {
+            Signature::Signers(signers) => {
+                models::signature::Signature::Signers(signers.into_iter().map(From::from).collect())
+            }
+            Signature::Chain(chain) => {
+                models::signature::Signature::Chain(chain.into_iter().map(From::from).collect())
+            }
+            Signature::Single(signer) => models::signature::Signature::Single(signer.into()),
         }
     }
 }
 
 /// Supported signature algorithms.
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Algorithm {
     RS256,
     RS384,
@@ -143,21 +288,40 @@ impl ToXml for Signature {
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        writer
-            .write(XmlEvent::start_element(SIGNATURE_TAG))
-            .map_err(to_xml_write_error(SIGNATURE_TAG))?;
+        write_start_tag(writer, SIGNATURE_TAG)?;
 
-        write_simple_tag(writer, ALGORITHM_TAG, &self.algorithm.to_string())?;
-        write_simple_tag(writer, VALUE_TAG, &self.value)?;
+        match self {
+            Signature::Signers(signers) => {
+                write_start_tag(writer, SIGNERS_TAG)?;
+                for signer in signers {
+                    write_start_tag(writer, SIGNER_TAG)?;
+                    signer.write_xml_element(writer)?;
+                    write_close_tag(writer, SIGNER_TAG)?;
+                }
+                write_close_tag(writer, SIGNERS_TAG)?;
+            }
+            Signature::Chain(chain) => {
+                write_start_tag(writer, CHAIN_TAG)?;
+                for signer in chain {
+                    write_start_tag(writer, CHAIN_INNER_TAG)?;
+                    signer.write_xml_element(writer)?;
+                    write_close_tag(writer, CHAIN_INNER_TAG)?;
+                }
+                write_close_tag(writer, CHAIN_TAG)?;
+            }
+            Signature::Single(signer) => signer.write_xml_element(writer)?,
+        }
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(to_xml_write_error(SIGNATURE_TAG))?;
+        write_close_tag(writer, SIGNATURE_TAG)?;
 
         Ok(())
     }
 }
 
+const SIGNERS_TAG: &str = "signers";
+const SIGNER_TAG: &str = "signer";
+const CHAIN_TAG: &str = "chain";
+const CHAIN_INNER_TAG: &str = "chain";
 const SIGNATURE_TAG: &str = "signature";
 const ALGORITHM_TAG: &str = "algorithm";
 const VALUE_TAG: &str = "value";
@@ -171,16 +335,25 @@ impl FromXml for Signature {
     where
         Self: Sized,
     {
+        let mut signature: Option<Signature> = None;
         let mut algorithm: Option<String> = None;
         let mut value: Option<String> = None;
-
         let mut got_end_tag = false;
+
         while !got_end_tag {
             let next_element = event_reader
                 .next()
                 .map_err(to_xml_read_error(SIGNATURE_TAG))?;
 
             match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == SIGNERS_TAG => {
+                    let signers = read_list_tag(event_reader, &name, SIGNER_TAG)?;
+                    signature = Some(Signature::Signers(signers));
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == CHAIN_TAG => {
+                    let chain = read_list_tag(event_reader, &name, CHAIN_INNER_TAG)?;
+                    signature = Some(Signature::Chain(chain));
+                }
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == ALGORITHM_TAG => {
                     algorithm = Some(read_simple_tag(event_reader, &name)?);
                 }
@@ -190,29 +363,39 @@ impl FromXml for Signature {
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+                _ => {
+                    let signer = Signer::read_xml_element(event_reader, &element_name, &[])?;
+                    signature = Some(Signature::Single(signer));
+                }
             }
         }
 
-        // get required attributesInvalidEnumVariant
-        let algorithm = algorithm.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: ALGORITHM_TAG.to_string(),
-            element: SIGNATURE_TAG.to_string(),
-        })?;
-        let value = value.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: VALUE_TAG.to_string(),
-            element: SIGNATURE_TAG.to_string(),
-        })?;
+        // When multiple signers for a signature return them, otherwise we expect the flat variant.
+        // Unfortunately this duplicates some code.
+        let signature = if let Some(signature) = signature {
+            signature
+        } else {
+            let algorithm = algorithm.ok_or_else(|| XmlReadError::RequiredDataMissing {
+                required_field: ALGORITHM_TAG.to_string(),
+                element: element_name.local_name.to_string(),
+            })?;
+            let value = value.ok_or_else(|| XmlReadError::RequiredDataMissing {
+                required_field: VALUE_TAG.to_string(),
+                element: element_name.local_name.to_string(),
+            })?;
 
-        let algorithm =
-            algorithm
-                .parse::<Algorithm>()
-                .map_err(|_| XmlReadError::InvalidEnumVariant {
-                    value: algorithm.to_string(),
-                    element: ALGORITHM_TAG.to_string(),
-                })?;
+            let algorithm =
+                algorithm
+                    .parse::<Algorithm>()
+                    .map_err(|_| XmlReadError::InvalidEnumVariant {
+                        value: algorithm.to_string(),
+                        element: ALGORITHM_TAG.to_string(),
+                    })?;
 
-        Ok(Self { algorithm, value })
+            Signature::single(algorithm, &value)
+        };
+
+        Ok(signature)
     }
 }
 
@@ -228,17 +411,11 @@ pub(crate) mod test {
     use super::{Algorithm, Signature};
 
     pub(crate) fn example_signature() -> Signature {
-        Signature {
-            algorithm: Algorithm::HS512,
-            value: "1234567890".to_string(),
-        }
+        Signature::single(Algorithm::HS512, "1234567890")
     }
 
     pub(crate) fn corresponding_signature() -> models::signature::Signature {
-        models::signature::Signature {
-            algorithm: models::signature::Algorithm::HS512,
-            value: "1234567890".to_string(),
-        }
+        models::signature::Signature::single(models::signature::Algorithm::HS512, "1234567890")
     }
 
     #[track_caller]
@@ -271,6 +448,8 @@ pub(crate) mod test {
             .expect("Failed to write signature");
         let actual_output = String::from_utf8_lossy(&writer);
 
+        let expected_output = expected_output.trim();
+
         assert_eq!(actual_output, expected_output);
     }
 
@@ -282,10 +461,7 @@ pub(crate) mod test {
     <value>abcdefghijklmnopqrstuvwxyz</value>
 </signature>
 "#;
-        let expected = Signature {
-            algorithm: Algorithm::RS512,
-            value: "abcdefghijklmnopqrstuvwxyz".to_string(),
-        };
+        let expected = Signature::single(Algorithm::RS512, "abcdefghijklmnopqrstuvwxyz");
         assert_valid_signature(input, expected);
     }
 
@@ -322,15 +498,125 @@ pub(crate) mod test {
 
     #[test]
     fn it_should_write_xml_successfully() {
-        let expected = r#"<signature>
+        let expected = r#"
+<signature>
   <algorithm>ES256</algorithm>
   <value>abcdefgh</value>
 </signature>"#;
-        let signature = Signature {
-            algorithm: Algorithm::ES256,
-            value: "abcdefgh".to_string(),
-        };
-
+        let signature = Signature::single(Algorithm::ES256, "abcdefgh");
         assert_write_xml(signature, expected);
+    }
+
+    #[test]
+    fn it_should_write_signature_signers_successfully() {
+        let expected = r#"
+<signature>
+  <signers>
+    <signer>
+      <algorithm>ES256</algorithm>
+      <value>abcdefgh</value>
+    </signer>
+    <signer>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signer>
+  </signers>
+</signature>
+"#;
+        let signature = Signature::signers(&[
+            (Algorithm::ES256, "abcdefgh"),
+            (Algorithm::HS512, "1234567890"),
+        ]);
+        assert_write_xml(signature, expected);
+    }
+
+    #[test]
+    fn it_should_write_signature_chain_successfully() {
+        let expected = r#"
+<signature>
+  <chain>
+    <chain>
+      <algorithm>ES256</algorithm>
+      <value>abcdefgh</value>
+    </chain>
+    <chain>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </chain>
+  </chain>
+</signature>
+"#;
+        let signature = Signature::chain(&[
+            (Algorithm::ES256, "abcdefgh"),
+            (Algorithm::HS512, "1234567890"),
+        ]);
+        assert_write_xml(signature, expected);
+    }
+
+    #[test]
+    fn it_should_read_single_signature() {
+        let input = r#"
+<signature>
+  <algorithm>HS512</algorithm>
+  <value>abcdefgh</value>
+</signature>
+        "#;
+        let expected = Signature::single(Algorithm::HS512, "abcdefgh");
+        let actual: Signature = read_element_from_string(input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_fail_to_read_with_empty_signature() {
+        let input = r#"<signature></signature>"#;
+        assert_invalid_signature(input);
+    }
+
+    #[test]
+    fn it_should_read_multiple_signers_signature() {
+        let input = r#"
+<signature>
+  <signers>
+    <signer bom-ref="bom-ref">
+      <algorithm>ES256</algorithm>
+      <value>abcdefgh</value>
+    </signer>
+    <signer bom-ref="bom-ref">
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signer>
+  </signers>
+</signature>
+        "#;
+        let expected = Signature::signers(&[
+            (Algorithm::ES256, "abcdefgh"),
+            (Algorithm::HS512, "1234567890"),
+        ]);
+        let actual: Signature = read_element_from_string(input);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_chain_signature() {
+        let input = r#"
+<signature>
+  <chain>
+    <chain bom-ref="bom-ref">
+      <algorithm>ES256</algorithm>
+      <value>abcdefgh</value>
+    </chain>
+    <chain bom-ref="bom-ref">
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </chain>
+  </chain>
+</signature>
+        "#;
+        let expected = Signature::chain(&[
+            (Algorithm::ES256, "abcdefgh"),
+            (Algorithm::HS512, "1234567890"),
+        ]);
+        let actual: Signature = read_element_from_string(input);
+        assert_eq!(actual, expected);
     }
 }

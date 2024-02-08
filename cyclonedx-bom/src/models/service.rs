@@ -315,10 +315,7 @@ mod test {
                 value: NormalizedString::new("value"),
             }])),
             services: Some(Services(vec![])),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
 
@@ -377,10 +374,7 @@ mod test {
                 services: None,
                 signature: None,
             }])),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
 

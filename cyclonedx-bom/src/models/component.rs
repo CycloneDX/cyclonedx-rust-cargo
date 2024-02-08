@@ -641,10 +641,7 @@ mod test {
                 ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
             }),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
 
@@ -732,10 +729,7 @@ mod test {
                 ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
             }),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
 

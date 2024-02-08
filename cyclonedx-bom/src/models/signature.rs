@@ -20,23 +20,13 @@ use std::str::FromStr;
 
 /// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Signature {
-    /// Signature algorithm.
-    pub algorithm: Algorithm,
-    /// The signature data.
-    pub value: String,
-}
-
-/*
-/// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Signature {
     /// Multiple signatures
     Signers(Vec<Signer>),
-    /// A single signature chain
-    Chain(Signer),
+    /// A signature chain consisting of multiple signatures
+    Chain(Vec<Signer>),
     /// A single signature
-    Signature(Signer),
+    Single(Signer),
 }
 
 /// For now the [`Signer`] struct only holds algorithm and value
@@ -47,10 +37,48 @@ pub struct Signer {
     /// The signature data.
     pub value: String,
 }
-*/
+
+impl Signer {
+    pub fn new(algorithm: Algorithm, value: &str) -> Self {
+        Self {
+            algorithm,
+            value: value.to_string(),
+        }
+    }
+}
+
+impl Signature {
+    /// Creates a single signature.
+    pub fn single(algorithm: Algorithm, value: &str) -> Self {
+        Self::Single(Signer {
+            algorithm,
+            value: value.to_string(),
+        })
+    }
+
+    /// Creates a chain of multiple signatures
+    pub fn chain(chain: &[(Algorithm, &str)]) -> Self {
+        Self::Chain(
+            chain
+                .iter()
+                .map(|(algorithm, value)| Signer::new(*algorithm, value))
+                .collect(),
+        )
+    }
+
+    /// Creates a list of multiple signatures.
+    pub fn signers(signers: &[(Algorithm, &str)]) -> Self {
+        Self::Signers(
+            signers
+                .iter()
+                .map(|(algorithm, value)| Signer::new(*algorithm, value))
+                .collect(),
+        )
+    }
+}
 
 /// Supported signature algorithms.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Algorithm {
     RS256,
     RS384,

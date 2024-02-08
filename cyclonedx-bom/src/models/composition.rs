@@ -134,10 +134,7 @@ mod test {
             aggregate: AggregateType::Complete,
             assemblies: Some(vec![BomReference("reference".to_string())]),
             dependencies: Some(vec![BomReference("reference".to_string())]),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
 
@@ -150,10 +147,7 @@ mod test {
             aggregate: AggregateType::UnknownAggregateType("unknown aggregate type".to_string()),
             assemblies: Some(vec![BomReference("reference".to_string())]),
             dependencies: Some(vec![BomReference("reference".to_string())]),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
 
