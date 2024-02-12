@@ -44,7 +44,7 @@ use xml::{reader, writer::XmlEvent};
 pub(crate) struct Bom {
     bom_format: BomFormat,
     spec_version: SpecVersion,
-    version: Option<u32>,
+    version: u32,
     serial_number: Option<UrnUuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
     metadata: Option<Metadata>,
@@ -69,7 +69,7 @@ impl TryFrom<models::bom::Bom> for Bom {
         Ok(Self {
             bom_format: BomFormat::CycloneDX,
             spec_version: SpecVersion::V1_3,
-            version: Some(other.version),
+            version: other.version,
             serial_number: convert_optional(other.serial_number),
             metadata: try_convert_optional(other.metadata)?,
             components: try_convert_optional(other.components)?,
@@ -85,7 +85,7 @@ impl TryFrom<models::bom::Bom> for Bom {
 impl From<Bom> for models::bom::Bom {
     fn from(other: Bom) -> Self {
         Self {
-            version: other.version.unwrap_or(1),
+            version: other.version,
             serial_number: convert_optional(other.serial_number),
             metadata: convert_optional(other.metadata),
             components: convert_optional(other.components),
@@ -109,7 +109,7 @@ impl ToXml for Bom {
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        let version = self.version.map(|v| format!("{}", v));
+        let version = format!("{}", self.version);
         let mut bom_start_element =
             XmlEvent::start_element(BOM_TAG).default_ns("http://cyclonedx.org/schema/bom/1.3");
 
@@ -117,9 +117,7 @@ impl ToXml for Bom {
             bom_start_element = bom_start_element.attr(SERIAL_NUMBER_ATTR, &serial_number.0);
         }
 
-        if let Some(version) = &version {
-            bom_start_element = bom_start_element.attr(VERSION_ATTR, version);
-        }
+        bom_start_element = bom_start_element.attr(VERSION_ATTR, version.as_str());
 
         writer
             .write(bom_start_element)
@@ -196,10 +194,9 @@ impl FromXmlDocument for Bom {
                     expected_namespace_or_error("1.3", &namespace)?;
                     let version =
                         if let Some(version) = optional_attribute(&attributes, VERSION_ATTR) {
-                            let version = u32::from_xml_value(VERSION_ATTR, version)?;
-                            Some(version)
+                            u32::from_xml_value(VERSION_ATTR, version)?
                         } else {
-                            None
+                            1
                         };
                     let serial_number =
                         optional_attribute(&attributes, SERIAL_NUMBER_ATTR).map(UrnUuid);
@@ -361,7 +358,7 @@ pub(crate) mod test {
         Bom {
             bom_format: BomFormat::CycloneDX,
             spec_version: SpecVersion::V1_3,
-            version: Some(1),
+            version: 1,
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: None,
             components: None,
@@ -377,7 +374,7 @@ pub(crate) mod test {
         Bom {
             bom_format: BomFormat::CycloneDX,
             spec_version: SpecVersion::V1_3,
-            version: Some(1),
+            version: 1,
             serial_number: Some(UrnUuid("fake-uuid".to_string())),
             metadata: Some(example_metadata()),
             components: Some(example_components()),

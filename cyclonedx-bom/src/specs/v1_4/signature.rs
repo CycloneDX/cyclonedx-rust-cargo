@@ -364,7 +364,7 @@ impl FromXml for Signature {
                     got_end_tag = true;
                 }
                 _ => {
-                    let signer = Signer::read_xml_element(event_reader, &element_name, &[])?;
+                    let signer = Signer::read_xml_element(event_reader, element_name, &[])?;
                     signature = Some(Signature::Single(signer));
                 }
             }
