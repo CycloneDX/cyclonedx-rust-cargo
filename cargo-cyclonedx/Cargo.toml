@@ -33,7 +33,7 @@ percent-encoding = "2.3.1"
 purl = { version = "0.1.2", default-features = false, features = ["package-type"] }
 regex = "1.9.3"
 serde = { version = "1.0.193", features = ["derive"] }
-thiserror = "1.0.48"
+thiserror = "1.0.57"
 validator = { version = "0.16.1" }
 
 [dev-dependencies]
