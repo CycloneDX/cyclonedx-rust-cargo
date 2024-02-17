@@ -31,6 +31,8 @@ use cargo_metadata::NodeDep;
 use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
+use cargo_lock::package::Checksum;
+use cargo_lock::Lockfile;
 use cargo_metadata::camino::Utf8PathBuf;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
@@ -54,6 +56,7 @@ use regex::Regex;
 
 use log::Level;
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufWriter;
@@ -70,6 +73,7 @@ type ResolveMap = BTreeMap<PackageId, Node>;
 pub struct SbomGenerator {
     config: SbomConfig,
     workspace_root: Utf8PathBuf,
+    crate_hashes: HashMap<cargo_metadata::PackageId, Checksum>,
 }
 
 impl SbomGenerator {
@@ -103,10 +107,13 @@ impl SbomGenerator {
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
             let cargo_lock_path = locate_cargo_lock(&manifest_path).unwrap(); // TODO: error handling
+            let lockfile_contents = Lockfile::load(cargo_lock_path).unwrap(); // TODO: error handling
+            let crate_hashes = package_hashes(&lockfile_contents);
 
             let generator = SbomGenerator {
                 config: config.clone(),
                 workspace_root: meta.workspace_root.to_owned(),
+                crate_hashes,
             };
             let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
@@ -791,6 +798,27 @@ fn locate_cargo_lock(manifest_path: &Path) -> Result<PathBuf, std::io::Error> {
         std::io::ErrorKind::NotFound,
         "Could not find Cargo.lock in any parent directories",
     ))
+}
+
+/// Extracts all available package hashes from the provided `Cargo.lock` file
+/// and collects them into a HashMap for fast and reasy lookup
+fn package_hashes(lockfile: &Lockfile) -> HashMap<cargo_metadata::PackageId, Checksum> {
+    let mut result = HashMap::new();
+    for pkg in &lockfile.packages {
+        if let Some(hash) = pkg.checksum.as_ref() {
+            result.insert(cargo_metadata::PackageId { repr: pkgid(pkg) }, hash.clone());
+        }
+    }
+    result
+}
+
+/// Returns a Cargo unique identifier for a package.
+/// See `cargo help pkgid` for more info.
+fn pkgid(pkg: &cargo_lock::Package) -> String {
+    match pkg.source.as_ref() {
+        Some(source) => format!("{}#{}@{}", source, pkg.name, pkg.version),
+        None => format!("{}@{}", pkg.name, pkg.version),
+    }
 }
 
 #[derive(Error, Debug)]
