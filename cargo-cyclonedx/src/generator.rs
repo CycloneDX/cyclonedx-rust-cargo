@@ -102,6 +102,7 @@ impl SbomGenerator {
                 .collect();
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
+            let cargo_lock_path = locate_cargo_lock(&manifest_path).unwrap(); // TODO: error handling
 
             let generator = SbomGenerator {
                 config: config.clone(),
