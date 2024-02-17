@@ -58,6 +58,7 @@ use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
+use std::mem;
 use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -681,10 +682,12 @@ impl GeneratedSbom {
         Ok(())
     }
 
+    /// Returns an iterator over SBOMs and their associated target kinds
     fn per_artifact_sboms<'a>(bom: &'a Bom, target_kinds: &'a [Vec<String>], pattern: Pattern) -> impl Iterator<Item = (Bom, Vec<String>)> + 'a {
         let meta = bom.metadata.as_ref().unwrap();
-        let component = meta.component.as_ref().unwrap();
-        let components = component.components.as_ref().unwrap();
+        let crate_component = meta.component.as_ref().unwrap();
+        let components = crate_component.components.as_ref().unwrap();
+        // Narrow down the set of targets for which we emit a SBOM depending on the configuration
         components.0.iter().zip(target_kinds.iter()).filter(move |(_component, target_kind)| {
             match pattern {
                 Pattern::Binary => {
@@ -697,10 +700,29 @@ impl GeneratedSbom {
                 Pattern::Bom | Pattern::Package => unreachable!(),
             }        
         }).map(|(component, target_kind)| {
-            let bom = bom.clone();
-            // BIG FAT TODO
+            // We need to promote the subcomponent (e.g. a binary) to the top level,
+            // which in the original SBOM is occupied by the crate.
+            let mut new_bom = bom.clone();
+            let mut component = component.clone();
+            // Preserve the bom-ref of the toplevel component (currently a crate).
+            // We will reuse it so that we don't have to repoint everything
+            // to the binary's bom-ref.
+            // The only requirement for a bom-ref is that it is unique within a SBOM.
+            let bom_ref = crate_component.bom_ref.as_ref().unwrap().clone();
+            component.bom_ref = Some(bom_ref);
+            // Replace the toplevel component (describing a crate) with our modified component describing a binary
+            let _ = mem::replace(new_bom.metadata.as_mut().unwrap().component.as_mut().unwrap(), component);
 
-            (bom, target_kind.clone())
+            // Validate the generated SBOM if debug assertions are enabled,
+            // to make sure our monkey-patching didn't break the dependency graph
+            if cfg!(debug_assertions) {
+                let result = bom.validate();
+                if let ValidationResult::Failed { reasons } = result {
+                    panic!("The generated SBOM for a subcomponent failed validation: {:?}", &reasons);
+                }
+            }
+
+            (new_bom, target_kind.clone())
         })
     }
 
