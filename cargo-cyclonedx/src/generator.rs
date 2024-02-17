@@ -719,13 +719,8 @@ impl GeneratedSbom {
                 // Most properties apply to the entire package and should be kept;
                 // we just need to update the name, type and purl.
                 let mut new_bom = bom.clone();
-                let toplevel_component = new_bom
-                    .metadata
-                    .as_mut()
-                    .unwrap()
-                    .component
-                    .as_mut()
-                    .unwrap();
+                let metadata = new_bom.metadata.as_mut().unwrap();
+                let toplevel_component = metadata.component.as_mut().unwrap();
                 toplevel_component.name = component.name.clone();
                 toplevel_component.component_type = component.component_type.clone();
                 toplevel_component.purl = component.purl.clone();
