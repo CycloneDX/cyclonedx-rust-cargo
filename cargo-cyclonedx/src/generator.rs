@@ -58,7 +58,6 @@ use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
-use std::mem;
 use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -700,27 +699,15 @@ impl GeneratedSbom {
                 Pattern::Bom | Pattern::Package => unreachable!(),
             }        
         }).map(|(component, target_kind)| {
-            // We need to promote the subcomponent (e.g. a binary) to the top level,
-            // which in the original SBOM is occupied by the crate.
+            // In the original SBOM the toplevel component describes a crate.
+            // We need to change it to describe a specific binary.
+            // Most properties apply to the entire package and should be kept;
+            // we just need to update the name, type and purl.
             let mut new_bom = bom.clone();
-            let mut component = component.clone();
-            // Preserve the bom-ref of the toplevel component (currently a crate).
-            // We will reuse it so that we don't have to repoint everything
-            // to the binary's bom-ref.
-            // The only requirement for a bom-ref is that it is unique within a SBOM.
-            let bom_ref = crate_component.bom_ref.as_ref().unwrap().clone();
-            component.bom_ref = Some(bom_ref);
-            // Replace the toplevel component (describing a crate) with our modified component describing a binary
-            let _ = mem::replace(new_bom.metadata.as_mut().unwrap().component.as_mut().unwrap(), component);
-
-            // Validate the generated SBOM if debug assertions are enabled,
-            // to make sure our monkey-patching didn't break the dependency graph
-            if cfg!(debug_assertions) {
-                let result = bom.validate();
-                if let ValidationResult::Failed { reasons } = result {
-                    panic!("The generated SBOM for a subcomponent failed validation: {:?}", &reasons);
-                }
-            }
+            let toplevel_component = new_bom.metadata.as_mut().unwrap().component.as_mut().unwrap();
+            toplevel_component.name = component.name.clone();
+            toplevel_component.component_type = component.component_type.clone();
+            toplevel_component.purl = component.purl.clone();
 
             (new_bom, target_kind.clone())
         })
