@@ -773,6 +773,25 @@ impl GeneratedSbom {
     }
 }
 
+/// Locates the corresponding `Cargo.lock` file given the location of `Cargo.toml`.
+/// This must be run **after** `cargo metadata` which will generate the `Cargo.lock` file
+/// and make sure it's up to date.
+fn locate_cargo_lock(manifest_path: &Path) -> Result<PathBuf, std::io::Error> {
+    let manifest_path = manifest_path.canonicalize()?;
+    let ancestors = manifest_path.as_path().ancestors();
+
+    for path in ancestors {
+        let potential_lockfile = path.join("Cargo.lock");
+        if potential_lockfile.is_file() {
+            return Ok(potential_lockfile);
+        }
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        "Could not find Cargo.lock in any parent directories",
+    ))
+}
+
 #[derive(Error, Debug)]
 pub enum SbomWriterError {
     #[error("I/O error")]
