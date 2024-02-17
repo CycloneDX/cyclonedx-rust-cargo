@@ -651,7 +651,8 @@ impl GeneratedSbom {
             },
             Prefix::Pattern(pattern @ (Pattern::Binary | Pattern::CargoTarget)) => {
                 for (sbom, target_kind) in Self::per_artifact_sboms(&self.bom, &self.target_kinds, pattern) {
-                    todo!();
+                    let path = self.manifest_path.with_file_name(self.filename(&target_kind));
+                    Self::write_to_file(sbom, &path, &self.sbom_config)?;
                 }
                 Ok(())
             },
