@@ -641,16 +641,18 @@ impl GeneratedSbom {
     pub fn write_to_files(self) -> Result<(), SbomWriterError> {
         match self.sbom_config.output_options().prefix {
             Prefix::Pattern(Pattern::Bom | Pattern::Package) | Prefix::Custom(_) => {
-                let path = self.manifest_path.with_file_name(self.filename(&[]));
+                let path = self.manifest_path.with_file_name(self.filename(None, &[]));
                 Self::write_to_file(self.bom, &path, &self.sbom_config)
             }
             Prefix::Pattern(pattern @ (Pattern::Binary | Pattern::CargoTarget)) => {
                 for (sbom, target_kind) in
                     Self::per_artifact_sboms(&self.bom, &self.target_kinds, pattern)
                 {
+                    let meta = sbom.metadata.as_ref().unwrap();
+                    let name = meta.component.as_ref().unwrap().name.as_ref();
                     let path = self
                         .manifest_path
-                        .with_file_name(self.filename(&target_kind));
+                        .with_file_name(self.filename(Some(name), &target_kind));
                     Self::write_to_file(sbom, &path, &self.sbom_config)?;
                 }
                 Ok(())
@@ -730,13 +732,13 @@ impl GeneratedSbom {
             })
     }
 
-    fn filename(&self, target_kind: &[String]) -> String {
+    fn filename(&self, binary_name: Option<&str>, target_kind: &[String]) -> String {
         let output_options = self.sbom_config.output_options();
         let prefix = match &output_options.prefix {
             Prefix::Pattern(Pattern::Bom) => "bom".to_string(),
             Prefix::Pattern(Pattern::Package) => self.package_name.clone(),
-            Prefix::Pattern(Pattern::Binary) => todo!(),
-            Prefix::Pattern(Pattern::CargoTarget) => todo!(),
+            Prefix::Pattern(Pattern::Binary) => binary_name.unwrap().to_owned(),
+            Prefix::Pattern(Pattern::CargoTarget) => binary_name.unwrap().to_owned(),
             Prefix::Custom(c) => c.to_string(),
         };
 
