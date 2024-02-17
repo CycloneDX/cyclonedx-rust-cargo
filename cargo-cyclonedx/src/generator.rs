@@ -99,13 +99,6 @@ impl SbomGenerator {
             };
             let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
-            if cfg!(debug_assertions) {
-                let result = bom.validate();
-                if let ValidationResult::Failed { reasons } = result {
-                    panic!("The generated SBOM failed validation: {:?}", &reasons);
-                }
-            }
-
             // Figure out the types of the various produced artifacts.
             // This is additional information on top of the SBOM structure
             // that is used to implement emitting a separate SBOM for each binary or artifact.
@@ -666,6 +659,14 @@ impl GeneratedSbom {
     }
 
     fn write_to_file(bom: Bom, path: &Path, config: &SbomConfig) -> Result<(), SbomWriterError> {
+        // If running in debug mode, validate that the SBOM is self-consistent and well-formed
+        if cfg!(debug_assertions) {
+            let result = bom.validate();
+            if let ValidationResult::Failed { reasons } = result {
+                panic!("The generated SBOM failed validation: {:?}", &reasons);
+            }
+        }
+
         log::info!("Outputting {}", path.display());
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
