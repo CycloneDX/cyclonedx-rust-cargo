@@ -110,9 +110,9 @@ impl SbomGenerator {
             // This is additional information on top of the SBOM structure
             // that is used to implement emitting a separate SBOM for each binary or artifact.
             let root_package = &packages[member];
-            let target_kinds: Vec<Vec<String>> = filter_targets(&root_package.targets).map(|tgt| {
-                tgt.kind.clone()
-            }).collect();
+            let target_kinds: Vec<Vec<String>> = filter_targets(&root_package.targets)
+                .map(|tgt| tgt.kind.clone())
+                .collect();
 
             let generated = GeneratedSbom {
                 bom,
@@ -192,64 +192,64 @@ impl SbomGenerator {
         let mut top_component = self.create_component(package, package);
         let mut subcomponents: Vec<Component> = Vec::new();
         for tgt in filter_targets(&package.targets) {
-                // classification
-                #[allow(clippy::if_same_then_else)]
-                let cdx_type = if tgt.is_bin() {
-                    Classification::Application
-                // sadly no .is_proc_macro() yet
-                } else if tgt.kind.iter().any(|kind| kind == "proc-macro") {
-                    // There isn't a better way to express it with CycloneDX types
-                    Classification::Library
-                } else if tgt.kind.iter().any(|kind| kind.contains("lib")) {
-                    Classification::Library
-                } else {
-                    log::warn!(
-                        "Target {} is neither a binary nor a library! Kinds: {}",
-                        tgt.name,
-                        tgt.kind.join(", ")
-                    );
-                    continue;
-                };
-
-                // bom_ref
-                let bom_ref = format!(
-                    "{} bin-target-{}",
-                    top_component.bom_ref.as_ref().unwrap(),
-                    subcomponents.len(), // numbers the components
+            // classification
+            #[allow(clippy::if_same_then_else)]
+            let cdx_type = if tgt.is_bin() {
+                Classification::Application
+            // sadly no .is_proc_macro() yet
+            } else if tgt.kind.iter().any(|kind| kind == "proc-macro") {
+                // There isn't a better way to express it with CycloneDX types
+                Classification::Library
+            } else if tgt.kind.iter().any(|kind| kind.contains("lib")) {
+                Classification::Library
+            } else {
+                log::warn!(
+                    "Target {} is neither a binary nor a library! Kinds: {}",
+                    tgt.name,
+                    tgt.kind.join(", ")
                 );
+                continue;
+            };
 
-                // create the subcomponent
-                let mut subcomponent = Component::new(
-                    cdx_type,
-                    &tgt.name,
-                    &package.version.to_string(),
-                    Some(bom_ref),
+            // bom_ref
+            let bom_ref = format!(
+                "{} bin-target-{}",
+                top_component.bom_ref.as_ref().unwrap(),
+                subcomponents.len(), // numbers the components
+            );
+
+            // create the subcomponent
+            let mut subcomponent = Component::new(
+                cdx_type,
+                &tgt.name,
+                &package.version.to_string(),
+                Some(bom_ref),
+            );
+
+            // PURL subpaths are computed relative to the directory with the `Cargo.toml`
+            // *for this specific package*, not the workspace root.
+            // This is done because the tarball uploaded to crates.io only contains the package,
+            // not the workspace, so paths resolved relatively to the workspace root would not be valid.
+            //
+            // When using a git repo that contains a workspace, Cargo will automatically select
+            // the right package out of the workspace. Paths can then be resolved relatively to it.
+            // So the information we encode here is sufficient to idenfity the file in git too.
+            let package_dir = package
+                .manifest_path
+                .parent()
+                .expect("manifest_path in `cargo metadata` output is not a file!");
+            if let Ok(relative_path) = tgt.src_path.strip_prefix(package_dir) {
+                subcomponent.purl =
+                    get_purl(package, package, &self.workspace_root, Some(relative_path)).ok();
+            } else {
+                log::warn!(
+                    "Source path \"{}\" is not a subpath of workspace root \"{}\"",
+                    tgt.src_path,
+                    self.workspace_root
                 );
+            }
 
-                // PURL subpaths are computed relative to the directory with the `Cargo.toml`
-                // *for this specific package*, not the workspace root.
-                // This is done because the tarball uploaded to crates.io only contains the package,
-                // not the workspace, so paths resolved relatively to the workspace root would not be valid.
-                //
-                // When using a git repo that contains a workspace, Cargo will automatically select
-                // the right package out of the workspace. Paths can then be resolved relatively to it.
-                // So the information we encode here is sufficient to idenfity the file in git too.
-                let package_dir = package
-                    .manifest_path
-                    .parent()
-                    .expect("manifest_path in `cargo metadata` output is not a file!");
-                if let Ok(relative_path) = tgt.src_path.strip_prefix(package_dir) {
-                    subcomponent.purl =
-                        get_purl(package, package, &self.workspace_root, Some(relative_path)).ok();
-                } else {
-                    log::warn!(
-                        "Source path \"{}\" is not a subpath of workspace root \"{}\"",
-                        tgt.src_path,
-                        self.workspace_root
-                    );
-                }
-
-                subcomponents.push(subcomponent);
+            subcomponents.push(subcomponent);
         }
         top_component.components = Some(Components(subcomponents));
         top_component
@@ -478,7 +478,9 @@ impl SbomGenerator {
 
 /// Ignore tests, benches, examples and build scripts.
 /// They are not part of the final build artifacts, which is what we are after.
-fn filter_targets(targets: &[cargo_metadata::Target]) -> impl Iterator<Item = &cargo_metadata::Target> {
+fn filter_targets(
+    targets: &[cargo_metadata::Target],
+) -> impl Iterator<Item = &cargo_metadata::Target> {
     targets.iter().filter(|tgt| {
         !(tgt.is_bench() || tgt.is_example() || tgt.is_test() || tgt.is_custom_build())
     })
@@ -648,14 +650,18 @@ impl GeneratedSbom {
             Prefix::Pattern(Pattern::Bom | Pattern::Package) | Prefix::Custom(_) => {
                 let path = self.manifest_path.with_file_name(self.filename(&[]));
                 Self::write_to_file(self.bom, &path, &self.sbom_config)
-            },
+            }
             Prefix::Pattern(pattern @ (Pattern::Binary | Pattern::CargoTarget)) => {
-                for (sbom, target_kind) in Self::per_artifact_sboms(&self.bom, &self.target_kinds, pattern) {
-                    let path = self.manifest_path.with_file_name(self.filename(&target_kind));
+                for (sbom, target_kind) in
+                    Self::per_artifact_sboms(&self.bom, &self.target_kinds, pattern)
+                {
+                    let path = self
+                        .manifest_path
+                        .with_file_name(self.filename(&target_kind));
                     Self::write_to_file(sbom, &path, &self.sbom_config)?;
                 }
                 Ok(())
-            },
+            }
         }
     }
 
@@ -665,13 +671,11 @@ impl GeneratedSbom {
         let mut writer = BufWriter::new(file);
         match config.format() {
             Format::Json => {
-                bom
-                    .output_as_json_v1_3(&mut writer)
+                bom.output_as_json_v1_3(&mut writer)
                     .map_err(SbomWriterError::JsonWriteError)?;
             }
             Format::Xml => {
-                bom
-                    .output_as_xml_v1_3(&mut writer)
+                bom.output_as_xml_v1_3(&mut writer)
                     .map_err(SbomWriterError::XmlWriteError)?;
             }
         }
@@ -683,35 +687,51 @@ impl GeneratedSbom {
     }
 
     /// Returns an iterator over SBOMs and their associated target kinds
-    fn per_artifact_sboms<'a>(bom: &'a Bom, target_kinds: &'a [Vec<String>], pattern: Pattern) -> impl Iterator<Item = (Bom, Vec<String>)> + 'a {
+    fn per_artifact_sboms<'a>(
+        bom: &'a Bom,
+        target_kinds: &'a [Vec<String>],
+        pattern: Pattern,
+    ) -> impl Iterator<Item = (Bom, Vec<String>)> + 'a {
         let meta = bom.metadata.as_ref().unwrap();
         let crate_component = meta.component.as_ref().unwrap();
         let components = crate_component.components.as_ref().unwrap();
         // Narrow down the set of targets for which we emit a SBOM depending on the configuration
-        components.0.iter().zip(target_kinds.iter()).filter(move |(_component, target_kind)| {
-            match pattern {
-                Pattern::Binary => {
-                    // only record binary artifacts
-                    // TODO: refactor this to use an enum, coming Soon(tm) to cargo-metadata:
-                    // https://github.com/oli-obk/cargo_metadata/pull/258
-                    target_kind.contains(&"bin".to_owned()) || target_kind.contains(&"cdylib".to_owned())
-                },
-                Pattern::CargoTarget => true, // pass everything through
-                Pattern::Bom | Pattern::Package => unreachable!(),
-            }        
-        }).map(|(component, target_kind)| {
-            // In the original SBOM the toplevel component describes a crate.
-            // We need to change it to describe a specific binary.
-            // Most properties apply to the entire package and should be kept;
-            // we just need to update the name, type and purl.
-            let mut new_bom = bom.clone();
-            let toplevel_component = new_bom.metadata.as_mut().unwrap().component.as_mut().unwrap();
-            toplevel_component.name = component.name.clone();
-            toplevel_component.component_type = component.component_type.clone();
-            toplevel_component.purl = component.purl.clone();
+        components
+            .0
+            .iter()
+            .zip(target_kinds.iter())
+            .filter(move |(_component, target_kind)| {
+                match pattern {
+                    Pattern::Binary => {
+                        // only record binary artifacts
+                        // TODO: refactor this to use an enum, coming Soon(tm) to cargo-metadata:
+                        // https://github.com/oli-obk/cargo_metadata/pull/258
+                        target_kind.contains(&"bin".to_owned())
+                            || target_kind.contains(&"cdylib".to_owned())
+                    }
+                    Pattern::CargoTarget => true, // pass everything through
+                    Pattern::Bom | Pattern::Package => unreachable!(),
+                }
+            })
+            .map(|(component, target_kind)| {
+                // In the original SBOM the toplevel component describes a crate.
+                // We need to change it to describe a specific binary.
+                // Most properties apply to the entire package and should be kept;
+                // we just need to update the name, type and purl.
+                let mut new_bom = bom.clone();
+                let toplevel_component = new_bom
+                    .metadata
+                    .as_mut()
+                    .unwrap()
+                    .component
+                    .as_mut()
+                    .unwrap();
+                toplevel_component.name = component.name.clone();
+                toplevel_component.component_type = component.component_type.clone();
+                toplevel_component.purl = component.purl.clone();
 
-            (new_bom, target_kind.clone())
-        })
+                (new_bom, target_kind.clone())
+            })
     }
 
     fn filename(&self, target_kind: &[String]) -> String {
@@ -725,7 +745,10 @@ impl GeneratedSbom {
         };
 
         let target_kind_suffix = if !target_kind.is_empty() {
-            debug_assert!(matches!(&output_options.prefix, Prefix::Pattern(Pattern::Binary | Pattern::CargoTarget)));
+            debug_assert!(matches!(
+                &output_options.prefix,
+                Prefix::Pattern(Pattern::Binary | Pattern::CargoTarget)
+            ));
             format!("_{}", target_kind.join("-"))
         } else {
             "".to_owned()
