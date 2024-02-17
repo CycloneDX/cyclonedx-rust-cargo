@@ -93,12 +93,6 @@ impl SbomGenerator {
                     top_level_dependencies(member, &packages, &resolve)
                 };
 
-            let generator = SbomGenerator {
-                config: config.clone(),
-                workspace_root: meta.workspace_root.to_owned(),
-            };
-            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
-
             // Figure out the types of the various produced artifacts.
             // This is additional information on top of the SBOM structure
             // that is used to implement emitting a separate SBOM for each binary or artifact.
@@ -107,9 +101,17 @@ impl SbomGenerator {
                 .map(|tgt| tgt.kind.clone())
                 .collect();
 
+            let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
+
+            let generator = SbomGenerator {
+                config: config.clone(),
+                workspace_root: meta.workspace_root.to_owned(),
+            };
+            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
+
             let generated = GeneratedSbom {
                 bom,
-                manifest_path: packages[member].manifest_path.clone().into_std_path_buf(),
+                manifest_path,
                 package_name: packages[member].name.clone(),
                 sbom_config: generator.config,
                 target_kinds,
