@@ -17,8 +17,7 @@
  */
 
 use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
-    ValidationResult,
+    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
 };
 
 use super::signature::Signature;
@@ -32,20 +31,16 @@ pub struct Composition {
 }
 
 impl Validate for Composition {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let aggregate_context =
-            context.extend_context_with_struct_field("Composition", "aggregate");
+        let aggregate_context = context.with_struct("Composition", "aggregate");
 
-        results.push(self.aggregate.validate_with_context(aggregate_context)?);
+        results.push(self.aggregate.validate_with_context(aggregate_context));
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -53,21 +48,18 @@ impl Validate for Composition {
 pub struct Compositions(pub Vec<Composition>);
 
 impl Validate for Compositions {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, composition) in self.0.iter().enumerate() {
             let composition_context =
                 context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(composition.validate_with_context(composition_context)?);
+            results.push(composition.validate_with_context(composition_context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -113,18 +105,15 @@ impl AggregateType {
 }
 
 impl Validate for AggregateType {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            AggregateType::UnknownAggregateType(_) => Ok(ValidationResult::Failed {
+            AggregateType::UnknownAggregateType(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
                     message: "Unknown aggregate type".to_string(),
                     context,
                 }],
-            }),
-            _ => Ok(ValidationResult::Passed),
+            },
+            _ => ValidationResult::Passed,
         }
     }
 }
@@ -145,13 +134,9 @@ mod test {
             aggregate: AggregateType::Complete,
             assemblies: Some(vec![BomReference("reference".to_string())]),
             dependencies: Some(vec![BomReference("reference".to_string())]),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -162,13 +147,9 @@ mod test {
             aggregate: AggregateType::UnknownAggregateType("unknown aggregate type".to_string()),
             assemblies: Some(vec![BomReference("reference".to_string())]),
             dependencies: Some(vec![BomReference("reference".to_string())]),
-            signature: Some(Signature {
-                algorithm: Algorithm::HS512,
-                value: "abcdefgh".to_string(),
-            }),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,

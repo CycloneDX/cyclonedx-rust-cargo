@@ -19,8 +19,7 @@
 use crate::external_models::uri::Uri;
 use crate::models::hash::Hashes;
 use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationError, ValidationPathComponent,
-    ValidationResult,
+    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
 };
 
 /// Represents a way to document systems, sites, and information that may be relevant but which are not included with the BOM.
@@ -56,33 +55,30 @@ impl ExternalReference {
 }
 
 impl Validate for ExternalReference {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
-        let external_reference_type_context = context
-            .extend_context_with_struct_field("ExternalReference", "external_reference_type");
+        let external_reference_type_context =
+            context.with_struct("ExternalReference", "external_reference_type");
 
         results.push(
             self.external_reference_type
-                .validate_with_context(external_reference_type_context)?,
+                .validate_with_context(external_reference_type_context),
         );
 
-        let url_context = context.extend_context_with_struct_field("ExternalReference", "url");
+        let url_context = context.with_struct("ExternalReference", "url");
 
-        results.push(self.url.validate_with_context(url_context)?);
+        results.push(self.url.validate_with_context(url_context));
 
         if let Some(hashes) = &self.hashes {
-            let context = context.extend_context_with_struct_field("ExternalReference", "hashes");
+            let context = context.with_struct("ExternalReference", "hashes");
 
-            results.push(hashes.validate_with_context(context)?);
+            results.push(hashes.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -90,20 +86,17 @@ impl Validate for ExternalReference {
 pub struct ExternalReferences(pub Vec<ExternalReference>);
 
 impl Validate for ExternalReferences {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, external_reference) in self.0.iter().enumerate() {
             let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(external_reference.validate_with_context(context)?);
+            results.push(external_reference.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -177,20 +170,15 @@ impl ExternalReferenceType {
 }
 
 impl Validate for ExternalReferenceType {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         match self {
-            ExternalReferenceType::UnknownExternalReferenceType(_) => {
-                Ok(ValidationResult::Failed {
-                    reasons: vec![FailureReason {
-                        message: "Unknown external reference type".to_string(),
-                        context,
-                    }],
-                })
-            }
-            _ => Ok(ValidationResult::Passed),
+            ExternalReferenceType::UnknownExternalReferenceType(_) => ValidationResult::Failed {
+                reasons: vec![FailureReason {
+                    message: "Unknown external reference type".to_string(),
+                    context,
+                }],
+            },
+            _ => ValidationResult::Passed,
         }
     }
 }
@@ -211,8 +199,7 @@ mod test {
             comment: Some("Comment".to_string()),
             hashes: Some(Hashes(vec![])),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -230,8 +217,7 @@ mod test {
                 content: HashValue("invalid hash".to_string()),
             }])),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,

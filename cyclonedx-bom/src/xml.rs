@@ -5,7 +5,7 @@ use xml::{
     name::OwnedName,
     namespace::{Namespace, NS_NO_PREFIX},
     reader::{self},
-    writer::{self, EventWriter},
+    writer::{self, EventWriter, XmlEvent},
     EventReader,
 };
 
@@ -55,6 +55,26 @@ pub(crate) fn write_simple_tag<W: Write>(
         .write(writer::XmlEvent::end_element())
         .map_err(to_xml_write_error(tag))?;
     Ok(())
+}
+
+/// Writes a simple start tag of the form `<tag>` without attributes.
+pub(crate) fn write_start_tag<W: Write>(
+    writer: &mut EventWriter<W>,
+    tag: &str,
+) -> Result<(), XmlWriteError> {
+    writer
+        .write(XmlEvent::start_element(tag))
+        .map_err(to_xml_write_error(tag))
+}
+
+/// Writes the closing tag of the form `</tag>`
+pub(crate) fn write_close_tag<W: Write>(
+    writer: &mut EventWriter<W>,
+    tag: &str,
+) -> Result<(), XmlWriteError> {
+    writer
+        .write(XmlEvent::end_element())
+        .map_err(to_xml_write_error(tag))
 }
 
 pub(crate) fn to_xml_write_error(

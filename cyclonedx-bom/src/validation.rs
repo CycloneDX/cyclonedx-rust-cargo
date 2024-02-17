@@ -17,27 +17,36 @@
  */
 
 pub trait Validate {
-    fn validate(&self) -> Result<ValidationResult, ValidationError> {
+    fn validate(&self) -> ValidationResult {
         self.validate_with_context(ValidationContext::default())
     }
 
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError>;
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult;
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ValidationContext(pub(crate) Vec<ValidationPathComponent>);
 
+#[allow(dead_code)]
 impl ValidationContext {
+    pub(crate) fn new() -> Self {
+        ValidationContext::default()
+    }
+
     pub(crate) fn extend_context(&self, components: Vec<ValidationPathComponent>) -> Self {
         let mut extended_context = self.0.clone();
         extended_context.extend(components);
         Self(extended_context)
     }
 
-    pub(crate) fn extend_context_with_struct_field(
+    /// Extends the [`ValidationContext`] with an index, e.g. to specify the index in array.
+    pub(crate) fn with_index(&self, index: usize) -> Self {
+        let component = vec![ValidationPathComponent::Array { index }];
+        self.extend_context(component)
+    }
+
+    /// Extends the [`ValidationContext`] with a struct field.
+    pub(crate) fn with_struct(
         &self,
         struct_name: impl ToString,
         field_name: impl ToString,
@@ -46,7 +55,6 @@ impl ValidationContext {
             struct_name: struct_name.to_string(),
             field_name: field_name.to_string(),
         }];
-
         self.extend_context(component)
     }
 }
@@ -92,6 +100,13 @@ impl ValidationResult {
             }
         }
     }
+
+    /// Returns a [`ValidationResult::Failed`] with a single failure.
+    pub fn failure(reason: &str, context: ValidationContext) -> Self {
+        Self::Failed {
+            reasons: vec![FailureReason::new(reason, context)],
+        }
+    }
 }
 
 impl Default for ValidationResult {
@@ -105,8 +120,12 @@ pub struct FailureReason {
     pub message: String,
     pub context: ValidationContext,
 }
-#[derive(Debug, PartialEq, thiserror::Error)]
-pub enum ValidationError {
-    #[error("Failed to compile regular expression: {0}")]
-    InvalidRegularExpressionError(#[from] regex::Error),
+
+impl FailureReason {
+    pub fn new(message: &str, context: ValidationContext) -> Self {
+        Self {
+            message: message.to_string(),
+            context,
+        }
+    }
 }

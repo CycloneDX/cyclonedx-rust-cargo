@@ -24,9 +24,7 @@ use crate::models::license::Licenses;
 use crate::models::organization::{OrganizationalContact, OrganizationalEntity};
 use crate::models::property::Properties;
 use crate::models::tool::Tools;
-use crate::validation::{
-    Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult};
 
 /// Represents additional information about a BOM
 ///
@@ -66,22 +64,19 @@ impl Metadata {
 }
 
 impl Validate for Metadata {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(timestamp) = &self.timestamp {
-            let context = context.extend_context_with_struct_field("Metadata", "timestamp");
+            let context = context.with_struct("Metadata", "timestamp");
 
-            results.push(timestamp.validate_with_context(context)?);
+            results.push(timestamp.validate_with_context(context));
         }
 
         if let Some(tools) = &self.tools {
-            let context = context.extend_context_with_struct_field("Metadata", "tools");
+            let context = context.with_struct("Metadata", "tools");
 
-            results.push(tools.validate_with_context(context)?);
+            results.push(tools.validate_with_context(context));
         }
 
         if let Some(authors) = &self.authors {
@@ -93,43 +88,43 @@ impl Validate for Metadata {
                     },
                     ValidationPathComponent::Array { index },
                 ]);
-                results.push(contact.validate_with_context(uri_context)?);
+                results.push(contact.validate_with_context(uri_context));
             }
         }
 
         if let Some(component) = &self.component {
-            let context = context.extend_context_with_struct_field("Metadata", "component");
+            let context = context.with_struct("Metadata", "component");
 
-            results.push(component.validate_with_context(context)?);
+            results.push(component.validate_with_context(context));
         }
 
         if let Some(manufacture) = &self.manufacture {
-            let context = context.extend_context_with_struct_field("Metadata", "manufacture");
+            let context = context.with_struct("Metadata", "manufacture");
 
-            results.push(manufacture.validate_with_context(context)?);
+            results.push(manufacture.validate_with_context(context));
         }
 
         if let Some(supplier) = &self.supplier {
-            let context = context.extend_context_with_struct_field("Metadata", "supplier");
+            let context = context.with_struct("Metadata", "supplier");
 
-            results.push(supplier.validate_with_context(context)?);
+            results.push(supplier.validate_with_context(context));
         }
 
         if let Some(licenses) = &self.licenses {
-            let context = context.extend_context_with_struct_field("Metadata", "licenses");
+            let context = context.with_struct("Metadata", "licenses");
 
-            results.push(licenses.validate_with_context(context)?);
+            results.push(licenses.validate_with_context(context));
         }
 
         if let Some(properties) = &self.properties {
-            let context = context.extend_context_with_struct_field("Metadata", "properties");
+            let context = context.with_struct("Metadata", "properties");
 
-            results.push(properties.validate_with_context(context)?);
+            results.push(properties.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -211,8 +206,7 @@ mod test {
                 value: NormalizedString::new("value"),
             }])),
         }
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -276,8 +270,7 @@ mod test {
                 value: NormalizedString("invalid\tvalue".to_string()),
             }])),
         }
-        .validate_with_context(ValidationContext::default())
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,

@@ -12,7 +12,7 @@ mod v1_4 {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 let bom = Bom::parse_from_xml_v1_4(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
-                let validation_result = bom.validate().expect("Failed to validate BOM");
+                let validation_result = bom.validate();
                 assert_eq!(
                     validation_result,
                     ValidationResult::Passed,
@@ -39,7 +39,7 @@ mod v1_4 {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 let bom = Bom::parse_from_json_v1_4(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
-                let validation_result = bom.validate().expect("Failed to validate BOM");
+                let validation_result = bom.validate();
                 assert_eq!(
                     validation_result,
                     ValidationResult::Passed,
@@ -65,7 +65,7 @@ mod v1_4 {
             insta::glob!("spec/1.4/invalid*.xml", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_xml_v1_4(file) {
-                    let validation_result = bom.validate().expect("Failed to validate BOM");
+                    let validation_result = bom.validate();
                     assert_ne!(
                         validation_result,
                         ValidationResult::Passed,
@@ -85,7 +85,7 @@ mod v1_4 {
             insta::glob!("spec/1.4/invalid*.json", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_json_v1_4(file) {
-                    let validation_result = bom.validate().expect("Failed to validate BOM");
+                    let validation_result = bom.validate();
                     assert_ne!(
                         validation_result,
                         ValidationResult::Passed,

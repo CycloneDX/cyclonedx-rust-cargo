@@ -17,9 +17,7 @@
  */
 
 use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
-use crate::validation::{
-    Validate, ValidationContext, ValidationError, ValidationPathComponent, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationResult};
 
 /// Represents an advisory, a notification of a threat to a component, service, or system.
 ///
@@ -47,24 +45,21 @@ impl Advisory {
 }
 
 impl Validate for Advisory {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(title) = &self.title {
-            let context = context.extend_context_with_struct_field("Advisory", "title");
+            let context = context.with_struct("Advisory", "title");
 
-            results.push(title.validate_with_context(context)?);
+            results.push(title.validate_with_context(context));
         }
 
-        let url_context = context.extend_context_with_struct_field("Advisory", "url");
-        results.push(self.url.validate_with_context(url_context)?);
+        let url_context = context.with_struct("Advisory", "url");
+        results.push(self.url.validate_with_context(url_context));
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -72,20 +67,17 @@ impl Validate for Advisory {
 pub struct Advisories(pub Vec<Advisory>);
 
 impl Validate for Advisories {
-    fn validate_with_context(
-        &self,
-        context: ValidationContext,
-    ) -> Result<ValidationResult, ValidationError> {
+    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, advisory) in self.0.iter().enumerate() {
-            let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(advisory.validate_with_context(context)?);
+            let context = context.with_index(index);
+            results.push(advisory.validate_with_context(context));
         }
 
-        Ok(results
+        results
             .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result)))
+            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
     }
 }
 
@@ -105,8 +97,7 @@ mod test {
             title: Some(NormalizedString::new("title")),
             url: Uri("https://example.com".to_string()),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -117,35 +108,24 @@ mod test {
             title: Some(NormalizedString("invalid\ttitle".to_string())),
             url: Uri("invalid url".to_string()),
         }])
-        .validate()
-        .expect("Error while validating");
+        .validate();
 
         assert_eq!(
             validation_result,
             ValidationResult::Failed {
                 reasons: vec![
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Advisory".to_string(),
-                                field_name: "title".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message: "Uri does not conform to RFC 3986".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Advisory".to_string(),
-                                field_name: "url".to_string()
-                            }
-                        ])
-                    },
+                    FailureReason::new(
+                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
+                        ValidationContext::new()
+                            .with_index(0)
+                            .with_struct("Advisory", "title")
+                    ),
+                    FailureReason::new(
+                        "Uri does not conform to RFC 3986",
+                        ValidationContext::new()
+                            .with_index(0)
+                            .with_struct("Advisory", "url")
+                    )
                 ]
             }
         );

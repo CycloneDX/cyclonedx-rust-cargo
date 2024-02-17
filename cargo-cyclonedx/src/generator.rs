@@ -100,7 +100,7 @@ impl SbomGenerator {
             let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
             if cfg!(debug_assertions) {
-                let result = bom.validate().unwrap();
+                let result = bom.validate();
                 if let ValidationResult::Failed { reasons } = result {
                     panic!("The generated SBOM failed validation: {:?}", &reasons);
                 }
@@ -451,14 +451,12 @@ impl SbomGenerator {
     }
 
     fn parse_author(author: &str) -> Result<OrganizationalContact, GeneratorError> {
-        static AUTHORS_REGEX: Lazy<Result<Regex, regex::Error>> =
-            Lazy::new(|| Regex::new(r"^(?P<author>[^<]+)\s*(<(?P<email>[^>]+)>)?$"));
+        static AUTHORS_REGEX: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(r"^(?P<author>[^<]+)\s*(<(?P<email>[^>]+)>)?$")
+                .expect("Failed to compile regex.")
+        });
 
-        match AUTHORS_REGEX
-            .as_ref()
-            .map_err(|e| GeneratorError::InvalidRegexError(e.to_owned()))?
-            .captures(author)
-        {
+        match AUTHORS_REGEX.captures(author) {
             Some(captures) => {
                 let name = captures.name("author").map_or("", |m| m.as_str().trim());
                 let email = captures.name("email").map(|m| m.as_str());
@@ -524,9 +522,6 @@ pub enum GeneratorError {
 
     #[error("Could not parse author string: {}", .0)]
     AuthorParseError(String),
-
-    #[error("Invalid regular expression")]
-    InvalidRegexError(#[source] regex::Error),
 }
 
 /// Generates the `Dependencies` field in the final SBOM
