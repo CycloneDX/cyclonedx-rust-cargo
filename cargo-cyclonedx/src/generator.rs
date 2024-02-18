@@ -419,6 +419,11 @@ impl SbomGenerator {
         match self.crate_hashes.get(&package.id) {
             Some(hash) => Some(cyclonedx_bom::models::hash::Hashes(vec![to_bom_hash(hash)])),
             None => {
+                // Log level is set to debug because this is perfectly normal:
+                // First, only Rust 1.77 and later has `cargo metadata` output pkgid format,
+                // so anything prior to that won't match.
+                // Second, only packages coming from registries have a checksum associated with them,
+                // while local or git packages do not have a checksum and that too is normal.
                 log::debug!(
                     "Hash for package ID {} not found in Cargo.lock",
                     &package.id
