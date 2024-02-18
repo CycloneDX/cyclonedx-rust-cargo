@@ -106,9 +106,21 @@ impl SbomGenerator {
                 .collect();
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
-            let cargo_lock_path = locate_cargo_lock(&manifest_path).unwrap(); // TODO: error handling
-            let lockfile_contents = Lockfile::load(cargo_lock_path).unwrap(); // TODO: error handling
-            let crate_hashes = package_hashes(&lockfile_contents);
+
+            let mut crate_hashes = HashMap::new();
+            match locate_cargo_lock(&manifest_path) {
+                Ok(path) => match Lockfile::load(path) {
+                    Ok(lockfile_contents) => crate_hashes = package_hashes(&lockfile_contents),
+                    Err(err) => log::warn!(
+                        "Failed to parse `Cargo.lock`: {err}\n\
+                        Hashes will not be included in the SBOM."
+                    ),
+                },
+                Err(err) => log::warn!(
+                    "Failed to locate `Cargo.lock`: {err}\n\
+                    Hashes will not be included in the SBOM."
+                ),
+            }
 
             let generator = SbomGenerator {
                 config: config.clone(),
