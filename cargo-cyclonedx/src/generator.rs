@@ -180,6 +180,7 @@ impl SbomGenerator {
         component.scope = Some(Scope::Required);
         component.external_references = Self::get_external_references(package);
         component.licenses = self.get_licenses(package);
+        component.hashes = self.get_hashes(package);
 
         component.description = package
             .description
@@ -412,6 +413,19 @@ impl SbomGenerator {
         }
 
         Some(Licenses(licenses))
+    }
+
+    fn get_hashes(&self, package: &Package) -> Option<cyclonedx_bom::models::hash::Hashes> {
+        match self.crate_hashes.get(&package.id) {
+            Some(hash) => Some(cyclonedx_bom::models::hash::Hashes(vec![to_bom_hash(hash)])),
+            None => {
+                log::debug!(
+                    "Hash for package ID {} not found in Cargo.lock",
+                    &package.id
+                );
+                None
+            }
+        }
     }
 
     fn create_metadata(&self, package: &Package) -> Result<Metadata, GeneratorError> {
@@ -818,6 +832,22 @@ fn pkgid(pkg: &cargo_lock::Package) -> String {
     match pkg.source.as_ref() {
         Some(source) => format!("{}#{}@{}", source, pkg.name, pkg.version),
         None => format!("{}@{}", pkg.name, pkg.version),
+    }
+}
+
+/// Converts a checksum from the `cargo-lock` crate format to `cyclonedx-bom` crate format
+fn to_bom_hash(hash: &Checksum) -> cyclonedx_bom::models::hash::Hash {
+    use cyclonedx_bom::models::hash::{Hash, HashAlgorithm, HashValue};
+    // use a match statement to get a compile-time error
+    // if/when more variants are added
+    match hash {
+        Checksum::Sha256(_) => {
+            Hash {
+                alg: HashAlgorithm::SHA256,
+                // {:x} means "format as lowercase hex"
+                content: HashValue(format!("{hash:x}")),
+            }
+        }
     }
 }
 
