@@ -19,12 +19,15 @@
 use thiserror::Error;
 
 use crate::external_models::date_time::{DateTime, DateTimeError};
+use crate::external_models::validate_date_time;
 use crate::models::component::Component;
 use crate::models::license::Licenses;
 use crate::models::organization::{OrganizationalContact, OrganizationalEntity};
 use crate::models::property::Properties;
 use crate::models::tool::Tools;
-use crate::validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult};
+use crate::validation::{Validate, ValidationContext, ValidationResult};
+
+use super::bom::SpecVersion;
 
 /// Represents additional information about a BOM
 ///
@@ -65,6 +68,11 @@ impl Metadata {
 
 impl Validate for Metadata {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field("timestamp", self.timestamp.as_deref(), validate_date_time)
+            .into()
+
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(timestamp) = &self.timestamp {
@@ -125,6 +133,7 @@ impl Validate for Metadata {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
     }
 }
 

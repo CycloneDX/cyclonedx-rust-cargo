@@ -20,8 +20,10 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 
 use crate::{
     external_models::normalized_string::NormalizedString,
-    validation::{Validate, ValidationContext, ValidationResult},
+    validation::{Validate, ValidationResult},
 };
+
+use super::bom::SpecVersion;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AttachedText {
@@ -46,6 +48,7 @@ impl AttachedText {
 
 impl Validate for AttachedText {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(content_type) = &self.content_type {
@@ -76,6 +79,8 @@ impl Validate for AttachedText {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
+        todo!("")
     }
 }
 

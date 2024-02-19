@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::ops::Deref;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -26,7 +28,7 @@ use crate::models::hash::Hashes;
 use crate::models::license::Licenses;
 use crate::models::organization::OrganizationalEntity;
 use crate::models::property::Properties;
-use crate::validation::{FailureReason, ValidationPathComponent};
+use crate::validation::ValidationError;
 use crate::{
     external_models::{
         normalized_string::NormalizedString,
@@ -35,6 +37,7 @@ use crate::{
     validation::{Validate, ValidationContext, ValidationResult},
 };
 
+use super::bom::SpecVersion;
 use super::signature::Signature;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -104,14 +107,20 @@ impl Component {
 
 impl Validate for Component {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
+        let context: ValidationResult = ValidationContext::new()
+            .add_field(
+                "component_type",
+                &self.component_type,
+                validate_classification,
+            )
+            .add_struct("mime_type", &self.mime_type, |mt| {
+                validate_mime_type(mt).into()
+            })
+            .into();
+
         let mut results: Vec<ValidationResult> = vec![];
 
         let component_type_context = context.with_struct("Component", "component_type");
-
-        results.push(
-            self.component_type
-                .validate_with_context(component_type_context),
-        );
 
         if let Some(mime_type) = &self.mime_type {
             let context = context.with_struct("Component", "mime_type");
@@ -255,6 +264,15 @@ impl Validate for Components {
     }
 }
 
+/// Checks the given [`Classification`] is valid.
+pub fn validate_classification(classification: &Classification) -> Result<(), ValidationError> {
+    if matches!(classification, Classification::UnknownClassification(_)) {
+        return Err(ValidationError::new("Unknown classification"));
+    }
+
+    Ok(())
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Classification {
     Application,
@@ -304,15 +322,7 @@ impl Classification {
 
 impl Validate for Classification {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        match self {
-            Classification::UnknownClassification(_) => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Unknown classification".to_string(),
-                    context,
-                }],
-            },
-            _ => ValidationResult::Passed,
-        }
+        validate_classification(self).into()
     }
 }
 
@@ -362,24 +372,26 @@ impl Validate for Scope {
     }
 }
 
+/// Checks if given [`MimeType`] is valid / supported.
+pub fn validate_mime_type(mime_type: &MimeType) -> Result<(), ValidationError> {
+    static UUID_REGEX: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"^[-+a-z0-9.]+/[-+a-z0-9.]+$").expect("Failed to compile regex."));
+
+    if !UUID_REGEX.is_match(&mime_type.0) {
+        return Err(ValidationError::new(
+            "MimeType does not match regular expression",
+        ));
+    }
+
+    Ok(())
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MimeType(pub(crate) String);
 
 impl Validate for MimeType {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"^[-+a-z0-9.]+/[-+a-z0-9.]+$").expect("Failed to compile regex.")
-        });
-
-        match UUID_REGEX.is_match(&self.0) {
-            true => ValidationResult::Passed,
-            false => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "MimeType does not match regular expression".to_string(),
-                    context,
-                }],
-            },
-        }
+        validate_mime_type(self).into()
     }
 }
 

@@ -17,9 +17,14 @@
  */
 
 use crate::{
-    external_models::{normalized_string::NormalizedString, uri::Uri},
-    validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult},
+    external_models::{
+        normalized_string::{validate_normalized_string, NormalizedString},
+        uri::Uri,
+    },
+    validation::{Validate, ValidationContext, ValidationResult},
 };
+
+use super::bom::SpecVersion;
 
 /// Represents the contact information for an organization
 ///
@@ -49,28 +54,11 @@ impl OrganizationalContact {
 
 impl Validate for OrganizationalContact {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut name_result = ValidationResult::default();
-        if let Some(name) = &self.name {
-            let name_context = context.with_struct("OrganizationalContact", "name");
-
-            name_result = name.validate_with_context(name_context);
-        }
-
-        let mut email_result = ValidationResult::default();
-        if let Some(email) = &self.email {
-            let email_context = context.with_struct("OrganizationalContact", "email");
-
-            email_result = email.validate_with_context(email_context);
-        }
-
-        let mut phone_result = ValidationResult::default();
-        if let Some(phone) = &self.phone {
-            let phone_context = context.with_struct("OrganizationalContact", "phone");
-
-            phone_result = phone.validate_with_context(phone_context);
-        }
-
-        name_result.merge(email_result).merge(phone_result)
+        ValidationContext::new()
+            .add_field("name", self.name.as_deref(), validate_normalized_string)
+            .add_field("email", self.email.as_deref(), validate_normalized_string)
+            .add_field("phone", self.phone.as_deref(), validate_normalized_string)
+            .into()
     }
 }
 
@@ -80,12 +68,18 @@ impl Validate for OrganizationalContact {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrganizationalEntity {
     pub name: Option<NormalizedString>,
-    pub url: Option<Vec<Uri>>,
-    pub contact: Option<Vec<OrganizationalContact>>,
+    pub url: Vec<Uri>,
+    pub contact: Vec<OrganizationalContact>,
 }
 
 impl Validate for OrganizationalEntity {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("name", &self.name, validate_normalized_string)
+            .add_list("url", &self.url, |uri| uri.validate(version))
+            .into()
+
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(name) = &self.name {
@@ -124,6 +118,7 @@ impl Validate for OrganizationalEntity {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
     }
 }
 

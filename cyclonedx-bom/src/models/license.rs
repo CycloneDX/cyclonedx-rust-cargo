@@ -25,7 +25,19 @@ use crate::external_models::{
     uri::Uri,
 };
 use crate::models::attached_text::AttachedText;
-use crate::validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult};
+use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
+
+use super::bom::SpecVersion;
+
+pub fn validate_license_choice(
+    license_choice: &LicenseChoice,
+    version: SpecVersion,
+) -> Result<(), ValidationError> {
+    match license_choice {
+        LicenseChoice::License(license) => license.validate(version),
+        LicenseChoice::Expression(expression) => expression.validate(version),
+    }
+}
 
 /// Represents whether a license is a named license or an SPDX license expression
 ///
@@ -44,32 +56,20 @@ impl LicenseChoice {
 
 impl Validate for LicenseChoice {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
+        let mut context = ValidationContext::new();
 
         match self {
             LicenseChoice::License(license) => {
-                let license_context =
-                    context.extend_context(vec![ValidationPathComponent::EnumVariant {
-                        variant_name: "License".to_string(),
-                    }]);
-                results.push(license.validate_with_context(license_context));
-
-                results
-                    .into_iter()
-                    .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+                context.add_struct("License", license, |license| license.validate(version));
             }
             LicenseChoice::Expression(expression) => {
-                let expression_context =
-                    context.extend_context(vec![ValidationPathComponent::EnumVariant {
-                        variant_name: "Expression".to_string(),
-                    }]);
-                results.push(expression.validate_with_context(expression_context));
-
-                results
-                    .into_iter()
-                    .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+                context.add_enum("Expression", expression, |expression| {
+                    expression.validate(version)
+                });
             }
         }
+
+        context.into()
     }
 }
 
@@ -117,6 +117,7 @@ impl License {
 
 impl Validate for License {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         let license_identifier_context = context.with_struct("License", "license_identifier");
@@ -141,6 +142,15 @@ impl Validate for License {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
+        ValidationContext::new()
+            .add_field(
+                "license_identifier",
+                &self.license_identifier,
+                |identifier| validate_license_identifier(identifier, version),
+            )
+            .add_struct("text", self.text.as_deref(), |text| text.validate(version))
+            .into()
     }
 }
 
@@ -149,6 +159,10 @@ pub struct Licenses(pub Vec<LicenseChoice>);
 
 impl Validate for Licenses {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, |choice| choice.validate(version))
+            .into()
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, license_choice) in self.0.iter().enumerate() {
@@ -160,6 +174,17 @@ impl Validate for Licenses {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
+    }
+}
+
+pub fn validate_license_identifier(
+    identifier: &LicenseIdentifier,
+    version: SpecVersion,
+) -> Result<(), ValidationError> {
+    match identifier {
+        LicenseIdentifier::Name(name) => name.validate(version),
+        LicenseIdentifier::SpdxId(id) => id.validate(version),
     }
 }
 

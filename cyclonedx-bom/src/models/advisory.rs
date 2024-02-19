@@ -16,8 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::external_models::normalized_string::validate_normalized_string;
+use crate::external_models::uri::validate_uri;
 use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::validation::{Validate, ValidationContext, ValidationResult};
+
+use super::bom::SpecVersion;
 
 /// Represents an advisory, a notification of a threat to a component, service, or system.
 ///
@@ -45,22 +49,11 @@ impl Advisory {
 }
 
 impl Validate for Advisory {
-
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(title) = &self.title {
-            let context = context.with_struct("Advisory", "title");
-
-            results.push(title.validate_with_context(context));
-        }
-
-        let url_context = context.with_struct("Advisory", "url");
-        results.push(self.url.validate_with_context(url_context));
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        ValidationContext::new()
+            .add_field_option("title", self.title.as_ref(), validate_normalized_string)
+            .add_field("url", &self.url, validate_uri)
+            .into()
     }
 }
 
@@ -69,16 +62,9 @@ pub struct Advisories(pub Vec<Advisory>);
 
 impl Validate for Advisories {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, advisory) in self.0.iter().enumerate() {
-            let context = context.with_index(index);
-            results.push(advisory.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        ValidationContext::new()
+            .add_list("inner", self.0, |advisory| advisory.validate(version))
+            .into()
     }
 }
 
@@ -86,7 +72,7 @@ impl Validate for Advisories {
 mod test {
     use crate::{
         external_models::{normalized_string::NormalizedString, uri::Uri},
-        validation::FailureReason,
+        validation,
     };
 
     use super::*;
@@ -98,7 +84,7 @@ mod test {
             title: Some(NormalizedString::new("title")),
             url: Uri("https://example.com".to_string()),
         }])
-        .validate();
+        .validate_default();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -109,26 +95,23 @@ mod test {
             title: Some(NormalizedString("invalid\ttitle".to_string())),
             url: Uri("invalid url".to_string()),
         }])
-        .validate();
+        .validate_default();
 
         assert_eq!(
-            validation_result,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason::new(
-                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
-                        ValidationContext::new()
-                            .with_index(0)
-                            .with_struct("Advisory", "title")
-                    ),
-                    FailureReason::new(
-                        "Uri does not conform to RFC 3986",
-                        ValidationContext::new()
-                            .with_index(0)
-                            .with_struct("Advisory", "url")
-                    )
-                ]
-            }
+            validation_result.errors(),
+            Some(validation::list(
+                "Advisory",
+                &[(
+                    0,
+                    vec![
+                        validation::field(
+                            "title",
+                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                        ),
+                        validation::field("url", "Uri does not conform to RFC 3986")
+                    ]
+                )]
+            ))
         );
     }
 }

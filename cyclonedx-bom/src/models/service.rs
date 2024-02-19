@@ -21,9 +21,7 @@ use crate::models::external_reference::ExternalReferences;
 use crate::models::license::Licenses;
 use crate::models::organization::OrganizationalEntity;
 use crate::models::property::Properties;
-use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
-};
+use crate::validation::{Validate, ValidationResult};
 
 use super::signature::Signature;
 

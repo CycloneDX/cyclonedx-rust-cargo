@@ -18,9 +18,9 @@
 
 use crate::external_models::uri::Uri;
 use crate::models::hash::Hashes;
-use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationResult};
+
+use super::bom::SpecVersion;
 
 /// Represents a way to document systems, sites, and information that may be relevant but which are not included with the BOM.
 ///

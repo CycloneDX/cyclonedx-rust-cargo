@@ -16,12 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::convert::TryFrom;
+use std::{convert::TryFrom, ops::Deref};
 
 use thiserror::Error;
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 
-use crate::validation::{Validate, ValidationContext, ValidationResult};
+use crate::validation::{Validate, ValidationError, ValidationResult};
 
 /// For the purposes of CycloneDX SBOM documents, `DateTime` is a ISO8601 formatted timestamp
 ///
@@ -40,6 +40,13 @@ use crate::validation::{Validate, ValidationContext, ValidationResult};
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DateTime(pub(crate) String);
+
+pub fn validate_date_time(date_time: &DateTime) -> Result<(), ValidationError> {
+    if OffsetDateTime::parse(&date_time.0, &Iso8601::DEFAULT).is_err() {
+        return Err("DateTime does not conform to ISO 8601".into());
+    }
+    Ok(())
+}
 
 impl DateTime {
     pub fn now() -> Result<Self, DateTimeError> {

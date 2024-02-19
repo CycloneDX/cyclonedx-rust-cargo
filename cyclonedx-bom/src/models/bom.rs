@@ -221,9 +221,13 @@ impl Default for Bom {
 impl Validate for Bom {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_struct("serial_number", self.serial_number.as_deref(), validate_urnuuid)
+            .add_field(
+                "serial_number",
+                self.serial_number.as_deref(),
+                validate_urnuuid,
+            )
             .into()
-    
+
         /*
         let mut results: Vec<ValidationResult> = vec![];
 
@@ -527,7 +531,9 @@ impl From<uuid::Uuid> for UrnUuid {
 /// Validates a given [`UrnUuid`].
 fn validate_urnuuid(urnuuid: &UrnUuid) -> Result<(), ValidationError> {
     if matches_urn_uuid_regex(urnuuid.0.as_str()) {
-        return Err(ValidationError::new("UrnUuuid does not match regular expression"));
+        return Err(ValidationError::new(
+            "UrnUuuid does not match regular expression",
+        ));
     }
 
     Ok(())
@@ -559,7 +565,7 @@ mod test {
             service::Service,
             vulnerability::Vulnerability,
         },
-        validation::{FailureReason, ValidationPathComponent},
+        validation,
     };
 
     use super::*;
@@ -665,8 +671,26 @@ mod test {
             signature: None,
         };
 
-        let actual = bom.validate();
+        let actual = bom.validate(SpecVersion::V1_3);
 
+        assert_eq!(
+            actual,
+            ValidationResult::Error(validation::r#struct(
+                "Bom",
+                validation::list(
+                    "compositions",
+                    &[(
+                        0,
+                        validation::list(
+                            "assemblies",
+                            &[(0, "Composition reference does not exist in the BOM".into())]
+                        )
+                    )]
+                )
+            ))
+        );
+
+        /*
         assert_eq!(
             actual,
             ValidationResult::Failed {
@@ -690,6 +714,7 @@ mod test {
                 ]
             }
         );
+        */
     }
 
     #[test]

@@ -19,10 +19,12 @@
 use std::{convert::TryFrom, str::FromStr};
 
 use fluent_uri::Uri as Url;
-use packageurl::PackageUrl;
 use thiserror::Error;
 
-use crate::validation::{Validate, ValidationContext, ValidationResult};
+use crate::{
+    models::bom::SpecVersion,
+    validation::{Validate, ValidationContext, ValidationError, ValidationResult},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Purl(pub(crate) String);
@@ -42,23 +44,19 @@ impl ToString for Purl {
     }
 }
 
-impl Validate for Purl {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
-        match PackageUrl::from_str(&self.0.to_string()) {
-            Ok(_) => ValidationResult::Passed,
-            Err(e) => ValidationResult::failure(
-                &format!("Purl does not conform to Package URL spec: {}", e),
-                context,
-            ),
-        }
-    }
-}
-
 impl FromStr for Purl {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(s.to_string()))
     }
+}
+
+pub fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
+    if Url::parse(uri.0.as_str()).is_err() {
+        return Err(ValidationError::new("Uri does not conform to RFC 3986"));
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,10 +77,9 @@ impl TryFrom<String> for Uri {
 
 impl Validate for Uri {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        match Url::parse(&self.0.to_string()) {
-            Ok(_) => ValidationResult::Passed,
-            Err(_) => ValidationResult::failure("Uri does not conform to RFC 3986", context),
-        }
+        ValidationContext::new()
+            .add_field("inner", self, validate_uri)
+            .into()
     }
 }
 
