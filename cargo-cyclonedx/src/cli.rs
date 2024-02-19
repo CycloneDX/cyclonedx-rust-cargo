@@ -80,7 +80,7 @@ Defaults to the host target, as printed by 'rustc -vV'"
     #[clap(long = "output-cdx")]
     pub output_cdx: bool,
 
-    /// Prefix patterns to use for the filename: bom, package
+    /// Prefix patterns to use for the filename: bom, package, binary, cargo-target
     /// Values other than 'bom' imply --output-cdx
     #[clap(
         name = "output-pattern",

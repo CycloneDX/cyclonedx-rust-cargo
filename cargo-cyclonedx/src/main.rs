@@ -83,7 +83,7 @@ fn main() -> anyhow::Result<()> {
 
     log::trace!("SBOM output started");
     for bom in boms {
-        bom.write_to_file()?;
+        bom.write_to_files()?;
     }
     log::trace!("SBOM output finished");
 
