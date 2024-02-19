@@ -43,7 +43,7 @@ impl LicenseChoice {
 }
 
 impl Validate for LicenseChoice {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         match self {
@@ -116,7 +116,7 @@ impl License {
 }
 
 impl Validate for License {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let license_identifier_context = context.with_struct("License", "license_identifier");
@@ -148,7 +148,7 @@ impl Validate for License {
 pub struct Licenses(pub Vec<LicenseChoice>);
 
 impl Validate for Licenses {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, license_choice) in self.0.iter().enumerate() {
@@ -172,7 +172,7 @@ pub enum LicenseIdentifier {
 }
 
 impl Validate for LicenseIdentifier {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             LicenseIdentifier::Name(name) => {
                 let name_context =

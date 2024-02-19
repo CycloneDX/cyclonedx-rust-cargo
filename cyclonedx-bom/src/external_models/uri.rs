@@ -43,7 +43,7 @@ impl ToString for Purl {
 }
 
 impl Validate for Purl {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match PackageUrl::from_str(&self.0.to_string()) {
             Ok(_) => ValidationResult::Passed,
             Err(e) => ValidationResult::failure(
@@ -78,7 +78,7 @@ impl TryFrom<String> for Uri {
 }
 
 impl Validate for Uri {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match Url::parse(&self.0.to_string()) {
             Ok(_) => ValidationResult::Passed,
             Err(_) => ValidationResult::failure("Uri does not conform to RFC 3986", context),

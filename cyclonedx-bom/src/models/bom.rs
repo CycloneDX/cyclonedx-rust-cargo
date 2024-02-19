@@ -19,6 +19,7 @@
 use std::collections::HashSet;
 use std::convert::TryInto;
 use std::fmt;
+use std::ops::Deref;
 use std::str::FromStr;
 
 use once_cell::sync::Lazy;
@@ -37,7 +38,7 @@ use crate::models::property::Properties;
 use crate::models::service::{Service, Services};
 use crate::models::signature::Signature;
 use crate::models::vulnerability::Vulnerabilities;
-use crate::validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult};
+use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 use crate::xml::{FromXmlDocument, ToXml};
 
 /// Represents the spec version of a BOM.
@@ -218,7 +219,12 @@ impl Default for Bom {
 }
 
 impl Validate for Bom {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_struct("serial_number", self.serial_number.as_deref(), validate_urnuuid)
+            .into()
+    
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         let mut bom_refs_context = BomReferencesContext::default();
@@ -386,6 +392,7 @@ impl Validate for Bom {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
     }
 }
 
@@ -517,15 +524,13 @@ impl From<uuid::Uuid> for UrnUuid {
     }
 }
 
-impl Validate for UrnUuid {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        match matches_urn_uuid_regex(&self.0) {
-            true => ValidationResult::Passed,
-            false => {
-                ValidationResult::failure("UrnUuid does not match regular expression", context)
-            }
-        }
+/// Validates a given [`UrnUuid`].
+fn validate_urnuuid(urnuuid: &UrnUuid) -> Result<(), ValidationError> {
+    if matches_urn_uuid_regex(urnuuid.0.as_str()) {
+        return Err(ValidationError::new("UrnUuuid does not match regular expression"));
     }
+
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

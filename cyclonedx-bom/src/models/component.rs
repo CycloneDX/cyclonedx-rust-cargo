@@ -103,7 +103,7 @@ impl Component {
 }
 
 impl Validate for Component {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let component_type_context = context.with_struct("Component", "component_type");
@@ -241,7 +241,7 @@ impl Validate for Component {
 pub struct Components(pub Vec<Component>);
 
 impl Validate for Components {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, component) in self.0.iter().enumerate() {
@@ -303,7 +303,7 @@ impl Classification {
 }
 
 impl Validate for Classification {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             Classification::UnknownClassification(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
@@ -349,7 +349,7 @@ impl Scope {
 }
 
 impl Validate for Scope {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             Scope::UnknownScope(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
@@ -366,7 +366,7 @@ impl Validate for Scope {
 pub struct MimeType(pub(crate) String);
 
 impl Validate for MimeType {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
             Regex::new(r"^[-+a-z0-9.]+/[-+a-z0-9.]+$").expect("Failed to compile regex.")
         });
@@ -395,7 +395,7 @@ pub struct Swid {
 }
 
 impl Validate for Swid {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(text) = &self.text {
@@ -420,7 +420,7 @@ impl Validate for Swid {
 pub struct Cpe(pub(crate) String);
 
 impl Validate for Cpe {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
             Regex::new(
                 r##"([c][pP][eE]:/[AHOaho]?(:[A-Za-z0-9\._\-~%]*){0,6})|(cpe:2\.3:[aho\*\-](:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){5}(:(([a-zA-Z]{2,3}(-([a-zA-Z]{2}|[0-9]{3}))?)|[\*\-]))(:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){4})"##,
@@ -447,7 +447,7 @@ pub struct ComponentEvidence {
 }
 
 impl Validate for ComponentEvidence {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(licenses) = &self.licenses {
@@ -479,7 +479,7 @@ pub struct Pedigree {
 }
 
 impl Validate for Pedigree {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(ancestors) = &self.ancestors {
@@ -531,7 +531,7 @@ impl Validate for Copyright {
 pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
 
 impl Validate for CopyrightTexts {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, copyright) in self.0.iter().enumerate() {

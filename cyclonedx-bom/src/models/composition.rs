@@ -31,7 +31,7 @@ pub struct Composition {
 }
 
 impl Validate for Composition {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let aggregate_context = context.with_struct("Composition", "aggregate");
@@ -48,7 +48,7 @@ impl Validate for Composition {
 pub struct Compositions(pub Vec<Composition>);
 
 impl Validate for Compositions {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, composition) in self.0.iter().enumerate() {
@@ -105,7 +105,7 @@ impl AggregateType {
 }
 
 impl Validate for AggregateType {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             AggregateType::UnknownAggregateType(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {

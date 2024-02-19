@@ -33,7 +33,7 @@ pub struct Hash {
 }
 
 impl Validate for Hash {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let alg_context = context.with_struct("Hash", "alg");
@@ -54,7 +54,7 @@ impl Validate for Hash {
 pub struct Hashes(pub Vec<Hash>);
 
 impl Validate for Hashes {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, hash) in self.0.iter().enumerate() {
@@ -133,7 +133,7 @@ impl HashAlgorithm {
 }
 
 impl Validate for HashAlgorithm {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             HashAlgorithm::UnknownHashAlgorithm(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
@@ -151,7 +151,7 @@ impl Validate for HashAlgorithm {
 pub struct HashValue(pub String);
 
 impl Validate for HashValue {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         static HASH_VALUE_REGEX: Lazy<Regex> = Lazy::new(|| {
             Regex::new(
                 r"^([a-fA-F0-9]{32})|([a-fA-F0-9]{40})|([a-fA-F0-9]{64})|([a-fA-F0-9]{96})|([a-fA-F0-9]{128})$",

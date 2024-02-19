@@ -30,7 +30,7 @@ use crate::{
 pub struct Properties(pub Vec<Property>);
 
 impl Validate for Properties {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, property) in self.0.iter().enumerate() {
@@ -70,7 +70,7 @@ impl Property {
 }
 
 impl Validate for Property {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let value_context = context.with_struct("Property", "value");

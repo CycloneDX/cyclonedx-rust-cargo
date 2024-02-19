@@ -45,7 +45,8 @@ impl Advisory {
 }
 
 impl Validate for Advisory {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(title) = &self.title {
@@ -67,7 +68,7 @@ impl Validate for Advisory {
 pub struct Advisories(pub Vec<Advisory>);
 
 impl Validate for Advisories {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, advisory) in self.0.iter().enumerate() {

@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::validation::{Validate, ValidationContext, ValidationResult};
+use crate::validation::ValidationError;
 use std::fmt::Display;
 use std::ops::Deref;
 
@@ -65,21 +65,21 @@ impl Display for NormalizedString {
     }
 }
 
-impl Validate for NormalizedString {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        if self.0.contains("\r\n")
-            || self.0.contains('\r')
-            || self.0.contains('\n')
-            || self.0.contains('\t')
-        {
-            return ValidationResult::failure(
-                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
-                context,
-            );
-        }
-
-        ValidationResult::Passed
+/// Validates a [`NormalizedString`].
+pub fn validate_normalized_string(
+    normalized_string: &NormalizedString,
+) -> Result<(), ValidationError> {
+    if normalized_string.contains("\r\n")
+        || normalized_string.contains('\r')
+        || normalized_string.contains('\n')
+        || normalized_string.contains('\t')
+    {
+        return Err(ValidationError::new(
+            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
+        ));
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -105,21 +105,18 @@ mod test {
 
     #[test]
     fn it_should_pass_validation() {
-        let validation_result = NormalizedString("no_whitespace".to_string()).validate();
-
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validate_normalized_string(&NormalizedString("no_whitespace".to_string())).is_ok());
     }
 
     #[test]
     fn it_should_fail_validation() {
-        let validation_result = NormalizedString("spaces and\ttabs".to_string()).validate();
+        let result = validate_normalized_string(&NormalizedString("spaces and\ttabs".to_string()));
 
         assert_eq!(
-            validation_result,
-            ValidationResult::failure(
+            result,
+            Err(ValidationError::new(
                 "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
-                ValidationContext::default()
-            )
+            ))
         );
     }
 }

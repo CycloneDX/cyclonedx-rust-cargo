@@ -49,7 +49,7 @@ impl Tool {
 }
 
 impl Validate for Tool {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(vendor) = &self.vendor {
@@ -86,7 +86,7 @@ impl Validate for Tool {
 pub struct Tools(pub Vec<Tool>);
 
 impl Validate for Tools {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, tool) in self.0.iter().enumerate() {

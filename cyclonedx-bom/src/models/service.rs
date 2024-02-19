@@ -79,7 +79,7 @@ impl Service {
 }
 
 impl Validate for Service {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(provider) = &self.provider {
@@ -170,7 +170,7 @@ impl Validate for Service {
 pub struct Services(pub Vec<Service>);
 
 impl Validate for Services {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, service) in self.0.iter().enumerate() {
@@ -194,7 +194,7 @@ pub struct DataClassification {
 }
 
 impl Validate for DataClassification {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let flow_context = context.with_struct("DataClassification", "flow");
@@ -253,7 +253,7 @@ impl DataFlowType {
 }
 
 impl Validate for DataFlowType {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             DataFlowType::UnknownDataFlow(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {

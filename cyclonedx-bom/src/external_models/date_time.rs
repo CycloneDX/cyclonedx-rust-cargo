@@ -65,7 +65,7 @@ impl TryFrom<String> for DateTime {
 }
 
 impl Validate for DateTime {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match OffsetDateTime::parse(&self.0.to_string(), &Iso8601::DEFAULT) {
             Ok(_) => ValidationResult::Passed,
             Err(_) => ValidationResult::failure("DateTime does not conform to ISO 8601", context),

@@ -45,7 +45,7 @@ impl AttachedText {
 }
 
 impl Validate for AttachedText {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(content_type) = &self.content_type {
@@ -105,7 +105,7 @@ impl Encoding {
 }
 
 impl Validate for Encoding {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             Encoding::UnknownEncoding(_) => ValidationResult::failure("Unknown encoding", context),
             _ => ValidationResult::Passed,

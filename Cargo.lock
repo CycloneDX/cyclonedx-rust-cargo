@@ -269,6 +269,7 @@ version = "0.5.0"
 dependencies = [
  "base64",
  "fluent-uri",
+ "indexmap",
  "insta",
  "once_cell",
  "ordered-float",

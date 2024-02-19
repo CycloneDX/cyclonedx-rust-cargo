@@ -17,13 +17,15 @@
  */
 
 use crate::{
-    external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri},
-    validation::{
-        FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
+    external_models::{
+        date_time::DateTime,
+        normalized_string::{validate_normalized_string, NormalizedString},
+        uri::Uri,
     },
+    validation::{Validate, ValidationContext, ValidationResult},
 };
 
-use super::attached_text::AttachedText;
+use super::{attached_text::AttachedText, bom::SpecVersion};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Commit {
@@ -35,7 +37,11 @@ pub struct Commit {
 }
 
 impl Validate for Commit {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field("uid", self.uid.as_deref(), validate_normalized_string)
+            .into()
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(uid) = &self.uid {
@@ -71,6 +77,7 @@ impl Validate for Commit {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
     }
 }
 
@@ -78,7 +85,7 @@ impl Validate for Commit {
 pub struct Commits(pub Vec<Commit>);
 
 impl Validate for Commits {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, commit) in self.0.iter().enumerate() {
@@ -100,7 +107,7 @@ pub struct Diff {
 }
 
 impl Validate for Diff {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(text) = &self.text {
@@ -129,7 +136,7 @@ pub struct IdentifiableAction {
 }
 
 impl Validate for IdentifiableAction {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(timestamp) = &self.timestamp {
@@ -167,7 +174,7 @@ pub struct Issue {
 }
 
 impl Validate for Issue {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let issue_context = context.with_struct("Issue", "issue_type");
@@ -250,7 +257,7 @@ impl IssueClassification {
 }
 
 impl Validate for IssueClassification {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             IssueClassification::UnknownIssueClassification(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
@@ -271,7 +278,7 @@ pub struct Patch {
 }
 
 impl Validate for Patch {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let patch_type_context = context.with_struct("Patch", "patch_type");
@@ -307,7 +314,7 @@ impl Validate for Patch {
 pub struct Patches(pub Vec<Patch>);
 
 impl Validate for Patches {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, patch) in self.0.iter().enumerate() {
@@ -357,7 +364,7 @@ impl PatchClassification {
 }
 
 impl Validate for PatchClassification {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             PatchClassification::UnknownPatchClassification(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {
@@ -377,7 +384,7 @@ pub struct Source {
 }
 
 impl Validate for Source {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(name) = &self.name {

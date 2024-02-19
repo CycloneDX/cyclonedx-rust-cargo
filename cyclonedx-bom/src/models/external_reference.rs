@@ -55,7 +55,7 @@ impl ExternalReference {
 }
 
 impl Validate for ExternalReference {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         let external_reference_type_context =
@@ -86,7 +86,7 @@ impl Validate for ExternalReference {
 pub struct ExternalReferences(pub Vec<ExternalReference>);
 
 impl Validate for ExternalReferences {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         for (index, external_reference) in self.0.iter().enumerate() {
@@ -170,7 +170,7 @@ impl ExternalReferenceType {
 }
 
 impl Validate for ExternalReferenceType {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
             ExternalReferenceType::UnknownExternalReferenceType(_) => ValidationResult::Failed {
                 reasons: vec![FailureReason {

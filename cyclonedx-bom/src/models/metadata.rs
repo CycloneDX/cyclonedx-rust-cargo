@@ -64,7 +64,7 @@ impl Metadata {
 }
 
 impl Validate for Metadata {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(timestamp) = &self.timestamp {

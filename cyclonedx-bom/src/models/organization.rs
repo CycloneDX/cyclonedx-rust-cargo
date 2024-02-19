@@ -48,7 +48,7 @@ impl OrganizationalContact {
 }
 
 impl Validate for OrganizationalContact {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut name_result = ValidationResult::default();
         if let Some(name) = &self.name {
             let name_context = context.with_struct("OrganizationalContact", "name");
@@ -85,7 +85,7 @@ pub struct OrganizationalEntity {
 }
 
 impl Validate for OrganizationalEntity {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate(&self, version: SpecVersion) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(name) = &self.name {
