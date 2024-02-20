@@ -19,7 +19,8 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::external_models::uri::validate_uri;
+use crate::external_models::normalized_string::validate_normalized_string;
+use crate::external_models::uri::{validate_purl, validate_uri};
 use crate::models::attached_text::AttachedText;
 use crate::models::code::{Commits, Patches};
 use crate::models::external_reference::ExternalReferences;
@@ -114,126 +115,41 @@ impl Validate for Component {
             )
             .add_field_option("mime_type", self.mime_type.as_ref(), validate_mime_type)
             .add_struct_option("supplier", self.supplier.as_ref(), version)
+            .add_field_option("author", self.author.as_ref(), validate_normalized_string)
+            .add_field_option(
+                "publisher",
+                self.publisher.as_ref(),
+                validate_normalized_string,
+            )
+            .add_field_option("group", self.group.as_ref(), validate_normalized_string)
+            .add_field("name", self.name.as_ref(), validate_normalized_string)
+            .add_field_option("version", self.version.as_ref(), validate_normalized_string)
+            .add_field_option(
+                "description",
+                self.description.as_ref(),
+                validate_normalized_string,
+            )
+            .add_enum_option("scope", self.scope.as_ref(), validate_scope)
+            .add_struct_option("hashes", self.hashes.as_ref(), version)
+            .add_struct_option("licenses", self.licenses.as_ref(), version)
+            .add_field_option(
+                "copyright",
+                self.copyright.as_ref(),
+                validate_normalized_string,
+            )
+            .add_field_option("cpe", self.cpe.as_ref(), validate_cpe)
+            .add_field_option("purl", self.purl.as_ref(), validate_purl)
+            .add_struct_option("swid", self.swid.as_ref(), version)
+            .add_struct_option("pedigree", self.pedigree.as_ref(), version)
+            .add_struct_option(
+                "external_references",
+                self.external_references.as_ref(),
+                version,
+            )
+            .add_struct_option("properties", self.properties.as_ref(), version)
+            .add_struct_option("components", self.components.as_ref(), version)
+            .add_struct_option("evidence", self.evidence.as_ref(), version)
             .into()
-
-        /*
-        if let Some(supplier) = &self.supplier {
-            let context = context.with_struct("Component", "supplier");
-
-            results.push(supplier.validate_with_context(context));
-        }
-
-        if let Some(author) = &self.author {
-            let context = context.with_struct("Component", "author");
-
-            results.push(author.validate_with_context(context));
-        }
-
-        if let Some(publisher) = &self.publisher {
-            let context = context.with_struct("Component", "publisher");
-
-            results.push(publisher.validate_with_context(context));
-        }
-
-        if let Some(group) = &self.group {
-            let context = context.with_struct("Component", "group");
-
-            results.push(group.validate_with_context(context));
-        }
-
-        let name_context = context.with_struct("Component", "name");
-
-        results.push(self.name.validate_with_context(name_context));
-
-        if let Some(version) = &self.version {
-            let context = context.with_struct("Component", "version");
-
-            results.push(version.validate_with_context(context));
-        }
-
-        if let Some(description) = &self.description {
-            let context = context.with_struct("Component", "description");
-
-            results.push(description.validate_with_context(context));
-        }
-
-        if let Some(scope) = &self.scope {
-            let context = context.with_struct("Component", "scope");
-
-            results.push(scope.validate_with_context(context));
-        }
-
-        if let Some(hashes) = &self.hashes {
-            let context = context.with_struct("Component", "hashes");
-
-            results.push(hashes.validate_with_context(context));
-        }
-
-        if let Some(licenses) = &self.licenses {
-            let context = context.with_struct("Component", "licenses");
-
-            results.push(licenses.validate_with_context(context));
-        }
-
-        if let Some(copyright) = &self.copyright {
-            let context = context.with_struct("Component", "copyright");
-
-            results.push(copyright.validate_with_context(context));
-        }
-
-        if let Some(cpe) = &self.cpe {
-            let context = context.with_struct("Component", "cpe");
-
-            results.push(cpe.validate_with_context(context));
-        }
-
-        if let Some(purl) = &self.purl {
-            let context = context.with_struct("Component", "purl");
-
-            results.push(purl.validate_with_context(context));
-        }
-
-        if let Some(swid) = &self.swid {
-            let context = context.with_struct("Component", "swid");
-
-            results.push(swid.validate_with_context(context));
-        }
-
-        if let Some(pedigree) = &self.pedigree {
-            let context = context.with_struct("Component", "pedigree");
-
-            results.push(pedigree.validate_with_context(context));
-        }
-
-        if let Some(external_references) = &self.external_references {
-            let context = context.with_struct("Component", "external_references");
-
-            results.push(external_references.validate_with_context(context));
-        }
-
-        if let Some(properties) = &self.properties {
-            let context = context.with_struct("Component", "properties");
-
-            results.push(properties.validate_with_context(context));
-        }
-
-        if let Some(components) = &self.components {
-            let context = context.with_struct("Component", "components");
-
-            results.push(components.validate_with_context(context));
-        }
-
-        if let Some(evidence) = &self.evidence {
-            let context = context.with_struct("Component", "evidence");
-
-            results.push(evidence.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
-
-        */
     }
 }
 
@@ -512,7 +428,7 @@ pub struct Copyright(pub String);
 pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
 
 impl Validate for CopyrightTexts {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_list("inner", &self.0, validate_copyright)
             .into()
