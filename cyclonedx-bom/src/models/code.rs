@@ -318,7 +318,7 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "inner",
-                &[(
+                [(
                     0,
                     vec![
                         validation::field(
@@ -408,7 +408,7 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "inner",
-                &[(
+                [(
                     0,
                     vec![
                         validation::field("patch_type", "Unknown patch classification"),
@@ -429,7 +429,7 @@ mod test {
                         ),
                         validation::list(
                             "resolves",
-                            &[(
+                            [(
                                 0,
                                 vec![
                                     validation::field("issue_type", "Unknown issue classification"),
@@ -449,7 +449,7 @@ mod test {
                                             )
                                         ]
                                     ),
-                                    validation::list("references", &[(0, validation::field("inner", "Uri does not conform to RFC 3986"))])
+                                    validation::list("references", [(0, validation::field("inner", "Uri does not conform to RFC 3986"))])
                                 ]
                             )]
                         )

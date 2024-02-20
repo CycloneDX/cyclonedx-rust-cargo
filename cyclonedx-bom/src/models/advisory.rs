@@ -101,7 +101,7 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "Advisory",
-                &[(
+                [(
                     0,
                     vec![
                         validation::field(

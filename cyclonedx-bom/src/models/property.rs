@@ -104,7 +104,7 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "Property",
-                &[(
+                [(
                     0,
                     validation::field(
                         "value",

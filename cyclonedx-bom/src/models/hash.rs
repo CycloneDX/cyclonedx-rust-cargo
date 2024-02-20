@@ -172,7 +172,7 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "inner",
-                &[(
+                [(
                     0,
                     vec![
                         validation::field("alg", "Unknown HashAlgorithm"),

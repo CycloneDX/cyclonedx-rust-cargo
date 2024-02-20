@@ -202,7 +202,7 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "inner",
-                &[(
+                [(
                     0,
                     validation::r#struct(
                         "ExternalReference",
@@ -214,7 +214,7 @@ mod test {
                             validation::field("url", "Uri does not conform to RFC 3986"),
                             validation::list(
                                 "hashes",
-                                &[(
+                                [(
                                     0,
                                     validation::field(
                                         "content",

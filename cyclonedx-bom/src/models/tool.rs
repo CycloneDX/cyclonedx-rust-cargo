@@ -109,7 +109,7 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "inner",
-                &[(
+                [(
                     0,
                     validation::field(
                         "vendor",
@@ -148,22 +148,20 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "inner",
-                &[
-                    (
-                        1,
-                        validation::field(
-                            "vendor",
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        )
-                    ),
-                    (
-                        2,
-                        validation::field(
-                            "name",
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        )
+                [(
+                    1,
+                    validation::field(
+                        "vendor",
+                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
                     )
-                ]
+                ),
+                (
+                    2,
+                    validation::field(
+                        "name",
+                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                    )
+                )]
             ))
         );
     }

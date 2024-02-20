@@ -574,7 +574,7 @@ mod test {
             actual.errors(),
             Some(validation::list(
                 "compositions",
-                &[(
+                [(
                     0,
                     vec![
                         validation::custom(

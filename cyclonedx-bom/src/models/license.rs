@@ -54,10 +54,10 @@ impl Validate for LicenseChoice {
 
         match self {
             LicenseChoice::License(license) => {
-                context.add_struct("license", license, version);
+                context = context.add_struct("license", license, version);
             }
             LicenseChoice::Expression(expression) => {
-                context.add_enum("expression", expression, validate_spdx_expression);
+                context = context.add_enum("expression", expression, validate_spdx_expression);
             }
         }
 
@@ -148,17 +148,15 @@ pub enum LicenseIdentifier {
 }
 
 impl Validate for LicenseIdentifier {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut context = ValidationContext::new();
+    fn validate(&self, _version: SpecVersion) -> ValidationResult {
         match self {
-            LicenseIdentifier::Name(name) => {
-                context.add_enum("Name", name, validate_normalized_string);
-            }
-            LicenseIdentifier::SpdxId(id) => {
-                context.add_field("SpdxId", id, validate_spdx_identifier);
-            }
+            LicenseIdentifier::Name(name) => ValidationContext::new()
+                .add_enum("Name", name, validate_normalized_string)
+                .into(),
+            LicenseIdentifier::SpdxId(id) => ValidationContext::new()
+                .add_field("SpdxId", id, validate_spdx_identifier)
+                .into(),
         }
-        context.into()
     }
 }
 

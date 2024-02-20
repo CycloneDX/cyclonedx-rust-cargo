@@ -714,8 +714,11 @@ impl GeneratedSbom {
         // If running in debug mode, validate that the SBOM is self-consistent and well-formed
         if cfg!(debug_assertions) {
             let result = bom.validate();
-            if let ValidationResult::Failed { reasons } = result {
-                panic!("The generated SBOM failed validation: {:?}", &reasons);
+            if result.has_errors() {
+                panic!(
+                    "The generated SBOM failed validation: {:?}",
+                    result.errors()
+                );
             }
         }
 

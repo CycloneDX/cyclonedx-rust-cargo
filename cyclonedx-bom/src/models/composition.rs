@@ -135,7 +135,7 @@ mod test {
             validation_result.errors(),
             Some(validation::list(
                 "composition",
-                &[(
+                [(
                     0,
                     validation::r#field("aggregate", "Unknown aggregate type")
                 )]
