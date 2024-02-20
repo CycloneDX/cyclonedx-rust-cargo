@@ -21,7 +21,7 @@ use std::{convert::TryFrom, ops::Deref};
 use thiserror::Error;
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 
-use crate::validation::{Validate, ValidationError, ValidationResult};
+use crate::validation::ValidationError;
 
 /// For the purposes of CycloneDX SBOM documents, `DateTime` is a ISO8601 formatted timestamp
 ///
@@ -71,15 +71,6 @@ impl TryFrom<String> for DateTime {
     }
 }
 
-impl Validate for DateTime {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
-        match OffsetDateTime::parse(&self.0.to_string(), &Iso8601::DEFAULT) {
-            Ok(_) => ValidationResult::Passed,
-            Err(_) => ValidationResult::failure("DateTime does not conform to ISO 8601", context),
-        }
-    }
-}
-
 impl ToString for DateTime {
     fn to_string(&self) -> String {
         self.0.clone()
@@ -97,26 +88,25 @@ pub enum DateTimeError {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use crate::{external_models::validate_date_time, prelude::DateTime};
 
     #[test]
     fn valid_datetimes_should_pass_validation() {
-        let validation_result = DateTime("1969-06-28T01:20:00.00-04:00".to_string()).validate();
+        let validation_result =
+            validate_date_time(&DateTime("1969-06-28T01:20:00.00-04:00".to_string()));
 
-        assert_eq!(validation_result, ValidationResult::Passed)
+        assert!(validation_result.is_ok());
     }
 
     #[test]
     fn invalid_datetimes_should_fail_validation() {
-        let validation_result = DateTime("invalid date".to_string()).validate();
+        let validation_result = validate_date_time(&DateTime("invalid date".to_string()));
 
         assert_eq!(
             validation_result,
-            ValidationResult::failure(
-                "DateTime does not conform to ISO 8601",
-                ValidationContext::default()
-            )
-        )
+            Err("DateTime does not conform to ISO 8601".into()),
+        );
     }
 }

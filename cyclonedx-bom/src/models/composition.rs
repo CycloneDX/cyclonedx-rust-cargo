@@ -139,7 +139,6 @@ mod test {
                     0,
                     validation::r#field("aggregate", "Unknown aggregate type")
                 )]
-                .into()
             ))
         );
     }

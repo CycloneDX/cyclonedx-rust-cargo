@@ -12,7 +12,7 @@ mod v1_3 {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 let bom = Bom::parse_from_xml_v1_3(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
-                let validation_result = bom.validate();
+                let validation_result = bom.validate_default();
                 assert_eq!(
                     validation_result,
                     ValidationResult::Passed,
@@ -39,7 +39,7 @@ mod v1_3 {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 let bom = Bom::parse_from_json_v1_3(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
-                let validation_result = bom.validate();
+                let validation_result = bom.validate_default();
                 assert_eq!(
                     validation_result,
                     ValidationResult::Passed,
@@ -65,7 +65,7 @@ mod v1_3 {
             insta::glob!("spec/1.3/invalid*.xml", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_xml_v1_3(file) {
-                    let validation_result = bom.validate();
+                    let validation_result = bom.validate_default();
                     assert_ne!(
                         validation_result,
                         ValidationResult::Passed,
@@ -85,7 +85,7 @@ mod v1_3 {
             insta::glob!("spec/1.3/invalid*.json", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_json_v1_3(file) {
-                    let validation_result = bom.validate();
+                    let validation_result = bom.validate_default();
                     assert_ne!(
                         validation_result,
                         ValidationResult::Passed,

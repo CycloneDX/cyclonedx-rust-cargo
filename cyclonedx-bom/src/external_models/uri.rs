@@ -19,12 +19,17 @@
 use std::{convert::TryFrom, str::FromStr};
 
 use fluent_uri::Uri as Url;
+use packageurl::PackageUrl;
 use thiserror::Error;
 
-use crate::{
-    models::bom::SpecVersion,
-    validation::{Validate, ValidationContext, ValidationError, ValidationResult},
-};
+use crate::validation::ValidationError;
+
+pub fn validate_purl(purl: &Purl) -> Result<(), ValidationError> {
+    if PackageUrl::from_str(&purl.0).is_err() {
+        return Err("Purl does not conform to Package URL spec".into());
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Purl(pub(crate) String);
@@ -55,7 +60,6 @@ pub fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
     if Url::parse(uri.0.as_str()).is_err() {
         return Err(ValidationError::new("Uri does not conform to RFC 3986"));
     }
-
     Ok(())
 }
 
@@ -72,14 +76,6 @@ impl TryFrom<String> for Uri {
                 "Uri does not conform to RFC 3986".to_string(),
             )),
         }
-    }
-}
-
-impl Validate for Uri {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_field("inner", self, validate_uri)
-            .into()
     }
 }
 
@@ -102,45 +98,40 @@ pub enum UriError {
 mod test {
     use pretty_assertions::assert_eq;
 
-    use super::*;
+    use crate::{
+        external_models::uri::{validate_purl, validate_uri},
+        prelude::{Purl, Uri},
+    };
 
     #[test]
     fn valid_purls_should_pass_validation() {
-        let validation_result = Purl("pkg:cargo/cyclonedx-bom@0.3.1".to_string()).validate();
+        let validation_result = validate_purl(&Purl("pkg:cargo/cyclonedx-bom@0.3.1".to_string()));
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert_eq!(Ok(()), validation_result);
     }
 
     #[test]
     fn invalid_purls_should_fail_validation() {
-        let validation_result = Purl("invalid purl".to_string()).validate();
-
+        let validation_result = validate_purl(&Purl("invalid purl".to_string()));
         assert_eq!(
             validation_result,
-            ValidationResult::failure(
-                "Purl does not conform to Package URL spec: missing scheme",
-                ValidationContext::default()
-            ),
+            Err("Purl does not conform to Package URL spec".into()),
         );
     }
 
     #[test]
     fn valid_uris_should_pass_validation() {
-        let validation_result = Uri("https://example.com".to_string()).validate();
-
-        assert_eq!(validation_result, ValidationResult::Passed);
+        let validation_result = validate_uri(&Uri("https://example.com".to_string()));
+        assert_eq!(Ok(()), validation_result);
     }
 
     #[test]
     fn invalid_uris_should_fail_validation() {
-        let validation_result = Uri("invalid uri".to_string()).validate();
+        let validation_result = validate_uri(&Uri("invalid uri".to_string()));
 
         assert_eq!(
             validation_result,
-            ValidationResult::failure(
-                "Uri does not conform to RFC 3986",
-                ValidationContext::default()
-            )
+            Err("Uri does not conform to RFC 3986".into()),
         );
     }
 }

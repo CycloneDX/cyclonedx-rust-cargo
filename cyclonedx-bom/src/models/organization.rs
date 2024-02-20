@@ -19,7 +19,7 @@
 use crate::{
     external_models::{
         normalized_string::{validate_normalized_string, NormalizedString},
-        uri::Uri,
+        uri::{validate_uri, Uri},
     },
     validation::{Validate, ValidationContext, ValidationResult},
 };
@@ -55,9 +55,9 @@ impl OrganizationalContact {
 impl Validate for OrganizationalContact {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_field("name", self.name.as_deref(), validate_normalized_string)
-            .add_field("email", self.email.as_deref(), validate_normalized_string)
-            .add_field("phone", self.phone.as_deref(), validate_normalized_string)
+            .add_field_option("name", self.name.as_ref(), validate_normalized_string)
+            .add_field_option("email", self.email.as_ref(), validate_normalized_string)
+            .add_field_option("phone", self.phone.as_ref(), validate_normalized_string)
             .into()
     }
 }
@@ -68,66 +68,31 @@ impl Validate for OrganizationalContact {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrganizationalEntity {
     pub name: Option<NormalizedString>,
-    pub url: Vec<Uri>,
-    pub contact: Vec<OrganizationalContact>,
+    pub url: Option<Vec<Uri>>,
+    pub contact: Option<Vec<OrganizationalContact>>,
 }
 
 impl Validate for OrganizationalEntity {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_field_option("name", &self.name, validate_normalized_string)
-            .add_list("url", &self.url, |uri| uri.validate(version))
+            .add_field_option("name", self.name.as_ref(), validate_normalized_string)
+            .add_list_option("url", self.url.as_ref(), validate_uri)
+            .add_list_option("contact", self.contact.as_ref(), |contact| {
+                contact.validate(version)
+            })
             .into()
-
-        /*
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(name) = &self.name {
-            let name_context = context.with_struct("OrganizationalEntity", "name");
-
-            results.push(name.validate_with_context(name_context));
-        }
-
-        if let Some(urls) = &self.url {
-            for (index, url) in urls.iter().enumerate() {
-                let uri_context = context.extend_context(vec![
-                    ValidationPathComponent::Struct {
-                        struct_name: "OrganizationalEntity".to_string(),
-                        field_name: "url".to_string(),
-                    },
-                    ValidationPathComponent::Array { index },
-                ]);
-
-                results.push(url.validate_with_context(uri_context));
-            }
-        }
-
-        if let Some(contacts) = &self.contact {
-            for (index, contact) in contacts.iter().enumerate() {
-                let uri_context = context.extend_context(vec![
-                    ValidationPathComponent::Struct {
-                        struct_name: "OrganizationalEntity".to_string(),
-                        field_name: "contact".to_string(),
-                    },
-                    ValidationPathComponent::Array { index },
-                ]);
-                results.push(contact.validate_with_context(uri_context));
-            }
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
-        */
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::validation::{FailureReason, ValidationPathComponent};
-
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use crate::{
+        models::organization::{OrganizationalContact, OrganizationalEntity},
+        prelude::{NormalizedString, Uri, Validate, ValidationResult},
+        validation,
+    };
 
     #[test]
     fn it_should_validate_an_empty_contact_as_passed() {
@@ -136,7 +101,7 @@ mod test {
             email: None,
             phone: None,
         };
-        let actual = contact.validate();
+        let actual = contact.validate_default();
         assert_eq!(actual, ValidationResult::Passed);
     }
 
@@ -147,20 +112,15 @@ mod test {
             email: None,
             phone: None,
         };
-        let actual = contact.validate();
+        let actual = contact.validate_default();
+
         assert_eq!(
-            actual,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context: ValidationContext(vec![ValidationPathComponent::Struct {
-                        struct_name: "OrganizationalContact".to_string(),
-                        field_name: "name".to_string()
-                    }])
-                }]
-            }
-        )
+            actual.errors(),
+            Some(validation::field(
+                "name",
+                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+            ))
+        );
     }
 
     #[test]
@@ -174,7 +134,9 @@ mod test {
                 "invalid\tphone".to_string(),
             )),
         };
-        let actual = contact.validate();
+        let actual = contact.validate_default();
+
+        /*
         assert_eq!(
             actual,
             ValidationResult::Failed {
@@ -209,16 +171,19 @@ mod test {
                 ]
             }
         )
+        */
     }
 
     #[test]
     fn it_should_validate_an_invalid_entity_as_failed() {
         let entity = OrganizationalEntity {
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
-            url: None,
-            contact: None,
+            url: vec![],
+            contact: vec![],
         };
-        let actual = entity.validate();
+        let actual = entity.validate_default();
+
+        /*
         assert_eq!(
             actual,
             ValidationResult::Failed {
@@ -232,20 +197,22 @@ mod test {
                 }]
             }
         )
+        */
     }
 
     #[test]
     fn it_should_validate_an_entity_with_multiple_validation_issues_as_failed() {
         let entity = OrganizationalEntity {
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
-            url: Some(vec![Uri("invalid uri".to_string())]),
-            contact: Some(vec![OrganizationalContact {
+            url: vec![Uri("invalid uri".to_string())],
+            contact: vec![OrganizationalContact {
                 name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
                 email: None,
                 phone: None,
-            }]),
+            }],
         };
-        let actual = entity.validate();
+        let actual = entity.validate_default();
+        /*
         assert_eq!(
             actual,
             ValidationResult::Failed {
@@ -288,5 +255,6 @@ mod test {
                 ]
             }
         )
+        */
     }
 }

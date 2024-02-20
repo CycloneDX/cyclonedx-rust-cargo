@@ -16,9 +16,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::external_models::normalized_string::NormalizedString;
+use crate::external_models::normalized_string::{validate_normalized_string, NormalizedString};
 use crate::models::hash::Hashes;
-use crate::validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult};
+use crate::validation::{Validate, ValidationContext, ValidationResult};
+
+use super::bom::SpecVersion;
 
 /// Represents the tool used to create the BOM
 ///
@@ -50,35 +52,12 @@ impl Tool {
 
 impl Validate for Tool {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(vendor) = &self.vendor {
-            let context = context.with_struct("Tool", "vendor");
-
-            results.push(vendor.validate_with_context(context));
-        }
-
-        if let Some(name) = &self.name {
-            let context = context.with_struct("Tool", "name");
-
-            results.push(name.validate_with_context(context));
-        }
-
-        if let Some(version) = &self.version {
-            let context = context.with_struct("Tool", "version");
-
-            results.push(version.validate_with_context(context));
-        }
-
-        if let Some(hashes) = &self.hashes {
-            let context = context.with_struct("Tool", "hashes");
-
-            results.push(hashes.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        ValidationContext::new()
+            .add_field_option("vendor", self.vendor.as_ref(), validate_normalized_string)
+            .add_field_option("name", self.name.as_ref(), validate_normalized_string)
+            .add_field_option("version", self.version.as_ref(), validate_normalized_string)
+            .add_list("hashes", &self.hashes, |hashes| hashes.validate(version))
+            .into()
     }
 }
 
@@ -87,26 +66,21 @@ pub struct Tools(pub Vec<Tool>);
 
 impl Validate for Tools {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, tool) in self.0.iter().enumerate() {
-            let tool_context =
-                context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(tool.validate_with_context(tool_context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        ValidationContext::new()
+            .add_list("inner", &self.0, |tool| tool.validate(version))
+            .into()
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::validation::FailureReason;
-
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use crate::{
+        models::tool::{Tool, Tools},
+        prelude::{NormalizedString, Validate, ValidationResult},
+        validation,
+    };
 
     #[test]
     fn it_should_pass_validation() {
@@ -116,7 +90,7 @@ mod test {
             version: None,
             hashes: None,
         }])
-        .validate();
+        .validate_default();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -129,23 +103,20 @@ mod test {
             version: None,
             hashes: None,
         }])
-        .validate();
+        .validate_default();
 
         assert_eq!(
-            validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context: ValidationContext(vec![
-                        ValidationPathComponent::Array { index: 0 },
-                        ValidationPathComponent::Struct {
-                            struct_name: "Tool".to_string(),
-                            field_name: "vendor".to_string(),
-                        }
-                    ])
-                }]
-            }
+            validation_result.errors(),
+            Some(validation::list(
+                "inner",
+                &[(
+                    0,
+                    validation::field(
+                        "vendor",
+                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                    )
+                )]
+            ))
         );
     }
 
@@ -171,38 +142,29 @@ mod test {
                 hashes: None,
             },
         ])
-        .validate();
+        .validate_default();
 
         assert_eq!(
-            validation_result,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason {
-                        message:
+            validation_result.errors(),
+            Some(validation::list(
+                "inner",
+                &[
+                    (
+                        1,
+                        validation::field(
+                            "vendor",
                             "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 1 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Tool".to_string(),
-                                field_name: "vendor".to_string(),
-                            }
-                        ])
-                    },
-                    FailureReason {
-                        message:
+                        )
+                    ),
+                    (
+                        2,
+                        validation::field(
+                            "name",
                             "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 2 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Tool".to_string(),
-                                field_name: "name".to_string(),
-                            }
-                        ])
-                    }
+                        )
+                    )
                 ]
-            }
+            ))
         );
     }
 }

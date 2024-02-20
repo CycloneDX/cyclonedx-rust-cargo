@@ -79,7 +79,7 @@ mod test {
         validation,
     };
     use pretty_assertions::assert_eq;
-    use validation::ValidationResult;
+    use validation::{Validate, ValidationResult};
 
     #[test]
     fn it_should_pass_validation() {

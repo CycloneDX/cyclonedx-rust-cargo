@@ -63,7 +63,7 @@ pub struct Advisories(pub Vec<Advisory>);
 impl Validate for Advisories {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", self.0, |advisory| advisory.validate(version))
+            .add_list("inner", &self.0, |advisory| advisory.validate(version))
             .into()
     }
 }

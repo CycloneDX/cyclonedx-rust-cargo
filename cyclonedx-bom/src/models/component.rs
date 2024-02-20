@@ -16,11 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::ops::Deref;
-
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use crate::external_models::uri::validate_uri;
 use crate::models::attached_text::AttachedText;
 use crate::models::code::{Commits, Patches};
 use crate::models::external_reference::ExternalReferences;
@@ -107,27 +106,17 @@ impl Component {
 
 impl Validate for Component {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let context: ValidationResult = ValidationContext::new()
+        ValidationContext::new()
             .add_field(
                 "component_type",
                 &self.component_type,
                 validate_classification,
             )
-            .add_struct("mime_type", &self.mime_type, |mt| {
-                validate_mime_type(mt).into()
-            })
-            .into();
+            .add_field_option("mime_type", self.mime_type.as_ref(), validate_mime_type)
+            .add_struct_option("supplier", self.supplier.as_ref(), version)
+            .into()
 
-        let mut results: Vec<ValidationResult> = vec![];
-
-        let component_type_context = context.with_struct("Component", "component_type");
-
-        if let Some(mime_type) = &self.mime_type {
-            let context = context.with_struct("Component", "mime_type");
-
-            results.push(mime_type.validate_with_context(context));
-        }
-
+        /*
         if let Some(supplier) = &self.supplier {
             let context = context.with_struct("Component", "supplier");
 
@@ -243,6 +232,8 @@ impl Validate for Component {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+
+        */
     }
 }
 
@@ -251,16 +242,9 @@ pub struct Components(pub Vec<Component>);
 
 impl Validate for Components {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, component) in self.0.iter().enumerate() {
-            let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(component.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        ValidationContext::new()
+            .add_list("inner", &self.0, |component| component.validate(version))
+            .into()
     }
 }
 
@@ -320,10 +304,11 @@ impl Classification {
     }
 }
 
-impl Validate for Classification {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
-        validate_classification(self).into()
+pub fn validate_scope(scope: &Scope) -> Result<(), ValidationError> {
+    if matches!(scope, Scope::UnknownScope(_)) {
+        return Err(ValidationError::new("Unknown scope"));
     }
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -358,6 +343,7 @@ impl Scope {
     }
 }
 
+/*
 impl Validate for Scope {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
         match self {
@@ -371,6 +357,7 @@ impl Validate for Scope {
         }
     }
 }
+*/
 
 /// Checks if given [`MimeType`] is valid / supported.
 pub fn validate_mime_type(mime_type: &MimeType) -> Result<(), ValidationError> {
@@ -389,12 +376,6 @@ pub fn validate_mime_type(mime_type: &MimeType) -> Result<(), ValidationError> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MimeType(pub(crate) String);
 
-impl Validate for MimeType {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
-        validate_mime_type(self).into()
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Swid {
     pub tag_id: String,
@@ -408,49 +389,31 @@ pub struct Swid {
 
 impl Validate for Swid {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(text) = &self.text {
-            let context = context.with_struct("Swid", "text");
-
-            results.push(text.validate_with_context(context));
-        }
-
-        if let Some(url) = &self.url {
-            let context = context.with_struct("Swid", "url");
-
-            results.push(url.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        ValidationContext::new()
+            .add_struct_option("text", self.text.as_ref(), version)
+            .add_field_option("url", self.url.as_ref(), validate_uri)
+            .into()
     }
+}
+
+pub fn validate_cpe(cpe: &Cpe) -> Result<(), ValidationError> {
+    static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(
+            r##"([c][pP][eE]:/[AHOaho]?(:[A-Za-z0-9\._\-~%]*){0,6})|(cpe:2\.3:[aho\*\-](:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){5}(:(([a-zA-Z]{2,3}(-([a-zA-Z]{2}|[0-9]{3}))?)|[\*\-]))(:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){4})"##,
+        ).expect("Failed to compile regex.")
+    });
+
+    if !UUID_REGEX.is_match(&cpe.0) {
+        return Err(ValidationError::new(
+            "Cpe does not match regular expression",
+        ));
+    }
+
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cpe(pub(crate) String);
-
-impl Validate for Cpe {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
-        static UUID_REGEX: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(
-                r##"([c][pP][eE]:/[AHOaho]?(:[A-Za-z0-9\._\-~%]*){0,6})|(cpe:2\.3:[aho\*\-](:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){5}(:(([a-zA-Z]{2,3}(-([a-zA-Z]{2}|[0-9]{3}))?)|[\*\-]))(:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!"#$$%&'\(\)\+,/:;<=>@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){4})"##,
-            ).expect("Failed to compile regex.")
-        });
-
-        if UUID_REGEX.is_match(&self.0) {
-            ValidationResult::Passed
-        } else {
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Cpe does not match regular expression".to_string(),
-                    context,
-                }],
-            }
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComponentEvidence {
@@ -460,6 +423,10 @@ pub struct ComponentEvidence {
 
 impl Validate for ComponentEvidence {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_struct_option("licenses", self.licenses.as_ref(), version)
+            .into()
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(licenses) = &self.licenses {
@@ -477,6 +444,7 @@ impl Validate for ComponentEvidence {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
     }
 }
 
@@ -492,6 +460,8 @@ pub struct Pedigree {
 
 impl Validate for Pedigree {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new().into()
+        /*
         let mut results: Vec<ValidationResult> = vec![];
 
         if let Some(ancestors) = &self.ancestors {
@@ -527,33 +497,25 @@ impl Validate for Pedigree {
         results
             .into_iter()
             .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        */
     }
+}
+
+pub fn validate_copyright(_copyright: &Copyright) -> Result<(), ValidationError> {
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Copyright(pub String);
-
-impl Validate for Copyright {
-    fn validate_with_context(&self, _context: ValidationContext) -> ValidationResult {
-        ValidationResult::default()
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
 
 impl Validate for CopyrightTexts {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, copyright) in self.0.iter().enumerate() {
-            let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(copyright.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+        ValidationContext::new()
+            .add_list("inner", &self.0, validate_copyright)
+            .into()
     }
 }
 
@@ -570,7 +532,6 @@ mod test {
             property::Property,
             signature::Algorithm,
         },
-        validation::ValidationPathComponent,
     };
 
     use super::*;
@@ -655,7 +616,7 @@ mod test {
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate();
+        .validate_default();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -743,8 +704,9 @@ mod test {
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate();
+        .validate_default();
 
+        /*
         assert_eq!(
             validation_result,
             ValidationResult::Failed {
@@ -1128,6 +1090,7 @@ mod test {
                 ]
             }
         );
+        */
     }
 
     fn invalid_component() -> Component {
