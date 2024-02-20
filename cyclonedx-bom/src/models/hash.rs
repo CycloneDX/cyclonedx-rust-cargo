@@ -144,7 +144,7 @@ pub struct HashValue(pub String);
 
 #[cfg(test)]
 mod test {
-    use crate::validation::ValidationErrorsKind;
+    use crate::validation::{self, ValidationErrorsKind};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -169,18 +169,17 @@ mod test {
         .validate(SpecVersion::V1_3);
 
         assert_eq!(
-            validation_result,
-            Some(&vec![ValidationErrorsKind::list((
-                0,
-                ValidationErrorsKind::r#struct(&[
-                    ("alg", ValidationErrorsKind::field("Unknown HashAlgorithm")),
-                    (
-                        "content",
-                        ValidationErrorsKind::field("HashValue does not match regular expression")
-                    )
-                ])
+            validation_result.errors(),
+            Some(validation::list(
+                "inner",
+                &[(
+                    0,
+                    vec![
+                        validation::field("alg", "Unknown HashAlgorithm"),
+                        validation::field("content", "HashValue does not match regular expression")
+                    ]
+                )]
             ))
-            .into()])
         );
     }
 }

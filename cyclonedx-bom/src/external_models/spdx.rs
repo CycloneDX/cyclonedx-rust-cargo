@@ -237,18 +237,19 @@ mod test {
 
     #[test]
     fn valid_spdx_identifiers_should_pass_validation() {
-        let validation_result = SpdxIdentifier("MIT".to_string()).validate_default();
+        let validaton_result = validate_spdx_identifier(&SpdxIdentifier("MIT".to_string()));
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validaton_result.is_ok());
     }
 
     #[test]
     fn invalid_spdx_identifiers_should_fail_validation() {
-        let validation_result = SpdxIdentifier("MIT OR Apache-2.0".to_string()).validate_default();
+        let validation_result =
+            validate_spdx_identifier(&SpdxIdentifier("MIT OR Apache-2.0".to_string()));
 
         assert_eq!(
             validation_result,
-            ValidationResult::failure("SPDX identifier is not valid", ValidationContext::default()),
+            Err("SPDX identifier is not valid".into()),
         );
     }
 
