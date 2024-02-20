@@ -17,6 +17,7 @@
  */
 
 use crate::external_models::normalized_string::validate_normalized_string;
+use crate::external_models::uri::validate_uri;
 use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::license::Licenses;
@@ -90,9 +91,7 @@ impl Validate for Service {
                 self.description.as_ref(),
                 validate_normalized_string,
             )
-            .add_list_option("endpoints", self.endpoints.as_ref(), |e| {
-                e.validate(version)
-            })
+            .add_list_option("endpoints", self.endpoints.as_ref(), validate_uri)
             .add_list_option("data", self.data.as_ref(), |data| data.validate(version))
             .add_struct_option("licenses", self.licenses.as_ref(), version)
             .add_struct_option(

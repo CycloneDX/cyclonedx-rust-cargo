@@ -178,8 +178,8 @@ mod test {
     fn it_should_validate_an_invalid_entity_as_failed() {
         let entity = OrganizationalEntity {
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
-            url: vec![],
-            contact: vec![],
+            url: None,
+            contact: None,
         };
         let actual = entity.validate_default();
 
@@ -204,12 +204,12 @@ mod test {
     fn it_should_validate_an_entity_with_multiple_validation_issues_as_failed() {
         let entity = OrganizationalEntity {
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
-            url: vec![Uri("invalid uri".to_string())],
-            contact: vec![OrganizationalContact {
+            url: Some(vec![Uri("invalid uri".to_string())]),
+            contact: Some(vec![OrganizationalContact {
                 name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
                 email: None,
                 phone: None,
-            }],
+            }]),
         };
         let actual = entity.validate_default();
         /*

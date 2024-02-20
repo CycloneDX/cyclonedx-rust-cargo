@@ -150,13 +150,13 @@ mod test {
             }),
             manufacture: Some(OrganizationalEntity {
                 name: Some(NormalizedString::new("name")),
-                url: vec![],
-                contact: vec![],
+                url: None,
+                contact: None,
             }),
             supplier: Some(OrganizationalEntity {
                 name: Some(NormalizedString::new("name")),
-                url: vec![],
-                contact: vec![],
+                url: None,
+                contact: None,
             }),
             licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                 "MIT".to_string(),
@@ -214,13 +214,13 @@ mod test {
             }),
             manufacture: Some(OrganizationalEntity {
                 name: Some(NormalizedString("invalid\tname".to_string())),
-                url: vec![],
-                contact: vec![],
+                url: None,
+                contact: None,
             }),
             supplier: Some(OrganizationalEntity {
                 name: Some(NormalizedString("invalid\tname".to_string())),
-                url: vec![],
-                contact: vec![],
+                url: None,
+                contact: None,
             }),
             licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                 "invalid license".to_string(),

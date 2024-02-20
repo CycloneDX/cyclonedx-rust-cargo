@@ -188,8 +188,6 @@ pub enum SpdxExpressionError {
 
 #[cfg(test)]
 mod test {
-    use crate::validation::{ValidationContext, ValidationResult};
-
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -279,18 +277,20 @@ mod test {
 
     #[test]
     fn valid_spdx_expressions_should_pass_validation() {
-        let validation_result = SpdxExpression("MIT OR Apache-2.0".to_string()).validate_default();
+        let validation_result =
+            validate_spdx_expression(&SpdxExpression("MIT OR Apache-2.0".to_string()));
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.is_ok());
     }
 
     #[test]
     fn invalid_spdx_expressions_should_fail_validation() {
-        let validation_result = SpdxExpression("not a real license".to_string()).validate_default();
+        let validation_result =
+            validate_spdx_expression(&SpdxExpression("not a real license".to_string()));
 
         assert_eq!(
             validation_result,
-            ValidationResult::failure("SPDX expression is not valid", ValidationContext::default())
+            Err("SPDX expression is not valid".into()),
         );
     }
 }

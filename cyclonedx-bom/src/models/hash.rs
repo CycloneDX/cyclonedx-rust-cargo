@@ -144,7 +144,7 @@ pub struct HashValue(pub String);
 
 #[cfg(test)]
 mod test {
-    use crate::validation::{self, ValidationErrorsKind};
+    use crate::validation::{self};
 
     use super::*;
     use pretty_assertions::assert_eq;

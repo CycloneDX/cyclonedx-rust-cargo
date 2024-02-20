@@ -19,7 +19,6 @@
 use std::collections::HashSet;
 use std::convert::TryInto;
 use std::fmt;
-use std::ops::Deref;
 use std::str::FromStr;
 
 use once_cell::sync::Lazy;

@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::{convert::TryFrom, ops::Deref};
+use std::{convert::TryFrom, path::StripPrefixError};
 
 use thiserror::Error;
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
