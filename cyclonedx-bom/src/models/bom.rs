@@ -247,23 +247,23 @@ impl Validate for Bom {
 
         if let Some(metadata) = &self.metadata {
             if let Some(component) = &metadata.component {
-                validate_component_bom_refs(&mut context, &mut bom_refs, component);
+                context = validate_component_bom_refs(context, &mut bom_refs, component);
             }
         }
 
         if let Some(components) = &self.components {
-            validate_components(&mut context, &mut bom_refs, components);
+            context = validate_components(context, &mut bom_refs, components);
         }
 
         if let Some(services) = &self.services {
-            validate_services(&mut context, &mut bom_refs, services);
+            context = validate_services(context, &mut bom_refs, services);
         }
 
         // Check dependencies & sub dependencies
         if let Some(dependencies) = &self.dependencies {
             for dependency in &dependencies.0 {
                 if !bom_refs.contains(&dependency.dependency_ref) {
-                    context.add_custom(
+                    context = context.add_custom(
                         "dependency_ref",
                         format!(
                             "Dependency ref '{}' does not exist in the BOM",
@@ -274,7 +274,7 @@ impl Validate for Bom {
 
                 for sub_dependency in &dependency.dependencies {
                     if !bom_refs.contains(sub_dependency) {
-                        context.add_custom(
+                        context = context.add_custom(
                             "sub dependency_ref",
                             format!(
                                 "Dependency ref '{}' does not exist in the BOM",
@@ -289,10 +289,10 @@ impl Validate for Bom {
         // Check compositions, its dependencies & assemblies
         if let Some(compositions) = &self.compositions {
             for composition in &compositions.0 {
-                if let Some(assemblies) = composition.assemblies {
-                    for BomReference(assembly) in &assemblies {
+                if let Some(assemblies) = &composition.assemblies {
+                    for BomReference(assembly) in assemblies {
                         if !bom_refs.contains(assembly) {
-                            context.add_custom(
+                            context = context.add_custom(
                                 "composition ref",
                                 format!(
                                     "Composition reference '{assembly}' does not exist in the BOM"
@@ -305,7 +305,7 @@ impl Validate for Bom {
                 if let Some(dependencies) = &composition.dependencies {
                     for BomReference(dependency) in dependencies {
                         if !bom_refs.contains(&dependency) {
-                            context.add_custom(
+                            context = context.add_custom(
                                 "composition ref",
                                 format!(
                                     "Composition reference '{dependency}' does not exist in the BOM"
@@ -343,57 +343,65 @@ impl BomReferencesContext {
 
 /// Validates the Bom references.
 fn validate_component_bom_refs(
-    context: &mut ValidationContext,
+    mut context: ValidationContext,
     bom_refs: &mut BomReferencesContext,
     component: &Component,
-) {
+) -> ValidationContext {
     if let Some(bom_ref) = &component.bom_ref {
         if bom_refs.contains(&bom_ref) {
-            context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
+            context =
+                context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
         }
         bom_refs.add_component_bom_ref(bom_ref);
     }
 
     if let Some(components) = &component.components {
-        validate_components(context, bom_refs, components);
+        context = validate_components(context, bom_refs, components);
     }
+
+    context
 }
 
 fn validate_components(
-    context: &mut ValidationContext,
+    mut context: ValidationContext,
     bom_refs: &mut BomReferencesContext,
     components: &Components,
-) {
+) -> ValidationContext {
     for component in &components.0 {
-        validate_component_bom_refs(context, bom_refs, component);
+        context = validate_component_bom_refs(context, bom_refs, component);
     }
+    context
 }
 
 fn validate_services(
-    context: &mut ValidationContext,
+    mut context: ValidationContext,
     bom_refs: &mut BomReferencesContext,
     services: &Services,
-) {
+) -> ValidationContext {
     for service in &services.0 {
-        validate_service_bom_refs(context, bom_refs, service);
+        context = validate_service_bom_refs(context, bom_refs, service);
     }
+    context
 }
 
 fn validate_service_bom_refs(
-    context: &mut ValidationContext,
+    mut context: ValidationContext,
     bom_refs: &mut BomReferencesContext,
     service: &Service,
-) {
+) -> ValidationContext {
     if let Some(bom_ref) = &service.bom_ref {
         if bom_refs.contains(bom_ref) {
-            context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
+            context =
+                context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
         }
         bom_refs.add_service_bom_ref(bom_ref);
     }
 
     if let Some(services) = &service.services {
-        validate_services(context, bom_refs, services);
+        context = validate_services(context, bom_refs, services);
     }
+
+    context
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

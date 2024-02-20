@@ -49,7 +49,7 @@ impl Advisory {
 }
 
 impl Validate for Advisory {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("title", self.title.as_ref(), validate_normalized_string)
             .add_field("url", &self.url, validate_uri)

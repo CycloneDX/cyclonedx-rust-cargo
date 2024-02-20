@@ -47,7 +47,7 @@ impl AttachedText {
 }
 
 impl Validate for AttachedText {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate(&self, _version: SpecVersion) -> ValidationResult {
         let mut context = ValidationContext::new().add_field_option(
             "content_type",
             self.content_type.as_ref(),
@@ -58,12 +58,12 @@ impl Validate for AttachedText {
             match (encoding, STANDARD.decode(self.content.clone())) {
                 (Encoding::Base64, Ok(_)) => (),
                 (Encoding::Base64, Err(_)) => {
-                    context.add_field("content", self.content, |_| {
+                    context = context.add_field("content", &self.content, |_| {
                         Err("Content is not Base64 encoded".into())
                     });
                 }
                 (Encoding::UnknownEncoding(_), _) => {
-                    context.add_field("encoding", encoding, validate_encoding);
+                    context = context.add_field("encoding", encoding, validate_encoding);
                 }
             }
         }

@@ -81,8 +81,8 @@ impl ToString for SpdxIdentifier {
 }
 
 pub fn validate_spdx_identifier(identifier: &SpdxIdentifier) -> Result<(), ValidationError> {
-    match SpdxIdentifier::try_from(identifier.0) {
-        Err(error) => Err(ValidationError::new("SPDX identifier is not valid")),
+    match SpdxIdentifier::try_from(identifier.0.to_string()) {
+        Err(_error) => Err(ValidationError::new("SPDX identifier is not valid")),
         _ => Ok(()),
     }
 }
