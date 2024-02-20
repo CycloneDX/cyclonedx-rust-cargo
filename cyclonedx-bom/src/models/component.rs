@@ -259,22 +259,6 @@ impl Scope {
     }
 }
 
-/*
-impl Validate for Scope {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
-        match self {
-            Scope::UnknownScope(_) => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Unknown scope".to_string(),
-                    context,
-                }],
-            },
-            _ => ValidationResult::Passed,
-        }
-    }
-}
-*/
-
 /// Checks if given [`MimeType`] is valid / supported.
 pub fn validate_mime_type(mime_type: &MimeType) -> Result<(), ValidationError> {
     static UUID_REGEX: Lazy<Regex> =
@@ -341,26 +325,8 @@ impl Validate for ComponentEvidence {
     fn validate(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_struct_option("licenses", self.licenses.as_ref(), version)
+            .add_struct_option("copyright", self.copyright.as_ref(), version)
             .into()
-        /*
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(licenses) = &self.licenses {
-            let context = context.with_struct("ComponentEvidence", "licenses");
-
-            results.push(licenses.validate_with_context(context));
-        }
-
-        if let Some(copyright) = &self.copyright {
-            let context = context.with_struct("ComponentEvidence", "copyright");
-
-            results.push(copyright.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
-        */
     }
 }
 

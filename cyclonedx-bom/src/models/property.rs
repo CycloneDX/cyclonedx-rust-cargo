@@ -103,7 +103,7 @@ mod test {
         assert_eq!(
             validation_result.errors(),
             Some(validation::list(
-                "Property",
+                "inner",
                 [(
                     0,
                     validation::field(

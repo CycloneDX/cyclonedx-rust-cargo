@@ -204,26 +204,29 @@ mod test {
                 "inner",
                 [(
                     0,
-                    validation::r#struct(
-                        "ExternalReference",
-                        vec![
-                            validation::field(
-                                "external_reference_type",
-                                "Unknown external reference type"
-                            ),
-                            validation::field("url", "Uri does not conform to RFC 3986"),
-                            validation::list(
-                                "hashes",
-                                [(
-                                    0,
-                                    validation::field(
-                                        "content",
-                                        "HashValue does not match regular expression"
-                                    )
-                                )]
-                            ),
-                        ]
-                    )
+                    vec![
+                        validation::field(
+                            "external_reference_type",
+                            "Unknown external reference type"
+                        ),
+                        validation::field("url", "Uri does not conform to RFC 3986"),
+                        validation::list(
+                            "hashes",
+                            [(
+                                0,
+                                validation::list(
+                                    "inner",
+                                    [(
+                                        0,
+                                        validation::field(
+                                            "content",
+                                            "HashValue does not match regular expression"
+                                        )
+                                    )]
+                                )
+                            )]
+                        )
+                    ]
                 )]
             ))
         );

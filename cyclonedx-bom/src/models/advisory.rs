@@ -100,7 +100,7 @@ mod test {
         assert_eq!(
             validation_result.errors(),
             Some(validation::list(
-                "Advisory",
+                "inner",
                 [(
                     0,
                     vec![

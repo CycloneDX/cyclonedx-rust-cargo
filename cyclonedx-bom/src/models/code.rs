@@ -118,10 +118,7 @@ impl Validate for Issue {
                 validate_normalized_string,
             )
             .add_struct_option("source", self.source.as_ref(), version)
-            // TODO:
-            // .add_list_option("references", self.references.as_ref(), |uri| {
-            //     validate_uri(uri)
-            // })
+            .add_list_option("references", self.references.as_ref(), validate_uri)
             .into()
     }
 }
@@ -411,7 +408,7 @@ mod test {
                 [(
                     0,
                     vec![
-                        validation::field("patch_type", "Unknown patch classification"),
+                        validation::r#enum("patch_type", "Unknown patch classification"),
                         validation::r#struct(
                             "diff",
                             vec![
@@ -449,7 +446,7 @@ mod test {
                                             )
                                         ]
                                     ),
-                                    validation::list("references", [(0, validation::field("inner", "Uri does not conform to RFC 3986"))])
+                                    validation::list("references", [(0, validation::custom("", ["Uri does not conform to RFC 3986"]))])
                                 ]
                             )]
                         )

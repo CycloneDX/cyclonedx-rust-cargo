@@ -534,13 +534,13 @@ mod test {
             Some(
                 vec![
                     validation::custom(
-                        "dependency ref",
-                        "Dependency reference does not exist in the BOM"
+                        "dependency_ref",
+                        ["Dependency ref 'dependency' does not exist in the BOM",],
                     ),
                     validation::custom(
-                        "dependency ref",
-                        "Dependency reference does not exist in the BOM"
-                    ),
+                        "sub dependency_ref",
+                        ["Dependency ref 'sub-dependency' does not exist in the BOM"]
+                    )
                 ]
                 .into()
             )
@@ -572,21 +572,12 @@ mod test {
 
         assert_eq!(
             actual.errors(),
-            Some(validation::list(
-                "compositions",
-                [(
-                    0,
-                    vec![
-                        validation::custom(
-                            "composition ref",
-                            "Composition reference 'abc' does not exist in the BOM"
-                        ),
-                        validation::custom(
-                            "composition ref",
-                            "Composition reference 'abc' does not exist in the BOM"
-                        )
-                    ]
-                )]
+            Some(validation::custom(
+                "composition ref",
+                [
+                    "Composition reference 'assembly' does not exist in the BOM",
+                    "Composition reference 'dependencies' does not exist in the BOM"
+                ]
             ))
         );
     }
