@@ -63,7 +63,9 @@ pub struct Advisories(pub Vec<Advisory>);
 impl Validate for Advisories {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |advisory| advisory.validate_version(version))
+            .add_list("inner", &self.0, |advisory| {
+                advisory.validate_version(version)
+            })
             .into()
     }
 }
@@ -86,7 +88,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -98,8 +100,8 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "inner",
                 [(
                     0,
@@ -111,7 +113,7 @@ mod test {
                         validation::field("url", "Uri does not conform to RFC 3986")
                     ]
                 )]
-            ))
+            )
         );
     }
 }

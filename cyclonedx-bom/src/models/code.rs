@@ -255,7 +255,7 @@ pub struct Source {
 }
 
 impl Validate for Source {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_field_option("url", self.url.as_ref(), validate_uri)
@@ -289,7 +289,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -312,8 +312,8 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "inner",
                 [(
                     0,
@@ -342,7 +342,7 @@ mod test {
                         validation::field("message", "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n")
                     ]
                 )]
-            ))
+            )
         );
     }
 
@@ -372,7 +372,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -402,8 +402,8 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "inner",
                 [(
                     0,
@@ -452,7 +452,7 @@ mod test {
                         )
                     ]
                 )]
-            ))
+            )
         );
     }
 }

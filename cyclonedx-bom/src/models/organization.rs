@@ -102,7 +102,7 @@ mod test {
             phone: None,
         };
         let actual = contact.validate();
-        assert_eq!(actual, ValidationResult::Passed);
+        assert!(actual.passed());
     }
 
     #[test]
@@ -115,11 +115,11 @@ mod test {
         let actual = contact.validate();
 
         assert_eq!(
-            actual.errors(),
-            Some(validation::field(
+            actual,
+            validation::field(
                 "name",
                 "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-            ))
+            )
         );
     }
 

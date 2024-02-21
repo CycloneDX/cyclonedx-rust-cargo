@@ -227,46 +227,46 @@ impl Default for Bom {
 
 impl Validate for Bom {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        let mut context = ValidationContext::new()
-            .add_field_option(
-                "serial_number",
-                self.serial_number.as_ref(),
-                validate_urn_uuid,
-            )
-            .add_struct_option("metadata", self.metadata.as_ref(), version)
-            .add_struct_option("components", self.components.as_ref(), version)
-            .add_struct_option("services", self.services.as_ref(), version)
-            .add_struct_option(
-                "external_references",
-                self.external_references.as_ref(),
-                version,
-            )
-            .add_struct_option("compositions", self.compositions.as_ref(), version)
-            .add_struct_option("properties", self.properties.as_ref(), version)
-            .add_struct_option("vulnerabilities", self.vulnerabilities.as_ref(), version);
+        let mut context = ValidationContext::new();
+        context.add_field_option(
+            "serial_number",
+            self.serial_number.as_ref(),
+            validate_urn_uuid,
+        );
+        context.add_struct_option("metadata", self.metadata.as_ref(), version);
+        context.add_struct_option("components", self.components.as_ref(), version);
+        context.add_struct_option("services", self.services.as_ref(), version);
+        context.add_struct_option(
+            "external_references",
+            self.external_references.as_ref(),
+            version,
+        );
+        context.add_struct_option("compositions", self.compositions.as_ref(), version);
+        context.add_struct_option("properties", self.properties.as_ref(), version);
+        context.add_struct_option("vulnerabilities", self.vulnerabilities.as_ref(), version);
 
         // To keep track of all Bom references inside.
         let mut bom_refs = BomReferencesContext::default();
 
         if let Some(metadata) = &self.metadata {
             if let Some(component) = &metadata.component {
-                context = validate_component_bom_refs(context, &mut bom_refs, component);
+                validate_component_bom_refs(&mut context, &mut bom_refs, component);
             }
         }
 
         if let Some(components) = &self.components {
-            context = validate_components(context, &mut bom_refs, components);
+            validate_components(&mut context, &mut bom_refs, components);
         }
 
         if let Some(services) = &self.services {
-            context = validate_services(context, &mut bom_refs, services);
+            validate_services(&mut context, &mut bom_refs, services);
         }
 
         // Check dependencies & sub dependencies
         if let Some(dependencies) = &self.dependencies {
             for dependency in &dependencies.0 {
                 if !bom_refs.contains(&dependency.dependency_ref) {
-                    context = context.add_custom(
+                    context.add_custom(
                         "dependency_ref",
                         format!(
                             "Dependency ref '{}' does not exist in the BOM",
@@ -277,7 +277,7 @@ impl Validate for Bom {
 
                 for sub_dependency in &dependency.dependencies {
                     if !bom_refs.contains(sub_dependency) {
-                        context = context.add_custom(
+                        context.add_custom(
                             "sub dependency_ref",
                             format!(
                                 "Dependency ref '{}' does not exist in the BOM",
@@ -295,7 +295,7 @@ impl Validate for Bom {
                 if let Some(assemblies) = &composition.assemblies {
                     for BomReference(assembly) in assemblies {
                         if !bom_refs.contains(assembly) {
-                            context = context.add_custom(
+                            context.add_custom(
                                 "composition ref",
                                 format!(
                                     "Composition reference '{assembly}' does not exist in the BOM"
@@ -307,8 +307,8 @@ impl Validate for Bom {
 
                 if let Some(dependencies) = &composition.dependencies {
                     for BomReference(dependency) in dependencies {
-                        if !bom_refs.contains(&dependency) {
-                            context = context.add_custom(
+                        if !bom_refs.contains(dependency) {
+                            context.add_custom(
                                 "composition ref",
                                 format!(
                                     "Composition reference '{dependency}' does not exist in the BOM"
@@ -346,65 +346,57 @@ impl BomReferencesContext {
 
 /// Validates the Bom references.
 fn validate_component_bom_refs(
-    mut context: ValidationContext,
+    context: &mut ValidationContext,
     bom_refs: &mut BomReferencesContext,
     component: &Component,
-) -> ValidationContext {
+) {
     if let Some(bom_ref) = &component.bom_ref {
-        if bom_refs.contains(&bom_ref) {
-            context =
-                context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
+        if bom_refs.contains(bom_ref) {
+            context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
         }
         bom_refs.add_component_bom_ref(bom_ref);
     }
 
     if let Some(components) = &component.components {
-        context = validate_components(context, bom_refs, components);
+        validate_components(context, bom_refs, components);
     }
-
-    context
 }
 
 fn validate_components(
-    mut context: ValidationContext,
+    context: &mut ValidationContext,
     bom_refs: &mut BomReferencesContext,
     components: &Components,
-) -> ValidationContext {
+) {
     for component in &components.0 {
-        context = validate_component_bom_refs(context, bom_refs, component);
+        validate_component_bom_refs(context, bom_refs, component);
     }
-    context
 }
 
 fn validate_services(
-    mut context: ValidationContext,
+    context: &mut ValidationContext,
     bom_refs: &mut BomReferencesContext,
     services: &Services,
-) -> ValidationContext {
+) {
     for service in &services.0 {
-        context = validate_service_bom_refs(context, bom_refs, service);
+        validate_service_bom_refs(context, bom_refs, service);
     }
-    context
 }
 
 fn validate_service_bom_refs(
-    mut context: ValidationContext,
+    context: &mut ValidationContext,
     bom_refs: &mut BomReferencesContext,
     service: &Service,
-) -> ValidationContext {
+) {
     if let Some(bom_ref) = &service.bom_ref {
         if bom_refs.contains(bom_ref) {
-            context =
-                context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
+            context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
         }
         bom_refs.add_service_bom_ref(bom_ref);
     }
 
     if let Some(services) = &service.services {
-        context = validate_services(context, bom_refs, services);
+        validate_services(context, bom_refs, services);
     }
-
-    context
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -508,7 +500,7 @@ mod test {
 
         let actual = bom.validate();
 
-        assert_eq!(actual, ValidationResult::Passed);
+        assert!(actual.passed());
     }
 
     #[test]
@@ -533,20 +525,18 @@ mod test {
         let actual = bom.validate();
 
         assert_eq!(
-            actual.errors(),
-            Some(
-                vec![
-                    validation::custom(
-                        "dependency_ref",
-                        ["Dependency ref 'dependency' does not exist in the BOM",],
-                    ),
-                    validation::custom(
-                        "sub dependency_ref",
-                        ["Dependency ref 'sub-dependency' does not exist in the BOM"]
-                    )
-                ]
-                .into()
-            )
+            actual,
+            vec![
+                validation::custom(
+                    "dependency_ref",
+                    ["Dependency ref 'dependency' does not exist in the BOM",],
+                ),
+                validation::custom(
+                    "sub dependency_ref",
+                    ["Dependency ref 'sub-dependency' does not exist in the BOM"]
+                )
+            ]
+            .into()
         );
     }
 
@@ -574,14 +564,14 @@ mod test {
         let actual = bom.validate_version(SpecVersion::V1_3);
 
         assert_eq!(
-            actual.errors(),
-            Some(validation::custom(
+            actual,
+            validation::custom(
                 "composition ref",
                 [
                     "Composition reference 'assembly' does not exist in the BOM",
                     "Composition reference 'dependencies' does not exist in the BOM"
                 ]
-            ))
+            )
         );
     }
 
@@ -691,76 +681,74 @@ mod test {
         let actual = bom.validate();
 
         assert_eq!(
-            actual.errors(),
-            Some(
-                vec![
-                    validation::field("serial_number", "UrnUuid does not match regular expression"),
-                    validation::r#struct(
-                        "metadata",
-                        validation::field(
-                            "timestamp",
-                            "DateTime does not conform to ISO 8601"
-                        )
-                    ),
-                    validation::r#struct(
-                        "components",
-                        validation::list(
-                            "inner",
-                            [(
-                                0,
-                                validation::field("component_type", "Unknown classification")
-                            )]
-                        )
-                    ),
-                    validation::r#struct(
-                        "services",
-                        validation::list(
-                            "inner",
-                            [(
-                                0,
-                                validation::field(
-                                    "name",
-                                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                )
-                            )]
-                        )
-                    ),
-                    validation::r#struct(
-                        "external_references",
-                        validation::list(
-                            "inner",
-                            [(
-                                0,
-                                validation::field("external_reference_type", "Unknown external reference type")
-                            )]
-                        )
-                    ),
-                    validation::r#struct(
-                        "compositions",
-                        validation::list(
-                            "composition",
-                            [(
-                                0,
-                                validation::field("aggregate", "Unknown aggregate type")
-                            )]
-                        )
-                    ),
-                    validation::r#struct(
-                        "properties",
-                        validation::list(
-                            "inner",
-                            [(
-                                0,
-                                validation::field(
-                                    "value",
-                                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                )
-                            )]
-                        )
+            actual,
+            vec![
+                validation::field("serial_number", "UrnUuid does not match regular expression"),
+                validation::r#struct(
+                    "metadata",
+                    validation::field(
+                        "timestamp",
+                        "DateTime does not conform to ISO 8601"
                     )
-                ]
-                .into()
-            )
+                ),
+                validation::r#struct(
+                    "components",
+                    validation::list(
+                        "inner",
+                        [(
+                            0,
+                            validation::field("component_type", "Unknown classification")
+                        )]
+                    )
+                ),
+                validation::r#struct(
+                    "services",
+                    validation::list(
+                        "inner",
+                        [(
+                            0,
+                            validation::field(
+                                "name",
+                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                            )
+                        )]
+                    )
+                ),
+                validation::r#struct(
+                    "external_references",
+                    validation::list(
+                        "inner",
+                        [(
+                            0,
+                            validation::field("external_reference_type", "Unknown external reference type")
+                        )]
+                    )
+                ),
+                validation::r#struct(
+                    "compositions",
+                    validation::list(
+                        "composition",
+                        [(
+                            0,
+                            validation::field("aggregate", "Unknown aggregate type")
+                        )]
+                    )
+                ),
+                validation::r#struct(
+                    "properties",
+                    validation::list(
+                        "inner",
+                        [(
+                            0,
+                            validation::field(
+                                "value",
+                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                            )
+                        )]
+                    )
+                )
+            ]
+            .into()
         );
     }
 
@@ -820,8 +808,8 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::custom(
+            validation_result,
+            validation::custom(
                 "bom_ref",
                 [
                     r#"Bom ref "metadata-component" is not unique"#,
@@ -831,7 +819,7 @@ mod test {
                     r#"Bom ref "subservice-service" is not unique"#,
                     r#"Bom ref "component-service" is not unique"#,
                 ]
-            )),
+            ),
         );
     }
 

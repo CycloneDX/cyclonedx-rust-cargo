@@ -63,7 +63,9 @@ impl Validate for ExternalReference {
                 validate_external_reference_type,
             )
             .add_field("url", &self.url, validate_uri)
-            .add_list("hashes", &self.hashes, |hash| hash.validate_version(version))
+            .add_list("hashes", &self.hashes, |hash| {
+                hash.validate_version(version)
+            })
             .into()
     }
 }
@@ -74,7 +76,9 @@ pub struct ExternalReferences(pub Vec<ExternalReference>);
 impl Validate for ExternalReferences {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |reference| reference.validate_version(version))
+            .add_list("inner", &self.0, |reference| {
+                reference.validate_version(version)
+            })
             .into()
     }
 }
@@ -180,7 +184,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -199,8 +203,8 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "inner",
                 [(
                     0,
@@ -228,7 +232,7 @@ mod test {
                         )
                     ]
                 )]
-            ))
+            )
         );
     }
 }

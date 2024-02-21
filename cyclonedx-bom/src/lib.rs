@@ -46,8 +46,8 @@
 //! }"#;
 //! let bom = Bom::parse_from_json_v1_3(bom_json.as_bytes()).expect("Failed to parse BOM");
 //!
-//! let validation_result = bom.validate_default();
-//! assert_eq!(validation_result, ValidationResult::Passed);
+//! let validation_result = bom.validate();
+//! assert!(validation_result.passed());
 //! ```
 //!
 //! ## Create and output an SBOM

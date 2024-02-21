@@ -13,9 +13,8 @@ mod v1_4 {
                 let bom = Bom::parse_from_xml_v1_4(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
                 let validation_result = bom.validate_version(SpecVersion::V1_4);
-                assert_eq!(
-                    validation_result,
-                    ValidationResult::Passed,
+                assert!(
+                    validation_result.passed(),
                     "{path:?} unexpectedly failed validation"
                 );
 
@@ -40,9 +39,8 @@ mod v1_4 {
                 let bom = Bom::parse_from_json_v1_4(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
                 let validation_result = bom.validate_version(SpecVersion::V1_4);
-                assert_eq!(
-                    validation_result,
-                    ValidationResult::Passed,
+                assert!(
+                    validation_result.passed(),
                     "{path:?} unexpectedly failed validation"
                 );
 
@@ -66,9 +64,8 @@ mod v1_4 {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_xml_v1_4(file) {
                     let validation_result = bom.validate_version(SpecVersion::V1_4);
-                    assert_ne!(
-                        validation_result,
-                        ValidationResult::Passed,
+                    assert!(
+                        validation_result.has_errors(),
                         "{path:?} unexpectedly passed validation"
                     );
                 }
@@ -86,9 +83,8 @@ mod v1_4 {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_json_v1_4(file) {
                     let validation_result = bom.validate_version(SpecVersion::V1_4);
-                    assert_ne!(
-                        validation_result,
-                        ValidationResult::Passed,
+                    assert!(
+                        validation_result.has_errors(),
                         "{path:?} unexpectedly passed validation"
                     );
                 }

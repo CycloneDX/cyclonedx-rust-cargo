@@ -157,7 +157,7 @@ mod test {
         }])
         .validate_version(SpecVersion::V1_3);
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -169,8 +169,8 @@ mod test {
         .validate_version(SpecVersion::V1_3);
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "inner",
                 [(
                     0,
@@ -179,7 +179,7 @@ mod test {
                         validation::field("content", "HashValue does not match regular expression")
                     ]
                 )]
-            ))
+            )
         );
     }
 }

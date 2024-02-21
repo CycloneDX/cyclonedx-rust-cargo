@@ -116,9 +116,9 @@ mod test {
             dependencies: Some(vec![BomReference("reference".to_string())]),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate_version(SpecVersion::V1_3);
+        .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -129,17 +129,17 @@ mod test {
             dependencies: Some(vec![BomReference("reference".to_string())]),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate_version(SpecVersion::V1_3);
+        .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "composition",
                 [(
                     0,
                     validation::r#field("aggregate", "Unknown aggregate type")
                 )]
-            ))
+            )
         );
     }
 }

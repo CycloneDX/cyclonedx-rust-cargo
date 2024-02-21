@@ -56,7 +56,9 @@ impl Validate for Tool {
             .add_field_option("vendor", self.vendor.as_ref(), validate_normalized_string)
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_field_option("version", self.version.as_ref(), validate_normalized_string)
-            .add_list("hashes", &self.hashes, |hashes| hashes.validate_version(version))
+            .add_list("hashes", &self.hashes, |hashes| {
+                hashes.validate_version(version)
+            })
             .into()
     }
 }
@@ -92,7 +94,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -106,8 +108,8 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "inner",
                 [(
                     0,
@@ -116,7 +118,7 @@ mod test {
                         "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
                     )
                 )]
-            ))
+            )
         );
     }
 
@@ -145,24 +147,26 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "inner",
-                [(
-                    1,
-                    validation::field(
-                        "vendor",
-                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                [
+                    (
+                        1,
+                        validation::field(
+                            "vendor",
+                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                        )
+                    ),
+                    (
+                        2,
+                        validation::field(
+                            "name",
+                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                        )
                     )
-                ),
-                (
-                    2,
-                    validation::field(
-                        "name",
-                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                    )
-                )]
-            ))
+                ]
+            )
         );
     }
 }

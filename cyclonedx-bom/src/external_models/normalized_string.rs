@@ -53,6 +53,12 @@ impl Deref for NormalizedString {
     }
 }
 
+impl AsRef<NormalizedString> for NormalizedString {
+    fn as_ref(&self) -> &NormalizedString {
+        self
+    }
+}
+
 impl AsRef<str> for NormalizedString {
     fn as_ref(&self) -> &str {
         &self.0

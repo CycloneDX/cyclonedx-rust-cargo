@@ -34,7 +34,9 @@ pub struct Properties(pub Vec<Property>);
 impl Validate for Properties {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |property| property.validate_version(version))
+            .add_list("inner", &self.0, |property| {
+                property.validate_version(version)
+            })
             .into()
     }
 }
@@ -79,7 +81,7 @@ mod test {
         validation,
     };
     use pretty_assertions::assert_eq;
-    use validation::{Validate, ValidationResult};
+    use validation::Validate;
 
     #[test]
     fn it_should_pass_validation() {
@@ -89,7 +91,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -101,8 +103,8 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::list(
+            validation_result,
+            validation::list(
                 "inner",
                 [(
                     0,
@@ -111,7 +113,7 @@ mod test {
                         "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
                     )
                 )]
-            )),
+            ),
         );
     }
 }

@@ -54,10 +54,10 @@ impl Validate for LicenseChoice {
 
         match self {
             LicenseChoice::License(license) => {
-                context = context.add_struct("license", license, version);
+                context.add_struct("license", license, version);
             }
             LicenseChoice::Expression(expression) => {
-                context = context.add_enum("expression", expression, validate_spdx_expression);
+                context.add_enum("expression", expression, validate_spdx_expression);
             }
         }
 
@@ -172,7 +172,7 @@ mod test {
         ))])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]

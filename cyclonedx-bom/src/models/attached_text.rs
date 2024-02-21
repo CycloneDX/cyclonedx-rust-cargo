@@ -48,7 +48,8 @@ impl AttachedText {
 
 impl Validate for AttachedText {
     fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
-        let mut context = ValidationContext::new().add_field_option(
+        let mut context = ValidationContext::new();
+        context.add_field_option(
             "content_type",
             self.content_type.as_ref(),
             validate_normalized_string,
@@ -58,12 +59,12 @@ impl Validate for AttachedText {
             match (encoding, STANDARD.decode(self.content.clone())) {
                 (Encoding::Base64, Ok(_)) => (),
                 (Encoding::Base64, Err(_)) => {
-                    context = context.add_field("content", &self.content, |_| {
+                    context.add_field("content", &self.content, |_| {
                         Err("Content is not Base64 encoded".into())
                     });
                 }
                 (Encoding::UnknownEncoding(_), _) => {
-                    context = context.add_field("encoding", encoding, validate_encoding);
+                    context.add_field("encoding", encoding, validate_encoding);
                 }
             }
         }
@@ -109,7 +110,7 @@ impl Encoding {
 mod test {
     use crate::{
         models::attached_text::{AttachedText, Encoding},
-        prelude::{NormalizedString, Validate, ValidationResult},
+        prelude::{NormalizedString, Validate},
         validation,
     };
 
@@ -140,7 +141,7 @@ mod test {
         }
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -153,17 +154,15 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(
-                vec![
-                    validation::field(
-                        "content_type",
-                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                    ),
-                    validation::field("content", "Content is not Base64 encoded")
-                ]
-                .into()
-            )
+            validation_result,
+            vec![
+                validation::field(
+                    "content_type",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                ),
+                validation::field("content", "Content is not Base64 encoded")
+            ]
+            .into()
         );
     }
 
@@ -177,8 +176,8 @@ mod test {
         .validate();
 
         assert_eq!(
-            validation_result.errors(),
-            Some(validation::field("encoding", "Unknown encoding")),
+            validation_result,
+            validation::field("encoding", "Unknown encoding"),
         );
     }
 
@@ -191,6 +190,6 @@ mod test {
         }
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 }

@@ -107,49 +107,49 @@ impl Component {
 
 impl Validate for Component {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_field(
-                "component_type",
-                &self.component_type,
-                validate_classification,
-            )
-            .add_field_option("mime_type", self.mime_type.as_ref(), validate_mime_type)
-            .add_struct_option("supplier", self.supplier.as_ref(), version)
-            .add_field_option("author", self.author.as_ref(), validate_normalized_string)
-            .add_field_option(
-                "publisher",
-                self.publisher.as_ref(),
-                validate_normalized_string,
-            )
-            .add_field_option("group", self.group.as_ref(), validate_normalized_string)
-            .add_field("name", self.name.as_ref(), validate_normalized_string)
-            .add_field_option("version", self.version.as_ref(), validate_normalized_string)
-            .add_field_option(
-                "description",
-                self.description.as_ref(),
-                validate_normalized_string,
-            )
-            .add_enum_option("scope", self.scope.as_ref(), validate_scope)
-            .add_struct_option("hashes", self.hashes.as_ref(), version)
-            .add_struct_option("licenses", self.licenses.as_ref(), version)
-            .add_field_option(
-                "copyright",
-                self.copyright.as_ref(),
-                validate_normalized_string,
-            )
-            .add_field_option("cpe", self.cpe.as_ref(), validate_cpe)
-            .add_field_option("purl", self.purl.as_ref(), validate_purl)
-            .add_struct_option("swid", self.swid.as_ref(), version)
-            .add_struct_option("pedigree", self.pedigree.as_ref(), version)
-            .add_struct_option(
-                "external_references",
-                self.external_references.as_ref(),
-                version,
-            )
-            .add_struct_option("properties", self.properties.as_ref(), version)
-            .add_struct_option("components", self.components.as_ref(), version)
-            .add_struct_option("evidence", self.evidence.as_ref(), version)
-            .into()
+        let mut ctx = ValidationContext::new();
+        ctx.add_field(
+            "component_type",
+            &self.component_type,
+            validate_classification,
+        );
+        ctx.add_field_option("mime_type", self.mime_type.as_ref(), validate_mime_type);
+        ctx.add_struct_option("supplier", self.supplier.as_ref(), version);
+        ctx.add_field_option("author", self.author.as_ref(), validate_normalized_string);
+        ctx.add_field_option(
+            "publisher",
+            self.publisher.as_ref(),
+            validate_normalized_string,
+        );
+        ctx.add_field_option("group", self.group.as_ref(), validate_normalized_string);
+        ctx.add_field("name", self.name.as_ref(), validate_normalized_string);
+        ctx.add_field_option("version", self.version.as_ref(), validate_normalized_string);
+        ctx.add_field_option(
+            "description",
+            self.description.as_ref(),
+            validate_normalized_string,
+        );
+        ctx.add_enum_option("scope", self.scope.as_ref(), validate_scope);
+        ctx.add_struct_option("hashes", self.hashes.as_ref(), version);
+        ctx.add_struct_option("licenses", self.licenses.as_ref(), version);
+        ctx.add_field_option(
+            "copyright",
+            self.copyright.as_ref(),
+            validate_normalized_string,
+        );
+        ctx.add_field_option("cpe", self.cpe.as_ref(), validate_cpe);
+        ctx.add_field_option("purl", self.purl.as_ref(), validate_purl);
+        ctx.add_struct_option("swid", self.swid.as_ref(), version);
+        ctx.add_struct_option("pedigree", self.pedigree.as_ref(), version);
+        ctx.add_struct_option(
+            "external_references",
+            self.external_references.as_ref(),
+            version,
+        );
+        ctx.add_struct_option("properties", self.properties.as_ref(), version);
+        ctx.add_struct_option("components", self.components.as_ref(), version);
+        ctx.add_struct_option("evidence", self.evidence.as_ref(), version);
+        ctx.into()
     }
 }
 
@@ -159,7 +159,9 @@ pub struct Components(pub Vec<Component>);
 impl Validate for Components {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |component| component.validate_version(version))
+            .add_list("inner", &self.0, |component| {
+                component.validate_version(version)
+            })
             .into()
     }
 }
@@ -342,44 +344,13 @@ pub struct Pedigree {
 
 impl Validate for Pedigree {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new().into()
-        /*
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(ancestors) = &self.ancestors {
-            let context = context.with_struct("Pedigree", "ancestors");
-
-            results.push(ancestors.validate_with_context(context));
-        }
-
-        if let Some(descendants) = &self.descendants {
-            let context = context.with_struct("Pedigree", "descendants");
-
-            results.push(descendants.validate_with_context(context));
-        }
-
-        if let Some(variants) = &self.variants {
-            let context = context.with_struct("Pedigree", "variants");
-
-            results.push(variants.validate_with_context(context));
-        }
-
-        if let Some(commits) = &self.commits {
-            let context = context.with_struct("Pedigree", "commits");
-
-            results.push(commits.validate_with_context(context));
-        }
-
-        if let Some(patches) = &self.patches {
-            let context = context.with_struct("Pedigree", "patches");
-
-            results.push(patches.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
-        */
+        let mut context = ValidationContext::new();
+        context.add_struct_option("ancestors", self.ancestors.as_ref(), version);
+        context.add_struct_option("descendants", self.descendants.as_ref(), version);
+        context.add_struct_option("variants", self.variants.as_ref(), version);
+        context.add_struct_option("commits", self.commits.as_ref(), version);
+        context.add_struct_option("patches", self.patches.as_ref(), version);
+        context.into()
     }
 }
 
@@ -417,7 +388,6 @@ mod test {
     };
 
     use super::*;
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn valid_components_should_pass_validation() {
@@ -500,7 +470,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
