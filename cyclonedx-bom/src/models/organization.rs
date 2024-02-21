@@ -90,7 +90,7 @@ mod test {
 
     use crate::{
         models::organization::{OrganizationalContact, OrganizationalEntity},
-        prelude::{NormalizedString, Uri, Validate, ValidationResult},
+        prelude::{NormalizedString, Uri, Validate},
         validation,
     };
 
@@ -136,42 +136,24 @@ mod test {
         };
         let actual = contact.validate();
 
-        /*
         assert_eq!(
             actual,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "OrganizationalContact".to_string(),
-                            field_name: "name".to_string()
-                        }])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "OrganizationalContact".to_string(),
-                            field_name: "email".to_string()
-                        }])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "OrganizationalContact".to_string(),
-                            field_name: "phone".to_string()
-                        }])
-                    }
-                ]
-            }
-        )
-        */
+            vec![
+                validation::field(
+                    "name",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                ),
+                validation::field(
+                    "email",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                ),
+                validation::field(
+                    "phone",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                )
+            ]
+            .into()
+        );
     }
 
     #[test]
@@ -183,21 +165,13 @@ mod test {
         };
         let actual = entity.validate();
 
-        /*
         assert_eq!(
             actual,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context: ValidationContext(vec![ValidationPathComponent::Struct {
-                        struct_name: "OrganizationalEntity".to_string(),
-                        field_name: "name".to_string()
-                    }])
-                }]
-            }
-        )
-        */
+            validation::field(
+                "name",
+                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+            )
+        );
     }
 
     #[test]
@@ -212,49 +186,33 @@ mod test {
             }]),
         };
         let actual = entity.validate();
-        /*
+
         assert_eq!(
             actual,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason {
-                        message:
+            vec![
+                validation::field(
+                    "name",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                ),
+                validation::list(
+                    "url",
+                    [(
+                        0,
+                        validation::custom("", ["Uri does not conform to RFC 3986"])
+                    )]
+                ),
+                validation::list(
+                    "contact",
+                    [(
+                        0,
+                        validation::field(
+                            "name",
                             "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "OrganizationalEntity".to_string(),
-                            field_name: "name".to_string()
-                        }])
-                    },
-                    FailureReason {
-                        message: "Uri does not conform to RFC 3986".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Struct {
-                                struct_name: "OrganizationalEntity".to_string(),
-                                field_name: "url".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 }
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Struct {
-                                struct_name: "OrganizationalEntity".to_string(),
-                                field_name: "contact".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "OrganizationalContact".to_string(),
-                                field_name: "name".to_string()
-                            }
-                        ])
-                    }
-                ]
-            }
-        )
-        */
+                        )
+                    )]
+                )
+            ]
+            .into()
+        );
     }
 }
