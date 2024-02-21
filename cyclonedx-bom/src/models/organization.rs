@@ -53,7 +53,7 @@ impl OrganizationalContact {
 }
 
 impl Validate for OrganizationalContact {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_field_option("email", self.email.as_ref(), validate_normalized_string)

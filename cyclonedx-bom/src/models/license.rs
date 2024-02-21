@@ -110,11 +110,7 @@ impl License {
 impl Validate for License {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_field(
-                "license_identifier",
-                &self.license_identifier,
-                validate_license_identifier,
-            )
+            .add_struct("license_identifier", &self.license_identifier, version)
             .add_struct_option("text", self.text.as_ref(), version)
             .add_field_option("url", self.url.as_ref(), validate_uri)
             .into()
@@ -154,7 +150,7 @@ impl Validate for LicenseIdentifier {
                 .add_enum("Name", name, validate_normalized_string)
                 .into(),
             LicenseIdentifier::SpdxId(id) => ValidationContext::new()
-                .add_field("SpdxId", id, validate_spdx_identifier)
+                .add_enum("SpdxId", id, validate_spdx_identifier)
                 .into(),
         }
     }
@@ -162,6 +158,8 @@ impl Validate for LicenseIdentifier {
 
 #[cfg(test)]
 mod test {
+    use crate::validation;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -186,30 +184,25 @@ mod test {
         })])
         .validate();
 
-        /*
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context: ValidationContext(vec![
-                        ValidationPathComponent::Array { index: 0 },
-                        ValidationPathComponent::EnumVariant {
-                            variant_name: "License".to_string()
-                        },
-                        ValidationPathComponent::Struct {
-                            struct_name: "License".to_string(),
-                            field_name: "license_identifier".to_string(),
-                        },
-                        ValidationPathComponent::EnumVariant {
-                            variant_name: "Name".to_string()
-                        },
-                    ])
-                }]
-            }
+            validation::list(
+                "inner",
+                [(
+                    0,
+                    validation::r#struct(
+                        "license",
+                        validation::r#struct(
+                            "license_identifier",
+                            validation::r#enum(
+                                "Name",
+                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                            )
+                        )
+                    )
+                )]
+            )
         );
-        */
     }
 
     #[test]
@@ -221,29 +214,22 @@ mod test {
         })])
         .validate();
 
-        /*
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "SPDX identifier is not valid".to_string(),
-                    context: ValidationContext(vec![
-                        ValidationPathComponent::Array { index: 0 },
-                        ValidationPathComponent::EnumVariant {
-                            variant_name: "License".to_string()
-                        },
-                        ValidationPathComponent::Struct {
-                            struct_name: "License".to_string(),
-                            field_name: "license_identifier".to_string(),
-                        },
-                        ValidationPathComponent::EnumVariant {
-                            variant_name: "SpdxId".to_string()
-                        },
-                    ])
-                }]
-            }
+            validation::list(
+                "inner",
+                [(
+                    0,
+                    validation::r#struct(
+                        "license",
+                        validation::r#struct(
+                            "license_identifier",
+                            validation::r#enum("SpdxId", "SPDX identifier is not valid")
+                        )
+                    )
+                )]
+            )
         );
-        */
     }
 
     #[test]
@@ -253,22 +239,16 @@ mod test {
         ))])
         .validate();
 
-        /*
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "SPDX expression is not valid".to_string(),
-                    context: ValidationContext(vec![
-                        ValidationPathComponent::Array { index: 0 },
-                        ValidationPathComponent::EnumVariant {
-                            variant_name: "Expression".to_string()
-                        }
-                    ])
-                }]
-            }
+            validation::list(
+                "inner",
+                [(
+                    0,
+                    validation::r#enum("expression", "SPDX expression is not valid")
+                )],
+            )
         );
-        */
     }
 
     #[test]
@@ -296,49 +276,34 @@ mod test {
         ])
         .validate();
 
-        /*
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 1 },
-                            ValidationPathComponent::EnumVariant {
-                                variant_name: "License".to_string()
-                            },
-                            ValidationPathComponent::Struct {
-                                struct_name: "License".to_string(),
-                                field_name: "license_identifier".to_string(),
-                            },
-                            ValidationPathComponent::EnumVariant {
-                                variant_name: "Name".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message: "SPDX identifier is not valid".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 2 },
-                            ValidationPathComponent::EnumVariant {
-                                variant_name: "License".to_string()
-                            },
-                            ValidationPathComponent::Struct {
-                                struct_name: "License".to_string(),
-                                field_name: "license_identifier".to_string(),
-                            },
-                            ValidationPathComponent::EnumVariant {
-                                variant_name: "SpdxId".to_string()
-                            },
-                        ])
-                    }
-                ]
-            }
+            validation::list(
+                "inner",
+                [(
+                    1,
+                    validation::r#struct(
+                        "license",
+                        validation::r#struct(
+                            "license_identifier",
+                            validation::r#enum(
+                                "Name",
+                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                            )
+                        )
+                    )
+                ), (
+                    2,
+                    validation::r#struct(
+                        "license",
+                        validation::r#struct(
+                            "license_identifier",
+                            validation::r#enum("SpdxId", "SPDX identifier is not valid")
+                        )
+                    )
+                )]
+            )
         );
-        */
     }
 
     #[test]
@@ -350,32 +315,21 @@ mod test {
         ])
         .validate();
 
-        /*
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason {
-                        message: "SPDX expression is not valid".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 1 },
-                            ValidationPathComponent::EnumVariant {
-                                variant_name: "Expression".to_string()
-                            }
-                        ])
-                    },
-                    FailureReason {
-                        message: "SPDX expression is not valid".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 2 },
-                            ValidationPathComponent::EnumVariant {
-                                variant_name: "Expression".to_string()
-                            }
-                        ])
-                    }
+            validation::list(
+                "inner",
+                [
+                    (
+                        1,
+                        validation::r#enum("expression", "SPDX expression is not valid"),
+                    ),
+                    (
+                        2,
+                        validation::r#enum("expression", "SPDX expression is not valid"),
+                    )
                 ]
-            }
+            )
         );
-        */
     }
 }

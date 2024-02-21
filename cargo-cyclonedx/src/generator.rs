@@ -49,7 +49,7 @@ use cyclonedx_bom::models::metadata::Metadata;
 use cyclonedx_bom::models::metadata::MetadataError;
 use cyclonedx_bom::models::organization::OrganizationalContact;
 use cyclonedx_bom::models::tool::{Tool, Tools};
-use cyclonedx_bom::validation::{Validate, ValidationResult};
+use cyclonedx_bom::validation::Validate;
 use once_cell::sync::Lazy;
 use regex::Regex;
 

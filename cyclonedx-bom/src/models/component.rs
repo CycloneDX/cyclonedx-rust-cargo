@@ -122,7 +122,7 @@ impl Validate for Component {
             validate_normalized_string,
         );
         ctx.add_field_option("group", self.group.as_ref(), validate_normalized_string);
-        ctx.add_field("name", self.name.as_ref(), validate_normalized_string);
+        ctx.add_field("name", &self.name, validate_normalized_string);
         ctx.add_field_option("version", self.version.as_ref(), validate_normalized_string);
         ctx.add_field_option(
             "description",

@@ -33,7 +33,7 @@ pub struct Hash {
 }
 
 impl Validate for Hash {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field("alg", &self.alg, validate_hash_algorithm)
             .add_field("content", &self.content, validate_hash_value)
