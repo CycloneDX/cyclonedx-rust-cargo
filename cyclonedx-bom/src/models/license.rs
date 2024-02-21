@@ -49,7 +49,7 @@ impl LicenseChoice {
 }
 
 impl Validate for LicenseChoice {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         let mut context = ValidationContext::new();
 
         match self {
@@ -108,7 +108,7 @@ impl License {
 }
 
 impl Validate for License {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field(
                 "license_identifier",
@@ -125,9 +125,9 @@ impl Validate for License {
 pub struct Licenses(pub Vec<LicenseChoice>);
 
 impl Validate for Licenses {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |choice| choice.validate(version))
+            .add_list("inner", &self.0, |choice| choice.validate_version(version))
             .into()
     }
 }
@@ -148,7 +148,7 @@ pub enum LicenseIdentifier {
 }
 
 impl Validate for LicenseIdentifier {
-    fn validate(&self, _version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         match self {
             LicenseIdentifier::Name(name) => ValidationContext::new()
                 .add_enum("Name", name, validate_normalized_string)
@@ -170,7 +170,7 @@ mod test {
         let validation_result = Licenses(vec![LicenseChoice::Expression(SpdxExpression(
             "MIT OR Apache-2.0".to_string(),
         ))])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -184,7 +184,7 @@ mod test {
             text: None,
             url: None,
         })])
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(
@@ -219,7 +219,7 @@ mod test {
             text: None,
             url: None,
         })])
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(
@@ -251,7 +251,7 @@ mod test {
         let validation_result = Licenses(vec![LicenseChoice::Expression(SpdxExpression(
             "MIT OR".to_string(),
         ))])
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(
@@ -294,7 +294,7 @@ mod test {
                 url: None,
             }),
         ])
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(
@@ -348,7 +348,7 @@ mod test {
             LicenseChoice::Expression(SpdxExpression("MIT OR".to_string())),
             LicenseChoice::Expression(SpdxExpression("MIT OR".to_string())),
         ])
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(

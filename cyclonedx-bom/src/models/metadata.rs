@@ -67,23 +67,23 @@ impl Metadata {
 }
 
 impl Validate for Metadata {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("timestamp", self.timestamp.as_ref(), validate_date_time)
             .add_list("tools", self.tools.as_ref(), |tools| {
-                tools.validate(version)
+                tools.validate_version(version)
             })
             .add_list_option("authors", self.authors.as_ref(), |author| {
-                author.validate(version)
+                author.validate_version(version)
             })
             .add_struct_option("component", self.component.as_ref(), version)
             .add_struct_option("manufacture", self.manufacture.as_ref(), version)
             .add_struct_option("supplier", self.supplier.as_ref(), version)
             .add_list("licenses", self.licenses.as_ref(), |license| {
-                license.validate(version)
+                license.validate_version(version)
             })
             .add_list("properties", self.properties.as_ref(), |property| {
-                property.validate(version)
+                property.validate_version(version)
             })
             .into()
     }
@@ -166,7 +166,7 @@ mod test {
                 value: NormalizedString::new("value"),
             }])),
         }
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -230,7 +230,7 @@ mod test {
                 value: NormalizedString("invalid\tvalue".to_string()),
             }])),
         }
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(

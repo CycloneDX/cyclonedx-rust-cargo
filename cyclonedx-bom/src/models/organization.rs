@@ -53,7 +53,7 @@ impl OrganizationalContact {
 }
 
 impl Validate for OrganizationalContact {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_field_option("email", self.email.as_ref(), validate_normalized_string)
@@ -73,12 +73,12 @@ pub struct OrganizationalEntity {
 }
 
 impl Validate for OrganizationalEntity {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_list_option("url", self.url.as_ref(), validate_uri)
             .add_list_option("contact", self.contact.as_ref(), |contact| {
-                contact.validate(version)
+                contact.validate_version(version)
             })
             .into()
     }
@@ -101,7 +101,7 @@ mod test {
             email: None,
             phone: None,
         };
-        let actual = contact.validate_default();
+        let actual = contact.validate();
         assert_eq!(actual, ValidationResult::Passed);
     }
 
@@ -112,7 +112,7 @@ mod test {
             email: None,
             phone: None,
         };
-        let actual = contact.validate_default();
+        let actual = contact.validate();
 
         assert_eq!(
             actual.errors(),
@@ -134,7 +134,7 @@ mod test {
                 "invalid\tphone".to_string(),
             )),
         };
-        let actual = contact.validate_default();
+        let actual = contact.validate();
 
         /*
         assert_eq!(
@@ -181,7 +181,7 @@ mod test {
             url: None,
             contact: None,
         };
-        let actual = entity.validate_default();
+        let actual = entity.validate();
 
         /*
         assert_eq!(
@@ -211,7 +211,7 @@ mod test {
                 phone: None,
             }]),
         };
-        let actual = entity.validate_default();
+        let actual = entity.validate();
         /*
         assert_eq!(
             actual,

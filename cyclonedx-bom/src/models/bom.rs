@@ -226,7 +226,7 @@ impl Default for Bom {
 }
 
 impl Validate for Bom {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         let mut context = ValidationContext::new()
             .add_field_option(
                 "serial_number",
@@ -503,7 +503,7 @@ mod test {
             signature: None,
         };
 
-        let actual = bom.validate_default();
+        let actual = bom.validate();
 
         assert_eq!(actual, ValidationResult::Passed);
     }
@@ -527,7 +527,7 @@ mod test {
             signature: None,
         };
 
-        let actual = bom.validate_default();
+        let actual = bom.validate();
 
         assert_eq!(
             actual.errors(),
@@ -568,7 +568,7 @@ mod test {
             signature: None,
         };
 
-        let actual = bom.validate(SpecVersion::V1_3);
+        let actual = bom.validate_version(SpecVersion::V1_3);
 
         assert_eq!(
             actual.errors(),
@@ -685,7 +685,7 @@ mod test {
             signature: None,
         };
 
-        let actual = bom.validate_default();
+        let actual = bom.validate();
 
         /*
         assert_eq!(
@@ -845,7 +845,7 @@ mod test {
             vulnerabilities: None,
             signature: None,
         }
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(

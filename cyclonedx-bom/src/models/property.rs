@@ -32,9 +32,9 @@ use super::bom::SpecVersion;
 pub struct Properties(pub Vec<Property>);
 
 impl Validate for Properties {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |property| property.validate(version))
+            .add_list("inner", &self.0, |property| property.validate_version(version))
             .into()
     }
 }
@@ -64,7 +64,7 @@ impl Property {
 }
 
 impl Validate for Property {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field("value", &self.value, validate_normalized_string)
             .into()
@@ -87,7 +87,7 @@ mod test {
             name: "property name".to_string(),
             value: NormalizedString("property value".to_string()),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -98,7 +98,7 @@ mod test {
             name: "property name".to_string(),
             value: NormalizedString("spaces and \ttabs".to_string()),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),

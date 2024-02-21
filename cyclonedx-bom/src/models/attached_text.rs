@@ -47,7 +47,7 @@ impl AttachedText {
 }
 
 impl Validate for AttachedText {
-    fn validate(&self, _version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         let mut context = ValidationContext::new().add_field_option(
             "content_type",
             self.content_type.as_ref(),
@@ -138,7 +138,7 @@ mod test {
             encoding: Some(Encoding::Base64),
             content: "dGhpcyB0ZXh0IGlzIHBsYWlu".to_string(),
         }
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -150,7 +150,7 @@ mod test {
             encoding: Some(Encoding::Base64),
             content: "not base64 encoded".to_string(),
         }
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),
@@ -174,7 +174,7 @@ mod test {
             encoding: Some(Encoding::UnknownEncoding("unknown".to_string())),
             content: "not base64 encoded".to_string(),
         }
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),
@@ -189,7 +189,7 @@ mod test {
             encoding: None,
             content: "not base64 encoded".to_string(),
         }
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }

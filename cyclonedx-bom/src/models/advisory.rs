@@ -49,7 +49,7 @@ impl Advisory {
 }
 
 impl Validate for Advisory {
-    fn validate(&self, _version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("title", self.title.as_ref(), validate_normalized_string)
             .add_field("url", &self.url, validate_uri)
@@ -61,9 +61,9 @@ impl Validate for Advisory {
 pub struct Advisories(pub Vec<Advisory>);
 
 impl Validate for Advisories {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |advisory| advisory.validate(version))
+            .add_list("inner", &self.0, |advisory| advisory.validate_version(version))
             .into()
     }
 }
@@ -84,7 +84,7 @@ mod test {
             title: Some(NormalizedString::new("title")),
             url: Uri("https://example.com".to_string()),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -95,7 +95,7 @@ mod test {
             title: Some(NormalizedString("invalid\ttitle".to_string())),
             url: Uri("invalid url".to_string()),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),

@@ -55,7 +55,7 @@ impl ExternalReference {
 }
 
 impl Validate for ExternalReference {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field(
                 "external_reference_type",
@@ -63,7 +63,7 @@ impl Validate for ExternalReference {
                 validate_external_reference_type,
             )
             .add_field("url", &self.url, validate_uri)
-            .add_list("hashes", &self.hashes, |hash| hash.validate(version))
+            .add_list("hashes", &self.hashes, |hash| hash.validate_version(version))
             .into()
     }
 }
@@ -72,9 +72,9 @@ impl Validate for ExternalReference {
 pub struct ExternalReferences(pub Vec<ExternalReference>);
 
 impl Validate for ExternalReferences {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |reference| reference.validate(version))
+            .add_list("inner", &self.0, |reference| reference.validate_version(version))
             .into()
     }
 }
@@ -178,7 +178,7 @@ mod test {
             comment: Some("Comment".to_string()),
             hashes: Some(Hashes(vec![])),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -196,7 +196,7 @@ mod test {
                 content: HashValue("invalid hash".to_string()),
             }])),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),

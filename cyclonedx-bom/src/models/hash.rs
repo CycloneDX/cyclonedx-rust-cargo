@@ -33,7 +33,7 @@ pub struct Hash {
 }
 
 impl Validate for Hash {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field("alg", &self.alg, validate_hash_algorithm)
             .add_field("content", &self.content, validate_hash_value)
@@ -45,9 +45,9 @@ impl Validate for Hash {
 pub struct Hashes(pub Vec<Hash>);
 
 impl Validate for Hashes {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |hash| hash.validate(version))
+            .add_list("inner", &self.0, |hash| hash.validate_version(version))
             .into()
     }
 }
@@ -155,7 +155,7 @@ mod test {
             alg: HashAlgorithm::MD5,
             content: HashValue("a3bf1f3d584747e2569483783ddee45b".to_string()),
         }])
-        .validate(SpecVersion::V1_3);
+        .validate_version(SpecVersion::V1_3);
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -166,7 +166,7 @@ mod test {
             alg: HashAlgorithm::UnknownHashAlgorithm("unknown algorithm".to_string()),
             content: HashValue("not a hash".to_string()),
         }])
-        .validate(SpecVersion::V1_3);
+        .validate_version(SpecVersion::V1_3);
 
         assert_eq!(
             validation_result.errors(),

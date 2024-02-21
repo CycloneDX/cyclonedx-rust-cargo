@@ -106,7 +106,7 @@ impl Component {
 }
 
 impl Validate for Component {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field(
                 "component_type",
@@ -157,9 +157,9 @@ impl Validate for Component {
 pub struct Components(pub Vec<Component>);
 
 impl Validate for Components {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |component| component.validate(version))
+            .add_list("inner", &self.0, |component| component.validate_version(version))
             .into()
     }
 }
@@ -288,7 +288,7 @@ pub struct Swid {
 }
 
 impl Validate for Swid {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_struct_option("text", self.text.as_ref(), version)
             .add_field_option("url", self.url.as_ref(), validate_uri)
@@ -322,7 +322,7 @@ pub struct ComponentEvidence {
 }
 
 impl Validate for ComponentEvidence {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_struct_option("licenses", self.licenses.as_ref(), version)
             .add_struct_option("copyright", self.copyright.as_ref(), version)
@@ -341,7 +341,7 @@ pub struct Pedigree {
 }
 
 impl Validate for Pedigree {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new().into()
         /*
         let mut results: Vec<ValidationResult> = vec![];
@@ -394,7 +394,7 @@ pub struct Copyright(pub String);
 pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
 
 impl Validate for CopyrightTexts {
-    fn validate(&self, _version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_list("inner", &self.0, validate_copyright)
             .into()
@@ -498,7 +498,7 @@ mod test {
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -586,7 +586,7 @@ mod test {
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(

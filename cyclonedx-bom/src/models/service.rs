@@ -80,7 +80,7 @@ impl Service {
 }
 
 impl Validate for Service {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_struct_option("provider", self.provider.as_ref(), version)
             .add_field_option("group", self.group.as_ref(), validate_normalized_string)
@@ -92,7 +92,7 @@ impl Validate for Service {
                 validate_normalized_string,
             )
             .add_list_option("endpoints", self.endpoints.as_ref(), validate_uri)
-            .add_list_option("data", self.data.as_ref(), |data| data.validate(version))
+            .add_list_option("data", self.data.as_ref(), |data| data.validate_version(version))
             .add_struct_option("licenses", self.licenses.as_ref(), version)
             .add_struct_option(
                 "external_references",
@@ -109,9 +109,9 @@ impl Validate for Service {
 pub struct Services(pub Vec<Service>);
 
 impl Validate for Services {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |service| service.validate(version))
+            .add_list("inner", &self.0, |service| service.validate_version(version))
             .into()
     }
 }
@@ -133,7 +133,7 @@ pub struct DataClassification {
 }
 
 impl Validate for DataClassification {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_enum("flow", &self.flow, validate_data_flow_type)
             .into()
@@ -248,7 +248,7 @@ mod test {
             services: Some(Services(vec![])),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -307,7 +307,7 @@ mod test {
             }])),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate_default();
+        .validate();
 
         /*
         assert_eq!(

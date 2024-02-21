@@ -38,7 +38,7 @@ pub struct Commit {
 }
 
 impl Validate for Commit {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("uid", self.uid.as_ref(), validate_normalized_string)
             .add_field_option("url", self.url.as_ref(), validate_uri)
@@ -53,9 +53,9 @@ impl Validate for Commit {
 pub struct Commits(pub Vec<Commit>);
 
 impl Validate for Commits {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |commit| commit.validate(version))
+            .add_list("inner", &self.0, |commit| commit.validate_version(version))
             .into()
     }
 }
@@ -67,7 +67,7 @@ pub struct Diff {
 }
 
 impl Validate for Diff {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_struct_option("text", self.text.as_ref(), version)
             .add_field_option("url", self.url.as_ref(), validate_uri)
@@ -83,7 +83,7 @@ pub struct IdentifiableAction {
 }
 
 impl Validate for IdentifiableAction {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("timestamp", self.timestamp.as_ref(), validate_date_time)
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
@@ -103,7 +103,7 @@ pub struct Issue {
 }
 
 impl Validate for Issue {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field(
                 "issue_type",
@@ -175,7 +175,7 @@ pub struct Patch {
 }
 
 impl Validate for Patch {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_enum(
                 "patch_type",
@@ -184,7 +184,7 @@ impl Validate for Patch {
             )
             .add_struct_option("diff", self.diff.as_ref(), version)
             .add_list_option("resolves", self.resolves.as_ref(), |issue| {
-                issue.validate(version)
+                issue.validate_version(version)
             })
             .into()
     }
@@ -194,9 +194,9 @@ impl Validate for Patch {
 pub struct Patches(pub Vec<Patch>);
 
 impl Validate for Patches {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |patch| patch.validate(version))
+            .add_list("inner", &self.0, |patch| patch.validate_version(version))
             .into()
     }
 }
@@ -255,7 +255,7 @@ pub struct Source {
 }
 
 impl Validate for Source {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_field_option("url", self.url.as_ref(), validate_uri)
@@ -287,7 +287,7 @@ mod test {
             }),
             message: Some(NormalizedString("no_whitespace".to_string())),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -309,7 +309,7 @@ mod test {
             }),
             message: Some(NormalizedString("spaces and\ttabs".to_string())),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),
@@ -370,7 +370,7 @@ mod test {
                 references: Some(vec![Uri("https://example.com".to_string())]),
             }]),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -399,7 +399,7 @@ mod test {
                 references: Some(vec![Uri("invalid uri".to_string())]),
             }]),
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),

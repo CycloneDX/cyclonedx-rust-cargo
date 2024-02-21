@@ -29,7 +29,7 @@ pub struct Composition {
 }
 
 impl Validate for Composition {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field("aggregate", &self.aggregate, validate_aggregate_type)
             .into()
@@ -40,10 +40,10 @@ impl Validate for Composition {
 pub struct Compositions(pub Vec<Composition>);
 
 impl Validate for Compositions {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_list("composition", &self.0, |composition| {
-                composition.validate(version)
+                composition.validate_version(version)
             })
             .into()
     }
@@ -116,7 +116,7 @@ mod test {
             dependencies: Some(vec![BomReference("reference".to_string())]),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate(SpecVersion::V1_3);
+        .validate_version(SpecVersion::V1_3);
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -129,7 +129,7 @@ mod test {
             dependencies: Some(vec![BomReference("reference".to_string())]),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
-        .validate(SpecVersion::V1_3);
+        .validate_version(SpecVersion::V1_3);
 
         assert_eq!(
             validation_result.errors(),

@@ -51,12 +51,12 @@ impl Tool {
 }
 
 impl Validate for Tool {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field_option("vendor", self.vendor.as_ref(), validate_normalized_string)
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_field_option("version", self.version.as_ref(), validate_normalized_string)
-            .add_list("hashes", &self.hashes, |hashes| hashes.validate(version))
+            .add_list("hashes", &self.hashes, |hashes| hashes.validate_version(version))
             .into()
     }
 }
@@ -65,9 +65,9 @@ impl Validate for Tool {
 pub struct Tools(pub Vec<Tool>);
 
 impl Validate for Tools {
-    fn validate(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list("inner", &self.0, |tool| tool.validate(version))
+            .add_list("inner", &self.0, |tool| tool.validate_version(version))
             .into()
     }
 }
@@ -90,7 +90,7 @@ mod test {
             version: None,
             hashes: None,
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(validation_result, ValidationResult::Passed);
     }
@@ -103,7 +103,7 @@ mod test {
             version: None,
             hashes: None,
         }])
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),
@@ -142,7 +142,7 @@ mod test {
                 hashes: None,
             },
         ])
-        .validate_default();
+        .validate();
 
         assert_eq!(
             validation_result.errors(),
