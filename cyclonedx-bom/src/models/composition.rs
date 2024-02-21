@@ -29,7 +29,7 @@ pub struct Composition {
 }
 
 impl Validate for Composition {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_field("aggregate", &self.aggregate, validate_aggregate_type)
             .into()
