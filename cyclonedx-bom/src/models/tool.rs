@@ -80,7 +80,7 @@ mod test {
 
     use crate::{
         models::tool::{Tool, Tools},
-        prelude::{NormalizedString, Validate, ValidationResult},
+        prelude::{NormalizedString, Validate},
         validation,
     };
 

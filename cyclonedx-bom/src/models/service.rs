@@ -138,7 +138,6 @@ pub struct DataClassification {
 
 impl Validate for DataClassification {
     fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
-        // TODO implement
         ValidationContext::new()
             .add_enum("flow", &self.flow, validate_data_flow_type)
             .add_enum(
