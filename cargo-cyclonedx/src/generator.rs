@@ -31,6 +31,8 @@ use cargo_metadata::NodeDep;
 use cargo_metadata::Package;
 use cargo_metadata::PackageId;
 
+use cargo_lock::package::Checksum;
+use cargo_lock::Lockfile;
 use cargo_metadata::camino::Utf8PathBuf;
 use cyclonedx_bom::external_models::normalized_string::NormalizedString;
 use cyclonedx_bom::external_models::spdx::SpdxExpression;
@@ -54,6 +56,7 @@ use regex::Regex;
 
 use log::Level;
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufWriter;
@@ -70,6 +73,7 @@ type ResolveMap = BTreeMap<PackageId, Node>;
 pub struct SbomGenerator {
     config: SbomConfig,
     workspace_root: Utf8PathBuf,
+    crate_hashes: HashMap<cargo_metadata::PackageId, Checksum>,
 }
 
 impl SbomGenerator {
@@ -93,12 +97,6 @@ impl SbomGenerator {
                     top_level_dependencies(member, &packages, &resolve)
                 };
 
-            let generator = SbomGenerator {
-                config: config.clone(),
-                workspace_root: meta.workspace_root.to_owned(),
-            };
-            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
-
             // Figure out the types of the various produced artifacts.
             // This is additional information on top of the SBOM structure
             // that is used to implement emitting a separate SBOM for each binary or artifact.
@@ -107,9 +105,33 @@ impl SbomGenerator {
                 .map(|tgt| tgt.kind.clone())
                 .collect();
 
+            let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
+
+            let mut crate_hashes = HashMap::new();
+            match locate_cargo_lock(&manifest_path) {
+                Ok(path) => match Lockfile::load(path) {
+                    Ok(lockfile_contents) => crate_hashes = package_hashes(&lockfile_contents),
+                    Err(err) => log::warn!(
+                        "Failed to parse `Cargo.lock`: {err}\n\
+                        Hashes will not be included in the SBOM."
+                    ),
+                },
+                Err(err) => log::warn!(
+                    "Failed to locate `Cargo.lock`: {err}\n\
+                    Hashes will not be included in the SBOM."
+                ),
+            }
+
+            let generator = SbomGenerator {
+                config: config.clone(),
+                workspace_root: meta.workspace_root.to_owned(),
+                crate_hashes,
+            };
+            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
+
             let generated = GeneratedSbom {
                 bom,
-                manifest_path: packages[member].manifest_path.clone().into_std_path_buf(),
+                manifest_path,
                 package_name: packages[member].name.clone(),
                 sbom_config: generator.config,
                 target_kinds,
@@ -170,6 +192,7 @@ impl SbomGenerator {
         component.scope = Some(Scope::Required);
         component.external_references = Self::get_external_references(package);
         component.licenses = self.get_licenses(package);
+        component.hashes = self.get_hashes(package);
 
         component.description = package
             .description
@@ -402,6 +425,24 @@ impl SbomGenerator {
         }
 
         Some(Licenses(licenses))
+    }
+
+    fn get_hashes(&self, package: &Package) -> Option<cyclonedx_bom::models::hash::Hashes> {
+        match self.crate_hashes.get(&package.id) {
+            Some(hash) => Some(cyclonedx_bom::models::hash::Hashes(vec![to_bom_hash(hash)])),
+            None => {
+                // Log level is set to debug because this is perfectly normal:
+                // First, only Rust 1.77 and later has `cargo metadata` output pkgid format,
+                // so anything prior to that won't match.
+                // Second, only packages coming from registries have a checksum associated with them,
+                // while local or git packages do not have a checksum and that too is normal.
+                log::debug!(
+                    "Hash for package ID {} not found in Cargo.lock",
+                    &package.id
+                );
+                None
+            }
+        }
     }
 
     fn create_metadata(&self, package: &Package) -> Result<Metadata, GeneratorError> {
@@ -768,6 +809,62 @@ impl GeneratedSbom {
             output_options.cdx_extension.extension(),
             self.sbom_config.format()
         )
+    }
+}
+
+/// Locates the corresponding `Cargo.lock` file given the location of `Cargo.toml`.
+/// This must be run **after** `cargo metadata` which will generate the `Cargo.lock` file
+/// and make sure it's up to date.
+fn locate_cargo_lock(manifest_path: &Path) -> Result<PathBuf, std::io::Error> {
+    let manifest_path = manifest_path.canonicalize()?;
+    let ancestors = manifest_path.as_path().ancestors();
+
+    for path in ancestors {
+        let potential_lockfile = path.join("Cargo.lock");
+        if potential_lockfile.is_file() {
+            return Ok(potential_lockfile);
+        }
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        "Could not find Cargo.lock in any parent directories",
+    ))
+}
+
+/// Extracts all available package hashes from the provided `Cargo.lock` file
+/// and collects them into a HashMap for fast and reasy lookup
+fn package_hashes(lockfile: &Lockfile) -> HashMap<cargo_metadata::PackageId, Checksum> {
+    let mut result = HashMap::new();
+    for pkg in &lockfile.packages {
+        if let Some(hash) = pkg.checksum.as_ref() {
+            result.insert(cargo_metadata::PackageId { repr: pkgid(pkg) }, hash.clone());
+        }
+    }
+    result
+}
+
+/// Returns a Cargo unique identifier for a package.
+/// See `cargo help pkgid` for more info.
+fn pkgid(pkg: &cargo_lock::Package) -> String {
+    match pkg.source.as_ref() {
+        Some(source) => format!("{}#{}@{}", source, pkg.name, pkg.version),
+        None => format!("{}@{}", pkg.name, pkg.version),
+    }
+}
+
+/// Converts a checksum from the `cargo-lock` crate format to `cyclonedx-bom` crate format
+fn to_bom_hash(hash: &Checksum) -> cyclonedx_bom::models::hash::Hash {
+    use cyclonedx_bom::models::hash::{Hash, HashAlgorithm, HashValue};
+    // use a match statement to get a compile-time error
+    // if/when more variants are added
+    match hash {
+        Checksum::Sha256(_) => {
+            Hash {
+                alg: HashAlgorithm::SHA256,
+                // {:x} means "format as lowercase hex"
+                content: HashValue(format!("{hash:x}")),
+            }
+        }
     }
 }
 

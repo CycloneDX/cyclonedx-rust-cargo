@@ -22,6 +22,7 @@ lto = "thin"
 
 [dependencies]
 anyhow = "1.0.75"
+cargo-lock = "9.0.0"
 cargo_metadata = "0.18.1"
 clap = { version = "4.4.11", features = ["derive"] }
 cyclonedx-bom = { version = "0.5.0", path = "../cyclonedx-bom" }
