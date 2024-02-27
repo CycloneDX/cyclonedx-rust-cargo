@@ -76,6 +76,15 @@ pub struct SbomGenerator {
     crate_hashes: HashMap<cargo_metadata::PackageId, Checksum>,
 }
 
+/// Contains a map from `bom_ref` of a subcomponent to the kinds of Cargo targets it has,
+/// sourced from `cargo metadata`
+#[derive(Debug, Clone)]
+pub struct TargetKinds(
+    // TODO: refactor it to store Vec<TargetKind> once `cargo_metadata` crate ships enums:
+    // https://github.com/oli-obk/cargo_metadata/pull/258
+    HashMap<String, Vec<String>>,
+);
+
 impl SbomGenerator {
     pub fn create_sboms(
         meta: CargoMetadata,
@@ -96,14 +105,6 @@ impl SbomGenerator {
                 } else {
                     top_level_dependencies(member, &packages, &resolve)
                 };
-
-            // Figure out the types of the various produced artifacts.
-            // This is additional information on top of the SBOM structure
-            // that is used to implement emitting a separate SBOM for each binary or artifact.
-            let root_package = &packages[member];
-            let target_kinds: Vec<Vec<String>> = filter_targets(&root_package.targets)
-                .map(|tgt| tgt.kind.clone())
-                .collect();
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
 
@@ -127,7 +128,8 @@ impl SbomGenerator {
                 workspace_root: meta.workspace_root.to_owned(),
                 crate_hashes,
             };
-            let bom = generator.create_bom(member, &dependencies, &pruned_resolve)?;
+            let (bom, target_kinds) =
+                generator.create_bom(member, &dependencies, &pruned_resolve)?;
 
             let generated = GeneratedSbom {
                 bom,
@@ -148,7 +150,7 @@ impl SbomGenerator {
         package: &PackageId,
         packages: &PackageMap,
         resolve: &ResolveMap,
-    ) -> Result<Bom, GeneratorError> {
+    ) -> Result<(Bom, TargetKinds), GeneratorError> {
         let mut bom = Bom::default();
         let root_package = &packages[package];
 
@@ -160,13 +162,13 @@ impl SbomGenerator {
 
         bom.components = Some(Components(components));
 
-        let metadata = self.create_metadata(&packages[package])?;
+        let (metadata, target_kinds) = self.create_metadata(&packages[package])?;
 
         bom.metadata = Some(metadata);
 
         bom.dependencies = Some(create_dependencies(resolve));
 
-        Ok(bom)
+        Ok((bom, target_kinds))
     }
 
     fn create_component(&self, package: &Package, root_package: &Package) -> Component {
@@ -204,9 +206,10 @@ impl SbomGenerator {
 
     /// Same as [Self::create_component] but also includes information
     /// on binaries and libraries comprising it as subcomponents
-    fn create_toplevel_component(&self, package: &Package) -> Component {
+    fn create_toplevel_component(&self, package: &Package) -> (Component, TargetKinds) {
         let mut top_component = self.create_component(package, package);
         let mut subcomponents: Vec<Component> = Vec::new();
+        let mut target_kinds = HashMap::new();
         for tgt in filter_targets(&package.targets) {
             // classification
             #[allow(clippy::if_same_then_else)]
@@ -233,6 +236,9 @@ impl SbomGenerator {
                 top_component.bom_ref.as_ref().unwrap(),
                 subcomponents.len(), // numbers the components
             );
+
+            // record target kinds now that we have the bom_ref
+            target_kinds.insert(bom_ref.clone(), tgt.kind.clone());
 
             // create the subcomponent
             let mut subcomponent = Component::new(
@@ -268,7 +274,7 @@ impl SbomGenerator {
             subcomponents.push(subcomponent);
         }
         top_component.components = Some(Components(subcomponents));
-        top_component
+        (top_component, TargetKinds(target_kinds))
     }
 
     fn get_classification(pkg: &Package) -> Classification {
@@ -445,7 +451,10 @@ impl SbomGenerator {
         }
     }
 
-    fn create_metadata(&self, package: &Package) -> Result<Metadata, GeneratorError> {
+    fn create_metadata(
+        &self,
+        package: &Package,
+    ) -> Result<(Metadata, TargetKinds), GeneratorError> {
         let authors = Self::create_authors(package);
 
         let mut metadata = Metadata::new()?;
@@ -453,7 +462,7 @@ impl SbomGenerator {
             metadata.authors = Some(authors);
         }
 
-        let mut component = self.create_toplevel_component(package);
+        let (mut component, target_kinds) = self.create_toplevel_component(package);
 
         component.component_type = Self::get_classification(package);
 
@@ -463,7 +472,7 @@ impl SbomGenerator {
 
         metadata.tools = Some(Tools(vec![tool]));
 
-        Ok(metadata)
+        Ok((metadata, target_kinds))
     }
 
     fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
@@ -674,7 +683,7 @@ pub struct GeneratedSbom {
     pub manifest_path: PathBuf,
     pub package_name: String,
     pub sbom_config: SbomConfig,
-    pub target_kinds: Vec<Vec<String>>,
+    pub target_kinds: TargetKinds,
 }
 
 impl GeneratedSbom {
@@ -733,7 +742,7 @@ impl GeneratedSbom {
     /// Returns an iterator over SBOMs and their associated target kinds
     fn per_artifact_sboms<'a>(
         bom: &'a Bom,
-        target_kinds: &'a [Vec<String>],
+        target_kinds: &'a TargetKinds,
         pattern: Pattern,
     ) -> impl Iterator<Item = (Bom, Vec<String>)> + 'a {
         let meta = bom.metadata.as_ref().unwrap();
@@ -743,8 +752,8 @@ impl GeneratedSbom {
         components
             .0
             .iter()
-            .zip(target_kinds.iter())
-            .filter(move |(_component, target_kind)| {
+            .filter(move |component| {
+                let target_kind = &target_kinds.0[component.bom_ref.as_ref().unwrap()];
                 match pattern {
                     Pattern::Binary => {
                         // only record binary artifacts
@@ -757,7 +766,8 @@ impl GeneratedSbom {
                     Pattern::Bom | Pattern::Package => unreachable!(),
                 }
             })
-            .map(|(component, target_kind)| {
+            .map(|component| {
+                let target_kind = &target_kinds.0[component.bom_ref.as_ref().unwrap()];
                 // In the original SBOM the toplevel component describes a crate.
                 // We need to change it to describe a specific binary.
                 // Most properties apply to the entire package and should be kept;
