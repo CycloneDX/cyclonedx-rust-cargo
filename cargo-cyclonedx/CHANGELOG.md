@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.0 - 2024-02-27
+
+### Added
+
+ - Added `--output-pattern=binary` for outputting a separate SBOM for each individual resulting binary in a package, and `--output-pattern=cargo-target` for a SBOM for each Cargo target including rlibs that do not produce executable artifacts. ([#619]) ([#630])
+ - When using Rust 1.77 and later, the package hashes for crates originating from package registries are now recorded. ([#620])
+
+### Changed
+ - The `.cdx` suffix is now always added to the end of the filename in all cases when the filename isn't literally "bom", to comply with the CycloneDX specification ([#602])
+
 ## 0.4.1 - 2023-11-23
 
 ### Added
@@ -76,3 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#553]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/553
 [#554]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/554
 [#561]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/561
+[#602]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/602
+[#619]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/619
+[#620]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/620
+[#630]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/630
