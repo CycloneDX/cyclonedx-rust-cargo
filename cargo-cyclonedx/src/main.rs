@@ -93,10 +93,6 @@ fn main() -> anyhow::Result<()> {
 fn setup_logging(args: &Args) -> anyhow::Result<()> {
     let mut builder = Builder::new();
 
-    // default cargo internals to quiet unless overridden via an environment variable
-    // call with RUST_LOG='cargo::=debug' to access these logs
-    builder.filter_module("cargo::", LevelFilter::Error);
-
     let level_filter = if args.quiet {
         LevelFilter::Off
     } else {
