@@ -8,6 +8,7 @@ use cargo_cyclonedx::{
     platform::host_platform,
 };
 use clap::{ArgAction, ArgGroup, Parser};
+use cyclonedx_bom::models::bom::SpecVersion;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::path;
@@ -95,6 +96,10 @@ Defaults to the host target, as printed by 'rustc -vV'"
     /// Add license names which will not be warned about when parsing them as a SPDX expression fails
     #[clap(long = "license-accept-named", action=ArgAction::Append)]
     pub license_accept_named: Vec<String>,
+
+    /// The CycloneDX specification version to output: `1.3` or `1.4`
+    #[clap(long = "spec-version")]
+    pub spec_version: Option<SpecVersion>,
 }
 
 impl Args {
@@ -164,6 +169,7 @@ impl Args {
         });
 
         let describe = self.describe.clone();
+        let spec_version = self.spec_version.clone();
 
         Ok(SbomConfig {
             format: self.format,
@@ -173,6 +179,7 @@ impl Args {
             target,
             license_parser,
             describe,
+            spec_version,
         })
     }
 }

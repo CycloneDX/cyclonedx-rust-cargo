@@ -1,3 +1,4 @@
+use cyclonedx_bom::models::bom::SpecVersion;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::str::FromStr;
@@ -31,6 +32,7 @@ pub struct SbomConfig {
     pub target: Option<Target>,
     pub license_parser: Option<LicenseParserOptions>,
     pub describe: Option<Describe>,
+    pub spec_version: Option<SpecVersion>,
 }
 
 impl SbomConfig {
@@ -54,6 +56,10 @@ impl SbomConfig {
                 .map(|other| self.license_parser.clone().unwrap_or_default().merge(other))
                 .or_else(|| self.license_parser.clone()),
             describe: other.describe.clone().or_else(|| self.describe.clone()),
+            spec_version: other
+                .spec_version
+                .clone()
+                .or_else(|| self.spec_version.clone()),
         }
     }
 
