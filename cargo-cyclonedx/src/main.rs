@@ -93,7 +93,7 @@ fn main() -> anyhow::Result<()> {
 fn setup_logging(args: &Args) -> anyhow::Result<()> {
     let mut builder = Builder::new();
 
-    let level_filter = if args.quiet {
+    let level_filter = if args.quiet >= 2 {
         LevelFilter::Off
     } else {
         match args.verbose {
@@ -150,7 +150,7 @@ fn get_metadata(
         }
     }
 
-    if !args.quiet {
+    if args.quiet >= 1 {
         // Contrary to the name, this does not enable verbose output.
         // It merely forwards the cargo stdout to our stdout,
         // so that `cargo metadata` can show a progressbar on long-running operations.

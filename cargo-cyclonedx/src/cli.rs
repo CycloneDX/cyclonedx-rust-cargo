@@ -37,9 +37,9 @@ pub struct Args {
     #[clap(long = "verbose", short = 'v', action = clap::ArgAction::Count)]
     pub verbose: u8,
 
-    /// Disable progress reports and suppress warnings
-    #[clap(long = "quiet", short = 'q')]
-    pub quiet: bool,
+    /// Disable progress reports (-qq to suppress warnings)
+    #[clap(long = "quiet", short = 'q', action = clap::ArgAction::Count)]
+    pub quiet: u8,
 
     // `--all-features`, `--no-default-features` and `--features`
     // are not mutually exclusive in Cargo, so we keep the same behavior here too.
