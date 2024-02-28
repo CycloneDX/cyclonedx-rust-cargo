@@ -1,6 +1,6 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, CustomPrefix, Features, IncludedDependencies, LicenseParserOptions,
+        CdxExtension, CustomPrefix, Describe, Features, IncludedDependencies, LicenseParserOptions,
         OutputOptions, ParseMode, Pattern, PlatformSuffix, Prefix, PrefixError, SbomConfig, Target,
     },
     format::Format,
@@ -32,6 +32,10 @@ pub struct Args {
     /// Output BOM format: json, xml
     #[clap(long = "format", short = 'f', value_name = "FORMAT")]
     pub format: Option<Format>,
+
+    /// What to describe in the SBOM: `crate`, `binaries` or `all-cargo-targets`
+    #[clap(long = "describe", value_name = "SBOM_TARGET")]
+    pub describe: Option<Describe>,
 
     /// Use verbose output (-vv for debug logging, -vvv for tracing)
     #[clap(long = "verbose", short = 'v', action = clap::ArgAction::Count)]
@@ -196,6 +200,8 @@ impl Args {
             accept_named: HashSet::from_iter(self.license_accept_named.clone()),
         });
 
+        let describe = self.describe.clone();
+
         Ok(SbomConfig {
             format: self.format,
             included_dependencies,
@@ -203,6 +209,7 @@ impl Args {
             features,
             target,
             license_parser,
+            describe,
         })
     }
 }

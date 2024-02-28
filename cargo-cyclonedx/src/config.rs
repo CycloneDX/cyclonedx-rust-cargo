@@ -267,6 +267,19 @@ pub enum Describe {
     AllCargoTargets,
 }
 
+impl FromStr for Describe {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "crate" => Ok(Self::Crate),
+            "binaries" => Ok(Self::Binaries),
+            "all-cargo-targets" => Ok(Self::AllCargoTargets),
+            _ => Err(format!("Expected bom or package, got `{}`", s)),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
