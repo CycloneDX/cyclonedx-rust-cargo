@@ -1,3 +1,4 @@
+use crate::config::Describe;
 /*
  * This file is part of CycloneDX Rust Cargo.
  *
@@ -16,7 +17,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 use crate::config::FilenamePattern;
-use crate::config::Pattern;
 use crate::config::PlatformSuffix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
@@ -689,13 +689,12 @@ pub struct GeneratedSbom {
 impl GeneratedSbom {
     /// Writes SBOM to either a JSON or XML file in the same folder as `Cargo.toml` manifest
     pub fn write_to_files(self) -> Result<(), SbomWriterError> {
-        match self.sbom_config.output_options().prefix {
-            FilenamePattern::Pattern(Pattern::Bom | Pattern::Package)
-            | FilenamePattern::Custom(_) => {
+        match self.sbom_config.describe.unwrap_or_default() {
+            Describe::Crate => {
                 let path = self.manifest_path.with_file_name(self.filename(None, &[]));
                 Self::write_to_file(self.bom, &path, &self.sbom_config)
             }
-            FilenamePattern::Pattern(pattern @ (Pattern::Binary | Pattern::CargoTarget)) => {
+            pattern @ (Describe::Binaries | Describe::AllCargoTargets) => {
                 for (sbom, target_kind) in
                     Self::per_artifact_sboms(&self.bom, &self.target_kinds, pattern)
                 {
@@ -744,7 +743,7 @@ impl GeneratedSbom {
     fn per_artifact_sboms<'a>(
         bom: &'a Bom,
         target_kinds: &'a TargetKinds,
-        pattern: Pattern,
+        describe: Describe,
     ) -> impl Iterator<Item = (Bom, Vec<String>)> + 'a {
         let meta = bom.metadata.as_ref().unwrap();
         let crate_component = meta.component.as_ref().unwrap();
@@ -755,16 +754,16 @@ impl GeneratedSbom {
             .iter()
             .filter(move |component| {
                 let target_kind = &target_kinds.0[component.bom_ref.as_ref().unwrap()];
-                match pattern {
-                    Pattern::Binary => {
+                match describe {
+                    Describe::Binaries => {
                         // only record binary artifacts
                         // TODO: refactor this to use an enum, coming Soon(tm) to cargo-metadata:
                         // https://github.com/oli-obk/cargo_metadata/pull/258
                         target_kind.contains(&"bin".to_owned())
                             || target_kind.contains(&"cdylib".to_owned())
                     }
-                    Pattern::CargoTarget => true, // pass everything through
-                    Pattern::Bom | Pattern::Package => unreachable!(),
+                    Describe::AllCargoTargets => true, // pass everything through
+                    Describe::Crate => unreachable!(),
                 }
             })
             .map(|component| {
@@ -786,18 +785,28 @@ impl GeneratedSbom {
 
     fn filename(&self, binary_name: Option<&str>, target_kind: &[String]) -> String {
         let output_options = self.sbom_config.output_options();
-        let prefix = match &output_options.prefix {
-            FilenamePattern::Pattern(Pattern::Bom) => "bom".to_string(),
-            FilenamePattern::Pattern(Pattern::Package) => self.package_name.clone(),
-            FilenamePattern::Pattern(Pattern::Binary) => binary_name.unwrap().to_owned(),
-            FilenamePattern::Pattern(Pattern::CargoTarget) => binary_name.unwrap().to_owned(),
-            FilenamePattern::Custom(c) => c.to_string(),
+        let describe = self.sbom_config.describe.clone().unwrap_or_default();
+
+        let mut prefix = match describe {
+            Describe::Crate => self.package_name.clone(),
+            Describe::Binaries => binary_name.unwrap().to_owned(),
+            Describe::AllCargoTargets => binary_name.unwrap().to_owned(),
         };
+        let mut extension = ".cdx";
+
+        // Handle overridden filename
+        match output_options.filename {
+            FilenamePattern::CrateName => (), // already handled above, nothing more to do
+            FilenamePattern::Custom(name_override) => {
+                prefix = name_override.to_string();
+                extension = ""; // do not append the extension to allow writing to literally "bom.xml" as per spec
+            }
+        }
 
         let target_kind_suffix = if !target_kind.is_empty() {
             debug_assert!(matches!(
-                &output_options.prefix,
-                FilenamePattern::Pattern(Pattern::Binary | Pattern::CargoTarget)
+                describe,
+                Describe::Binaries | Describe::AllCargoTargets
             ));
             format!("_{}", target_kind.join("-"))
         } else {
@@ -817,7 +826,7 @@ impl GeneratedSbom {
             prefix,
             target_kind_suffix,
             platform_suffix,
-            output_options.cdx_extension.extension(),
+            extension,
             self.sbom_config.format()
         )
     }

@@ -1,6 +1,6 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, Describe, Features, FilenameOverride, FilenameOverrideError, FilenamePattern,
+        Describe, Features, FilenameOverride, FilenameOverrideError, FilenamePattern,
         IncludedDependencies, LicenseParserOptions, OutputOptions, ParseMode, PlatformSuffix,
         SbomConfig, Target,
     },
@@ -137,25 +137,20 @@ impl Args {
             Target::SingleTarget(target_string)
         });
 
-        let mut cdx_extension = match self.output_cdx {
-            true => Some(CdxExtension::Included),
-            false => None,
-        };
-
         let platform_suffix = match self.target_in_filename {
             true => PlatformSuffix::Included,
             false => PlatformSuffix::NotIncluded,
         };
 
-        let filename_pattern = match self.filename_override {
+        let filename_pattern = match &self.filename_override {
             Some(string) => {
                 let name_override = FilenameOverride::new(string)?;
-                FilenamePattern::Custom(name_override);
+                FilenamePattern::Custom(name_override)
             }
             None => FilenamePattern::CrateName,
         };
 
-        Some(OutputOptions {
+        let output_options = Some(OutputOptions {
             filename: filename_pattern,
             platform_suffix,
         });

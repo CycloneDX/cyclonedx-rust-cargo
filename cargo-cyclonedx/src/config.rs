@@ -229,7 +229,7 @@ pub enum ParseMode {
 }
 
 /// What does the SBOM describe?
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum Describe {
     /// The entire crate, with Cargo targets as subcomponents
     #[default]
