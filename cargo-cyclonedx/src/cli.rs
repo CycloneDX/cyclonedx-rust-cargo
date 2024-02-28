@@ -1,7 +1,7 @@
 use cargo_cyclonedx::{
     config::{
         CdxExtension, CustomPrefix, Describe, Features, IncludedDependencies, LicenseParserOptions,
-        OutputOptions, ParseMode, Pattern, PlatformSuffix, Prefix, PrefixError, SbomConfig, Target,
+        OutputOptions, ParseMode, PlatformSuffix, Prefix, PrefixError, SbomConfig, Target,
     },
     format::Format,
     platform::host_platform,
@@ -23,7 +23,6 @@ pub enum Opts {
 #[derive(Parser, Debug)]
 #[clap(version)]
 #[clap(group(ArgGroup::new("dependencies-group").required(false).args(&["all", "top-level"])))]
-#[clap(group(ArgGroup::new("prefix-or-pattern-group").required(false).args(&["output-prefix", "output-pattern"])))]
 pub struct Args {
     /// Path to Cargo.toml
     #[clap(long = "manifest-path", value_name = "PATH")]
@@ -68,7 +67,7 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub target: Option<String>,
 
-    /// Include the target platform of the BOM in the filename. Implies --output-cdx
+    /// Include the target platform of the BOM in the filename
     #[clap(long = "target-in-filename")]
     pub target_in_filename: bool,
 
@@ -80,27 +79,13 @@ Defaults to the host target, as printed by 'rustc -vV'"
     #[clap(name = "top-level", long = "top-level", conflicts_with = "all")]
     pub top_level: bool,
 
-    /// Prepend file extension with .cdx
-    #[clap(long = "output-cdx")]
-    pub output_cdx: bool,
-
-    /// Prefix patterns to use for the filename: bom, package, binary, cargo-target
-    /// Values other than 'bom' imply --output-cdx
+    /// Custom string to use for the output filename
     #[clap(
-        name = "output-pattern",
-        long = "output-pattern",
-        value_name = "PATTERN"
+        long = "override-filename",
+        value_name = "FILENAME",
+        conflicts_with = "describe"
     )]
-    pub output_pattern: Option<Pattern>,
-
-    /// Custom prefix string to use for the filename
-    #[clap(
-        name = "output-prefix",
-        long = "output-prefix",
-        value_name = "FILENAME_PREFIX",
-        conflicts_with = "output-pattern"
-    )]
-    pub output_prefix: Option<String>,
+    pub filename_override: Option<String>,
 
     /// Reject the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as an error
     #[clap(long = "license-strict")]
