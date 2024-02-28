@@ -33,7 +33,7 @@ pub struct Args {
     #[clap(long = "format", short = 'f', value_name = "FORMAT")]
     pub format: Option<Format>,
 
-    /// Use verbose output (-vv very verbose/build.rs output)
+    /// Use verbose output (-vv for debug logging, -vvv for tracing)
     #[clap(long = "verbose", short = 'v', action = clap::ArgAction::Count)]
     pub verbose: u8,
 
