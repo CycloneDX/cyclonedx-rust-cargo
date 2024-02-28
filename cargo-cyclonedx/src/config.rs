@@ -30,6 +30,7 @@ pub struct SbomConfig {
     pub features: Option<Features>,
     pub target: Option<Target>,
     pub license_parser: Option<LicenseParserOptions>,
+    pub describe: Option<Describe>,
 }
 
 impl SbomConfig {
@@ -52,6 +53,7 @@ impl SbomConfig {
                 .clone()
                 .map(|other| self.license_parser.clone().unwrap_or_default().merge(other))
                 .or_else(|| self.license_parser.clone()),
+            describe: other.describe.clone().or_else(|| self.describe.clone()),
         }
     }
 
@@ -251,6 +253,18 @@ pub enum ParseMode {
     /// Parse licenses in lax mode
     #[default]
     Lax,
+}
+
+/// What does the SBOM describe?
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum Describe {
+    /// The entire crate, with Cargo targets as subcomponents
+    #[default]
+    Crate,
+    /// A separate SBOM is emitted for each binary (bin, cdylib) while all other targets are ignored
+    Binaries,
+    /// A separate SBOM is emitted for each target, including things that aren't directly executable (e.g rlib)
+    AllCargoTargets,
 }
 
 #[cfg(test)]
