@@ -127,9 +127,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
 
-    cmd.current_dir(tmp_dir.path())
-        .arg("cyclonedx")
-        .arg("-qq");
+    cmd.current_dir(tmp_dir.path()).arg("cyclonedx").arg("-qq");
 
     cmd.assert().success().stdout("").stderr("");
 
