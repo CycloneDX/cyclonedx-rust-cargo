@@ -816,6 +816,7 @@ impl GeneratedSbom {
         let platform_suffix = match output_options.platform_suffix {
             PlatformSuffix::NotIncluded => "".to_owned(),
             PlatformSuffix::Included => {
+                extension = ".cdx"; // only a literal "bom.{xml,json}" is allowed not to have .cdx
                 let target_string = self.sbom_config.target.as_ref().unwrap();
                 format!("_{}", target_string.as_str())
             }
