@@ -58,7 +58,7 @@ pub struct Args {
     #[clap(long = "features", short = 'F')]
     pub features: Vec<String>,
 
-    /// The target to generate the SBOM for, or 'all' for all targets.
+    /// The target platform to generate the SBOM for, or 'all' for all targets.
     #[clap(
         long = "target",
         long_help = "The target to generate the SBOM for, e.g. 'x86_64-unknown-linux-gnu'.
