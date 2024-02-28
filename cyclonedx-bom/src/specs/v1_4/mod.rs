@@ -24,7 +24,6 @@ pub(crate) mod composition;
 pub(crate) mod external_reference;
 pub(crate) mod license;
 pub(crate) mod metadata;
-pub(crate) mod property;
 pub(crate) mod service;
 pub(crate) mod signature;
 pub(crate) mod tool;
@@ -36,4 +35,4 @@ pub(crate) mod vulnerability_reference;
 pub(crate) mod vulnerability_source;
 pub(crate) mod vulnerability_target;
 
-pub(crate) use super::common::{attached_text, dependency, hash, organization};
+pub(crate) use super::common::{attached_text, dependency, hash, organization, property};
