@@ -719,17 +719,28 @@ impl GeneratedSbom {
             }
         }
 
+        use cyclonedx_bom::models::bom::SpecVersion::*;
+        let spec_version = config.spec_version.unwrap_or(V1_3);
+
         log::info!("Outputting {}", path.display());
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
         match config.format() {
             Format::Json => {
-                bom.output_as_json_v1_3(&mut writer)
-                    .map_err(SbomWriterError::JsonWriteError)?;
+                match spec_version {
+                    V1_3 => bom.output_as_json_v1_3(&mut writer),
+                    V1_4 => bom.output_as_json_v1_4(&mut writer),
+                    _ => unimplemented!(),
+                }
+                .map_err(SbomWriterError::JsonWriteError)?;
             }
             Format::Xml => {
-                bom.output_as_xml_v1_3(&mut writer)
-                    .map_err(SbomWriterError::XmlWriteError)?;
+                match spec_version {
+                    V1_3 => bom.output_as_xml_v1_3(&mut writer),
+                    V1_4 => bom.output_as_xml_v1_4(&mut writer),
+                    _ => unimplemented!(),
+                }
+                .map_err(SbomWriterError::XmlWriteError)?;
             }
         }
 
