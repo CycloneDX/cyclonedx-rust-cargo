@@ -15,9 +15,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use crate::config::FilenamePattern;
 use crate::config::Pattern;
 use crate::config::PlatformSuffix;
-use crate::config::Prefix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
@@ -690,11 +690,12 @@ impl GeneratedSbom {
     /// Writes SBOM to either a JSON or XML file in the same folder as `Cargo.toml` manifest
     pub fn write_to_files(self) -> Result<(), SbomWriterError> {
         match self.sbom_config.output_options().prefix {
-            Prefix::Pattern(Pattern::Bom | Pattern::Package) | Prefix::Custom(_) => {
+            FilenamePattern::Pattern(Pattern::Bom | Pattern::Package)
+            | FilenamePattern::Custom(_) => {
                 let path = self.manifest_path.with_file_name(self.filename(None, &[]));
                 Self::write_to_file(self.bom, &path, &self.sbom_config)
             }
-            Prefix::Pattern(pattern @ (Pattern::Binary | Pattern::CargoTarget)) => {
+            FilenamePattern::Pattern(pattern @ (Pattern::Binary | Pattern::CargoTarget)) => {
                 for (sbom, target_kind) in
                     Self::per_artifact_sboms(&self.bom, &self.target_kinds, pattern)
                 {
@@ -786,17 +787,17 @@ impl GeneratedSbom {
     fn filename(&self, binary_name: Option<&str>, target_kind: &[String]) -> String {
         let output_options = self.sbom_config.output_options();
         let prefix = match &output_options.prefix {
-            Prefix::Pattern(Pattern::Bom) => "bom".to_string(),
-            Prefix::Pattern(Pattern::Package) => self.package_name.clone(),
-            Prefix::Pattern(Pattern::Binary) => binary_name.unwrap().to_owned(),
-            Prefix::Pattern(Pattern::CargoTarget) => binary_name.unwrap().to_owned(),
-            Prefix::Custom(c) => c.to_string(),
+            FilenamePattern::Pattern(Pattern::Bom) => "bom".to_string(),
+            FilenamePattern::Pattern(Pattern::Package) => self.package_name.clone(),
+            FilenamePattern::Pattern(Pattern::Binary) => binary_name.unwrap().to_owned(),
+            FilenamePattern::Pattern(Pattern::CargoTarget) => binary_name.unwrap().to_owned(),
+            FilenamePattern::Custom(c) => c.to_string(),
         };
 
         let target_kind_suffix = if !target_kind.is_empty() {
             debug_assert!(matches!(
                 &output_options.prefix,
-                Prefix::Pattern(Pattern::Binary | Pattern::CargoTarget)
+                FilenamePattern::Pattern(Pattern::Binary | Pattern::CargoTarget)
             ));
             format!("_{}", target_kind.join("-"))
         } else {

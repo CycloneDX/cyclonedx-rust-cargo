@@ -1,7 +1,8 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, CustomPrefix, Describe, Features, IncludedDependencies, LicenseParserOptions,
-        OutputOptions, ParseMode, PlatformSuffix, Prefix, PrefixError, SbomConfig, Target,
+        CdxExtension, Describe, Features, FilenameOverride, FilenameOverrideError, FilenamePattern,
+        IncludedDependencies, LicenseParserOptions, OutputOptions, ParseMode, PlatformSuffix,
+        SbomConfig, Target,
     },
     format::Format,
     platform::host_platform,
@@ -104,15 +105,6 @@ impl Args {
             _ => None,
         };
 
-        let prefix = match (self.output_pattern, &self.output_prefix) {
-            (Some(pattern), _) => Some(Prefix::Pattern(pattern)),
-            (_, Some(prefix)) => {
-                let prefix = CustomPrefix::new(prefix)?;
-                Some(Prefix::Custom(prefix))
-            }
-            (_, _) => None,
-        };
-
         let features =
             if !self.all_features && !self.no_default_features && self.features.is_empty() {
                 None
@@ -155,27 +147,18 @@ impl Args {
             false => PlatformSuffix::NotIncluded,
         };
 
-        // according to the CycloneDX spec, the file has either be called 'bom.xml'
-        // or include the .cdx extension:
-        // https://cyclonedx.org/specification/overview/#recognized-file-patterns
-        if self.target_in_filename {
-            cdx_extension = Some(CdxExtension::Included)
-        }
-        // Ditto for any kind of prefix or anything not named 'bom'
-        if prefix.is_some() {
-            cdx_extension = Some(CdxExtension::Included)
+        let filename_pattern = match self.filename_override {
+            Some(string) => {
+                let name_override = FilenameOverride::new(string)?;
+                FilenamePattern::Custom(name_override);
+            }
+            None => FilenamePattern::CrateName,
         };
 
-        let output_options =
-            if cdx_extension.is_none() && prefix.is_none() && !self.target_in_filename {
-                None
-            } else {
-                Some(OutputOptions {
-                    cdx_extension: cdx_extension.unwrap_or_default(),
-                    prefix: prefix.unwrap_or_default(),
-                    platform_suffix,
-                })
-            };
+        Some(OutputOptions {
+            filename: filename_pattern,
+            platform_suffix,
+        });
 
         let license_parser = Some(LicenseParserOptions {
             mode: match self.license_strict {
@@ -202,7 +185,7 @@ impl Args {
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum ArgsError {
     #[error("Invalid prefix from CLI")]
-    CustomPrefixError(#[from] PrefixError),
+    CustomPrefixError(#[from] FilenameOverrideError),
 }
 
 #[cfg(test)]
