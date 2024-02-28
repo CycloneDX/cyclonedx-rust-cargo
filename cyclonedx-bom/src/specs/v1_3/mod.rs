@@ -16,7 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-pub(crate) mod attached_text;
 pub(crate) mod bom;
 pub(crate) mod code;
 pub(crate) mod component;
@@ -30,3 +29,5 @@ pub(crate) mod organization;
 pub(crate) mod property;
 pub(crate) mod service;
 pub(crate) mod tool;
+
+pub(crate) use super::common::attached_text;
