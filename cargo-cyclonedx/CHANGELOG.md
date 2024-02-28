@@ -9,11 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
- - Added `--output-pattern=binary` for outputting a separate SBOM for each individual resulting binary in a package, and `--output-pattern=cargo-target` for a SBOM for each Cargo target including rlibs that do not produce executable artifacts. ([#619]) ([#630])
+ - Added `--describe` flag to control what is described by the SBOM: the crate as a whole in a single SBOM file, a separate SBOM file for every binary (executable or cdylib), or a separate SBOM file for every [Cargo target](https://doc.rust-lang.org/cargo/reference/cargo-targets.html) including rlibs and other kinds that do not produce executable artifacts. ([#619]) ([#630]) ([#634])
+ - Added an option to output CycloneDX v1.4 with `--spec-version=1.4`. The recorded data are the same between v1.3 and v1.4 outputs. ([#634])
  - When using Rust 1.77 and later, the package hashes for crates originating from package registries are now recorded. ([#620])
 
 ### Changed
- - The `.cdx` suffix is now always added to the end of the filename in all cases when the filename isn't literally "bom", to comply with the CycloneDX specification ([#602])
+ - `cargo cyclonedx` now displays the progress information for Cargo operations, such as updating the crates.io index. This can be suppressed with the `-q` flag. `-qq` is now required to suppress warnings. ([#634])
+ - Introduced the `--override-filename` flag replacing the `--output-prefix` and `--output-pattern` flags. ([#634])
+ - The `.cdx` suffix is now always added to the end of the filename in all cases when the filename isn't manually overridden, to comply with the CycloneDX specification. The `--output-cdx` flag that previously controlled this behavior is removed. ([#602]) ([#634])
 
 ## 0.4.1 - 2023-11-23
 
@@ -64,7 +67,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed the configuration through `Cargo.toml`. This is a fundamentally wrong place to record it. ([#520]) If you have use cases for a configuration file, please let us know by [filing an issue](https://github.com/CycloneDX/cyclonedx-rust-cargo/issues).
 
-
 [#363]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/363
 [#365]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/365
 [#443]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/443
@@ -90,3 +92,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#619]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/619
 [#620]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/620
 [#630]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/630
+[#634]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/634
