@@ -133,7 +133,7 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
 }
 
 fn get_metadata(
-    _args: &Args,
+    args: &Args,
     manifest_path: &Path,
     config: &SbomConfig,
 ) -> anyhow::Result<Metadata> {
@@ -152,6 +152,13 @@ fn get_metadata(
                 feature_configuration.features.clone(),
             ));
         }
+    }
+
+    if !args.quiet {
+        // Contrary to the name, this does not enable verbose output.
+        // It merely forwards the cargo stdout to our stdout,
+        // so that `cargo metadata` can show a progressbar on long-running operations.
+        cmd.verbose(true);
     }
 
     if let Some(Target::SingleTarget(target)) = config.target.as_ref() {
