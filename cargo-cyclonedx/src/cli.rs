@@ -26,7 +26,7 @@ pub enum Opts {
 #[clap(group(ArgGroup::new("dependencies-group").required(false).args(&["all", "top-level"])))]
 pub struct Args {
     /// Path to Cargo.toml
-    #[clap(long = "manifest-path", value_name = "PATH")]
+    #[clap(long = "manifest-path", value_name = "PATH", value_hint = clap::ValueHint::FilePath)]
     pub manifest_path: Option<path::PathBuf>,
 
     /// Output BOM format: json, xml
@@ -34,7 +34,7 @@ pub struct Args {
     pub format: Option<Format>,
 
     /// What to describe in the SBOM: `crate`, `binaries` or `all-cargo-targets`
-    #[clap(long = "describe", value_name = "SBOM_TARGET")]
+    #[clap(long = "describe")]
     pub describe: Option<Describe>,
 
     /// Use verbose output (-vv for debug logging, -vvv for tracing)
