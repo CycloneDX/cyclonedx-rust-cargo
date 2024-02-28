@@ -133,7 +133,7 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
 }
 
 fn get_metadata(
-    _args: &Args,
+    args: &Args,
     manifest_path: &Path,
     config: &SbomConfig,
 ) -> anyhow::Result<Metadata> {
@@ -154,9 +154,17 @@ fn get_metadata(
         }
     }
 
-    if let Some(Target::SingleTarget(target)) = config.target.as_ref() {
-        cmd.other_options(vec!["--filter-platform".to_owned(), target.to_owned()]);
+    let mut other_options: Vec<String> = Vec::new();
+
+    if args.quiet {
+        other_options.push("--quiet".to_owned());
     }
+
+    if let Some(Target::SingleTarget(target)) = config.target.as_ref() {
+        other_options.extend_from_slice(&["--filter-platform".to_owned(), target.to_owned()]);
+    }
+
+    cmd.other_options(other_options);
 
     Ok(cmd.exec()?)
 }
