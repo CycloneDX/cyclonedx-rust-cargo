@@ -129,7 +129,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.current_dir(tmp_dir.path())
         .arg("cyclonedx")
-        .arg("--quiet");
+        .arg("-qq");
 
     cmd.assert().success().stdout("").stderr("");
 
