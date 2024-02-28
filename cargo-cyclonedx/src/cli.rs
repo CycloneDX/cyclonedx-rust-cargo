@@ -184,8 +184,8 @@ impl Args {
 
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum ArgsError {
-    #[error("Invalid prefix from CLI")]
-    CustomPrefixError(#[from] FilenameOverrideError),
+    #[error("Invalid filename")]
+    FilenameOverrideError(#[from] FilenameOverrideError),
 }
 
 #[cfg(test)]
