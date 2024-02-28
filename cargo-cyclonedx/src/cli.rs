@@ -37,7 +37,7 @@ pub struct Args {
     #[clap(long = "verbose", short = 'v', action = clap::ArgAction::Count)]
     pub verbose: u8,
 
-    /// No output printed to stdout
+    /// Suppress warnings
     #[clap(long = "quiet", short = 'q')]
     pub quiet: bool,
 
