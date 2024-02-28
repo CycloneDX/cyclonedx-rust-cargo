@@ -150,7 +150,7 @@ fn get_metadata(
         }
     }
 
-    if args.quiet >= 1 {
+    if args.quiet == 0 {
         // Contrary to the name, this does not enable verbose output.
         // It merely forwards the cargo stdout to our stdout,
         // so that `cargo metadata` can show a progressbar on long-running operations.
