@@ -19,7 +19,7 @@
 use crate::{
     errors::XmlReadError,
     external_models::normalized_string::NormalizedString,
-    specs::v1_3::hash::Hashes,
+    specs::common::hash::Hashes,
     utilities::convert_vec,
     xml::{
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,

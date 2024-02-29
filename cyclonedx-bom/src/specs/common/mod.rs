@@ -4,3 +4,4 @@ pub(crate) mod dependency;
 pub(crate) mod hash;
 pub(crate) mod organization;
 pub(crate) mod property;
+pub(crate) mod tool;
