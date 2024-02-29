@@ -18,7 +18,6 @@
 
 pub(crate) mod advisory;
 pub(crate) mod bom;
-pub(crate) mod code;
 pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod external_reference;
@@ -35,4 +34,4 @@ pub(crate) mod vulnerability_reference;
 pub(crate) mod vulnerability_source;
 pub(crate) mod vulnerability_target;
 
-pub(crate) use super::common::{attached_text, dependency, hash, organization, property};
+pub(crate) use super::common::{attached_text, code, dependency, hash, organization, property};

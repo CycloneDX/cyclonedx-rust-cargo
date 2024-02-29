@@ -20,7 +20,7 @@ use crate::{
     errors::XmlReadError,
     external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri},
     models,
-    specs::v1_3::attached_text::AttachedText,
+    specs::common::attached_text::AttachedText,
     utilities::{convert_optional, convert_optional_vec, convert_vec},
     xml::{
         attribute_or_error, read_lax_validation_list_tag, read_lax_validation_tag, read_list_tag,

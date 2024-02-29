@@ -17,7 +17,6 @@
  */
 
 pub(crate) mod bom;
-pub(crate) mod code;
 pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod external_reference;
@@ -26,4 +25,4 @@ pub(crate) mod metadata;
 pub(crate) mod service;
 pub(crate) mod tool;
 
-pub(crate) use super::common::{attached_text, dependency, hash, organization, property};
+pub(crate) use super::common::{attached_text, code, dependency, hash, organization, property};
