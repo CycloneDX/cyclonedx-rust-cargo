@@ -23,7 +23,3 @@ pub(crate) mod external_reference;
 pub(crate) mod license;
 pub(crate) mod metadata;
 pub(crate) mod service;
-
-pub(crate) use super::common::{
-    attached_text, code, dependency, hash, organization, property, tool,
-};

@@ -30,10 +30,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
 
-use crate::specs::v1_4::{
-    external_reference::ExternalReferences, license::Licenses, organization::OrganizationalEntity,
-    property::Properties,
-};
+use crate::specs::common::{organization::OrganizationalEntity, property::Properties};
+use crate::specs::v1_4::{external_reference::ExternalReferences, license::Licenses};
 
 use super::signature::Signature;
 
@@ -523,13 +521,15 @@ impl FromXml for DataClassification {
 pub(crate) mod test {
     use super::*;
     use crate::{
+        specs::common::{
+            organization::test::{corresponding_entity, example_entity},
+            property::test::{corresponding_properties, example_properties},
+        },
         specs::v1_4::{
             external_reference::test::{
                 corresponding_external_references, example_external_references,
             },
             license::test::{corresponding_licenses, example_licenses},
-            organization::test::{corresponding_entity, example_entity},
-            property::test::{corresponding_properties, example_properties},
             signature::test::{corresponding_signature, example_signature},
         },
         xml::test::{read_element_from_string, write_element_to_string},

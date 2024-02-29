@@ -26,10 +26,11 @@ use crate::{
     },
 };
 use crate::{
+    specs::common::{dependency::Dependencies, property::Properties},
     specs::v1_4::{
-        component::Components, composition::Compositions, dependency::Dependencies,
-        external_reference::ExternalReferences, metadata::Metadata, property::Properties,
-        service::Services, signature::Signature, vulnerability::Vulnerabilities,
+        component::Components, composition::Compositions, external_reference::ExternalReferences,
+        metadata::Metadata, service::Services, signature::Signature,
+        vulnerability::Vulnerabilities,
     },
     xml::ToXml,
 };
@@ -370,15 +371,17 @@ pub(crate) mod test {
         corresponding_vulnerabilities, example_vulnerabilities,
     };
     use crate::{
+        specs::common::{
+            dependency::test::{corresponding_dependencies, example_dependencies},
+            property::test::{corresponding_properties, example_properties},
+        },
         specs::v1_4::{
             component::test::{corresponding_components, example_components},
             composition::test::{corresponding_compositions, example_compositions},
-            dependency::test::{corresponding_dependencies, example_dependencies},
             external_reference::test::{
                 corresponding_external_references, example_external_references,
             },
             metadata::test::{corresponding_metadata, example_metadata},
-            property::test::{corresponding_properties, example_properties},
             service::test::{corresponding_services, example_services},
             signature::test::{corresponding_signature, example_signature},
         },

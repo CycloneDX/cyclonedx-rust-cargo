@@ -19,10 +19,11 @@
 use crate::{
     external_models::date_time::DateTime,
     models,
-    specs::v1_4::{
-        component::Component, license::Licenses, organization::OrganizationalContact,
-        organization::OrganizationalEntity, property::Properties, tool::Tools,
+    specs::common::{
+        organization::OrganizationalContact, organization::OrganizationalEntity,
+        property::Properties, tool::Tools,
     },
+    specs::v1_4::{component::Component, license::Licenses},
     utilities::{convert_optional, convert_optional_vec},
     xml::{
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -274,14 +275,16 @@ impl FromXml for Metadata {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
-        specs::v1_4::{
-            component::test::{corresponding_component, example_component},
-            license::test::{corresponding_licenses, example_licenses},
+        specs::common::{
             organization::test::{
                 corresponding_contact, corresponding_entity, example_contact, example_entity,
             },
             property::test::{corresponding_properties, example_properties},
             tool::test::{corresponding_tools, example_tools},
+        },
+        specs::v1_4::{
+            component::test::{corresponding_component, example_component},
+            license::test::{corresponding_licenses, example_licenses},
         },
         xml::test::{read_element_from_string, write_element_to_string},
     };

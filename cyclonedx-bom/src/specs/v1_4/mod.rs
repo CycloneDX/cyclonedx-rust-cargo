@@ -32,7 +32,3 @@ pub(crate) mod vulnerability_rating;
 pub(crate) mod vulnerability_reference;
 pub(crate) mod vulnerability_source;
 pub(crate) mod vulnerability_target;
-
-pub(crate) use super::common::{
-    attached_text, code, dependency, hash, organization, property, tool,
-};

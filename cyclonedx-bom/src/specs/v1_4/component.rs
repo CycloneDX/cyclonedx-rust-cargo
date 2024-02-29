@@ -22,11 +22,11 @@ use crate::{
         normalized_string::NormalizedString,
         uri::{Purl, Uri},
     },
-    specs::v1_4::{
-        attached_text::AttachedText, code::Commits, code::Patches,
-        external_reference::ExternalReferences, hash::Hashes, license::Licenses,
+    specs::common::{
+        attached_text::AttachedText, code::Commits, code::Patches, hash::Hashes,
         organization::OrganizationalEntity, property::Properties,
     },
+    specs::v1_4::{external_reference::ExternalReferences, license::Licenses},
     xml::{
         attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -1197,18 +1197,20 @@ impl From<MimeType> for models::component::MimeType {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
-        specs::v1_4::{
+        specs::common::{
             attached_text::test::{corresponding_attached_text, example_attached_text},
             code::test::{
                 corresponding_commits, corresponding_patches, example_commits, example_patches,
             },
+            hash::test::{corresponding_hashes, example_hashes},
+            organization::test::{corresponding_entity, example_entity},
+            property::test::{corresponding_properties, example_properties},
+        },
+        specs::v1_4::{
             external_reference::test::{
                 corresponding_external_references, example_external_references,
             },
-            hash::test::{corresponding_hashes, example_hashes},
             license::test::{corresponding_licenses, example_licenses},
-            organization::test::{corresponding_entity, example_entity},
-            property::test::{corresponding_properties, example_properties},
             signature::test::{corresponding_signature, example_signature},
         },
         xml::test::{read_element_from_string, write_element_to_string},

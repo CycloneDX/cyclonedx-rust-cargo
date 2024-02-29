@@ -220,7 +220,7 @@ impl FromXml for Tool {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
-        specs::v1_3::hash::test::{corresponding_hashes, example_hashes},
+        specs::common::hash::test::{corresponding_hashes, example_hashes},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 

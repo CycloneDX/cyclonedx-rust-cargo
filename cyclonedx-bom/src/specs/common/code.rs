@@ -872,7 +872,7 @@ impl FromXml for Source {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
-        specs::v1_3::attached_text::test::{corresponding_attached_text, example_attached_text},
+        specs::common::attached_text::test::{corresponding_attached_text, example_attached_text},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 
