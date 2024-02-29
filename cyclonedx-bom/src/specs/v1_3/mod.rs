@@ -19,7 +19,6 @@
 pub(crate) mod bom;
 pub(crate) mod component;
 pub(crate) mod composition;
-pub(crate) mod external_reference;
 pub(crate) mod license;
 pub(crate) mod metadata;
 pub(crate) mod service;
