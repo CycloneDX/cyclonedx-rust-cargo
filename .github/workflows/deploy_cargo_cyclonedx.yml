@@ -103,7 +103,7 @@ jobs:
             tar czvf ../../../out/${{ matrix.zip }} ${{ matrix.bin }}
           fi
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: cyclonedx-${{ matrix.target }}
           path: "out/*"
