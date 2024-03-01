@@ -93,11 +93,7 @@ fn main() -> anyhow::Result<()> {
 fn setup_logging(args: &Args) -> anyhow::Result<()> {
     let mut builder = Builder::new();
 
-    // default cargo internals to quiet unless overridden via an environment variable
-    // call with RUST_LOG='cargo::=debug' to access these logs
-    builder.filter_module("cargo::", LevelFilter::Error);
-
-    let level_filter = if args.quiet {
+    let level_filter = if args.quiet >= 2 {
         LevelFilter::Off
     } else {
         match args.verbose {
@@ -133,7 +129,7 @@ fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
 }
 
 fn get_metadata(
-    _args: &Args,
+    args: &Args,
     manifest_path: &Path,
     config: &SbomConfig,
 ) -> anyhow::Result<Metadata> {
@@ -152,6 +148,13 @@ fn get_metadata(
                 feature_configuration.features.clone(),
             ));
         }
+    }
+
+    if args.quiet == 0 {
+        // Contrary to the name, this does not enable verbose output.
+        // It merely forwards the cargo stdout to our stdout,
+        // so that `cargo metadata` can show a progressbar on long-running operations.
+        cmd.verbose(true);
     }
 
     if let Some(Target::SingleTarget(target)) = config.target.as_ref() {

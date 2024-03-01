@@ -1,12 +1,14 @@
 use cargo_cyclonedx::{
     config::{
-        CdxExtension, CustomPrefix, Features, IncludedDependencies, LicenseParserOptions,
-        OutputOptions, ParseMode, Pattern, PlatformSuffix, Prefix, PrefixError, SbomConfig, Target,
+        Describe, Features, FilenameOverride, FilenameOverrideError, FilenamePattern,
+        IncludedDependencies, LicenseParserOptions, OutputOptions, ParseMode, PlatformSuffix,
+        SbomConfig, Target,
     },
     format::Format,
     platform::host_platform,
 };
 use clap::{ArgAction, ArgGroup, Parser};
+use cyclonedx_bom::models::bom::SpecVersion;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::path;
@@ -23,23 +25,26 @@ pub enum Opts {
 #[derive(Parser, Debug)]
 #[clap(version)]
 #[clap(group(ArgGroup::new("dependencies-group").required(false).args(&["all", "top-level"])))]
-#[clap(group(ArgGroup::new("prefix-or-pattern-group").required(false).args(&["output-prefix", "output-pattern"])))]
 pub struct Args {
     /// Path to Cargo.toml
-    #[clap(long = "manifest-path", value_name = "PATH")]
+    #[clap(long = "manifest-path", value_name = "PATH", value_hint = clap::ValueHint::FilePath)]
     pub manifest_path: Option<path::PathBuf>,
 
     /// Output BOM format: json, xml
     #[clap(long = "format", short = 'f', value_name = "FORMAT")]
     pub format: Option<Format>,
 
-    /// Use verbose output (-vv very verbose/build.rs output)
+    // the ValueEnum derive provides ample help text
+    #[clap(long = "describe")]
+    pub describe: Option<Describe>,
+
+    /// Use verbose output (-vv for debug logging, -vvv for tracing)
     #[clap(long = "verbose", short = 'v', action = clap::ArgAction::Count)]
     pub verbose: u8,
 
-    /// No output printed to stdout
-    #[clap(long = "quiet", short = 'q')]
-    pub quiet: bool,
+    /// Disable progress reports (-qq to suppress warnings)
+    #[clap(long = "quiet", short = 'q', action = clap::ArgAction::Count)]
+    pub quiet: u8,
 
     // `--all-features`, `--no-default-features` and `--features`
     // are not mutually exclusive in Cargo, so we keep the same behavior here too.
@@ -55,7 +60,7 @@ pub struct Args {
     #[clap(long = "features", short = 'F')]
     pub features: Vec<String>,
 
-    /// The target to generate the SBOM for, or 'all' for all targets.
+    /// The target platform to generate the SBOM for, or 'all' for all targets.
     #[clap(
         long = "target",
         long_help = "The target to generate the SBOM for, e.g. 'x86_64-unknown-linux-gnu'.
@@ -64,7 +69,7 @@ Defaults to the host target, as printed by 'rustc -vV'"
     )]
     pub target: Option<String>,
 
-    /// Include the target platform of the BOM in the filename. Implies --output-cdx
+    /// Include the target platform of the BOM in the filename
     #[clap(long = "target-in-filename")]
     pub target_in_filename: bool,
 
@@ -76,27 +81,13 @@ Defaults to the host target, as printed by 'rustc -vV'"
     #[clap(name = "top-level", long = "top-level", conflicts_with = "all")]
     pub top_level: bool,
 
-    /// Prepend file extension with .cdx
-    #[clap(long = "output-cdx")]
-    pub output_cdx: bool,
-
-    /// Prefix patterns to use for the filename: bom, package, binary, cargo-target
-    /// Values other than 'bom' imply --output-cdx
+    /// Custom string to use for the output filename
     #[clap(
-        name = "output-pattern",
-        long = "output-pattern",
-        value_name = "PATTERN"
+        long = "override-filename",
+        value_name = "FILENAME",
+        conflicts_with = "describe"
     )]
-    pub output_pattern: Option<Pattern>,
-
-    /// Custom prefix string to use for the filename
-    #[clap(
-        name = "output-prefix",
-        long = "output-prefix",
-        value_name = "FILENAME_PREFIX",
-        conflicts_with = "output-pattern"
-    )]
-    pub output_prefix: Option<String>,
+    pub filename_override: Option<String>,
 
     /// Reject the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as an error
     #[clap(long = "license-strict")]
@@ -105,6 +96,10 @@ Defaults to the host target, as printed by 'rustc -vV'"
     /// Add license names which will not be warned about when parsing them as a SPDX expression fails
     #[clap(long = "license-accept-named", action=ArgAction::Append)]
     pub license_accept_named: Vec<String>,
+
+    /// The CycloneDX specification version to output: `1.3` or `1.4`. Defaults to 1.3
+    #[clap(long = "spec-version")]
+    pub spec_version: Option<SpecVersion>,
 }
 
 impl Args {
@@ -113,15 +108,6 @@ impl Args {
             (true, _) => Some(IncludedDependencies::AllDependencies),
             (_, true) => Some(IncludedDependencies::TopLevelDependencies),
             _ => None,
-        };
-
-        let prefix = match (self.output_pattern, &self.output_prefix) {
-            (Some(pattern), _) => Some(Prefix::Pattern(pattern)),
-            (_, Some(prefix)) => {
-                let prefix = CustomPrefix::new(prefix)?;
-                Some(Prefix::Custom(prefix))
-            }
-            (_, _) => None,
         };
 
         let features =
@@ -156,37 +142,23 @@ impl Args {
             Target::SingleTarget(target_string)
         });
 
-        let mut cdx_extension = match self.output_cdx {
-            true => Some(CdxExtension::Included),
-            false => None,
-        };
-
         let platform_suffix = match self.target_in_filename {
             true => PlatformSuffix::Included,
             false => PlatformSuffix::NotIncluded,
         };
 
-        // according to the CycloneDX spec, the file has either be called 'bom.xml'
-        // or include the .cdx extension:
-        // https://cyclonedx.org/specification/overview/#recognized-file-patterns
-        if self.target_in_filename {
-            cdx_extension = Some(CdxExtension::Included)
-        }
-        // Ditto for any kind of prefix or anything not named 'bom'
-        if prefix.is_some() {
-            cdx_extension = Some(CdxExtension::Included)
+        let filename_pattern = match &self.filename_override {
+            Some(string) => {
+                let name_override = FilenameOverride::new(string)?;
+                FilenamePattern::Custom(name_override)
+            }
+            None => FilenamePattern::CrateName,
         };
 
-        let output_options =
-            if cdx_extension.is_none() && prefix.is_none() && !self.target_in_filename {
-                None
-            } else {
-                Some(OutputOptions {
-                    cdx_extension: cdx_extension.unwrap_or_default(),
-                    prefix: prefix.unwrap_or_default(),
-                    platform_suffix,
-                })
-            };
+        let output_options = Some(OutputOptions {
+            filename: filename_pattern,
+            platform_suffix,
+        });
 
         let license_parser = Some(LicenseParserOptions {
             mode: match self.license_strict {
@@ -196,6 +168,9 @@ impl Args {
             accept_named: HashSet::from_iter(self.license_accept_named.clone()),
         });
 
+        let describe = self.describe.clone();
+        let spec_version = self.spec_version.clone();
+
         Ok(SbomConfig {
             format: self.format,
             included_dependencies,
@@ -203,14 +178,16 @@ impl Args {
             features,
             target,
             license_parser,
+            describe,
+            spec_version,
         })
     }
 }
 
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum ArgsError {
-    #[error("Invalid prefix from CLI")]
-    CustomPrefixError(#[from] PrefixError),
+    #[error("Invalid filename")]
+    FilenameOverrideError(#[from] FilenameOverrideError),
 }
 
 #[cfg(test)]
