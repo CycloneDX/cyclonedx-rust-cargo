@@ -37,11 +37,17 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
   -f, --format <FORMAT>
           Output BOM format: json, xml
 
-  -v, --verbose...
-          Use verbose output (-vv very verbose/build.rs output)
+      --describe <DESCRIBE>
+          Possible values:
+          - crate:             Describe the entire crate in a single SBOM file, with Cargo targets as subcomponents. (default)
+          - binaries:          A separate SBOM is emitted for each binary (bin, cdylib) while all other targets are ignored
+          - all-cargo-targets: A separate SBOM is emitted for each Cargo target, including things that aren't directly executable (e.g rlib)
 
-  -q, --quiet
-          No output printed to stdout
+  -v, --verbose...
+          Use verbose output (-vv for debug logging, -vvv for tracing)
+
+  -q, --quiet...
+          Disable progress reports (-qq to suppress warnings)
 
       --all-features
           Activate all available features
@@ -58,7 +64,7 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
           Defaults to the host target, as printed by 'rustc -vV'
 
       --target-in-filename
-          Include the target platform of the BOM in the filename. Implies --output-cdx
+          Include the target platform of the BOM in the filename
 
   -a, --all
           List all dependencies instead of only top-level ones (default)
@@ -66,20 +72,17 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
       --top-level
           List only top-level dependencies
 
-      --output-cdx
-          Prepend file extension with .cdx
-
-      --output-pattern <PATTERN>
-          Prefix patterns to use for the filename: bom, package
-
-      --output-prefix <FILENAME_PREFIX>
-          Custom prefix string to use for the filename
+      --override-filename <FILENAME>
+          Custom string to use for the output filename
 
       --license-strict
           Reject the deprecated '/' separator for licenses, treating 'MIT/Apache-2.0' as an error
 
       --license-accept-named <LICENSE_ACCEPT_NAMED>
           Add license names which will not be warned about when parsing them as a SPDX expression fails
+
+      --spec-version <SPEC_VERSION>
+          The CycloneDX specification version to output: `1.3` or `1.4`. Defaults to 1.3
 
   -h, --help
           Print help (see a summary with '-h')
