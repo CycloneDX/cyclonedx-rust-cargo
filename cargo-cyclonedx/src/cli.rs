@@ -34,7 +34,7 @@ pub struct Args {
     #[clap(long = "format", short = 'f', value_name = "FORMAT")]
     pub format: Option<Format>,
 
-    /// What to describe in the SBOM: `crate`, `binaries` or `all-cargo-targets`
+    // the ValueEnum derive provides ample help text
     #[clap(long = "describe")]
     pub describe: Option<Describe>,
 

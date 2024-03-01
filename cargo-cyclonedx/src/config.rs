@@ -235,28 +235,15 @@ pub enum ParseMode {
 }
 
 /// What does the SBOM describe?
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
 pub enum Describe {
-    /// The entire crate, with Cargo targets as subcomponents
+    /// Describe the entire crate in a single SBOM file, with Cargo targets as subcomponents. (default)
     #[default]
     Crate,
     /// A separate SBOM is emitted for each binary (bin, cdylib) while all other targets are ignored
     Binaries,
-    /// A separate SBOM is emitted for each target, including things that aren't directly executable (e.g rlib)
+    /// A separate SBOM is emitted for each Cargo target, including things that aren't directly executable (e.g rlib)
     AllCargoTargets,
-}
-
-impl FromStr for Describe {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "crate" => Ok(Self::Crate),
-            "binaries" => Ok(Self::Binaries),
-            "all-cargo-targets" => Ok(Self::AllCargoTargets),
-            _ => Err(format!("Expected bom or package, got `{}`", s)),
-        }
-    }
 }
 
 #[cfg(test)]
