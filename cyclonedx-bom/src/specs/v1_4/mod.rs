@@ -17,21 +17,13 @@
  */
 
 pub(crate) mod advisory;
-pub(crate) mod attached_text;
 pub(crate) mod bom;
-pub(crate) mod code;
 pub(crate) mod component;
 pub(crate) mod composition;
-pub(crate) mod dependency;
-pub(crate) mod external_reference;
-pub(crate) mod hash;
 pub(crate) mod license;
 pub(crate) mod metadata;
-pub(crate) mod organization;
-pub(crate) mod property;
 pub(crate) mod service;
 pub(crate) mod signature;
-pub(crate) mod tool;
 pub(crate) mod vulnerability;
 pub(crate) mod vulnerability_analysis;
 pub(crate) mod vulnerability_credits;

@@ -28,7 +28,7 @@ use crate::{
     models,
     utilities::{convert_optional, convert_vec},
 };
-use crate::{specs::v1_3::hash::Hashes, xml::to_xml_write_error};
+use crate::{specs::common::hash::Hashes, xml::to_xml_write_error};
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
 
@@ -213,7 +213,7 @@ impl FromXml for ExternalReference {
 pub(crate) mod test {
     use super::*;
     use crate::{
-        specs::v1_3::hash::test::{corresponding_hashes, example_hashes},
+        specs::common::hash::test::{corresponding_hashes, example_hashes},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 

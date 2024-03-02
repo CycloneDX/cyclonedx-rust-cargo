@@ -32,7 +32,7 @@ use crate::{
         ToXml,
     },
 };
-use crate::{specs::v1_4::attached_text::AttachedText, utilities::convert_optional};
+use crate::{specs::common::attached_text::AttachedText, utilities::convert_optional};
 use serde::{Deserialize, Serialize};
 use xml::{name::OwnedName, reader, writer};
 
@@ -505,7 +505,7 @@ pub(crate) mod test {
     use super::*;
     use crate::{
         external_models::spdx::SpdxExpression,
-        specs::v1_4::attached_text::test::{corresponding_attached_text, example_attached_text},
+        specs::common::attached_text::test::{corresponding_attached_text, example_attached_text},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 

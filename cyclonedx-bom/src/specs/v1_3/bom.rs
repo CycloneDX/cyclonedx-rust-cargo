@@ -28,10 +28,11 @@ use crate::{
     },
 };
 use crate::{
+    specs::common::{
+        dependency::Dependencies, external_reference::ExternalReferences, property::Properties,
+    },
     specs::v1_3::{
-        component::Components, composition::Compositions, dependency::Dependencies,
-        external_reference::ExternalReferences, metadata::Metadata, property::Properties,
-        service::Services,
+        component::Components, composition::Compositions, metadata::Metadata, service::Services,
     },
     xml::ToXml,
 };
@@ -337,15 +338,17 @@ impl From<UrnUuid> for models::bom::UrnUuid {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
-        specs::v1_3::{
-            component::test::{corresponding_components, example_components},
-            composition::test::{corresponding_compositions, example_compositions},
+        specs::common::{
             dependency::test::{corresponding_dependencies, example_dependencies},
             external_reference::test::{
                 corresponding_external_references, example_external_references,
             },
-            metadata::test::{corresponding_metadata, example_metadata},
             property::test::{corresponding_properties, example_properties},
+        },
+        specs::v1_3::{
+            component::test::{corresponding_components, example_components},
+            composition::test::{corresponding_compositions, example_compositions},
+            metadata::test::{corresponding_metadata, example_metadata},
             service::test::{corresponding_services, example_services},
         },
         xml::test::{read_document_from_string, write_element_to_string},

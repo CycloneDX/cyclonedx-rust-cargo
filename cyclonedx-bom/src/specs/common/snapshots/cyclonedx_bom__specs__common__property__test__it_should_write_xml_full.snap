@@ -1,8 +1,6 @@
 ---
-source: cyclonedx-bom/src/specs/v1_3/property.rs
-assertion_line: 144
+source: cyclonedx-bom/src/specs/common/property.rs
 expression: xml_output
-
 ---
 <?xml version="1.0" encoding="utf-8"?>
 <properties>
