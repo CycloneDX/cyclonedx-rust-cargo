@@ -168,8 +168,8 @@ impl Args {
             accept_named: HashSet::from_iter(self.license_accept_named.clone()),
         });
 
-        let describe = self.describe.clone();
-        let spec_version = self.spec_version.clone();
+        let describe = self.describe;
+        let spec_version = self.spec_version;
 
         Ok(SbomConfig {
             format: self.format,
