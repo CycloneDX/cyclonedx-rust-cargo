@@ -98,6 +98,9 @@ pub enum XmlReadError {
         element: String,
     },
 
+    #[error("Required attribute {attribute} not found in element {element}")]
+    RequiredAttributeMissing { attribute: String, element: String },
+
     #[error("Invalid enum value '{value}' given in {element}")]
     InvalidEnumVariant { value: String, element: String },
 

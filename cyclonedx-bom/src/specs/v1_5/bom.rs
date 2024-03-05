@@ -31,8 +31,8 @@ use crate::{
         signature::Signature,
     },
     specs::v1_5::{
-        component::Components, composition::Compositions, metadata::Metadata, service::Services,
-        vulnerability::Vulnerabilities,
+        annotation::Annotations, component::Components, composition::Compositions,
+        metadata::Metadata, service::Services, vulnerability::Vulnerabilities,
     },
     xml::ToXml,
 };
@@ -64,6 +64,9 @@ pub(crate) struct Bom {
     vulnerabilities: Option<Vulnerabilities>,
     #[serde(skip_serializing_if = "Option::is_none")]
     signature: Option<Signature>,
+    // since version 1.5
+    #[serde(skip_serializing_if = "Option::is_none")]
+    annotations: Option<Annotations>,
 }
 
 impl From<models::bom::Bom> for Bom {
@@ -82,6 +85,7 @@ impl From<models::bom::Bom> for Bom {
             properties: convert_optional(other.properties),
             vulnerabilities: convert_optional(other.vulnerabilities),
             signature: convert_optional(other.signature),
+            annotations: convert_optional(other.annotations),
         }
     }
 }
@@ -100,6 +104,7 @@ impl From<Bom> for models::bom::Bom {
             properties: convert_optional(other.properties),
             vulnerabilities: convert_optional(other.vulnerabilities),
             signature: convert_optional(other.signature),
+            annotations: convert_optional(other.annotations),
         }
     }
 }
@@ -176,6 +181,7 @@ const COMPOSITIONS_TAG: &str = "compositions";
 const PROPERTIES_TAG: &str = "properties";
 const VULNERABILITIES_TAG: &str = "vulnerabilities";
 const SIGNATURE_TAG: &str = "signature";
+const ANNOTATIONS_TAG: &str = "annotations";
 
 impl FromXmlDocument for Bom {
     fn read_xml_document<R: std::io::Read>(
@@ -224,6 +230,7 @@ impl FromXmlDocument for Bom {
         let mut properties: Option<Properties> = None;
         let mut vulnerabilities: Option<Vulnerabilities> = None;
         let mut signature: Option<Signature> = None;
+        let mut annotations: Option<Annotations> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -310,6 +317,15 @@ impl FromXmlDocument for Bom {
                         &attributes,
                     )?)
                 }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == ANNOTATIONS_TAG => {
+                    annotations = Some(Annotations::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
 
                 // lax validation of any elements from a different schema
                 reader::XmlEvent::StartElement { name, .. } => {
@@ -343,6 +359,7 @@ impl FromXmlDocument for Bom {
             properties,
             vulnerabilities,
             signature,
+            annotations,
         })
     }
 }
@@ -380,6 +397,7 @@ pub(crate) mod test {
                 signature::test::{corresponding_signature, example_signature},
             },
             v1_5::{
+                annotation::test::{corresponding_annotations, example_annotations},
                 component::test::{corresponding_components, example_components},
                 composition::test::{corresponding_compositions, example_compositions},
                 metadata::test::{corresponding_metadata, example_metadata},
@@ -408,6 +426,7 @@ pub(crate) mod test {
             properties: None,
             vulnerabilities: None,
             signature: None,
+            annotations: None,
         }
     }
 
@@ -426,6 +445,7 @@ pub(crate) mod test {
             properties: Some(example_properties()),
             vulnerabilities: Some(example_vulnerabilities()),
             signature: Some(example_signature()),
+            annotations: Some(example_annotations()),
         }
     }
 
@@ -442,6 +462,7 @@ pub(crate) mod test {
             properties: Some(corresponding_properties()),
             vulnerabilities: Some(corresponding_vulnerabilities()),
             signature: Some(corresponding_signature()),
+            annotations: Some(corresponding_annotations()),
         }
     }
 
@@ -935,6 +956,30 @@ pub(crate) mod test {
     <algorithm>HS512</algorithm>
     <value>1234567890</value>
   </signature>
+  <annotations>
+    <annotation bom-ref="annotation-1">
+      <subjects>
+        <subject ref="subject1" />
+      </subjects>
+      <annotator>
+        <organization>
+          <name>name</name>
+          <url>url</url>
+          <contact>
+            <name>name</name>
+            <email>email</email>
+            <phone>phone</phone>
+          </contact>
+        </organization>
+      </annotator>
+      <timestamp>timestamp</timestamp>
+      <text>Annotation text</text>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
+    </annotation>
+  </annotations>
   <example:laxValidation>
     <example:innerElement id="test" />
   </example:laxValidation>

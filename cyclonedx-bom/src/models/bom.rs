@@ -28,6 +28,7 @@ use serde_json::Value;
 use xml::{EmitterConfig, EventReader, EventWriter, ParserConfig};
 
 use crate::errors::BomError;
+use crate::models::annotation::Annotations;
 use crate::models::component::{Component, Components};
 use crate::models::composition::Compositions;
 use crate::models::dependency::Dependencies;
@@ -100,6 +101,8 @@ pub struct Bom {
     pub vulnerabilities: Option<Vulnerabilities>,
     /// Added in version 1.4
     pub signature: Option<Signature>,
+    /// Added in version 1.5
+    pub annotations: Option<Annotations>,
 }
 
 impl Bom {
@@ -267,6 +270,7 @@ impl Default for Bom {
             properties: None,
             vulnerabilities: None,
             signature: None,
+            annotations: None,
         }
     }
 }
@@ -542,6 +546,7 @@ mod test {
             properties: None,
             vulnerabilities: None,
             signature: None,
+            annotations: None,
         };
 
         let actual = bom.validate();
@@ -566,6 +571,7 @@ mod test {
             properties: None,
             vulnerabilities: None,
             signature: None,
+            annotations: None,
         };
 
         let actual = bom.validate();
@@ -605,6 +611,7 @@ mod test {
             properties: None,
             vulnerabilities: None,
             signature: None,
+            annotations: None,
         };
 
         let actual = bom.validate_version(SpecVersion::V1_3);
@@ -722,6 +729,7 @@ mod test {
                 properties: None,
             }])),
             signature: None,
+            annotations: None,
         };
 
         let actual = bom.validate();
@@ -850,6 +858,7 @@ mod test {
             properties: None,
             vulnerabilities: None,
             signature: None,
+            annotations: None,
         }
         .validate();
 

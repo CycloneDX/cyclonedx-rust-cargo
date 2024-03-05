@@ -33,11 +33,11 @@ use xml::{reader, writer::XmlEvent};
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OrganizationalContact {
     #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
+    pub(crate) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    email: Option<String>,
+    pub(crate) email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    phone: Option<String>,
+    pub(crate) phone: Option<String>,
 }
 
 impl From<models::organization::OrganizationalContact> for OrganizationalContact {
@@ -149,11 +149,11 @@ impl FromXml for OrganizationalContact {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OrganizationalEntity {
     #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
+    pub(crate) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    url: Option<Vec<String>>,
+    pub(crate) url: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    contact: Option<Vec<OrganizationalContact>>,
+    pub(crate) contact: Option<Vec<OrganizationalContact>>,
 }
 
 impl From<models::organization::OrganizationalEntity> for OrganizationalEntity {

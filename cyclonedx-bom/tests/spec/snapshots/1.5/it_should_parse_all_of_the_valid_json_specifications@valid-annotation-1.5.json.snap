@@ -1,0 +1,112 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_5.rs
+assertion_line: 54
+expression: bom_output
+input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "component-a",
+      "name": "Component A",
+      "version": "1.0.0"
+    }
+  ],
+  "annotations": [
+    {
+      "bomRef": null,
+      "subjects": [
+        "component-a"
+      ],
+      "annotator": {
+        "organization": {
+          "name": "Acme, Inc.",
+          "url": [
+            "https://example.com"
+          ],
+          "contact": [
+            {
+              "name": "Acme Professional Services",
+              "email": "professional.services@example.com"
+            }
+          ]
+        }
+      },
+      "timestamp": "2022-01-01T00:00:00Z",
+      "text": "This is a sample annotation made by an organization",
+      "signature": null
+    },
+    {
+      "bomRef": null,
+      "subjects": [
+        "component-a"
+      ],
+      "annotator": {
+        "individual": {
+          "name": "Samantha Wright",
+          "email": "samantha.wright@example.com",
+          "phone": "800-555-1212"
+        }
+      },
+      "timestamp": "2022-01-01T00:00:00Z",
+      "text": "This is a sample annotation made by a person",
+      "signature": null
+    },
+    {
+      "bomRef": null,
+      "subjects": [
+        "component-a"
+      ],
+      "annotator": {
+        "component": {
+          "type": "application",
+          "name": "Awesome Tool",
+          "version": "9.1.2"
+        }
+      },
+      "timestamp": "2022-01-01T00:00:00Z",
+      "text": "This is a sample annotation made by a component",
+      "signature": null
+    },
+    {
+      "bomRef": null,
+      "subjects": [
+        "component-a"
+      ],
+      "annotator": {
+        "service": {
+          "bom-ref": "b2a46a4b-8367-4bae-9820-95557cfe03a8",
+          "provider": {
+            "name": "Partner Org",
+            "url": [
+              "https://partner.org"
+            ]
+          },
+          "group": "org.partner",
+          "name": "BOM Annotation Service",
+          "version": "2020-Q2",
+          "endpoints": [
+            "https://partner.org/api/v1/inspect",
+            "https://partner.org/api/v1/annotate"
+          ],
+          "authenticated": true,
+          "x-trust-boundary": true,
+          "data": [
+            {
+              "flow": "bi-directional",
+              "classification": "public"
+            }
+          ]
+        }
+      },
+      "timestamp": "2022-01-01T00:00:00Z",
+      "text": "This is a sample annotation made by a service",
+      "signature": null
+    }
+  ]
+}
