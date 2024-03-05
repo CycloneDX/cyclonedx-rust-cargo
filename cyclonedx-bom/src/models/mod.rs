@@ -17,6 +17,7 @@
  */
 
 pub mod advisory;
+pub mod annotation;
 pub mod attached_text;
 pub mod bom;
 pub mod code;
