@@ -268,6 +268,7 @@ name = "cyclonedx-bom"
 version = "0.5.0"
 dependencies = [
  "base64",
+ "cyclonedx-bom-macros",
  "fluent-uri",
  "indexmap",
  "insta",
@@ -283,6 +284,15 @@ dependencies = [
  "time",
  "uuid",
  "xml-rs",
+]
+
+[[package]]
+name = "cyclonedx-bom-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -24,5 +24,6 @@ pub(crate) mod external_reference;
 pub(crate) mod hash;
 pub(crate) mod organization;
 pub(crate) mod property;
+pub(crate) mod service;
 pub(crate) mod signature;
 pub(crate) mod tool;

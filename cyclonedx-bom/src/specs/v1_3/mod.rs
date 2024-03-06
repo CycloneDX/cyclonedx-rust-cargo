@@ -21,4 +21,5 @@ pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod license;
 pub(crate) mod metadata;
-pub(crate) mod service;
+
+pub(crate) use crate::specs::common::service::v1_3 as service;
