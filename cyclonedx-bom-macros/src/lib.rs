@@ -1,3 +1,5 @@
+use std::{error::Error, str::FromStr};
+
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
@@ -9,35 +11,67 @@ use syn::{
     Expr, Item,
 };
 
-struct VersionFilter {
-    version: String,
+#[derive(PartialEq, Eq)]
+struct Version {
+    major: usize,
+    minor: usize,
 }
 
-fn extract_version(attrs: &mut Vec<syn::Attribute>) -> Option<String> {
-    let mut version = None;
+impl FromStr for Version {
+    type Err = Box<dyn Error>;
 
-    attrs.retain(|attr| {
-        let path = attr.path();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (major_str, minor_str) = s
+            .split_once('.')
+            .ok_or_else(|| Self::Err::from("versions must have a `.`".to_owned()))?;
 
-        if path.is_ident("versioned") {
-            version = Some(
-                attr.parse_args::<syn::LitStr>()
-                    .expect("expected a string literal with a version number")
-                    .value(),
-            );
+        Ok(Self {
+            major: major_str.parse()?,
+            minor: minor_str.parse()?,
+        })
+    }
+}
 
-            false
-        } else {
-            true
-        }
-    });
+impl Version {
+    fn extract_from_attrs(attrs: &mut Vec<syn::Attribute>) -> Option<Self> {
+        let mut version = None;
 
-    version
+        attrs.retain(|attr| {
+            let path = attr.path();
+
+            if path.is_ident("versioned") {
+                version = Some(
+                    attr.parse_args::<syn::LitStr>()
+                        .expect("expected a string literal")
+                        .value()
+                        .parse()
+                        .expect("cannot parse version"),
+                );
+
+                false
+            } else {
+                true
+            }
+        });
+
+        version
+    }
+
+    fn as_ident(&self) -> syn::Ident {
+        syn::Ident::new(
+            &format!("v{}_{}", self.major, self.minor),
+            Span::call_site(),
+        )
+    }
+}
+
+struct VersionFilter {
+    version: Version,
 }
 
 impl VersionFilter {
-    fn matches(&self, found_version: &str) -> bool {
-        self.version == found_version
+    fn matches(&self, found_version: &Version) -> bool {
+        &self.version == found_version
     }
 
     fn filter_fields(
@@ -47,7 +81,7 @@ impl VersionFilter {
         fields
             .into_pairs()
             .filter_map(
-                |mut pair| match extract_version(&mut pair.value_mut().attrs) {
+                |mut pair| match Version::extract_from_attrs(&mut pair.value_mut().attrs) {
                     Some(version) => self.matches(&version).then_some(pair),
                     None => Some(pair),
                 },
@@ -71,7 +105,7 @@ impl Fold for VersionFilter {
         match stmt {
             syn::Stmt::Local(syn::Local { ref mut attrs, .. })
             | syn::Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) => {
-                if let Some(version) = extract_version(attrs) {
+                if let Some(version) = Version::extract_from_attrs(attrs) {
                     if !self.matches(&version) {
                         stmt = parse_quote!({};);
                     }
@@ -123,7 +157,7 @@ impl Fold for VersionFilter {
             | Expr::Unsafe(syn::ExprUnsafe { ref mut attrs, .. })
             | Expr::While(syn::ExprWhile { ref mut attrs, .. })
             | Expr::Yield(syn::ExprYield { ref mut attrs, .. }) => {
-                if let Some(version) = extract_version(attrs) {
+                if let Some(version) = Version::extract_from_attrs(attrs) {
                     if !self.matches(&version) {
                         expr = parse_quote!({});
                     }
@@ -140,7 +174,7 @@ impl Fold for VersionFilter {
             .fields
             .into_pairs()
             .filter_map(
-                |mut pair| match extract_version(&mut pair.value_mut().attrs) {
+                |mut pair| match Version::extract_from_attrs(&mut pair.value_mut().attrs) {
                     Some(version) => self.matches(&version).then_some(pair),
                     None => Some(pair),
                 },
@@ -152,7 +186,7 @@ impl Fold for VersionFilter {
 
     fn fold_expr_match(&mut self, mut expr: syn::ExprMatch) -> syn::ExprMatch {
         expr.arms
-            .retain_mut(|arm| match extract_version(&mut arm.attrs) {
+            .retain_mut(|arm| match Version::extract_from_attrs(&mut arm.attrs) {
                 Some(version) => self.matches(&version),
                 None => true,
             });
@@ -177,7 +211,7 @@ impl Fold for VersionFilter {
             | Item::Type(syn::ItemType { ref mut attrs, .. })
             | Item::Union(syn::ItemUnion { ref mut attrs, .. })
             | Item::Use(syn::ItemUse { ref mut attrs, .. }) => {
-                if let Some(version) = extract_version(attrs) {
+                if let Some(version) = Version::extract_from_attrs(attrs) {
                     if !self.matches(&version) {
                         item = parse_quote!(
                             use {};
@@ -199,21 +233,17 @@ pub fn versioned(input: TokenStream, annotated_item: TokenStream) -> TokenStream
 
     // This parses the versions passed to the attribute, e.g. the `"1.3"`
     // and `"1.4"`in `#[versioned("1.3", "1.4")]
-    // FIXME: we should do extra validations for the version numbers themselves.
-    let versions: Vec<String> =
+    let versions: Vec<Version> =
         parse_macro_input!(input with Punctuated::<syn::LitStr, Comma>::parse_terminated)
             .into_iter()
-            .map(|s| s.value())
+            .map(|s| s.value().parse().expect("cannot parse version"))
             .collect();
 
     let mut tokens = proc_macro2::TokenStream::new();
 
     for version in versions {
         let mod_vis = &module.vis;
-        let mod_ident = syn::Ident::new(
-            &format!("v{}", version.replace('.', "_")),
-            Span::call_site(),
-        );
+        let mod_ident = version.as_ident();
 
         let (_, items) = module.content.clone().unwrap();
 
