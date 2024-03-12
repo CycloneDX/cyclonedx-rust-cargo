@@ -18,18 +18,19 @@
 
 use serde::{Deserialize, Serialize};
 use xml::name::OwnedName;
+use xml::writer::XmlEvent;
 use xml::{reader, writer};
 
 use crate::errors::XmlReadError;
-use crate::models;
+use crate::models::{self};
 use crate::prelude::DateTime;
 use crate::specs::common::organization::{OrganizationalContact, OrganizationalEntity};
 use crate::specs::common::signature::Signature;
 use crate::specs::v1_5::{component::Component, service::Service};
 use crate::utilities::{convert_optional, convert_vec};
 use crate::xml::{
-    read_simple_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml,
-    ToXml,
+    read_simple_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
+    write_close_tag, write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
 };
 
 /// Represents the `Annotations` field, see https://cyclonedx.org/docs/1.5/json/#annotations.
@@ -56,17 +57,13 @@ impl ToXml for Annotations {
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        writer
-            .write(writer::XmlEvent::start_element(ANNOTATIONS_TAG))
-            .map_err(to_xml_write_error(ANNOTATIONS_TAG))?;
+        write_start_tag(writer, ANNOTATIONS_TAG)?;
 
         for annotation in &self.0 {
             annotation.write_xml_element(writer)?;
         }
 
-        writer
-            .write(writer::XmlEvent::end_element())
-            .map_err(to_xml_write_error(ANNOTATIONS_TAG))?;
+        write_close_tag(writer, ANNOTATIONS_TAG)?;
 
         Ok(())
     }
@@ -267,6 +264,31 @@ impl FromXml for Annotator {
     }
 }
 
+impl ToXml for Annotator {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, ANNOTATOR_TAG)?;
+        match self {
+            Annotator::Organization(organization) => {
+                organization.write_xml_named_element(writer, ORGANIZATION_TAG)?;
+            }
+            Annotator::Individual(contact) => {
+                contact.write_xml_named_element(writer, INDIVIDUAL_TAG)?;
+            }
+            Annotator::Component(component) => {
+                component.write_xml_element(writer)?;
+            }
+            Annotator::Service(service) => {
+                service.write_xml_element(writer)?;
+            }
+        }
+        write_close_tag(writer, ANNOTATOR_TAG)?;
+        Ok(())
+    }
+}
+
 const ANNOTATION_TAG: &str = "annotation";
 
 impl ToXml for Annotation {
@@ -274,9 +296,38 @@ impl ToXml for Annotation {
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
+        let mut attribute_element = writer::XmlEvent::start_element(ANNOTATION_TAG);
+        if let Some(bom_ref) = &self.bom_ref {
+            attribute_element = attribute_element.attr("bom-ref", bom_ref);
+        }
+
         writer
-            .write(writer::XmlEvent::start_element(ANNOTATION_TAG))
+            .write(attribute_element)
             .map_err(to_xml_write_error(ANNOTATION_TAG))?;
+
+        if !self.subjects.is_empty() {
+            writer
+                .write(XmlEvent::start_element(SUBJECTS_TAG))
+                .map_err(to_xml_write_error(SUBJECTS_TAG))?;
+
+            for subject in &self.subjects {
+                write_simple_tag(writer, SUBJECT_TAG, subject)?;
+            }
+
+            writer
+                .write(XmlEvent::end_element())
+                .map_err(to_xml_write_error(SUBJECTS_TAG))?;
+        }
+
+        self.annotator.write_xml_element(writer)?;
+
+        write_simple_tag(writer, TIMESTAMP_TAG, &self.timestamp)?;
+
+        write_simple_tag(writer, TEXT_TAG, &self.text)?;
+
+        if let Some(signature) = &self.signature {
+            signature.write_xml_element(writer)?;
+        }
 
         writer
             .write(writer::XmlEvent::end_element())
@@ -465,11 +516,17 @@ pub(crate) mod test {
 
     use crate::{
         models,
-        specs::common::{
-            organization::{test::example_entity, OrganizationalContact, OrganizationalEntity},
-            signature::test::example_signature,
+        specs::{
+            common::{
+                organization::{
+                    test::{example_contact, example_entity},
+                    OrganizationalContact, OrganizationalEntity,
+                },
+                signature::test::example_signature,
+            },
+            v1_5::{component::test::example_component, service::test::example_service},
         },
-        xml::test::read_element_from_string,
+        xml::test::{read_element_from_string, write_element_to_string},
     };
 
     use super::{read_subject, read_subjects, Annotation, Annotations, Annotator};
@@ -609,5 +666,38 @@ pub(crate) mod test {
         }]);
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_write_xml_full_annotations() {
+        let annotations = vec![
+            Annotation {
+                bom_ref: Some("annotation-1".to_string()),
+                subjects: vec!["component-a".to_string()],
+                annotator: Annotator::Individual(example_contact()),
+                timestamp: "2024-04-07T07:01:00Z".to_string(),
+                text: "Contact annotation text".to_string(),
+                signature: Some(example_signature()),
+            },
+            Annotation {
+                bom_ref: Some("annotation-2".to_string()),
+                subjects: vec!["component-b".to_string()],
+                annotator: Annotator::Service(example_service()),
+                timestamp: "2024-04-07T07:01:00Z".to_string(),
+                text: "Service annotation text".to_string(),
+                signature: None,
+            },
+            Annotation {
+                bom_ref: Some("annotation-2".to_string()),
+                subjects: vec!["component-b".to_string()],
+                annotator: Annotator::Component(example_component()),
+                timestamp: "2024-04-07T07:01:00Z".to_string(),
+                text: "Component annotation text".to_string(),
+                signature: None,
+            },
+        ];
+
+        let xml_output = write_element_to_string(Annotations(annotations));
+        insta::assert_snapshot!(xml_output);
     }
 }
