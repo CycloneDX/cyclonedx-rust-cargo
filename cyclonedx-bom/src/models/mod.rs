@@ -27,6 +27,7 @@ pub mod dependency;
 pub mod external_reference;
 pub mod hash;
 pub mod license;
+pub mod lifecycle;
 pub mod metadata;
 pub mod organization;
 pub mod property;

@@ -666,6 +666,11 @@ pub(crate) mod test {
     <properties>
       <property name="name">value</property>
     </properties>
+    <lifecycles>
+      <lifecycle>
+        <phase>design</phase>
+      </lifecycle>
+    </lifecycles>
   </metadata>
   <components>
     <component type="component type" mime-type="mime type" bom-ref="bom ref">

@@ -80,6 +80,7 @@ impl From<Metadata> for models::metadata::Metadata {
             supplier: convert_optional(other.supplier),
             licenses: convert_optional(other.licenses),
             properties: convert_optional(other.properties),
+            lifecycles: None,
         }
     }
 }
@@ -314,6 +315,7 @@ pub(crate) mod test {
             supplier: Some(corresponding_entity()),
             licenses: Some(corresponding_licenses()),
             properties: Some(corresponding_properties()),
+            lifecycles: None,
         }
     }
 

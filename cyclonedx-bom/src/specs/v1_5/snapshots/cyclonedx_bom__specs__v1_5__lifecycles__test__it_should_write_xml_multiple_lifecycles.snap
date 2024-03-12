@@ -1,0 +1,18 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/lifecycles.rs
+assertion_line: 313
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<lifecycles>
+  <lifecycle>
+    <phase>build</phase>
+  </lifecycle>
+  <lifecycle>
+    <name>pre-production</name>
+    <description>Getting things together</description>
+  </lifecycle>
+  <lifecycle>
+    <phase>decommission</phase>
+  </lifecycle>
+</lifecycles>

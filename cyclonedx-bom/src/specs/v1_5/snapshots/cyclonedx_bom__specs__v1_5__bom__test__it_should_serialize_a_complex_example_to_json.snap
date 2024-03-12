@@ -206,6 +206,11 @@ expression: actual
         "name": "name",
         "value": "value"
       }
+    ],
+    "lifecycles": [
+      {
+        "phase": "design"
+      }
     ]
   },
   "components": [

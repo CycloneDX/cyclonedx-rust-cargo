@@ -23,7 +23,7 @@ use crate::{
         organization::OrganizationalContact, organization::OrganizationalEntity,
         property::Properties, tool::Tools,
     },
-    specs::v1_5::{component::Component, license::Licenses},
+    specs::v1_5::{component::Component, license::Licenses, lifecycles::Lifecycles},
     utilities::{convert_optional, convert_optional_vec},
     xml::{
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -52,6 +52,8 @@ pub(crate) struct Metadata {
     licenses: Option<Licenses>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    lifecycles: Option<Lifecycles>,
 }
 
 impl From<models::metadata::Metadata> for Metadata {
@@ -65,6 +67,7 @@ impl From<models::metadata::Metadata> for Metadata {
             supplier: convert_optional(other.supplier),
             licenses: convert_optional(other.licenses),
             properties: convert_optional(other.properties),
+            lifecycles: convert_optional(other.lifecycles),
         }
     }
 }
@@ -80,6 +83,7 @@ impl From<Metadata> for models::metadata::Metadata {
             supplier: convert_optional(other.supplier),
             licenses: convert_optional(other.licenses),
             properties: convert_optional(other.properties),
+            lifecycles: convert_optional(other.lifecycles),
         }
     }
 }
@@ -144,6 +148,10 @@ impl ToXml for Metadata {
             properties.write_xml_element(writer)?;
         }
 
+        if let Some(lifecycles) = &self.lifecycles {
+            lifecycles.write_xml_element(writer)?;
+        }
+
         writer
             .write(XmlEvent::end_element())
             .map_err(to_xml_write_error(METADATA_TAG))?;
@@ -167,6 +175,7 @@ const TOOLS_TAG: &str = "tools";
 const COMPONENT_TAG: &str = "component";
 const LICENSES_TAG: &str = "licenses";
 const PROPERTIES_TAG: &str = "properties";
+const LIFECYCLES_TAG: &str = "lifecycles";
 
 impl FromXml for Metadata {
     fn read_xml_element<R: std::io::Read>(
@@ -185,6 +194,7 @@ impl FromXml for Metadata {
         let mut supplier: Option<OrganizationalEntity> = None;
         let mut licenses: Option<Licenses> = None;
         let mut properties: Option<Properties> = None;
+        let mut lifecycles: Option<Lifecycles> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -248,6 +258,15 @@ impl FromXml for Metadata {
                         &attributes,
                     )?)
                 }
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == LIFECYCLES_TAG => {
+                    lifecycles = Some(Lifecycles::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
+                }
                 // lax validation of any elements from a different schema
                 reader::XmlEvent::StartElement { name, .. } => {
                     read_lax_validation_tag(event_reader, &name)?
@@ -268,6 +287,7 @@ impl FromXml for Metadata {
             supplier,
             licenses,
             properties,
+            lifecycles,
         })
     }
 }
@@ -275,16 +295,19 @@ impl FromXml for Metadata {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
-        specs::common::{
-            organization::test::{
-                corresponding_contact, corresponding_entity, example_contact, example_entity,
+        specs::{
+            common::{
+                organization::test::{
+                    corresponding_contact, corresponding_entity, example_contact, example_entity,
+                },
+                property::test::{corresponding_properties, example_properties},
+                tool::test::{corresponding_tools, example_tools},
             },
-            property::test::{corresponding_properties, example_properties},
-            tool::test::{corresponding_tools, example_tools},
-        },
-        specs::v1_5::{
-            component::test::{corresponding_component, example_component},
-            license::test::{corresponding_licenses, example_licenses},
+            v1_5::{
+                component::test::{corresponding_component, example_component},
+                license::test::{corresponding_licenses, example_licenses},
+                lifecycles::test::{corresponding_lifecycles, example_lifecycles},
+            },
         },
         xml::test::{read_element_from_string, write_element_to_string},
     };
@@ -302,6 +325,7 @@ pub(crate) mod test {
             supplier: Some(example_entity()),
             licenses: Some(example_licenses()),
             properties: Some(example_properties()),
+            lifecycles: Some(example_lifecycles()),
         }
     }
 
@@ -315,6 +339,7 @@ pub(crate) mod test {
             supplier: Some(corresponding_entity()),
             licenses: Some(corresponding_licenses()),
             properties: Some(corresponding_properties()),
+            lifecycles: Some(corresponding_lifecycles()),
         }
     }
 
@@ -472,6 +497,11 @@ pub(crate) mod test {
   <properties>
     <property name="name">value</property>
   </properties>
+  <lifecycles>
+    <lifecycle>
+      <phase>design</phase>
+    </lifecycle>
+  </lifecycles>
 </metadata>
 "#;
         let actual: Metadata = read_element_from_string(input);

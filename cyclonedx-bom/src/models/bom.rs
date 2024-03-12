@@ -642,6 +642,7 @@ mod test {
                 supplier: None,
                 licenses: None,
                 properties: None,
+                lifecycles: None,
             }),
             components: Some(Components(vec![Component {
                 component_type: Classification::UnknownClassification("unknown".to_string()),
@@ -822,6 +823,7 @@ mod test {
                 supplier: None,
                 licenses: None,
                 properties: None,
+                lifecycles: None,
             }),
             components: Some(Components(vec![
                 component_builder("metadata-component"),
