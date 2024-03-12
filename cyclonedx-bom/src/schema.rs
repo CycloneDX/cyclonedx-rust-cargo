@@ -78,6 +78,7 @@ pub fn validate_json_with_schema(
     let schema = match version {
         SpecVersion::V1_3 => include_str!("../schema/bom-1.3.schema.json"),
         SpecVersion::V1_4 => include_str!("../schema/bom-1.4.schema.json"),
+        SpecVersion::V1_5 => include_str!("../schema/bom-1.5.schema.json"),
     };
     let schema: serde_json::Value =
         serde_json::from_str(schema).expect("Failed to parse JSON schema file");
@@ -97,12 +98,12 @@ pub fn validate_json_with_schema(
         .compile(&schema)
         .expect("Failed to compile JSON schema file");
 
-    let result = compiled_schema.validate(&json);
+    let result = compiled_schema.validate(json);
     if let Err(errors) = result {
         let errors = errors.collect::<Vec<_>>();
         dbg!(&errors);
     }
-    compiled_schema.validate(&json).map_err(|iter| {
+    compiled_schema.validate(json).map_err(|iter| {
         iter.map(|err| ValidationError::new(err.instance.to_string(), err.kind, err.instance_path))
             .collect::<Vec<_>>()
     })
