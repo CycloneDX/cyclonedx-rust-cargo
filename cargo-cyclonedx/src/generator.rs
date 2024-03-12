@@ -796,7 +796,7 @@ impl GeneratedSbom {
 
     fn filename(&self, binary_name: Option<&str>, target_kind: &[String]) -> String {
         let output_options = self.sbom_config.output_options();
-        let describe = self.sbom_config.describe.clone().unwrap_or_default();
+        let describe = self.sbom_config.describe.unwrap_or_default();
 
         let mut prefix = match describe {
             Describe::Crate => self.package_name.clone(),

@@ -55,11 +55,8 @@ impl SbomConfig {
                 .clone()
                 .map(|other| self.license_parser.clone().unwrap_or_default().merge(other))
                 .or_else(|| self.license_parser.clone()),
-            describe: other.describe.clone().or_else(|| self.describe.clone()),
-            spec_version: other
-                .spec_version
-                .clone()
-                .or_else(|| self.spec_version.clone()),
+            describe: other.describe.or(self.describe),
+            spec_version: other.spec_version.or(self.spec_version),
         }
     }
 
