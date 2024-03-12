@@ -409,7 +409,8 @@ expression: actual
       "signature": {
         "algorithm": "HS512",
         "value": "1234567890"
-      }
+      },
+      "trustZone": "trust zone"
     }
   ],
   "externalReferences": [

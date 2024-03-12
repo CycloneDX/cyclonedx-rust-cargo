@@ -17,7 +17,7 @@
  */
 
 use crate::{
-    external_models::date_time::DateTime,
+    external_models::date_time::{validate_date_time, DateTime},
     models::{
         component::Component,
         organization::{OrganizationalContact, OrganizationalEntity},
@@ -25,25 +25,21 @@ use crate::{
         signature::Signature,
     },
     prelude::{Validate, ValidationResult},
-    validation::{ValidationContext, ValidationPathComponent},
+    validation::ValidationContext,
 };
+
+use super::bom::SpecVersion;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Annotations(pub Vec<Annotation>);
 
 impl Validate for Annotations {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, annotation) in self.0.iter().enumerate() {
-            let annotation_context =
-                context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(annotation.validate_with_context(annotation_context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, |annotation| {
+                annotation.validate_version(version)
+            })
+            .into()
     }
 }
 
@@ -58,18 +54,11 @@ pub struct Annotation {
 }
 
 impl Validate for Annotation {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        let timestamp_context = context.with_struct("Annotation", "timestamp");
-        results.push(self.timestamp.validate_with_context(timestamp_context));
-
-        let annotator_context = context.with_struct("Annotation", "annotator");
-        results.push(self.annotator.validate_with_context(annotator_context));
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field("timestamp", &self.timestamp, validate_date_time)
+            .add_struct("annotator", &self.annotator, version)
+            .into()
     }
 }
 
@@ -83,28 +72,25 @@ pub enum Annotator {
 }
 
 impl Validate for Annotator {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        let mut context = ValidationContext::new();
         match self {
             Annotator::Organization(organization) => {
-                let organization_context = context
-                    .extend_context(vec![ValidationPathComponent::enum_variant("organization")]);
-                organization.validate_with_context(organization_context)
+                context.add_struct("organization", organization, version);
             }
             Annotator::Individual(contact) => {
-                let individual_context = context
-                    .extend_context(vec![ValidationPathComponent::enum_variant("individual")]);
-                contact.validate_with_context(individual_context)
+                context.add_struct("contact", contact, version);
             }
             Annotator::Component(component) => {
-                let component_context = context
-                    .extend_context(vec![ValidationPathComponent::enum_variant("component")]);
-                component.validate_with_context(component_context)
+                context.add_struct("component", component, version);
             }
             Annotator::Service(service) => {
-                let service_context =
-                    context.extend_context(vec![ValidationPathComponent::enum_variant("service")]);
-                service.validate_with_context(service_context)
+                context.add_struct("service", service, version);
             }
         }
+        context.into()
     }
 }
+
+#[cfg(test)]
+mod test {}

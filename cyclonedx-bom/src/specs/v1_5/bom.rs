@@ -18,6 +18,7 @@
 
 use crate::{
     models::{self, bom::SpecVersion},
+    specs::common::service::v1_5::Services,
     utilities::convert_optional,
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
@@ -32,7 +33,7 @@ use crate::{
     },
     specs::v1_5::{
         annotation::Annotations, component::Components, composition::Compositions,
-        metadata::Metadata, service::Services, vulnerability::Vulnerabilities,
+        metadata::Metadata, vulnerability::Vulnerabilities,
     },
     xml::ToXml,
 };
@@ -407,7 +408,6 @@ pub(crate) mod test {
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };
-
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -814,6 +814,7 @@ pub(crate) mod test {
         <algorithm>HS512</algorithm>
         <value>1234567890</value>
       </signature>
+      <trustZone>trust zone</trustZone>
     </service>
   </services>
   <externalReferences>

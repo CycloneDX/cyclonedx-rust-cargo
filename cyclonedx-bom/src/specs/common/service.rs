@@ -18,7 +18,7 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4")]
+#[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
     use crate::{
         errors::XmlReadError,
@@ -40,10 +40,14 @@ pub(crate) mod base {
         property::Properties,
     };
 
+    #[versioned("1.4", "1.5")]
+    use crate::specs::common::signature::Signature;
     #[versioned("1.3")]
     use crate::specs::v1_3::license::Licenses;
     #[versioned("1.4")]
-    use crate::specs::{common::signature::Signature, v1_4::license::Licenses};
+    use crate::specs::v1_4::license::Licenses;
+    #[versioned("1.5")]
+    use crate::specs::v1_5::license::Licenses;
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(transparent)]
@@ -127,9 +131,12 @@ pub(crate) mod base {
         properties: Option<Properties>,
         #[serde(skip_serializing_if = "Option::is_none")]
         services: Option<Services>,
-        #[versioned("1.4")]
+        #[versioned("1.4", "1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         signature: Option<Signature>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        trust_zone: Option<String>,
     }
 
     impl From<models::service::Service> for Service {
@@ -151,8 +158,10 @@ pub(crate) mod base {
                 external_references: convert_optional(other.external_references),
                 properties: convert_optional(other.properties),
                 services: convert_optional(other.services),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
+                #[versioned("1.5")]
+                trust_zone: other.trust_zone.map(|tz| tz.to_string()),
             }
         }
     }
@@ -178,8 +187,12 @@ pub(crate) mod base {
                 services: convert_optional(other.services),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
+                #[versioned("1.3", "1.4")]
+                trust_zone: None,
+                #[versioned("1.5")]
+                trust_zone: other.trust_zone.map(NormalizedString::new_unchecked),
             }
         }
     }
@@ -196,8 +209,10 @@ pub(crate) mod base {
     const AUTHENTICATED_TAG: &str = "authenticated";
     const X_TRUST_BOUNDARY_TAG: &str = "x-trust-boundary";
     const DATA_TAG: &str = "data";
-    #[versioned("1.4")]
+    #[versioned("1.4", "1.5")]
     const SIGNATURE_TAG: &str = "signature";
+    #[versioned("1.5")]
+    const TRUST_ZONE_TAG: &str = "trustZone";
 
     impl ToXml for Service {
         fn write_xml_element<W: std::io::Write>(
@@ -284,9 +299,14 @@ pub(crate) mod base {
                 services.write_xml_element(writer)?;
             }
 
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             if let Some(signature) = &self.signature {
                 signature.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.5")]
+            if let Some(trust_zone) = &self.trust_zone {
+                write_simple_tag(writer, TRUST_ZONE_TAG, trust_zone)?;
             }
 
             writer
@@ -325,8 +345,10 @@ pub(crate) mod base {
             let mut external_references: Option<ExternalReferences> = None;
             let mut properties: Option<Properties> = None;
             let mut services: Option<Services> = None;
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             let mut signature: Option<Signature> = None;
+            #[versioned("1.5")]
+            let mut trust_zone: Option<String> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -425,7 +447,7 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.4")]
+                    #[versioned("1.4", "1.5")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == SIGNATURE_TAG => {
@@ -434,6 +456,12 @@ pub(crate) mod base {
                             &name,
                             &attributes,
                         )?)
+                    }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == TRUST_ZONE_TAG =>
+                    {
+                        trust_zone = Some(read_simple_tag(event_reader, &name)?)
                     }
 
                     // lax validation of any elements from a different schema
@@ -467,8 +495,10 @@ pub(crate) mod base {
                 external_references,
                 properties,
                 services,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature,
+                #[versioned("1.5")]
+                trust_zone,
             })
         }
     }
@@ -543,13 +573,14 @@ pub(crate) mod base {
     #[cfg(test)]
     pub(crate) mod test {
         use super::*;
+        #[versioned("1.4", "1.5")]
+        use crate::specs::common::signature::test::{corresponding_signature, example_signature};
         #[versioned("1.3")]
         use crate::specs::v1_3::license::test::{corresponding_licenses, example_licenses};
         #[versioned("1.4")]
-        use crate::specs::{
-            common::signature::test::{corresponding_signature, example_signature},
-            v1_4::license::test::{corresponding_licenses, example_licenses},
-        };
+        use crate::specs::v1_4::license::test::{corresponding_licenses, example_licenses};
+        #[versioned("1.5")]
+        use crate::specs::v1_5::license::test::{corresponding_licenses, example_licenses};
         use crate::{
             specs::common::{
                 external_reference::test::{
@@ -585,8 +616,10 @@ pub(crate) mod base {
                 external_references: Some(example_external_references()),
                 properties: Some(example_properties()),
                 services: Some(Services(vec![])),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: Some(example_signature()),
+                #[versioned("1.5")]
+                trust_zone: Some("trust zone".to_string()),
             }
         }
 
@@ -608,8 +641,12 @@ pub(crate) mod base {
                 services: Some(models::service::Services(vec![])),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: Some(corresponding_signature()),
+                #[versioned("1.3", "1.4")]
+                trust_zone: None,
+                #[versioned("1.5")]
+                trust_zone: Some("trust zone".into()),
             }
         }
 
@@ -629,6 +666,7 @@ pub(crate) mod base {
 
         #[test]
         fn it_should_write_xml_full() {
+            // NOTE: this only tests version 1.3 currently
             let xml_output = write_element_to_string(example_services());
             insta::assert_snapshot!(xml_output);
         }
@@ -679,7 +717,7 @@ pub(crate) mod base {
   </service>
 </services>
 "#;
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             let input = r#"
 <services>
   <service bom-ref="bom-ref">
@@ -724,6 +762,7 @@ pub(crate) mod base {
       <algorithm>HS512</algorithm>
      <value>1234567890</value>
     </signature>
+    <trustZone>trust zone</trustZone>
   </service>
 </services>
 "#;

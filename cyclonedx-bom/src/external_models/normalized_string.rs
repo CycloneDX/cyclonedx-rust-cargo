@@ -45,6 +45,12 @@ impl NormalizedString {
     }
 }
 
+impl From<&str> for NormalizedString {
+    fn from(input: &str) -> Self {
+        NormalizedString(input.to_string())
+    }
+}
+
 impl Deref for NormalizedString {
     type Target = str;
 

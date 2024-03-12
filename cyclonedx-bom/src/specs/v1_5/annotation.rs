@@ -25,8 +25,9 @@ use crate::errors::XmlReadError;
 use crate::models::{self};
 use crate::prelude::DateTime;
 use crate::specs::common::organization::{OrganizationalContact, OrganizationalEntity};
+use crate::specs::common::service::v1_5::Service;
 use crate::specs::common::signature::Signature;
-use crate::specs::v1_5::{component::Component, service::Service};
+use crate::specs::v1_5::component::Component;
 use crate::utilities::{convert_optional, convert_vec};
 use crate::xml::{
     read_simple_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
@@ -522,9 +523,10 @@ pub(crate) mod test {
                     test::{example_contact, example_entity},
                     OrganizationalContact, OrganizationalEntity,
                 },
+                service::v1_5::test::example_service,
                 signature::test::example_signature,
             },
-            v1_5::{component::test::example_component, service::test::example_service},
+            v1_5::component::test::example_component,
         },
         xml::test::{read_element_from_string, write_element_to_string},
     };
