@@ -16,14 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-pub(crate) mod advisory;
 pub(crate) mod bom;
 pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod license;
 pub(crate) mod metadata;
 pub(crate) mod service;
-pub(crate) mod signature;
 pub(crate) mod vulnerability;
 pub(crate) mod vulnerability_analysis;
 pub(crate) mod vulnerability_credits;
