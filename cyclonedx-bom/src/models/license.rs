@@ -36,12 +36,6 @@ pub enum LicenseChoice {
     Expression(SpdxExpression),
 }
 
-impl LicenseChoice {
-    pub fn is_license(&self) -> bool {
-        matches!(self, Self::License(_))
-    }
-}
-
 impl Validate for LicenseChoice {
     fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
         let mut results: Vec<ValidationResult> = vec![];
