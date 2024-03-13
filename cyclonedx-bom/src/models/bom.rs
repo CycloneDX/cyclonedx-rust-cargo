@@ -95,7 +95,11 @@ impl Bom {
         mut reader: R,
     ) -> Result<Self, crate::errors::JsonReadError> {
         let json: serde_json::Value = serde_json::from_reader(&mut reader)?;
+        Self::parse_from_json_value(json)
+    }
 
+    /// General function to parse a JSON file, fetches the `specVersion` field first then applies the right conversion.
+    pub fn parse_from_json_value(json: Value) -> Result<Self, crate::errors::JsonReadError> {
         if let Some(version) = json.get("specVersion") {
             let version = version
                 .as_str()
