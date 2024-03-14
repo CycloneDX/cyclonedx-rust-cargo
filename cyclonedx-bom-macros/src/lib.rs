@@ -42,13 +42,33 @@ impl Version {
     }
 }
 
+enum VersionReq {
+    Exactly(Version),
+}
+
+impl FromStr for VersionReq {
+    type Err = <Version as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::Exactly(s.parse()?))
+    }
+}
+
+impl VersionReq {
+    fn matches(&self, version: &Version) -> bool {
+        match self {
+            VersionReq::Exactly(expected_version) => version == expected_version,
+        }
+    }
+}
+
 struct VersionFilter {
     version: Version,
     error: Option<Error>,
 }
 
 impl VersionFilter {
-    fn extract_version(&mut self, attrs: &mut Vec<syn::Attribute>) -> Option<Version> {
+    fn extract_requirement(&mut self, attrs: &mut Vec<syn::Attribute>) -> Option<VersionReq> {
         let mut opt_version = None;
 
         attrs.retain(|attr| {
@@ -72,8 +92,8 @@ impl VersionFilter {
         opt_version
     }
 
-    fn matches(&self, found_version: &Version) -> bool {
-        &self.version == found_version
+    fn matches(&self, requirement: &VersionReq) -> bool {
+        requirement.matches(&self.version)
     }
 
     fn filter_fields(
@@ -83,7 +103,7 @@ impl VersionFilter {
         fields
             .into_pairs()
             .filter_map(
-                |mut pair| match self.extract_version(&mut pair.value_mut().attrs) {
+                |mut pair| match self.extract_requirement(&mut pair.value_mut().attrs) {
                     Some(version) => self.matches(&version).then_some(pair),
                     None => Some(pair),
                 },
@@ -107,7 +127,7 @@ impl Fold for VersionFilter {
         match stmt {
             syn::Stmt::Local(syn::Local { ref mut attrs, .. })
             | syn::Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_version(attrs) {
+                if let Some(version) = self.extract_requirement(attrs) {
                     if !self.matches(&version) {
                         stmt = parse_quote!({};);
                     }
@@ -159,7 +179,7 @@ impl Fold for VersionFilter {
             | Expr::Unsafe(syn::ExprUnsafe { ref mut attrs, .. })
             | Expr::While(syn::ExprWhile { ref mut attrs, .. })
             | Expr::Yield(syn::ExprYield { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_version(attrs) {
+                if let Some(version) = self.extract_requirement(attrs) {
                     if !self.matches(&version) {
                         expr = parse_quote!({});
                     }
@@ -176,7 +196,7 @@ impl Fold for VersionFilter {
             .fields
             .into_pairs()
             .filter_map(
-                |mut pair| match self.extract_version(&mut pair.value_mut().attrs) {
+                |mut pair| match self.extract_requirement(&mut pair.value_mut().attrs) {
                     Some(version) => self.matches(&version).then_some(pair),
                     None => Some(pair),
                 },
@@ -188,7 +208,7 @@ impl Fold for VersionFilter {
 
     fn fold_expr_match(&mut self, mut expr: syn::ExprMatch) -> syn::ExprMatch {
         expr.arms
-            .retain_mut(|arm| match self.extract_version(&mut arm.attrs) {
+            .retain_mut(|arm| match self.extract_requirement(&mut arm.attrs) {
                 Some(version) => self.matches(&version),
                 None => true,
             });
@@ -213,7 +233,7 @@ impl Fold for VersionFilter {
             | Item::Type(syn::ItemType { ref mut attrs, .. })
             | Item::Union(syn::ItemUnion { ref mut attrs, .. })
             | Item::Use(syn::ItemUse { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_version(attrs) {
+                if let Some(version) = self.extract_requirement(attrs) {
                     if !self.matches(&version) {
                         item = parse_quote!(
                             use {};
