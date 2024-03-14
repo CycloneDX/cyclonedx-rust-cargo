@@ -1,14 +1,15 @@
-use std::{error::Error, str::FromStr};
+use std::error::Error as StdError;
+use std::str::FromStr;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use syn::{
     fold::{self, Fold},
-    parse_macro_input, parse_quote,
+    parse_quote,
     punctuated::Punctuated,
     token::Comma,
-    Expr, Item,
+    Error, Expr, Item,
 };
 
 #[derive(PartialEq, Eq)]
@@ -18,12 +19,12 @@ struct Version {
 }
 
 impl FromStr for Version {
-    type Err = Box<dyn Error>;
+    type Err = Box<dyn StdError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (major_str, minor_str) = s
             .split_once('.')
-            .ok_or_else(|| Self::Err::from("versions must have a `.`".to_owned()))?;
+            .ok_or_else(|| Self::Err::from("missing `.`".to_owned()))?;
 
         Ok(Self {
             major: major_str.parse()?,
@@ -33,30 +34,6 @@ impl FromStr for Version {
 }
 
 impl Version {
-    fn extract_from_attrs(attrs: &mut Vec<syn::Attribute>) -> Option<Self> {
-        let mut version = None;
-
-        attrs.retain(|attr| {
-            let path = attr.path();
-
-            if path.is_ident("versioned") {
-                version = Some(
-                    attr.parse_args::<syn::LitStr>()
-                        .expect("expected a string literal")
-                        .value()
-                        .parse()
-                        .expect("cannot parse version"),
-                );
-
-                false
-            } else {
-                true
-            }
-        });
-
-        version
-    }
-
     fn as_ident(&self) -> syn::Ident {
         syn::Ident::new(
             &format!("v{}_{}", self.major, self.minor),
@@ -67,21 +44,46 @@ impl Version {
 
 struct VersionFilter {
     version: Version,
+    error: Option<Error>,
 }
 
 impl VersionFilter {
+    fn extract_version(&mut self, attrs: &mut Vec<syn::Attribute>) -> Option<Version> {
+        let mut opt_version = None;
+
+        attrs.retain(|attr| {
+            let path = attr.path();
+
+            if path.is_ident("versioned") {
+                match attr
+                    .parse_args::<syn::LitStr>()
+                    .and_then(|s| s.value().parse().map_err(|err| Error::new(s.span(), err)))
+                {
+                    Ok(version) => opt_version = Some(version),
+                    Err(err) => self.error = Some(err),
+                }
+
+                false
+            } else {
+                true
+            }
+        });
+
+        opt_version
+    }
+
     fn matches(&self, found_version: &Version) -> bool {
         &self.version == found_version
     }
 
     fn filter_fields(
-        &self,
+        &mut self,
         fields: Punctuated<syn::Field, Comma>,
     ) -> Punctuated<syn::Field, Comma> {
         fields
             .into_pairs()
             .filter_map(
-                |mut pair| match Version::extract_from_attrs(&mut pair.value_mut().attrs) {
+                |mut pair| match self.extract_version(&mut pair.value_mut().attrs) {
                     Some(version) => self.matches(&version).then_some(pair),
                     None => Some(pair),
                 },
@@ -105,7 +107,7 @@ impl Fold for VersionFilter {
         match stmt {
             syn::Stmt::Local(syn::Local { ref mut attrs, .. })
             | syn::Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) => {
-                if let Some(version) = Version::extract_from_attrs(attrs) {
+                if let Some(version) = self.extract_version(attrs) {
                     if !self.matches(&version) {
                         stmt = parse_quote!({};);
                     }
@@ -157,7 +159,7 @@ impl Fold for VersionFilter {
             | Expr::Unsafe(syn::ExprUnsafe { ref mut attrs, .. })
             | Expr::While(syn::ExprWhile { ref mut attrs, .. })
             | Expr::Yield(syn::ExprYield { ref mut attrs, .. }) => {
-                if let Some(version) = Version::extract_from_attrs(attrs) {
+                if let Some(version) = self.extract_version(attrs) {
                     if !self.matches(&version) {
                         expr = parse_quote!({});
                     }
@@ -174,7 +176,7 @@ impl Fold for VersionFilter {
             .fields
             .into_pairs()
             .filter_map(
-                |mut pair| match Version::extract_from_attrs(&mut pair.value_mut().attrs) {
+                |mut pair| match self.extract_version(&mut pair.value_mut().attrs) {
                     Some(version) => self.matches(&version).then_some(pair),
                     None => Some(pair),
                 },
@@ -186,7 +188,7 @@ impl Fold for VersionFilter {
 
     fn fold_expr_match(&mut self, mut expr: syn::ExprMatch) -> syn::ExprMatch {
         expr.arms
-            .retain_mut(|arm| match Version::extract_from_attrs(&mut arm.attrs) {
+            .retain_mut(|arm| match self.extract_version(&mut arm.attrs) {
                 Some(version) => self.matches(&version),
                 None => true,
             });
@@ -211,7 +213,7 @@ impl Fold for VersionFilter {
             | Item::Type(syn::ItemType { ref mut attrs, .. })
             | Item::Union(syn::ItemUnion { ref mut attrs, .. })
             | Item::Use(syn::ItemUse { ref mut attrs, .. }) => {
-                if let Some(version) = Version::extract_from_attrs(attrs) {
+                if let Some(version) = self.extract_version(attrs) {
                     if !self.matches(&version) {
                         item = parse_quote!(
                             use {};
@@ -226,18 +228,25 @@ impl Fold for VersionFilter {
     }
 }
 
-#[proc_macro_attribute]
-pub fn versioned(input: TokenStream, annotated_item: TokenStream) -> TokenStream {
+fn helper(
+    input: TokenStream,
+    annotated_item: TokenStream,
+) -> syn::Result<proc_macro2::TokenStream> {
     // This parses the module being annotated by the `#[versioned(..)]` attribute.
-    let module = parse_macro_input!(annotated_item as syn::ItemMod);
+    let module = syn::parse::<syn::ItemMod>(annotated_item)?;
 
     // This parses the versions passed to the attribute, e.g. the `"1.3"`
     // and `"1.4"`in `#[versioned("1.3", "1.4")]
-    let versions: Vec<Version> =
-        parse_macro_input!(input with Punctuated::<syn::LitStr, Comma>::parse_terminated)
+    let versions =
+        syn::parse::Parser::parse(Punctuated::<syn::LitStr, Comma>::parse_terminated, input)?
             .into_iter()
-            .map(|s| s.value().parse().expect("cannot parse version"))
-            .collect();
+            .map(|s| s.value().parse().map_err(|err| Error::new(s.span(), err)))
+            .collect::<syn::Result<Vec<Version>>>()?;
+
+    let content = module
+        .content
+        .as_ref()
+        .ok_or_else(|| Error::new(module.ident.span(), "found module without content"))?;
 
     let mut tokens = proc_macro2::TokenStream::new();
 
@@ -245,14 +254,20 @@ pub fn versioned(input: TokenStream, annotated_item: TokenStream) -> TokenStream
         let mod_vis = &module.vis;
         let mod_ident = version.as_ident();
 
-        let (_, items) = module.content.clone().unwrap();
+        let items = content.1.clone();
 
         let mut folded_items = Vec::new();
 
-        let mut filter = VersionFilter { version };
+        let mut filter = VersionFilter {
+            version,
+            error: None,
+        };
 
         for item in items {
             folded_items.push(filter.fold_item(item));
+            if let Some(error) = filter.error {
+                return Err(error);
+            }
         }
 
         tokens.extend(quote! {
@@ -262,5 +277,18 @@ pub fn versioned(input: TokenStream, annotated_item: TokenStream) -> TokenStream
         })
     }
 
-    tokens.into()
+    Ok(tokens)
+}
+
+#[proc_macro_attribute]
+pub fn versioned(input: TokenStream, annotated_item: TokenStream) -> TokenStream {
+    match helper(input, annotated_item) {
+        Ok(tokens) => tokens,
+        Err(err) => Error::new(
+            err.span(),
+            format!("{err} while using the `#[versioned]` macro"),
+        )
+        .into_compile_error(),
+    }
+    .into()
 }
