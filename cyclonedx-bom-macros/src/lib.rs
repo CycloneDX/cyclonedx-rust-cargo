@@ -253,7 +253,8 @@ fn helper(
     annotated_item: TokenStream,
 ) -> syn::Result<proc_macro2::TokenStream> {
     // This parses the module being annotated by the `#[versioned(..)]` attribute.
-    let module = syn::parse::<syn::ItemMod>(annotated_item)?;
+    let module = syn::parse::<syn::ItemMod>(annotated_item)
+        .map_err(|err| Error::new(err.span(), format!("cannot parse module: {err}")))?;
 
     // This parses the versions passed to the attribute, e.g. the `"1.3"`
     // and `"1.4"`in `#[versioned("1.3", "1.4")]
