@@ -1,5 +1,5 @@
 error[E0428]: the name `Foo` is defined multiple times
-  --> tests/ui/fail/duplicated_struct.rs:10:5
+  --> $DIR/duplicated_struct.rs:10:5
    |
 7  |     pub struct Foo;
    |     --------------- previous definition of the type `Foo` here

@@ -1,5 +1,5 @@
 error: cannot parse module: expected `mod` while using the `#[versioned]` macro
- --> tests/ui/fail/struct.rs:4:1
+ --> $DIR/struct.rs:4:1
   |
 4 | struct Foo;
   | ^^^^^^
