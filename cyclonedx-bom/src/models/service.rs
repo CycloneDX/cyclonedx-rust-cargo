@@ -16,15 +16,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::external_models::normalized_string::validate_normalized_string;
+use crate::external_models::uri::validate_uri;
 use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::license::Licenses;
 use crate::models::organization::OrganizationalEntity;
 use crate::models::property::Properties;
-use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
+use super::bom::SpecVersion;
 use super::signature::Signature;
 
 /// Represents a service as described in the [CycloneDX use cases](https://cyclonedx.org/use-cases/#service-definition)
@@ -79,90 +80,30 @@ impl Service {
 }
 
 impl Validate for Service {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(provider) = &self.provider {
-            let context = context.with_struct("Service", "provider");
-
-            results.push(provider.validate_with_context(context));
-        }
-
-        if let Some(group) = &self.group {
-            let context = context.with_struct("Service", "group");
-
-            results.push(group.validate_with_context(context));
-        }
-
-        let name_context = context.with_struct("Service", "name");
-
-        results.push(self.name.validate_with_context(name_context));
-
-        if let Some(version) = &self.version {
-            let context = context.with_struct("Service", "version");
-
-            results.push(version.validate_with_context(context));
-        }
-
-        if let Some(description) = &self.description {
-            let context = context.with_struct("Service", "description");
-
-            results.push(description.validate_with_context(context));
-        }
-
-        if let Some(endpoints) = &self.endpoints {
-            for (index, endpoint) in endpoints.iter().enumerate() {
-                let context = context.extend_context(vec![
-                    ValidationPathComponent::Struct {
-                        struct_name: "Service".to_string(),
-                        field_name: "endpoints".to_string(),
-                    },
-                    ValidationPathComponent::Array { index },
-                ]);
-                results.push(endpoint.validate_with_context(context));
-            }
-        }
-
-        if let Some(data) = &self.data {
-            for (index, classification) in data.iter().enumerate() {
-                let context = context.extend_context(vec![
-                    ValidationPathComponent::Struct {
-                        struct_name: "Service".to_string(),
-                        field_name: "data".to_string(),
-                    },
-                    ValidationPathComponent::Array { index },
-                ]);
-                results.push(classification.validate_with_context(context));
-            }
-        }
-
-        if let Some(licenses) = &self.licenses {
-            let context = context.with_struct("Service", "licenses");
-
-            results.push(licenses.validate_with_context(context));
-        }
-
-        if let Some(external_references) = &self.external_references {
-            let context = context.with_struct("Service", "external_references");
-
-            results.push(external_references.validate_with_context(context));
-        }
-
-        if let Some(properties) = &self.properties {
-            let context = context.with_struct("Service", "properties");
-
-            results.push(properties.validate_with_context(context));
-        }
-
-        if let Some(services) = &self.services {
-            let context = context.with_struct("Service", "services");
-
-            results.push(services.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_struct_option("provider", self.provider.as_ref(), version)
+            .add_field_option("group", self.group.as_ref(), validate_normalized_string)
+            .add_field("name", &self.name, validate_normalized_string)
+            .add_field_option("version", self.version.as_ref(), validate_normalized_string)
+            .add_field_option(
+                "description",
+                self.description.as_ref(),
+                validate_normalized_string,
+            )
+            .add_list_option("endpoints", self.endpoints.as_ref(), validate_uri)
+            .add_list_option("data", self.data.as_ref(), |data| {
+                data.validate_version(version)
+            })
+            .add_struct_option("licenses", self.licenses.as_ref(), version)
+            .add_struct_option(
+                "external_references",
+                self.external_references.as_ref(),
+                version,
+            )
+            .add_struct_option("properties", self.properties.as_ref(), version)
+            .add_struct_option("services", self.services.as_ref(), version)
+            .into()
     }
 }
 
@@ -170,18 +111,20 @@ impl Validate for Service {
 pub struct Services(pub Vec<Service>);
 
 impl Validate for Services {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, service) in self.0.iter().enumerate() {
-            let context = context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(service.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, |service| {
+                service.validate_version(version)
+            })
+            .into()
     }
+}
+
+pub fn validate_data_flow_type(data_flow_type: &DataFlowType) -> Result<(), ValidationError> {
+    if matches!(data_flow_type, DataFlowType::UnknownDataFlow(_)) {
+        return Err(ValidationError::new("Unknown data flow type"));
+    }
+    Ok(())
 }
 
 /// Represents the data classification and data flow
@@ -194,23 +137,15 @@ pub struct DataClassification {
 }
 
 impl Validate for DataClassification {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        let flow_context = context.with_struct("DataClassification", "flow");
-
-        results.push(self.flow.validate_with_context(flow_context));
-
-        let classification_context = context.with_struct("DataClassification", "classification");
-
-        results.push(
-            self.classification
-                .validate_with_context(classification_context),
-        );
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_enum("flow", &self.flow, validate_data_flow_type)
+            .add_enum(
+                "classification",
+                &self.classification,
+                validate_normalized_string,
+            )
+            .into()
     }
 }
 
@@ -252,20 +187,6 @@ impl DataFlowType {
     }
 }
 
-impl Validate for DataFlowType {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        match self {
-            DataFlowType::UnknownDataFlow(_) => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Unknown data flow type".to_string(),
-                    context,
-                }],
-            },
-            _ => ValidationResult::Passed,
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use crate::{
@@ -276,6 +197,7 @@ mod test {
             property::Property,
             signature::Algorithm,
         },
+        validation,
     };
 
     use super::*;
@@ -319,7 +241,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -380,180 +302,114 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "provider".to_string()
-                            },
-                            ValidationPathComponent::Struct {
-                                struct_name: "OrganizationalEntity".to_string(),
-                                field_name: "name".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "group".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "name".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "version".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "description".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message: "Uri does not conform to RFC 3986".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "endpoints".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                        ])
-                    },
-                    FailureReason {
-                        message: "Unknown data flow type".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "data".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "DataClassification".to_string(),
-                                field_name: "flow".to_string()
-                            }
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "data".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "DataClassification".to_string(),
-                                field_name: "classification".to_string()
-                            }
-                        ])
-                    },
-                    FailureReason {
-                        message: "SPDX expression is not valid".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "licenses".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::EnumVariant {
-                                variant_name: "Expression".to_string()
-                            },
-                        ])
-                    },
-                    FailureReason {
-                        message: "Unknown external reference type".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "external_references".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "ExternalReference".to_string(),
-                                field_name: "external_reference_type".to_string()
-                            }
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "properties".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Property".to_string(),
-                                field_name: "value".to_string()
-                            }
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "services".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "Service".to_string(),
-                                field_name: "name".to_string()
-                            },
-                        ])
-                    },
-                ]
-            }
+            vec![
+                validation::list(
+                    "inner",
+                    [(
+                        0,
+                        vec![
+                            validation::r#struct(
+                                "provider",
+                                validation::field(
+                                    "name",
+                                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                                )
+                            ),
+                            validation::field(
+                                "group",
+                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                            ),
+                            validation::field(
+                                "name",
+                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                            ),
+                            validation::field(
+                                "version",
+                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                            ),
+                            validation::field(
+                                "description",
+                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                            ),
+                            validation::list(
+                                "endpoints",
+                                [(
+                                    0,
+                                    validation::custom("", ["Uri does not conform to RFC 3986"])
+                                )]
+                            ),
+                            validation::list(
+                                "data",
+                                [(
+                                    0,
+                                    vec![
+                                        validation::r#enum(
+                                            "flow",
+                                            "Unknown data flow type"
+                                        ),
+                                        validation::r#enum(
+                                            "classification",
+                                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                                        )
+                                    ]
+                                )]
+                            ),
+                            validation::r#struct(
+                                "licenses",
+                                validation::list(
+                                    "inner",
+                                    [(
+                                        0,
+                                        validation::r#enum(
+                                            "expression",
+                                            "SPDX expression is not valid"
+                                        )
+                                    )]
+                                )
+                            ),
+                            validation::r#struct(
+                                "external_references",
+                                validation::list(
+                                    "inner",
+                                    [(
+                                        0,
+                                        validation::field(
+                                            "external_reference_type",
+                                            "Unknown external reference type"
+                                        )
+                                    )]
+                                )
+                            ),
+                            validation::r#struct(
+                                "properties",
+                                validation::list(
+                                    "inner",
+                                    [(
+                                        0,
+                                        validation::field(
+                                            "value",
+                                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                                        )
+                                    )]
+                                )
+                            ),
+                            validation::r#struct(
+                                "services",
+                                validation::list(
+                                    "inner",
+                                    [(
+                                        0,
+                                        validation::field(
+                                            "name",
+                                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                                        )
+                                    )]
+                                )
+                            )
+                        ]
+                    )]
+                )
+            ].into()
         );
     }
 }

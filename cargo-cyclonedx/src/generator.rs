@@ -50,7 +50,6 @@ use cyclonedx_bom::models::metadata::MetadataError;
 use cyclonedx_bom::models::organization::OrganizationalContact;
 use cyclonedx_bom::models::tool::{Tool, Tools};
 use cyclonedx_bom::validation::Validate;
-use cyclonedx_bom::validation::ValidationResult;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -714,8 +713,11 @@ impl GeneratedSbom {
         // If running in debug mode, validate that the SBOM is self-consistent and well-formed
         if cfg!(debug_assertions) {
             let result = bom.validate();
-            if let ValidationResult::Failed { reasons } = result {
-                panic!("The generated SBOM failed validation: {:?}", &reasons);
+            if result.has_errors() {
+                panic!(
+                    "The generated SBOM failed validation: {:?}",
+                    result.errors()
+                );
             }
         }
 
@@ -796,7 +798,7 @@ impl GeneratedSbom {
 
     fn filename(&self, binary_name: Option<&str>, target_kind: &[String]) -> String {
         let output_options = self.sbom_config.output_options();
-        let describe = self.sbom_config.describe.clone().unwrap_or_default();
+        let describe = self.sbom_config.describe.unwrap_or_default();
 
         let mut prefix = match describe {
             Describe::Crate => self.package_name.clone(),

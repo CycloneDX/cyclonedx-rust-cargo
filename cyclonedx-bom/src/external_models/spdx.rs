@@ -21,7 +21,7 @@ use std::convert::TryFrom;
 use spdx::{Expression, ParseMode};
 use thiserror::Error;
 
-use crate::validation::{Validate, ValidationResult};
+use crate::validation::ValidationError;
 
 /// An identifier for a single, specific license
 ///
@@ -80,15 +80,10 @@ impl ToString for SpdxIdentifier {
     }
 }
 
-impl Validate for SpdxIdentifier {
-    fn validate_with_context(
-        &self,
-        context: crate::validation::ValidationContext,
-    ) -> ValidationResult {
-        match Self::try_from(self.0.clone()) {
-            Ok(_) => ValidationResult::Passed,
-            Err(_) => ValidationResult::failure("SPDX identifier is not valid", context),
-        }
+pub fn validate_spdx_identifier(identifier: &SpdxIdentifier) -> Result<(), ValidationError> {
+    match SpdxIdentifier::try_from(identifier.0.to_string()) {
+        Err(_error) => Err(ValidationError::new("SPDX identifier is not valid")),
+        _ => Ok(()),
     }
 }
 
@@ -175,16 +170,11 @@ impl ToString for SpdxExpression {
     }
 }
 
-impl Validate for SpdxExpression {
-    fn validate_with_context(
-        &self,
-        context: crate::validation::ValidationContext,
-    ) -> ValidationResult {
-        match SpdxExpression::try_from(self.0.clone()) {
-            Ok(_) => ValidationResult::Passed,
-            Err(_) => ValidationResult::failure("SPDX expression is not valid", context),
-        }
+pub fn validate_spdx_expression(expression: &SpdxExpression) -> Result<(), ValidationError> {
+    if Expression::parse(&expression.0).is_err() {
+        return Err(ValidationError::new("SPDX expression is not valid"));
     }
+    Ok(())
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -198,8 +188,6 @@ pub enum SpdxExpressionError {
 
 #[cfg(test)]
 mod test {
-    use crate::validation::{ValidationContext, ValidationResult};
-
     use super::*;
     use pretty_assertions::assert_eq;
 
@@ -247,18 +235,19 @@ mod test {
 
     #[test]
     fn valid_spdx_identifiers_should_pass_validation() {
-        let validation_result = SpdxIdentifier("MIT".to_string()).validate();
+        let validaton_result = validate_spdx_identifier(&SpdxIdentifier("MIT".to_string()));
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validaton_result.is_ok());
     }
 
     #[test]
     fn invalid_spdx_identifiers_should_fail_validation() {
-        let validation_result = SpdxIdentifier("MIT OR Apache-2.0".to_string()).validate();
+        let validation_result =
+            validate_spdx_identifier(&SpdxIdentifier("MIT OR Apache-2.0".to_string()));
 
         assert_eq!(
             validation_result,
-            ValidationResult::failure("SPDX identifier is not valid", ValidationContext::default()),
+            Err("SPDX identifier is not valid".into()),
         );
     }
 
@@ -288,18 +277,20 @@ mod test {
 
     #[test]
     fn valid_spdx_expressions_should_pass_validation() {
-        let validation_result = SpdxExpression("MIT OR Apache-2.0".to_string()).validate();
+        let validation_result =
+            validate_spdx_expression(&SpdxExpression("MIT OR Apache-2.0".to_string()));
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.is_ok());
     }
 
     #[test]
     fn invalid_spdx_expressions_should_fail_validation() {
-        let validation_result = SpdxExpression("not a real license".to_string()).validate();
+        let validation_result =
+            validate_spdx_expression(&SpdxExpression("not a real license".to_string()));
 
         assert_eq!(
             validation_result,
-            ValidationResult::failure("SPDX expression is not valid", ValidationContext::default())
+            Err("SPDX expression is not valid".into()),
         );
     }
 }

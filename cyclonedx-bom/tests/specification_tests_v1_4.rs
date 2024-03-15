@@ -1,6 +1,6 @@
 mod v1_4 {
-    use cyclonedx_bom::models::bom::Bom;
-    use cyclonedx_bom::validation::{Validate, ValidationResult};
+    use cyclonedx_bom::models::bom::{Bom, SpecVersion};
+    use cyclonedx_bom::validation::Validate;
 
     #[test]
     fn it_should_parse_all_of_the_valid_xml_specifications() {
@@ -12,10 +12,9 @@ mod v1_4 {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 let bom = Bom::parse_from_xml_v1_4(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
-                let validation_result = bom.validate();
-                assert_eq!(
-                    validation_result,
-                    ValidationResult::Passed,
+                let validation_result = bom.validate_version(SpecVersion::V1_4);
+                assert!(
+                    validation_result.passed(),
                     "{path:?} unexpectedly failed validation"
                 );
 
@@ -39,10 +38,9 @@ mod v1_4 {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 let bom = Bom::parse_from_json_v1_4(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
-                let validation_result = bom.validate();
-                assert_eq!(
-                    validation_result,
-                    ValidationResult::Passed,
+                let validation_result = bom.validate_version(SpecVersion::V1_4);
+                assert!(
+                    validation_result.passed(),
                     "{path:?} unexpectedly failed validation"
                 );
 
@@ -65,10 +63,9 @@ mod v1_4 {
             insta::glob!("spec/1.4/invalid*.xml", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_xml_v1_4(file) {
-                    let validation_result = bom.validate();
-                    assert_ne!(
-                        validation_result,
-                        ValidationResult::Passed,
+                    let validation_result = bom.validate_version(SpecVersion::V1_4);
+                    assert!(
+                        validation_result.has_errors(),
                         "{path:?} unexpectedly passed validation"
                     );
                 }
@@ -85,10 +82,9 @@ mod v1_4 {
             insta::glob!("spec/1.4/invalid*.json", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
                 if let Ok(bom) = Bom::parse_from_json_v1_4(file) {
-                    let validation_result = bom.validate();
-                    assert_ne!(
-                        validation_result,
-                        ValidationResult::Passed,
+                    let validation_result = bom.validate_version(SpecVersion::V1_4);
+                    assert!(
+                        validation_result.has_errors(),
                         "{path:?} unexpectedly passed validation"
                     );
                 }

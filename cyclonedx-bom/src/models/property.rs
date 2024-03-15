@@ -17,9 +17,11 @@
  */
 
 use crate::{
-    external_models::normalized_string::NormalizedString,
-    validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult},
+    external_models::normalized_string::{validate_normalized_string, NormalizedString},
+    validation::{Validate, ValidationContext, ValidationResult},
 };
+
+use super::bom::SpecVersion;
 
 /// Represents a name-value store that can be used to describe additional data about the components, services, or the BOM that
 /// isn’t native to the core specification.
@@ -30,18 +32,12 @@ use crate::{
 pub struct Properties(pub Vec<Property>);
 
 impl Validate for Properties {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, property) in self.0.iter().enumerate() {
-            let property_context =
-                context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(property.validate_with_context(property_context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, |property| {
+                property.validate_version(version)
+            })
+            .into()
     }
 }
 
@@ -70,24 +66,22 @@ impl Property {
 }
 
 impl Validate for Property {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        let value_context = context.with_struct("Property", "value");
-
-        results.push(self.value.validate_with_context(value_context));
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field("value", &self.value, validate_normalized_string)
+            .into()
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::validation::FailureReason;
+    use crate::{
+        models::property::{Properties, Property},
+        prelude::NormalizedString,
+        validation,
+    };
     use pretty_assertions::assert_eq;
+    use validation::Validate;
 
     #[test]
     fn it_should_pass_validation() {
@@ -97,7 +91,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -110,19 +104,16 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context: ValidationContext(vec![
-                        ValidationPathComponent::Array { index: 0 },
-                        ValidationPathComponent::Struct {
-                            struct_name: "Property".to_string(),
-                            field_name: "value".to_string(),
-                        },
-                    ]),
-                }],
-            }
+            validation::list(
+                "inner",
+                [(
+                    0,
+                    validation::field(
+                        "value",
+                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                    )
+                )]
+            ),
         );
     }
 }

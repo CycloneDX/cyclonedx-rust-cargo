@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use cargo_metadata::{camino::Utf8Path, Package};
-use cyclonedx_bom::prelude::Purl as CdxPurl;
+use cyclonedx_bom::{external_models::uri::validate_purl, prelude::Purl as CdxPurl};
 use pathdiff::diff_utf8_paths;
 use purl::{PackageError, PackageType, PurlBuilder};
 
@@ -81,8 +81,7 @@ fn to_purl_subpath(path: &Utf8Path) -> String {
 }
 
 fn assert_validation_passes(purl: &CdxPurl) {
-    use cyclonedx_bom::validation::{Validate, ValidationResult};
-    assert_eq!(purl.validate(), ValidationResult::Passed);
+    assert!(validate_purl(purl).is_ok());
 }
 
 #[cfg(test)]

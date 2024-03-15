@@ -16,8 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use crate::external_models::normalized_string::validate_normalized_string;
+use crate::external_models::uri::validate_uri;
 use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::validation::{Validate, ValidationContext, ValidationResult};
+
+use super::bom::SpecVersion;
 
 /// Represents an advisory, a notification of a threat to a component, service, or system.
 ///
@@ -45,21 +49,11 @@ impl Advisory {
 }
 
 impl Validate for Advisory {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(title) = &self.title {
-            let context = context.with_struct("Advisory", "title");
-
-            results.push(title.validate_with_context(context));
-        }
-
-        let url_context = context.with_struct("Advisory", "url");
-        results.push(self.url.validate_with_context(url_context));
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("title", self.title.as_ref(), validate_normalized_string)
+            .add_field("url", &self.url, validate_uri)
+            .into()
     }
 }
 
@@ -67,17 +61,12 @@ impl Validate for Advisory {
 pub struct Advisories(pub Vec<Advisory>);
 
 impl Validate for Advisories {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, advisory) in self.0.iter().enumerate() {
-            let context = context.with_index(index);
-            results.push(advisory.validate_with_context(context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, |advisory| {
+                advisory.validate_version(version)
+            })
+            .into()
     }
 }
 
@@ -85,7 +74,7 @@ impl Validate for Advisories {
 mod test {
     use crate::{
         external_models::{normalized_string::NormalizedString, uri::Uri},
-        validation::FailureReason,
+        validation,
     };
 
     use super::*;
@@ -99,7 +88,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -112,22 +101,19 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason::new(
-                        "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n",
-                        ValidationContext::new()
-                            .with_index(0)
-                            .with_struct("Advisory", "title")
-                    ),
-                    FailureReason::new(
-                        "Uri does not conform to RFC 3986",
-                        ValidationContext::new()
-                            .with_index(0)
-                            .with_struct("Advisory", "url")
-                    )
-                ]
-            }
+            validation::list(
+                "inner",
+                [(
+                    0,
+                    vec![
+                        validation::field(
+                            "title",
+                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                        ),
+                        validation::field("url", "Uri does not conform to RFC 3986")
+                    ]
+                )]
+            )
         );
     }
 }

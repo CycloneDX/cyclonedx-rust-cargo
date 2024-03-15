@@ -17,9 +17,14 @@
  */
 
 use crate::{
-    external_models::{normalized_string::NormalizedString, uri::Uri},
-    validation::{Validate, ValidationContext, ValidationPathComponent, ValidationResult},
+    external_models::{
+        normalized_string::{validate_normalized_string, NormalizedString},
+        uri::{validate_uri, Uri},
+    },
+    validation::{Validate, ValidationContext, ValidationResult},
 };
+
+use super::bom::SpecVersion;
 
 /// Represents the contact information for an organization
 ///
@@ -48,29 +53,12 @@ impl OrganizationalContact {
 }
 
 impl Validate for OrganizationalContact {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut name_result = ValidationResult::default();
-        if let Some(name) = &self.name {
-            let name_context = context.with_struct("OrganizationalContact", "name");
-
-            name_result = name.validate_with_context(name_context);
-        }
-
-        let mut email_result = ValidationResult::default();
-        if let Some(email) = &self.email {
-            let email_context = context.with_struct("OrganizationalContact", "email");
-
-            email_result = email.validate_with_context(email_context);
-        }
-
-        let mut phone_result = ValidationResult::default();
-        if let Some(phone) = &self.phone {
-            let phone_context = context.with_struct("OrganizationalContact", "phone");
-
-            phone_result = phone.validate_with_context(phone_context);
-        }
-
-        name_result.merge(email_result).merge(phone_result)
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("name", self.name.as_ref(), validate_normalized_string)
+            .add_field_option("email", self.email.as_ref(), validate_normalized_string)
+            .add_field_option("phone", self.phone.as_ref(), validate_normalized_string)
+            .into()
     }
 }
 
@@ -85,54 +73,26 @@ pub struct OrganizationalEntity {
 }
 
 impl Validate for OrganizationalEntity {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        if let Some(name) = &self.name {
-            let name_context = context.with_struct("OrganizationalEntity", "name");
-
-            results.push(name.validate_with_context(name_context));
-        }
-
-        if let Some(urls) = &self.url {
-            for (index, url) in urls.iter().enumerate() {
-                let uri_context = context.extend_context(vec![
-                    ValidationPathComponent::Struct {
-                        struct_name: "OrganizationalEntity".to_string(),
-                        field_name: "url".to_string(),
-                    },
-                    ValidationPathComponent::Array { index },
-                ]);
-
-                results.push(url.validate_with_context(uri_context));
-            }
-        }
-
-        if let Some(contacts) = &self.contact {
-            for (index, contact) in contacts.iter().enumerate() {
-                let uri_context = context.extend_context(vec![
-                    ValidationPathComponent::Struct {
-                        struct_name: "OrganizationalEntity".to_string(),
-                        field_name: "contact".to_string(),
-                    },
-                    ValidationPathComponent::Array { index },
-                ]);
-                results.push(contact.validate_with_context(uri_context));
-            }
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("name", self.name.as_ref(), validate_normalized_string)
+            .add_list_option("url", self.url.as_ref(), validate_uri)
+            .add_list_option("contact", self.contact.as_ref(), |contact| {
+                contact.validate_version(version)
+            })
+            .into()
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::validation::{FailureReason, ValidationPathComponent};
-
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use crate::{
+        models::organization::{OrganizationalContact, OrganizationalEntity},
+        prelude::{NormalizedString, Uri, Validate},
+        validation,
+    };
 
     #[test]
     fn it_should_validate_an_empty_contact_as_passed() {
@@ -142,7 +102,7 @@ mod test {
             phone: None,
         };
         let actual = contact.validate();
-        assert_eq!(actual, ValidationResult::Passed);
+        assert!(actual.passed());
     }
 
     #[test]
@@ -153,19 +113,14 @@ mod test {
             phone: None,
         };
         let actual = contact.validate();
+
         assert_eq!(
             actual,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context: ValidationContext(vec![ValidationPathComponent::Struct {
-                        struct_name: "OrganizationalContact".to_string(),
-                        field_name: "name".to_string()
-                    }])
-                }]
-            }
-        )
+            validation::field(
+                "name",
+                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+            )
+        );
     }
 
     #[test]
@@ -180,40 +135,25 @@ mod test {
             )),
         };
         let actual = contact.validate();
+
         assert_eq!(
             actual,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "OrganizationalContact".to_string(),
-                            field_name: "name".to_string()
-                        }])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "OrganizationalContact".to_string(),
-                            field_name: "email".to_string()
-                        }])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "OrganizationalContact".to_string(),
-                            field_name: "phone".to_string()
-                        }])
-                    }
-                ]
-            }
-        )
+            vec![
+                validation::field(
+                    "name",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                ),
+                validation::field(
+                    "email",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                ),
+                validation::field(
+                    "phone",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                )
+            ]
+            .into()
+        );
     }
 
     #[test]
@@ -224,19 +164,14 @@ mod test {
             contact: None,
         };
         let actual = entity.validate();
+
         assert_eq!(
             actual,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                        .to_string(),
-                    context: ValidationContext(vec![ValidationPathComponent::Struct {
-                        struct_name: "OrganizationalEntity".to_string(),
-                        field_name: "name".to_string()
-                    }])
-                }]
-            }
-        )
+            validation::field(
+                "name",
+                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+            )
+        );
     }
 
     #[test]
@@ -251,47 +186,33 @@ mod test {
             }]),
         };
         let actual = entity.validate();
+
         assert_eq!(
             actual,
-            ValidationResult::Failed {
-                reasons: vec![
-                    FailureReason {
-                        message:
+            vec![
+                validation::field(
+                    "name",
+                    "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                ),
+                validation::list(
+                    "url",
+                    [(
+                        0,
+                        validation::custom("", ["Uri does not conform to RFC 3986"])
+                    )]
+                ),
+                validation::list(
+                    "contact",
+                    [(
+                        0,
+                        validation::field(
+                            "name",
                             "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![ValidationPathComponent::Struct {
-                            struct_name: "OrganizationalEntity".to_string(),
-                            field_name: "name".to_string()
-                        }])
-                    },
-                    FailureReason {
-                        message: "Uri does not conform to RFC 3986".to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Struct {
-                                struct_name: "OrganizationalEntity".to_string(),
-                                field_name: "url".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 }
-                        ])
-                    },
-                    FailureReason {
-                        message:
-                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                .to_string(),
-                        context: ValidationContext(vec![
-                            ValidationPathComponent::Struct {
-                                struct_name: "OrganizationalEntity".to_string(),
-                                field_name: "contact".to_string()
-                            },
-                            ValidationPathComponent::Array { index: 0 },
-                            ValidationPathComponent::Struct {
-                                struct_name: "OrganizationalContact".to_string(),
-                                field_name: "name".to_string()
-                            }
-                        ])
-                    }
-                ]
-            }
-        )
+                        )
+                    )]
+                )
+            ]
+            .into()
+        );
     }
 }

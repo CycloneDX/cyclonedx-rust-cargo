@@ -16,6 +16,7 @@ rust-version.workspace = true
 [dependencies]
 base64 = "0.21.2"
 fluent-uri = "0.1.4"
+indexmap = "2.2.2"
 once_cell = "1.18.0"
 ordered-float = { version = "4.2.0", default-features = false }
 packageurl = "0.3.0"

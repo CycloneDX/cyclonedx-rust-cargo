@@ -16,11 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::validation::{
-    FailureReason, Validate, ValidationContext, ValidationPathComponent, ValidationResult,
-};
+use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
-use super::signature::Signature;
+use super::{bom::SpecVersion, signature::Signature};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Composition {
@@ -31,16 +29,10 @@ pub struct Composition {
 }
 
 impl Validate for Composition {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        let aggregate_context = context.with_struct("Composition", "aggregate");
-
-        results.push(self.aggregate.validate_with_context(aggregate_context));
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field("aggregate", &self.aggregate, validate_aggregate_type)
+            .into()
     }
 }
 
@@ -48,19 +40,21 @@ impl Validate for Composition {
 pub struct Compositions(pub Vec<Composition>);
 
 impl Validate for Compositions {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        let mut results: Vec<ValidationResult> = vec![];
-
-        for (index, composition) in self.0.iter().enumerate() {
-            let composition_context =
-                context.extend_context(vec![ValidationPathComponent::Array { index }]);
-            results.push(composition.validate_with_context(composition_context));
-        }
-
-        results
-            .into_iter()
-            .fold(ValidationResult::default(), |acc, result| acc.merge(result))
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("composition", &self.0, |composition| {
+                composition.validate_version(version)
+            })
+            .into()
     }
+}
+
+/// Validates the given [`AggregateType`].
+pub fn validate_aggregate_type(aggregate_type: &AggregateType) -> Result<(), ValidationError> {
+    if matches!(aggregate_type, AggregateType::UnknownAggregateType(_)) {
+        return Err(ValidationError::new("Unknown aggregate type"));
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -104,26 +98,12 @@ impl AggregateType {
     }
 }
 
-impl Validate for AggregateType {
-    fn validate_with_context(&self, context: ValidationContext) -> ValidationResult {
-        match self {
-            AggregateType::UnknownAggregateType(_) => ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Unknown aggregate type".to_string(),
-                    context,
-                }],
-            },
-            _ => ValidationResult::Passed,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BomReference(pub(crate) String);
 
 #[cfg(test)]
 mod test {
-    use crate::models::signature::Algorithm;
+    use crate::{models::signature::Algorithm, validation};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -138,7 +118,7 @@ mod test {
         }])
         .validate();
 
-        assert_eq!(validation_result, ValidationResult::Passed);
+        assert!(validation_result.passed());
     }
 
     #[test]
@@ -153,18 +133,13 @@ mod test {
 
         assert_eq!(
             validation_result,
-            ValidationResult::Failed {
-                reasons: vec![FailureReason {
-                    message: "Unknown aggregate type".to_string(),
-                    context: ValidationContext(vec![
-                        ValidationPathComponent::Array { index: 0 },
-                        ValidationPathComponent::Struct {
-                            struct_name: "Composition".to_string(),
-                            field_name: "aggregate".to_string()
-                        }
-                    ])
-                }]
-            }
+            validation::list(
+                "composition",
+                [(
+                    0,
+                    validation::r#field("aggregate", "Unknown aggregate type")
+                )]
+            )
         );
     }
 }
