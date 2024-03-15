@@ -42,12 +42,6 @@ pub enum LicenseChoice {
     Expression(SpdxExpression),
 }
 
-impl LicenseChoice {
-    pub fn is_license(&self) -> bool {
-        matches!(self, Self::License(_))
-    }
-}
-
 impl Validate for LicenseChoice {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         let mut context = ValidationContext::new();
