@@ -32,11 +32,9 @@ use xml::{reader, writer::XmlEvent};
 
 use crate::specs::common::{
     external_reference::ExternalReferences, organization::OrganizationalEntity,
-    property::Properties,
+    property::Properties, signature::Signature,
 };
 use crate::specs::v1_4::license::Licenses;
-
-use super::signature::Signature;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -530,11 +528,9 @@ pub(crate) mod test {
             },
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
-        },
-        specs::v1_4::{
-            license::test::{corresponding_licenses, example_licenses},
             signature::test::{corresponding_signature, example_signature},
         },
+        specs::v1_4::license::test::{corresponding_licenses, example_licenses},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 

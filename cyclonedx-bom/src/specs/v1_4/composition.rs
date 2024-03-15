@@ -19,6 +19,7 @@
 use crate::{
     errors::XmlReadError,
     models,
+    specs::common::signature::Signature,
     utilities::{convert_optional, convert_optional_vec, convert_vec},
     xml::{
         attribute_or_error, closing_tag_or_error, read_lax_validation_list_tag, read_simple_tag,
@@ -28,8 +29,6 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
-
-use super::signature::Signature;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -302,10 +301,8 @@ impl FromXml for BomReference {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::{
-        specs::v1_4::signature::test::{corresponding_signature, example_signature},
-        xml::test::{read_element_from_string, write_element_to_string},
-    };
+    use crate::specs::common::signature::test::{corresponding_signature, example_signature};
+    use crate::xml::test::{read_element_from_string, write_element_to_string};
 
     use super::*;
 

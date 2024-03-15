@@ -25,7 +25,7 @@ use crate::{
     specs::common::{
         attached_text::AttachedText, code::Commits, code::Patches,
         external_reference::ExternalReferences, hash::Hashes, organization::OrganizationalEntity,
-        property::Properties,
+        property::Properties, signature::Signature,
     },
     specs::v1_4::license::Licenses,
     xml::{
@@ -41,8 +41,6 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
-
-use super::signature::Signature;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
@@ -1209,11 +1207,9 @@ pub(crate) mod test {
             hash::test::{corresponding_hashes, example_hashes},
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
-        },
-        specs::v1_4::{
-            license::test::{corresponding_licenses, example_licenses},
             signature::test::{corresponding_signature, example_signature},
         },
+        specs::v1_4::license::test::{corresponding_licenses, example_licenses},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 

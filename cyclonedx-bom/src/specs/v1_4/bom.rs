@@ -28,10 +28,11 @@ use crate::{
 use crate::{
     specs::common::{
         dependency::Dependencies, external_reference::ExternalReferences, property::Properties,
+        signature::Signature,
     },
     specs::v1_4::{
         component::Components, composition::Compositions, metadata::Metadata, service::Services,
-        signature::Signature, vulnerability::Vulnerabilities,
+        vulnerability::Vulnerabilities,
     },
     xml::ToXml,
 };
@@ -378,13 +379,13 @@ pub(crate) mod test {
                 corresponding_external_references, example_external_references,
             },
             property::test::{corresponding_properties, example_properties},
+            signature::test::{corresponding_signature, example_signature},
         },
         specs::v1_4::{
             component::test::{corresponding_components, example_components},
             composition::test::{corresponding_compositions, example_compositions},
             metadata::test::{corresponding_metadata, example_metadata},
             service::test::{corresponding_services, example_services},
-            signature::test::{corresponding_signature, example_signature},
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };
