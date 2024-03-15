@@ -56,23 +56,6 @@ pub(crate) struct Metadata {
     properties: Option<Properties>,
 }
 
-/*
-impl From<models::metadata::Metadata> for Metadata {
-    fn from(other: models::metadata::Metadata) -> Self {
-        Self {
-            timestamp: other.timestamp.map(|t| t.to_string()),
-            tools: convert_optional(other.tools),
-            authors: convert_optional_vec(other.authors),
-            component: convert_optional(other.component),
-            manufacture: convert_optional(other.manufacture),
-            supplier: convert_optional(other.supplier),
-            licenses: convert_optional(other.licenses),
-            properties: convert_optional(other.properties),
-        }
-    }
-}
-*/
-
 impl TryFrom<models::metadata::Metadata> for Metadata {
     type Error = BomError;
 
