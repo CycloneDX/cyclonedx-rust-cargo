@@ -301,6 +301,60 @@ fn helper(
     Ok(tokens)
 }
 
+/// A `cfg`-like attribute macro to generate versioned modules.
+///
+/// This macro allows to duplicate a module by providing version numbers to the
+/// macro itself. For example:
+/// ```rust
+/// use cyclonedx_bom_macros::versioned;
+///
+/// #[versioned("1.0", "2.0")]
+/// mod base {
+///    pub(super) struct Foo;
+/// }
+/// ```
+/// Will generate two modules: `v1_0` and `v2_0`, where each one of them
+/// contains the definition of `Foo`:
+/// ```rust
+/// mod v1_0 {
+///    pub(super) struct Foo;
+/// }
+///
+/// mod v2_0 {
+///    pub(super) struct Foo;
+/// }
+/// ```
+/// Additionally the macro can be used to gate definitions and expressions
+/// behind a specific version, very much like the `cfg` attribute. Based on the
+/// previous example:
+/// ```rust
+/// use cyclonedx_bom_macros::versioned;
+///
+/// #[versioned("1.0", "2.0")]
+/// mod base {
+///    pub(super) struct Foo;
+///
+///    #[versioned("2.0")]
+///    pub(super) struct Bar;
+/// }
+/// ```
+/// The following code will be generated:
+/// ```rust
+/// mod v1_0 {
+///    pub(super) struct Foo;
+/// }
+///
+/// mod v2_0 {
+///    pub(super) struct Foo;
+///    pub(super) struct Bar;
+/// }
+/// ```
+/// Note that `Bar` only exists inside the `v2_0` module. Note that the
+/// `versioned` attribute annotating the module defines the versions that will be
+/// used to generate the modules and the attribute annotating the `Bar` definition
+/// states that this definition will only appear on the `2.0` module.
+///
+/// Check the test folder for more usage examples.
 #[proc_macro_attribute]
 pub fn versioned(input: TokenStream, annotated_item: TokenStream) -> TokenStream {
     match helper(input, annotated_item) {
