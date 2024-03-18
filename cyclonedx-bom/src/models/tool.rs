@@ -21,6 +21,52 @@ use crate::models::hash::Hashes;
 use crate::validation::{Validate, ValidationContext, ValidationResult};
 
 use super::bom::SpecVersion;
+use super::component::Components;
+use super::service::Services;
+
+/// Defines the creation tool(s)
+///
+/// In version 1.5 the type of this property changed to
+/// https://cyclonedx.org/docs/1.5/json/#metadata_tools_oneOf_i0_services .
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Tools {
+    /// Legacy https://cyclonedx.org/docs/1.4/json/#metadata_tools
+    Tools(Vec<Tool>),
+    Components(Components),
+    Services(Services),
+}
+
+impl Validate for Tools {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        let mut context = ValidationContext::new();
+
+        if version <= SpecVersion::V1_4 {
+            if !matches!(self, Tools::Tools(_)) {
+                return ValidationContext::new()
+                    .add_custom("inner", "Unsupported tools type found.")
+                    .into();
+            }
+        }
+
+        match self {
+            Tools::Tools(tools) => {
+                context.add_list("inner", tools, |tool| tool.validate_version(version));
+            }
+            Tools::Components(components) => {
+                context.add_list("inner", &components.0, |component| {
+                    component.validate_version(version)
+                });
+            }
+            Tools::Services(services) => {
+                context.add_list("inner", &services.0, |service| {
+                    service.validate_version(version)
+                });
+            }
+        }
+
+        context.into()
+    }
+}
 
 /// Represents the tool used to create the BOM
 ///
@@ -63,30 +109,23 @@ impl Validate for Tool {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Tools(pub Vec<Tool>);
-
-impl Validate for Tools {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_list("inner", &self.0, |tool| tool.validate_version(version))
-            .into()
-    }
-}
-
 #[cfg(test)]
 mod test {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        models::tool::{Tool, Tools},
-        prelude::{NormalizedString, Validate},
+        models::{
+            bom::SpecVersion,
+            service::Services,
+            tool::{Tool, Tools},
+        },
+        prelude::{Components, NormalizedString, Validate},
         validation,
     };
 
     #[test]
     fn it_should_pass_validation() {
-        let validation_result = Tools(vec![Tool {
+        let validation_result = Tools::Tools(vec![Tool {
             vendor: Some(NormalizedString("no_whitespace".to_string())),
             name: None,
             version: None,
@@ -99,7 +138,7 @@ mod test {
 
     #[test]
     fn it_should_fail_validation() {
-        let validation_result = Tools(vec![Tool {
+        let validation_result = Tools::Tools(vec![Tool {
             vendor: Some(NormalizedString("spaces and\ttabs".to_string())),
             name: None,
             version: None,
@@ -124,7 +163,7 @@ mod test {
 
     #[test]
     fn it_should_merge_validations_correctly() {
-        let validation_result = Tools(vec![
+        let validation_result = Tools::Tools(vec![
             Tool {
                 vendor: Some(NormalizedString("no_whitespace".to_string())),
                 name: None,
@@ -168,5 +207,21 @@ mod test {
                 ]
             )
         );
+    }
+
+    #[test]
+    fn it_should_handle_different_tools() {
+        assert!(!Tools::Services(Services(vec![]))
+            .validate_version(SpecVersion::V1_3)
+            .passed());
+        assert!(!Tools::Services(Services(vec![]))
+            .validate_version(SpecVersion::V1_4)
+            .passed());
+        assert!(Tools::Services(Services(vec![]))
+            .validate_version(SpecVersion::V1_5)
+            .passed());
+        assert!(Tools::Components(Components(vec![]))
+            .validate_version(SpecVersion::V1_5)
+            .passed());
     }
 }

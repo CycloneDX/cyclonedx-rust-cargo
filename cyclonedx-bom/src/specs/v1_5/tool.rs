@@ -36,13 +36,18 @@ pub(crate) struct Tools(Vec<Tool>);
 
 impl From<models::tool::Tools> for Tools {
     fn from(other: models::tool::Tools) -> Self {
-        Tools(convert_vec(other.0))
+        // Tools(convert_vec(other.0))
+        match other {
+            models::tool::Tools::Tools(tools) => Tools(convert_vec(tools)),
+            models::tool::Tools::Components(_) => todo!(),
+            models::tool::Tools::Services(_) => todo!(),
+        }
     }
 }
 
 impl From<Tools> for models::tool::Tools {
     fn from(other: Tools) -> Self {
-        models::tool::Tools(convert_vec(other.0))
+        models::tool::Tools::Tools(convert_vec(other.0))
     }
 }
 
@@ -231,7 +236,7 @@ pub(crate) mod test {
     }
 
     pub(crate) fn corresponding_tools() -> models::tool::Tools {
-        models::tool::Tools(vec![corresponding_tool()])
+        models::tool::Tools::Tools(vec![corresponding_tool()])
     }
 
     pub(crate) fn example_tool() -> Tool {
@@ -275,5 +280,45 @@ pub(crate) mod test {
         let actual: Tools = read_element_from_string(input);
         let expected = example_tools();
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_xml_with_services_and_components() {
+        let input = r#"
+<tools>
+  <components>
+    <component type="application">
+      <group>Awesome Vendor</group>
+      <name>Awesome Tool</name>
+      <version>9.1.2</version>
+      <hashes>
+        <hash alg="SHA-1">abcdefgh</hash>
+      </hashes>
+    </component>
+  </components>
+  <services>
+    <service>
+      <provider>Acme Org</provider>
+      <url>https://example.com</url>
+      <group>com.example</group>
+      <name>Acme Signing Server</name>
+      <description>Signs artifacts</description>
+    </service>
+  </services>
+</tools>
+"#;
+        /*
+        let actual: Tools = read_element_from_string(input);
+        let expected = Tools(vec![
+            Tool::Components(Components(vec![Component::new(
+                Classification::Application,
+                "Awesome Tool",
+                "9.1.2",
+                None,
+            )])),
+            Tool::Services(vec![Service::new("Acme Signing Server")]),
+        ]);
+        assert_eq!(actual, expected);
+        */
     }
 }
