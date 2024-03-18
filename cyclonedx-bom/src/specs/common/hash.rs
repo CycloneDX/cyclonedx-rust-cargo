@@ -27,7 +27,7 @@ use xml::writer;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
-pub(crate) struct Hashes(Vec<Hash>);
+pub(crate) struct Hashes(pub(crate) Vec<Hash>);
 
 impl From<models::hash::Hashes> for Hashes {
     fn from(other: models::hash::Hashes) -> Self {
@@ -79,8 +79,8 @@ impl FromXml for Hashes {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Hash {
-    alg: String,
-    content: HashValue,
+    pub(crate) alg: String,
+    pub(crate) content: HashValue,
 }
 
 impl From<models::hash::Hash> for Hash {
@@ -144,7 +144,7 @@ impl FromXml for Hash {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) struct HashValue(String);
+pub(crate) struct HashValue(pub(crate) String);
 
 impl From<models::hash::HashValue> for HashValue {
     fn from(other: models::hash::HashValue) -> Self {

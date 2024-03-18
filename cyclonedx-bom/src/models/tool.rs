@@ -31,9 +31,13 @@ use super::service::Services;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Tools {
     /// Legacy https://cyclonedx.org/docs/1.4/json/#metadata_tools
-    Tools(Vec<Tool>),
-    Components(Components),
-    Services(Services),
+    List(Vec<Tool>),
+
+    /// Added in 1.5
+    Object {
+        services: Services,
+        components: Components,
+    },
 }
 
 impl Validate for Tools {
@@ -41,7 +45,7 @@ impl Validate for Tools {
         let mut context = ValidationContext::new();
 
         if version <= SpecVersion::V1_4 {
-            if !matches!(self, Tools::Tools(_)) {
+            if !matches!(self, Tools::List(_)) {
                 return ValidationContext::new()
                     .add_custom("inner", "Unsupported tools type found.")
                     .into();
@@ -49,16 +53,17 @@ impl Validate for Tools {
         }
 
         match self {
-            Tools::Tools(tools) => {
+            Tools::List(tools) => {
                 context.add_list("inner", tools, |tool| tool.validate_version(version));
             }
-            Tools::Components(components) => {
-                context.add_list("inner", &components.0, |component| {
+            Tools::Object {
+                services,
+                components,
+            } => {
+                context.add_list("components", &components.0, |component| {
                     component.validate_version(version)
                 });
-            }
-            Tools::Services(services) => {
-                context.add_list("inner", &services.0, |service| {
+                context.add_list("services", &services.0, |service| {
                     service.validate_version(version)
                 });
             }
@@ -116,16 +121,17 @@ mod test {
     use crate::{
         models::{
             bom::SpecVersion,
-            service::Services,
+            component::Classification,
+            service::{Service, Services},
             tool::{Tool, Tools},
         },
-        prelude::{Components, NormalizedString, Validate},
+        prelude::{Component, Components, NormalizedString, Validate},
         validation,
     };
 
     #[test]
     fn it_should_pass_validation() {
-        let validation_result = Tools::Tools(vec![Tool {
+        let validation_result = Tools::List(vec![Tool {
             vendor: Some(NormalizedString("no_whitespace".to_string())),
             name: None,
             version: None,
@@ -138,7 +144,7 @@ mod test {
 
     #[test]
     fn it_should_fail_validation() {
-        let validation_result = Tools::Tools(vec![Tool {
+        let validation_result = Tools::List(vec![Tool {
             vendor: Some(NormalizedString("spaces and\ttabs".to_string())),
             name: None,
             version: None,
@@ -163,7 +169,7 @@ mod test {
 
     #[test]
     fn it_should_merge_validations_correctly() {
-        let validation_result = Tools::Tools(vec![
+        let validation_result = Tools::List(vec![
             Tool {
                 vendor: Some(NormalizedString("no_whitespace".to_string())),
                 name: None,
@@ -211,17 +217,31 @@ mod test {
 
     #[test]
     fn it_should_handle_different_tools() {
-        assert!(!Tools::Services(Services(vec![]))
+        let tool = Tool::new("A vendor", "cargo-cyclonedx", "0.1");
+        let service = Service::new("service-x", Some("bom-ref".to_string()));
+        let component = Component::new(Classification::Application, "lib-x", "0.1.0", None);
+
+        assert!(Tools::List(vec![tool.clone()])
             .validate_version(SpecVersion::V1_3)
             .passed());
-        assert!(!Tools::Services(Services(vec![]))
+        assert!(Tools::List(vec![tool.clone()])
             .validate_version(SpecVersion::V1_4)
             .passed());
-        assert!(Tools::Services(Services(vec![]))
+        assert!(Tools::List(vec![tool])
             .validate_version(SpecVersion::V1_5)
             .passed());
-        assert!(Tools::Components(Components(vec![]))
-            .validate_version(SpecVersion::V1_5)
-            .passed());
+
+        assert!(Tools::Object {
+            services: Services(vec![service.clone()]),
+            components: Components(vec![component.clone()])
+        }
+        .validate_version(SpecVersion::V1_4)
+        .has_errors());
+        assert!(Tools::Object {
+            services: Services(vec![service.clone()]),
+            components: Components(vec![component.clone()])
+        }
+        .validate_version(SpecVersion::V1_5)
+        .passed());
     }
 }

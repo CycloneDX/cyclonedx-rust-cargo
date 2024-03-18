@@ -36,18 +36,16 @@ pub(crate) struct Tools(Vec<Tool>);
 
 impl From<models::tool::Tools> for Tools {
     fn from(other: models::tool::Tools) -> Self {
-        // Tools(convert_vec(other.0))
         match other {
-            models::tool::Tools::Tools(tools) => Tools(convert_vec(tools)),
-            models::tool::Tools::Components(_) => todo!(),
-            models::tool::Tools::Services(_) => todo!(),
+            models::tool::Tools::List(tools) => Tools(convert_vec(tools)),
+            models::tool::Tools::Object { .. } => Tools(vec![]),
         }
     }
 }
 
 impl From<Tools> for models::tool::Tools {
     fn from(other: Tools) -> Self {
-        models::tool::Tools::Tools(convert_vec(other.0))
+        models::tool::Tools::List(convert_vec(other.0))
     }
 }
 
@@ -236,7 +234,7 @@ pub(crate) mod test {
     }
 
     pub(crate) fn corresponding_tools() -> models::tool::Tools {
-        models::tool::Tools::Tools(vec![corresponding_tool()])
+        models::tool::Tools::List(vec![corresponding_tool()])
     }
 
     pub(crate) fn example_tool() -> Tool {

@@ -2,7 +2,7 @@
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
 assertion_line: 52
 expression: bom_output
-input_file: cyclonedx-bom/tests/spec/1.5/valid-metadata-tool-1.5.json
+input_file: cyclonedx-bom/tests/spec/1.5/valid-metadata-tool-legacy-1.5.json
 ---
 {
   "bomFormat": "CycloneDX",

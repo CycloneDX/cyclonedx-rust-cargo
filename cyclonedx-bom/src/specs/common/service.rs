@@ -51,7 +51,7 @@ pub(crate) mod base {
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(transparent)]
-    pub(crate) struct Services(Vec<Service>);
+    pub(crate) struct Services(pub Vec<Service>);
 
     impl From<models::service::Services> for Services {
         fn from(other: models::service::Services) -> Self {
@@ -105,38 +105,38 @@ pub(crate) mod base {
     #[serde(rename_all = "camelCase")]
     pub(crate) struct Service {
         #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
-        bom_ref: Option<String>,
+        pub(crate) bom_ref: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        provider: Option<OrganizationalEntity>,
+        pub(crate) provider: Option<OrganizationalEntity>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        group: Option<String>,
-        name: String,
+        pub(crate) group: Option<String>,
+        pub(crate) name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
-        version: Option<String>,
+        pub(crate) version: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        description: Option<String>,
+        pub(crate) description: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        endpoints: Option<Vec<String>>,
+        pub(crate) endpoints: Option<Vec<String>>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        authenticated: Option<bool>,
+        pub(crate) authenticated: Option<bool>,
         #[serde(rename = "x-trust-boundary", skip_serializing_if = "Option::is_none")]
-        x_trust_boundary: Option<bool>,
+        pub(crate) x_trust_boundary: Option<bool>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        data: Option<Vec<DataClassification>>,
+        pub(crate) data: Option<Vec<DataClassification>>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        licenses: Option<Licenses>,
+        pub(crate) licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        external_references: Option<ExternalReferences>,
+        pub(crate) external_references: Option<ExternalReferences>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        properties: Option<Properties>,
+        pub(crate) properties: Option<Properties>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        services: Option<Services>,
+        pub(crate) services: Option<Services>,
         #[versioned("1.4", "1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        signature: Option<Signature>,
+        pub(crate) signature: Option<Signature>,
         #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        trust_zone: Option<String>,
+        pub(crate) trust_zone: Option<String>,
     }
 
     impl From<models::service::Service> for Service {
@@ -505,7 +505,7 @@ pub(crate) mod base {
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
-    struct DataClassification {
+    pub(crate) struct DataClassification {
         flow: String,
         classification: String,
     }
