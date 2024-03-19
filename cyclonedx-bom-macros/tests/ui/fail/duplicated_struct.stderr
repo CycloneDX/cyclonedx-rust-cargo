@@ -1,0 +1,10 @@
+error[E0428]: the name `Foo` is defined multiple times
+  --> $DIR/duplicated_struct.rs:10:5
+   |
+7  |     pub struct Foo;
+   |     --------------- previous definition of the type `Foo` here
+...
+10 |     pub struct Foo;
+   |     ^^^^^^^^^^^^^^^ `Foo` redefined here
+   |
+   = note: `Foo` must be defined only once in the type namespace of this module

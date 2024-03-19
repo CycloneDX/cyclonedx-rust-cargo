@@ -21,7 +21,6 @@ pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod license;
 pub(crate) mod metadata;
-pub(crate) mod service;
 pub(crate) mod vulnerability;
 pub(crate) mod vulnerability_analysis;
 pub(crate) mod vulnerability_credits;
@@ -29,3 +28,5 @@ pub(crate) mod vulnerability_rating;
 pub(crate) mod vulnerability_reference;
 pub(crate) mod vulnerability_source;
 pub(crate) mod vulnerability_target;
+
+pub(crate) use crate::specs::common::service::v1_4 as service;

@@ -28,6 +28,7 @@ thiserror = "1.0.48"
 time = { version = "0.3.29", features = ["formatting", "parsing"] }
 uuid = { version = "1.6.1", features = ["v4"] }
 xml-rs = "0.8.16"
+cyclonedx-bom-macros = { path = "../cyclonedx-bom-macros" }
 
 [dev-dependencies]
 insta = { version = "1.33.0", features = ["glob", "json"] }

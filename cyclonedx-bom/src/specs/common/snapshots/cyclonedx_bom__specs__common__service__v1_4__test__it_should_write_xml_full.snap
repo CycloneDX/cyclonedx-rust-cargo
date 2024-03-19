@@ -1,8 +1,6 @@
 ---
-source: cyclonedx-bom/src/specs/v1_3/service.rs
-assertion_line: 382
+source: cyclonedx-bom/src/specs/common/service.rs
 expression: xml_output
-
 ---
 <?xml version="1.0" encoding="utf-8"?>
 <services>
@@ -44,5 +42,9 @@ expression: xml_output
       <property name="name">value</property>
     </properties>
     <services />
+    <signature>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signature>
   </service>
 </services>
