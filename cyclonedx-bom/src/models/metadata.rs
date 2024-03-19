@@ -156,6 +156,7 @@ mod test {
                 components: None,
                 evidence: None,
                 signature: None,
+                model_card: None,
             }),
             manufacture: Some(OrganizationalEntity {
                 name: Some(NormalizedString::new("name")),
@@ -222,6 +223,7 @@ mod test {
                 components: None,
                 evidence: None,
                 signature: None,
+                model_card: None,
             }),
             manufacture: Some(OrganizationalEntity {
                 name: Some(NormalizedString("invalid\tname".to_string())),

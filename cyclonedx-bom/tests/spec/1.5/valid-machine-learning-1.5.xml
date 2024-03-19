@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<bom serialNumber="urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79" version="1" xmlns="http://cyclonedx.org/schema/bom/1.5">
+    <components>
+        <component type="machine-learning-model" bom-ref="component-a">
+            <publisher>Acme Inc</publisher>
+            <group>CompVis</group>
+            <name>stable-diffusion</name>
+            <version>1.4</version>
+            <description>Stable Diffusion is a latent text-to-image diffusion model capable of generating photo-realistic images given any text input. For more information about how Stable Diffusion functions, please have a look at 🤗's Stable Diffusion with 🧨Diffusers blog.</description>
+            <modelCard>
+                <modelParameters>
+                    <approach>
+                        <type>supervised</type>
+                    </approach>
+                    <task>task goes here</task>
+                    <architectureFamily>the architecture family goes here</architectureFamily>
+                    <modelArchitecture>The architecture of the model.</modelArchitecture>
+                    <datasets>
+                        <dataset>
+                            <type>dataset</type>
+                            <name>Training Data</name>
+                            <contents>
+                                <url>https://example.com/path/to/dataset</url>
+                            </contents>
+                            <classification>public</classification>
+                        </dataset>
+                    </datasets>
+                    <inputs>
+                        <input>
+                            <format>string</format>
+                        </input>
+                    </inputs>
+                    <outputs>
+                        <output>
+                            <format>string</format>
+                        </output>
+                    </outputs>
+                </modelParameters>
+                <quantitativeAnalysis>
+                    <performanceMetrics>
+                        <performanceMetric>
+                            <type>The type of performance metric</type>
+                            <value>The value of the performance metric</value>
+                            <slice>The name of the slice this metric was computed on. By default, assume this metric is not sliced</slice>
+                            <confidenceInterval>
+                                <lowerBound>The lower bound of the confidence interval</lowerBound>
+                                <upperBound>The upper bound of the confidence interval</upperBound>
+                            </confidenceInterval>
+                        </performanceMetric>
+                    </performanceMetrics>
+                    <graphics>
+                        <description>Performance images</description>
+                        <collection>
+                            <graphic>
+                                <name>FID vs CLIP Scores on 512x512 samples for different v1-versions</name>
+                                <image encoding="base64" content-type="image/jpeg">1234</image>
+                            </graphic>
+                        </collection>
+                    </graphics>
+                </quantitativeAnalysis>
+                <considerations>
+                    <users>
+                        <user>Who are the intended users of the model?</user>
+                    </users>
+                    <useCases>
+                        <useCase>Who are the intended users of the model?</useCase>
+                    </useCases>
+                    <technicalLimitations>
+                        <technicalLimitation>What are the known technical limitations of the model?</technicalLimitation>
+                    </technicalLimitations>
+                    <performanceTradeoffs>
+                        <performanceTradeoff>What are the known tradeoffs in accuracy/performance of the model?</performanceTradeoff>
+                    </performanceTradeoffs>
+                    <ethicalConsiderations>
+                        <ethicalConsideration>
+                            <name>The name of the risk</name>
+                            <mitigationStrategy>Strategy used to address this risk</mitigationStrategy>
+                        </ethicalConsideration>
+                    </ethicalConsiderations>
+                    <fairnessAssessments>
+                        <fairnessAssessment>
+                            <groupAtRisk>The groups or individuals at risk of being systematically disadvantaged by the model</groupAtRisk>
+                            <benefits>Expected benefits to the identified groups</benefits>
+                            <harms>Expected harms to the identified groups</harms>
+                            <mitigationStrategy>With respect to the benefits and harms outlined, please describe any mitigation strategy implemented.</mitigationStrategy>
+                        </fairnessAssessment>
+                    </fairnessAssessments>
+                </considerations>
+            </modelCard>
+        </component>
+    </components>
+</bom>

@@ -38,6 +38,7 @@ use crate::{
 };
 
 use super::bom::SpecVersion;
+use super::modelcard::ModelCard;
 use super::signature::Signature;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -67,6 +68,8 @@ pub struct Component {
     pub evidence: Option<ComponentEvidence>,
     /// Added in version 1.4
     pub signature: Option<Signature>,
+    /// Added in version 1.5
+    pub model_card: Option<ModelCard>,
 }
 
 impl Component {
@@ -101,6 +104,7 @@ impl Component {
             components: None,
             evidence: None,
             signature: None,
+            model_card: None,
         }
     }
 }
@@ -373,10 +377,18 @@ mod test {
     use crate::{
         external_models::spdx::SpdxExpression,
         models::{
+            bom::BomReference,
             code::{Commit, Patch, PatchClassification},
             external_reference::{ExternalReference, ExternalReferenceType, Uri},
             hash::{Hash, HashAlgorithm, HashValue},
             license::LicenseChoice,
+            modelcard::{
+                ApproachType, Attachment, ComponentData, ComponentDataType, Considerations,
+                DataContents, DataGovernance, DataGovernanceResponsibleParty, Dataset, Datasets,
+                Graphic, Graphics, Inputs, MLParameter, ModelParameters, ModelParametersApproach,
+                Outputs, QuantitativeAnalysis,
+            },
+            organization::OrganizationalContact,
             property::Property,
             signature::Algorithm,
         },
@@ -387,7 +399,7 @@ mod test {
 
     #[test]
     fn valid_components_should_pass_validation() {
-        let validation_result = Components(vec![Component {
+        let vec = vec![Component {
             component_type: Classification::Application,
             mime_type: Some(MimeType("text/text".to_string())),
             bom_ref: Some("bom ref".to_string()),
@@ -463,8 +475,67 @@ mod test {
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
-        }])
-        .validate();
+            model_card: Some(ModelCard {
+                bom_ref: None,
+                model_parameters: Some(ModelParameters {
+                    approach: Some(ModelParametersApproach {
+                        approach_type: Some(ApproachType::Supervised),
+                    }),
+                    task: Some("task".to_string()),
+                    architecture_family: Some("architecture family".to_string()),
+                    model_architecture: Some("model architecture".to_string()),
+                    datasets: Some(Datasets(vec![Dataset::Component(ComponentData {
+                        bom_ref: None,
+                        data_type: ComponentDataType::SourceCode,
+                        name: Some("dataset".to_string()),
+                        contents: Some(DataContents {
+                            attachment: Some(Attachment {
+                                content: "data content".to_string(),
+                                content_type: Some("text/plain".to_string()),
+                                encoding: Some("base64".to_string()),
+                            }),
+                            url: Some(Url("https://example.com".to_string())),
+                            properties: Some(Properties(vec![])),
+                        }),
+                        classification: Some("data classification".to_string()),
+                        sensitive_data: Some(vec!["sensitive".to_string()]),
+                        graphics: Some(Graphics {
+                            description: Some("All graphics".to_string()),
+                            collection: Some(vec![Graphic {
+                                name: Some("graphic-1".to_string()),
+                                image: Some(Attachment {
+                                    content_type: Some("image/jpeg".to_string()),
+                                    encoding: Some("base64".to_string()),
+                                    content: "imagebytes".to_string(),
+                                }),
+                            }]),
+                        }),
+                        description: Some("Component data description".to_string()),
+                        governance: Some(DataGovernance {
+                            custodians: Some(vec![DataGovernanceResponsibleParty::Contact(
+                                OrganizationalContact {
+                                    bom_ref: Some(BomReference::new("custodian-1")),
+                                    name: Some("custodian".into()),
+                                    email: None,
+                                    phone: None,
+                                },
+                            )]),
+                            stewards: None,
+                            owners: None,
+                        }),
+                    })])),
+                    inputs: Some(Inputs(vec![MLParameter::new("string")])),
+                    outputs: Some(Outputs(vec![MLParameter::new("image")])),
+                }),
+                quantitative_analysis: Some(QuantitativeAnalysis {}),
+                considerations: Some(Considerations {}),
+                properties: Some(Properties(vec![Property {
+                    name: "property".to_string(),
+                    value: NormalizedString("value".to_string()),
+                }])),
+            }),
+        }];
+        let validation_result = Components(vec).validate();
 
         assert!(validation_result.passed());
     }
@@ -551,6 +622,7 @@ mod test {
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
+            model_card: None,
         }])
         .validate();
 
@@ -794,6 +866,7 @@ mod test {
             components: None,
             evidence: None,
             signature: None,
+            model_card: None,
         }
     }
 

@@ -29,6 +29,7 @@ pub mod hash;
 pub mod license;
 pub mod lifecycle;
 pub mod metadata;
+pub mod modelcard;
 pub mod organization;
 pub mod property;
 pub mod service;

@@ -26,21 +26,24 @@ pub(crate) mod base {
     #[versioned("1.4")]
     use crate::specs::v1_4::external_reference::ExternalReferences;
     #[versioned("1.5")]
-    use crate::specs::v1_5::external_reference::ExternalReferences;
+    use crate::specs::v1_5::{external_reference::ExternalReferences, modelcard::ModelCard};
     #[versioned("1.3")]
     use crate::{models::bom::SpecVersion, specs::v1_3::external_reference::ExternalReferences};
 
     use crate::{
-        errors::BomError,
-        errors::XmlReadError,
+        errors::{BomError, XmlReadError},
         external_models::{
             normalized_string::NormalizedString,
             uri::{Purl, Uri},
         },
         models,
         specs::common::{
-            attached_text::AttachedText, code::Commits, code::Patches, hash::Hashes,
-            license::Licenses, organization::OrganizationalEntity, property::Properties,
+            attached_text::AttachedText,
+            code::{Commits, Patches},
+            hash::Hashes,
+            license::Licenses,
+            organization::OrganizationalEntity,
+            property::Properties,
         },
         utilities::{convert_optional, convert_vec, try_convert_optional, try_convert_vec},
         xml::{
@@ -170,6 +173,9 @@ pub(crate) mod base {
         #[versioned("1.4", "1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) signature: Option<Signature>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) model_card: Option<ModelCard>,
     }
 
     impl TryFrom<models::component::Component> for Component {
@@ -211,6 +217,8 @@ pub(crate) mod base {
                 evidence: convert_optional(other.evidence),
                 #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
+                #[versioned("1.5")]
+                model_card: convert_optional(other.model_card),
             })
         }
     }
@@ -250,6 +258,10 @@ pub(crate) mod base {
                 signature: None,
                 #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
+                #[versioned("1.3", "1.4")]
+                model_card: None,
+                #[versioned("1.5")]
+                model_card: convert_optional(other.model_card),
             }
         }
     }
@@ -394,6 +406,8 @@ pub(crate) mod base {
     const LICENSES_TAG: &str = "licenses";
     const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
     const PROPERTIES_TAG: &str = "properties";
+    #[versioned("1.5")]
+    const MODEL_CARD_TAG: &str = "modelCard";
 
     impl FromXml for Component {
         fn read_xml_element<R: std::io::Read>(
@@ -430,6 +444,8 @@ pub(crate) mod base {
             let mut evidence: Option<ComponentEvidence> = None;
             #[versioned("1.4", "1.5")]
             let mut signature: Option<Signature> = None;
+            #[versioned("1.5")]
+            let mut model_card: Option<ModelCard> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -567,6 +583,17 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == MODEL_CARD_TAG => {
+                        model_card = Some(ModelCard::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -616,6 +643,8 @@ pub(crate) mod base {
                 evidence,
                 #[versioned("1.4", "1.5")]
                 signature,
+                #[versioned("1.5")]
+                model_card,
             })
         }
     }
@@ -1245,8 +1274,11 @@ pub(crate) mod base {
             corresponding_external_references, example_external_references,
         };
         #[versioned("1.5")]
-        use crate::specs::v1_5::external_reference::test::{
-            corresponding_external_references, example_external_references,
+        use crate::specs::v1_5::{
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            modelcard::test::{corresponding_modelcard, example_modelcard},
         };
         #[versioned("1.3")]
         use crate::{
@@ -1270,6 +1302,7 @@ pub(crate) mod base {
         };
 
         use super::*;
+        use pretty_assertions::assert_eq;
 
         pub(crate) fn example_components() -> Components {
             Components(vec![example_component()])
@@ -1309,6 +1342,8 @@ pub(crate) mod base {
                 evidence: Some(example_evidence()),
                 #[versioned("1.4", "1.5")]
                 signature: Some(example_signature()),
+                #[versioned("1.5")]
+                model_card: Some(example_modelcard()),
             }
         }
 
@@ -1343,6 +1378,10 @@ pub(crate) mod base {
                 signature: None,
                 #[versioned("1.4", "1.5")]
                 signature: Some(corresponding_signature()),
+                #[versioned("1.3", "1.4")]
+                model_card: None,
+                #[versioned("1.5")]
+                model_card: Some(corresponding_modelcard()),
             }
         }
 
@@ -1551,7 +1590,7 @@ pub(crate) mod base {
   </component>
 </components>
 "#;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4")]
             let input = r#"
 <components>
   <component type="component type" mime-type="mime type" bom-ref="bom ref">
@@ -1655,6 +1694,115 @@ pub(crate) mod base {
       <algorithm>HS512</algorithm>
       <value>1234567890</value>
     </signature>
+  </component>
+</components>
+"#;
+            #[versioned("1.5")]
+            let input = r#"
+<components>
+  <component type="component type" mime-type="mime type" bom-ref="bom ref">
+    <supplier>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </supplier>
+    <author>author</author>
+    <publisher>publisher</publisher>
+    <group>group</group>
+    <name>name</name>
+    <version>version</version>
+    <description>description</description>
+    <scope>scope</scope>
+    <hashes>
+      <hash alg="algorithm">hash value</hash>
+    </hashes>
+    <licenses>
+      <expression>expression</expression>
+    </licenses>
+    <copyright>copyright</copyright>
+    <cpe>cpe</cpe>
+    <purl>purl</purl>
+    <swid tagId="tag id" name="name" version="version" tagVersion="1" patch="true">
+      <text content-type="content type" encoding="encoding">content</text>
+      <url>url</url>
+    </swid>
+    <modified>true</modified>
+    <pedigree>
+      <ancestors />
+      <descendants />
+      <variants />
+      <commits>
+        <commit>
+          <uid>uid</uid>
+          <url>url</url>
+          <author>
+            <timestamp>timestamp</timestamp>
+            <name>name</name>
+            <email>email</email>
+          </author>
+          <committer>
+            <timestamp>timestamp</timestamp>
+            <name>name</name>
+            <email>email</email>
+          </committer>
+          <message>message</message>
+        </commit>
+      </commits>
+      <patches>
+        <patch type="patch type">
+          <diff>
+            <text content-type="content type" encoding="encoding">content</text>
+            <url>url</url>
+          </diff>
+          <resolves>
+            <issue type="issue type">
+              <id>id</id>
+              <name>name</name>
+              <description>description</description>
+              <source>
+                <name>name</name>
+                <url>url</url>
+              </source>
+              <references>
+                <url>reference</url>
+              </references>
+            </issue>
+          </resolves>
+        </patch>
+      </patches>
+      <notes>notes</notes>
+    </pedigree>
+    <externalReferences>
+      <reference type="external reference type">
+        <url>url</url>
+        <comment>comment</comment>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </reference>
+    </externalReferences>
+    <properties>
+      <property name="name">value</property>
+    </properties>
+    <components />
+    <evidence>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <copyright>
+        <text><![CDATA[copyright]]></text>
+      </copyright>
+    </evidence>
+    <signature>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signature>
+    <modelCard>
+    </modelCard>
   </component>
 </components>
 "#;

@@ -324,6 +324,8 @@ pub(crate) mod base {
     #[cfg(test)]
     pub(crate) mod test {
         use super::*;
+        use pretty_assertions::assert_eq;
+
         #[versioned("1.3")]
         use crate::specs::v1_3::{
             component::test::{corresponding_component, example_component},
@@ -807,6 +809,8 @@ pub(crate) mod base {
       <algorithm>HS512</algorithm>
       <value>1234567890</value>
     </signature>
+    <modelCard>
+    </modelCard>
   </component>
   <manufacture>
     <name>name</name>

@@ -508,6 +508,7 @@ pub(crate) mod base {
                 components: None,
                 evidence: None,
                 signature: None,
+                model_card: None,
             };
             let expected = Tools::Object {
                 services: Services(vec![service]),

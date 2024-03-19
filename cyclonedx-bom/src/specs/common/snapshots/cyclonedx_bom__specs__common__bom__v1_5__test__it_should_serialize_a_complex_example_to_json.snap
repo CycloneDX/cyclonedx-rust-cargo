@@ -1,5 +1,6 @@
 ---
-source: cyclonedx-bom/src/specs/common/bom.rs
+source: cyclonedx-bom/src/specs/v1_5/bom.rs
+assertion_line: 484
 expression: actual
 ---
 {
@@ -167,7 +168,8 @@ expression: actual
       "signature": {
         "algorithm": "HS512",
         "value": "1234567890"
-      }
+      },
+      "modelCard": {}
     },
     "manufacture": {
       "name": "name",
@@ -351,7 +353,8 @@ expression: actual
       "signature": {
         "algorithm": "HS512",
         "value": "1234567890"
-      }
+      },
+      "modelCard": {}
     }
   ],
   "services": [

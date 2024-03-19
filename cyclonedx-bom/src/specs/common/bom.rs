@@ -502,6 +502,7 @@ pub(crate) mod base {
         };
 
         use super::*;
+        use pretty_assertions::assert_eq;
 
         pub(crate) fn minimal_bom_example() -> Bom {
             Bom {
@@ -1514,6 +1515,8 @@ pub(crate) mod base {
         <algorithm>HS512</algorithm>
         <value>1234567890</value>
       </signature>
+      <modelCard>
+      </modelCard>
     </component>
     <manufacture>
       <name>name</name>
@@ -1647,6 +1650,8 @@ pub(crate) mod base {
         <algorithm>HS512</algorithm>
         <value>1234567890</value>
       </signature>
+      <modelCard>
+      </modelCard>
     </component>
   </components>
   <services>
