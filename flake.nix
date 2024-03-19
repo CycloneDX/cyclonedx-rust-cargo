@@ -36,9 +36,10 @@
         xmlFilter = path: _type: builtins.match ".*xml$" path != null;
         jsonFilter = path: _type: builtins.match ".*json$" path != null;
         snapshotTestFilter = path: _type: builtins.match ".*snap" path != null;
+        stderrFilter = path: _type: builtins.match ".*stderr" path != null;
 
         srcFilter = path: type:
-          (xmlFilter path type) || (jsonFilter path type) || (snapshotTestFilter path type) || (craneLib.filterCargoSources path type);
+          (xmlFilter path type) || (jsonFilter path type) || (snapshotTestFilter path type) || (stderrFilter path type) || (craneLib.filterCargoSources path type);
 
         src = pkgs.lib.cleanSourceWith {
           src = craneLib.path ./.;
