@@ -97,12 +97,6 @@ impl BomReference {
     }
 }
 
-impl AsRef<String> for BomReference {
-    fn as_ref(&self) -> &String {
-        &self.0
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bom {
     pub version: u32,

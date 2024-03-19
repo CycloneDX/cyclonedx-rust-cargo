@@ -24,13 +24,14 @@ use crate::{
     validation::{Validate, ValidationContext, ValidationResult},
 };
 
-use super::bom::SpecVersion;
+use super::bom::{BomReference, SpecVersion};
 
 /// Represents the contact information for an organization
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalContact)
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct OrganizationalContact {
+    pub bom_ref: Option<BomReference>,
     pub name: Option<NormalizedString>,
     pub email: Option<NormalizedString>,
     pub phone: Option<NormalizedString>,
@@ -45,6 +46,7 @@ impl OrganizationalContact {
     /// ```
     pub fn new(name: &str, email: Option<&str>) -> Self {
         Self {
+            bom_ref: None,
             name: Some(NormalizedString::new(name)),
             email: email.map(NormalizedString::new),
             phone: None,
@@ -97,6 +99,7 @@ mod test {
     #[test]
     fn it_should_validate_an_empty_contact_as_passed() {
         let contact = OrganizationalContact {
+            bom_ref: None,
             name: None,
             email: None,
             phone: None,
@@ -108,6 +111,7 @@ mod test {
     #[test]
     fn it_should_validate_an_invalid_contact_as_failed() {
         let contact = OrganizationalContact {
+            bom_ref: None,
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
             email: None,
             phone: None,
@@ -126,6 +130,7 @@ mod test {
     #[test]
     fn it_should_validate_a_contact_with_multiple_validation_issues_as_failed() {
         let contact = OrganizationalContact {
+            bom_ref: None,
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
             email: Some(NormalizedString::new_unchecked(
                 "invalid\temail".to_string(),
@@ -180,6 +185,7 @@ mod test {
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
             url: Some(vec![Uri("invalid uri".to_string())]),
             contact: Some(vec![OrganizationalContact {
+                bom_ref: None,
                 name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
                 email: None,
                 phone: None,

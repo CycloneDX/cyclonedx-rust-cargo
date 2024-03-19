@@ -19,11 +19,12 @@
 use crate::{
     errors::XmlWriteError,
     external_models::{normalized_string::NormalizedString, uri::Uri},
-    models,
+    models::{self, bom::BomReference},
     utilities::convert_optional_vec,
     xml::{
-        read_lax_validation_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
-        unexpected_element_error, write_simple_tag, FromXml, ToInnerXml,
+        optional_attribute, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag, FromXml,
+        ToInnerXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -32,6 +33,8 @@ use xml::{reader, writer::XmlEvent};
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OrganizationalContact {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) bom_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -43,6 +46,7 @@ pub(crate) struct OrganizationalContact {
 impl From<models::organization::OrganizationalContact> for OrganizationalContact {
     fn from(other: models::organization::OrganizationalContact) -> Self {
         Self {
+            bom_ref: other.bom_ref.map(|r| r.0),
             name: other.name.map(|n| n.to_string()),
             email: other.email.map(|e| e.to_string()),
             phone: other.phone.map(|p| p.to_string()),
@@ -53,6 +57,7 @@ impl From<models::organization::OrganizationalContact> for OrganizationalContact
 impl From<OrganizationalContact> for models::organization::OrganizationalContact {
     fn from(other: OrganizationalContact) -> Self {
         Self {
+            bom_ref: other.bom_ref.map(BomReference::new),
             name: other.name.map(NormalizedString::new_unchecked),
             email: other.email.map(NormalizedString::new_unchecked),
             phone: other.phone.map(NormalizedString::new_unchecked),
@@ -60,6 +65,7 @@ impl From<OrganizationalContact> for models::organization::OrganizationalContact
     }
 }
 
+const BOM_REF_ATTR: &str = "bom-ref";
 const NAME_TAG: &str = "name";
 const EMAIL_TAG: &str = "email";
 const PHONE_TAG: &str = "phone";
@@ -70,9 +76,13 @@ impl ToInnerXml for OrganizationalContact {
         writer: &mut xml::EventWriter<W>,
         tag: &str,
     ) -> Result<(), XmlWriteError> {
-        writer
-            .write(XmlEvent::start_element(tag))
-            .map_err(to_xml_write_error(tag))?;
+        let mut start_tag = XmlEvent::start_element(tag);
+
+        if let Some(bom_ref) = &self.bom_ref {
+            start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
+        }
+
+        writer.write(start_tag).map_err(to_xml_write_error(tag))?;
 
         if let Some(name) = &self.name {
             write_simple_tag(writer, NAME_TAG, name)?;
@@ -86,9 +96,7 @@ impl ToInnerXml for OrganizationalContact {
             write_simple_tag(writer, PHONE_TAG, phone)?;
         }
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(to_xml_write_error(tag))?;
+        write_close_tag(writer, tag)?;
 
         Ok(())
     }
@@ -102,11 +110,13 @@ impl FromXml for OrganizationalContact {
     fn read_xml_element<R: std::io::Read>(
         event_reader: &mut xml::EventReader<R>,
         element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
+        attributes: &[xml::attribute::OwnedAttribute],
     ) -> Result<Self, crate::errors::XmlReadError>
     where
         Self: Sized,
     {
+        let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+
         let mut contact_name: Option<String> = None;
         let mut email: Option<String> = None;
         let mut phone: Option<String> = None;
@@ -138,6 +148,7 @@ impl FromXml for OrganizationalContact {
         }
 
         Ok(Self {
+            bom_ref,
             name: contact_name,
             email,
             phone,
@@ -285,6 +296,7 @@ pub(crate) mod test {
 
     pub(crate) fn example_contact() -> OrganizationalContact {
         OrganizationalContact {
+            bom_ref: None,
             name: Some("name".to_string()),
             email: Some("email".to_string()),
             phone: Some("phone".to_string()),
@@ -293,6 +305,7 @@ pub(crate) mod test {
 
     pub(crate) fn corresponding_contact() -> models::organization::OrganizationalContact {
         models::organization::OrganizationalContact {
+            bom_ref: None,
             name: Some(NormalizedString::new_unchecked("name".to_string())),
             email: Some(NormalizedString::new_unchecked("email".to_string())),
             phone: Some(NormalizedString::new_unchecked("phone".to_string())),
@@ -316,6 +329,25 @@ pub(crate) mod test {
     }
 
     #[test]
+    fn it_should_read_xml_organizational_contact() {
+        let input = r#"
+<contact bom-ref="contact-1">
+  <name>name</name>
+  <email>email</email>
+  <phone>phone</phone>
+</contact>
+"#;
+        let actual: OrganizationalContact = read_element_from_string(input);
+        let expected = OrganizationalContact {
+            bom_ref: Some("contact-1".to_string()),
+            name: Some("name".to_string()),
+            email: Some("email".to_string()),
+            phone: Some("phone".to_string()),
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn it_should_write_xml_full() {
         let xml_output = write_named_element_to_string(example_entity(), "supplier");
         insta::assert_snapshot!(xml_output);
@@ -328,6 +360,7 @@ pub(crate) mod test {
                 name: Some("name".to_string()),
                 url: Some(vec!["url".to_string()]),
                 contact: Some(vec![OrganizationalContact {
+                    bom_ref: None,
                     name: None,
                     email: None,
                     phone: None,
