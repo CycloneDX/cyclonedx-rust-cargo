@@ -43,21 +43,24 @@ impl Version {
 }
 
 enum VersionReq {
-    Exactly(Version),
+    Any(Vec<Version>),
 }
 
-impl FromStr for VersionReq {
-    type Err = <Version as FromStr>::Err;
+impl syn::parse::Parse for VersionReq {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let versions = Punctuated::<syn::LitStr, Comma>::parse_terminated(input)?
+            .into_iter()
+            .map(|s| s.value().parse().map_err(|err| Error::new(s.span(), err)))
+            .collect::<syn::Result<Vec<Version>>>()?;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::Exactly(s.parse()?))
+        Ok(Self::Any(versions))
     }
 }
 
 impl VersionReq {
     fn matches(&self, version: &Version) -> bool {
         match self {
-            VersionReq::Exactly(expected_version) => version == expected_version,
+            VersionReq::Any(versions) => versions.contains(version),
         }
     }
 }
@@ -75,10 +78,7 @@ impl VersionFilter {
             let path = attr.path();
 
             if path.is_ident("versioned") {
-                match attr
-                    .parse_args::<syn::LitStr>()
-                    .and_then(|s| s.value().parse().map_err(|err| Error::new(s.span(), err)))
-                {
+                match attr.parse_args::<VersionReq>() {
                     Ok(version) => opt_version = Some(version),
                     Err(err) => self.error = Some(err),
                 }
