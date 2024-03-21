@@ -47,7 +47,7 @@ impl NormalizedString {
 
 impl From<&str> for NormalizedString {
     fn from(input: &str) -> Self {
-        NormalizedString(input.to_string())
+        NormalizedString::new(input)
     }
 }
 
