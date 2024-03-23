@@ -1,0 +1,5 @@
+error: found duplicated version requirement while using the `#[versioned]` macro
+ --> tests/ui/fail/duplicated_versioned.rs:6:5
+  |
+6 |     #[versioned("2.0")]
+  |     ^

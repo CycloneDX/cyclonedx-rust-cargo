@@ -8,6 +8,7 @@ use syn::{
     fold::{self, Fold},
     parse_quote,
     punctuated::Punctuated,
+    spanned::Spanned,
     token::Comma,
     Error, Expr, Item,
 };
@@ -79,7 +80,16 @@ impl VersionFilter {
 
             if path.is_ident("versioned") {
                 match attr.parse_args::<VersionReq>() {
-                    Ok(version) => opt_version = Some(version),
+                    Ok(version) => {
+                        if opt_version.is_some() {
+                            self.error = Some(syn::Error::new(
+                                attr.span(),
+                                "found duplicated version requirement",
+                            ))
+                        } else {
+                            opt_version = Some(version);
+                        }
+                    }
                     Err(err) => self.error = Some(err),
                 }
 
