@@ -23,7 +23,7 @@ pub use crate::external_models::{
     uri::{Purl, Uri},
 };
 pub use crate::models::{
-    bom::{Bom, UrnUuid},
+    bom::{Bom, SpecVersion, UrnUuid},
     component::{Component, Components},
     metadata::Metadata,
 };

@@ -126,6 +126,7 @@ pub mod errors;
 pub mod external_models;
 pub mod models;
 pub mod prelude;
+pub mod schema;
 pub mod validation;
 
 mod specs;

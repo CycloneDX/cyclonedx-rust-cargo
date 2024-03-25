@@ -2,6 +2,7 @@ mod specification_tests_v1_5;
 
 mod v1_4 {
     use cyclonedx_bom::models::bom::{Bom, SpecVersion};
+    use cyclonedx_bom::schema::validate_json_with_schema;
     use cyclonedx_bom::validation::Validate;
 
     #[test]
@@ -50,6 +51,11 @@ mod v1_4 {
                 bom.output_as_json_v1_4(&mut output)
                     .unwrap_or_else(|_| panic!("Failed to output the file: {path:?}"));
                 let bom_output = String::from_utf8_lossy(&output).to_string();
+
+                // Check that the written JSON file validates against its schema.
+                let json = serde_json::from_str(&bom_output).expect("Failed to parse JSON");
+                validate_json_with_schema(&json, SpecVersion::V1_4)
+                    .unwrap_or_else(|errors| panic!("Failed to validate output {path:?}, errors: {errors:?}"));
 
                 insta::assert_snapshot!(bom_output);
             });
