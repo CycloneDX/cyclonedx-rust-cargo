@@ -108,11 +108,9 @@ impl Component {
 impl Validate for Component {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         let mut ctx = ValidationContext::new();
-        ctx.add_field(
-            "component_type",
-            &self.component_type,
-            validate_classification,
-        );
+        ctx.add_field("component_type", &self.component_type, |ct| {
+            validate_classification(ct, version)
+        });
         ctx.add_field_option("mime_type", self.mime_type.as_ref(), validate_mime_type);
         ctx.add_struct_option("supplier", self.supplier.as_ref(), version);
         ctx.add_field_option("author", self.author.as_ref(), validate_normalized_string);
@@ -167,24 +165,41 @@ impl Validate for Components {
 }
 
 /// Checks the given [`Classification`] is valid.
-pub fn validate_classification(classification: &Classification) -> Result<(), ValidationError> {
-    if matches!(classification, Classification::UnknownClassification(_)) {
+pub fn validate_classification(
+    classification: &Classification,
+    version: SpecVersion,
+) -> Result<(), ValidationError> {
+    if SpecVersion::V1_3 <= version && version <= SpecVersion::V1_4 {
+        if Classification::File < *classification {
+            return Err(ValidationError::new("Unknown classification"));
+        }
+    } else if SpecVersion::V1_5 <= version
+        && matches!(classification, Classification::UnknownClassification(_))
+    {
         return Err(ValidationError::new("Unknown classification"));
     }
-
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+#[repr(u16)]
 pub enum Classification {
-    Application,
-    Framework,
-    Library,
-    Container,
-    OperatingSystem,
-    Device,
-    Firmware,
-    File,
+    Application = 1,
+    Framework = 2,
+    Library = 3,
+    Container = 4,
+    OperatingSystem = 5,
+    Device = 6,
+    Firmware = 7,
+    File = 8,
+    /// Added in 1.5
+    Platform = 9,
+    /// Added in 1.5
+    DeviceDriver = 10,
+    /// Added in 1.5
+    MachineLearningModel = 11,
+    /// Added in 1.5
+    Data = 12,
     #[doc(hidden)]
     UnknownClassification(String),
 }
@@ -200,6 +215,10 @@ impl ToString for Classification {
             Classification::Device => "device",
             Classification::Firmware => "firmware",
             Classification::File => "file",
+            Classification::Platform => "platform",
+            Classification::DeviceDriver => "device-driver",
+            Classification::MachineLearningModel => "machine-learning-model",
+            Classification::Data => "data",
             Classification::UnknownClassification(uc) => uc,
         }
         .to_string()
@@ -217,6 +236,10 @@ impl Classification {
             "device" => Self::Device,
             "firmware" => Self::Firmware,
             "file" => Self::File,
+            "platform" => Self::Platform,
+            "device-driver" => Self::DeviceDriver,
+            "machine-learning-model" => Self::MachineLearningModel,
+            "data" => Self::Data,
             unknown => Self::UnknownClassification(unknown.to_string()),
         }
     }
@@ -801,5 +824,24 @@ mod test {
             evidence: None,
             signature: None,
         }
+    }
+
+    #[test]
+    fn test_validate_classification() {
+        assert!(validate_classification(&Classification::Library, SpecVersion::V1_4).is_ok());
+        assert!(validate_classification(&Classification::Library, SpecVersion::V1_5).is_ok());
+        assert!(validate_classification(&Classification::Platform, SpecVersion::V1_5).is_ok());
+
+        assert!(validate_classification(&Classification::Platform, SpecVersion::V1_4).is_err());
+        assert!(validate_classification(
+            &Classification::UnknownClassification("test".to_string()),
+            SpecVersion::V1_4
+        )
+        .is_err());
+        assert!(validate_classification(
+            &Classification::UnknownClassification("foo".to_string()),
+            SpecVersion::V1_5
+        )
+        .is_err());
     }
 }
