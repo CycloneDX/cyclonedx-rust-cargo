@@ -173,10 +173,10 @@ pub fn validate_classification(
         if Classification::File < *classification {
             return Err(ValidationError::new("Unknown classification"));
         }
-    } else if SpecVersion::V1_5 <= version {
-        if matches!(classification, Classification::UnknownClassification(_)) {
-            return Err(ValidationError::new("Unknown classification"));
-        }
+    } else if SpecVersion::V1_5 <= version
+        && matches!(classification, Classification::UnknownClassification(_))
+    {
+        return Err(ValidationError::new("Unknown classification"));
     }
     Ok(())
 }
