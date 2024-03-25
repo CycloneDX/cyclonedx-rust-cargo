@@ -17,6 +17,7 @@
  */
 
 pub mod advisory;
+pub mod annotation;
 pub mod attached_text;
 pub mod bom;
 pub mod code;
@@ -26,6 +27,7 @@ pub mod dependency;
 pub mod external_reference;
 pub mod hash;
 pub mod license;
+pub mod lifecycle;
 pub mod metadata;
 pub mod organization;
 pub mod property;

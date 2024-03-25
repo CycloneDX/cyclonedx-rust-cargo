@@ -18,8 +18,8 @@
 
 use std::convert::TryFrom;
 
-use crate::errors::BomError;
-use crate::errors::BomError::BomSerializationError;
+use crate::errors::BomError::{self, BomSerializationError};
+use crate::models::bom::SpecVersion;
 use crate::utilities::try_convert_optional;
 use crate::{
     errors::XmlReadError,
@@ -168,7 +168,7 @@ impl TryFrom<models::component::Component> for Component {
     fn try_from(other: models::component::Component) -> Result<Self, Self::Error> {
         match other.version {
             None => Err(BomSerializationError(
-                models::bom::SpecVersion::V1_3,
+                SpecVersion::V1_3,
                 "version missing".to_string(),
             )),
             Some(version) => Ok(Self {

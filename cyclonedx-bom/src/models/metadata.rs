@@ -22,6 +22,7 @@ use crate::external_models::date_time::{DateTime, DateTimeError};
 use crate::external_models::validate_date_time;
 use crate::models::component::Component;
 use crate::models::license::Licenses;
+use crate::models::lifecycle::Lifecycles;
 use crate::models::organization::{OrganizationalContact, OrganizationalEntity};
 use crate::models::property::Properties;
 use crate::models::tool::Tools;
@@ -42,6 +43,8 @@ pub struct Metadata {
     pub supplier: Option<OrganizationalEntity>,
     pub licenses: Option<Licenses>,
     pub properties: Option<Properties>,
+    /// Added in 1.5
+    pub lifecycles: Option<Lifecycles>,
 }
 
 impl Metadata {
@@ -100,7 +103,11 @@ mod test {
     use crate::{
         external_models::{normalized_string::NormalizedString, spdx::SpdxExpression},
         models::{
-            component::Classification, license::LicenseChoice, property::Property, tool::Tool,
+            component::Classification,
+            license::LicenseChoice,
+            lifecycle::{Description, Lifecycle, Phase},
+            property::Property,
+            tool::Tool,
         },
         validation,
     };
@@ -166,6 +173,7 @@ mod test {
                 name: "name".to_string(),
                 value: NormalizedString::new("value"),
             }])),
+            lifecycles: Some(Lifecycles(vec![Lifecycle::Phase(Phase::Build)])),
         }
         .validate();
 
@@ -230,6 +238,10 @@ mod test {
                 name: "name".to_string(),
                 value: NormalizedString("invalid\tvalue".to_string()),
             }])),
+            lifecycles: Some(Lifecycles(vec![Lifecycle::Description(Description {
+                name: "lifecycle".into(),
+                description: Some(NormalizedString("invalid\tvalue".to_string())),
+            })])),
         }
         .validate();
 

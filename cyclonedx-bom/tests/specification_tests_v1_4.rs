@@ -1,3 +1,5 @@
+mod specification_tests_v1_5;
+
 mod v1_4 {
     use cyclonedx_bom::models::bom::{Bom, SpecVersion};
     use cyclonedx_bom::validation::Validate;

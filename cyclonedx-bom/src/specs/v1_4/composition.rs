@@ -301,10 +301,9 @@ impl FromXml for BomReference {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use super::*;
     use crate::specs::common::signature::test::{corresponding_signature, example_signature};
     use crate::xml::test::{read_element_from_string, write_element_to_string};
-
-    use super::*;
 
     pub(crate) fn example_compositions() -> Compositions {
         Compositions(vec![example_composition()])

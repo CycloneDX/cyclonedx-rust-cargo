@@ -97,6 +97,7 @@ impl From<Bom> for models::bom::Bom {
             properties: convert_optional(other.properties),
             vulnerabilities: None,
             signature: None,
+            annotations: None,
         }
     }
 }
@@ -402,6 +403,7 @@ pub(crate) mod test {
             properties: Some(corresponding_properties()),
             vulnerabilities: None,
             signature: None,
+            annotations: None,
         }
     }
 

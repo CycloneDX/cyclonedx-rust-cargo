@@ -49,6 +49,8 @@ pub struct Service {
     pub services: Option<Services>,
     /// Added in version 1.4
     pub signature: Option<Signature>,
+    /// Added in version 1.5
+    pub trust_zone: Option<NormalizedString>,
 }
 
 impl Service {
@@ -60,7 +62,7 @@ impl Service {
     /// ```
     pub fn new(name: &str, bom_ref: Option<String>) -> Self {
         Self {
-            name: NormalizedString::new(name),
+            name: NormalizedString(name.to_string()),
             bom_ref,
             provider: None,
             group: None,
@@ -75,6 +77,7 @@ impl Service {
             properties: None,
             services: None,
             signature: None,
+            trust_zone: None,
         }
     }
 }
@@ -103,6 +106,11 @@ impl Validate for Service {
             )
             .add_struct_option("properties", self.properties.as_ref(), version)
             .add_struct_option("services", self.services.as_ref(), version)
+            .add_field_option(
+                "trust_zone",
+                self.trust_zone.as_ref(),
+                validate_normalized_string,
+            )
             .into()
     }
 }
@@ -238,6 +246,7 @@ mod test {
             }])),
             services: Some(Services(vec![])),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
+            trust_zone: Some("Trust Zone".into()),
         }])
         .validate();
 
@@ -279,24 +288,9 @@ mod test {
                 name: "name".to_string(),
                 value: NormalizedString("invalid\tvalue".to_string()),
             }])),
-            services: Some(Services(vec![Service {
-                bom_ref: None,
-                provider: None,
-                group: None,
-                name: NormalizedString("invalid\tname".to_string()),
-                version: None,
-                description: None,
-                endpoints: None,
-                authenticated: None,
-                x_trust_boundary: None,
-                data: None,
-                licenses: None,
-                external_references: None,
-                properties: None,
-                services: None,
-                signature: None,
-            }])),
+            services: Some(Services(vec![Service::new("invalid\tname", None)])),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
+            trust_zone: Some("Trust Zone".into()),
         }])
         .validate();
 
