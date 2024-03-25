@@ -387,6 +387,7 @@ impl From<UrnUuid> for models::bom::UrnUuid {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use super::*;
     use crate::{
         specs::{
             common::{
@@ -408,7 +409,6 @@ pub(crate) mod test {
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };
-    use super::*;
     use pretty_assertions::assert_eq;
 
     pub(crate) fn minimal_bom_example() -> Bom {
