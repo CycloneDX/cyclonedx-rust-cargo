@@ -21,7 +21,7 @@ use crate::{
         normalized_string::{validate_normalized_string, NormalizedString},
         uri::{validate_uri, Uri},
     },
-    validation::{Validate, ValidationContext, ValidationResult},
+    validation::{Validate, ValidationContext, ValidationError, ValidationResult},
 };
 
 use super::bom::{BomReference, SpecVersion};
@@ -55,13 +55,24 @@ impl OrganizationalContact {
 }
 
 impl Validate for OrganizationalContact {
-    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
+            .add_field_option("bom-ref", self.bom_ref.as_ref(), |bom_ref| {
+                validate_bom_ref(bom_ref, version)
+            })
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_field_option("email", self.email.as_ref(), validate_normalized_string)
             .add_field_option("phone", self.phone.as_ref(), validate_normalized_string)
             .into()
     }
+}
+
+/// The `bom-ref` attribute was added in spec version 1.5
+fn validate_bom_ref(_bom_ref: &BomReference, version: SpecVersion) -> Result<(), ValidationError> {
+    if version <= SpecVersion::V1_4 {
+        return Err("Attribute 'bom-ref' not supported in this format version".into());
+    }
+    Ok(())
 }
 
 /// Represents an organization with name, url, and contact information
@@ -91,7 +102,10 @@ mod test {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        models::organization::{OrganizationalContact, OrganizationalEntity},
+        models::{
+            bom::BomReference,
+            organization::{OrganizationalContact, OrganizationalEntity},
+        },
         prelude::{NormalizedString, Uri, Validate},
         validation,
     };
@@ -125,6 +139,26 @@ mod test {
                 "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
             )
         );
+    }
+
+    #[test]
+    fn it_should_validate_bom_ref_correctly() {
+        let contact = OrganizationalContact {
+            bom_ref: Some(BomReference::new("contact-a")),
+            name: Some(NormalizedString::new("Contact")),
+            email: Some("test@example.com".into()),
+            phone: Some("0123456789".into()),
+        };
+
+        assert!(contact
+            .validate_version(crate::prelude::SpecVersion::V1_3)
+            .has_errors());
+        assert!(contact
+            .validate_version(crate::prelude::SpecVersion::V1_4)
+            .has_errors());
+        assert!(contact
+            .validate_version(crate::prelude::SpecVersion::V1_5)
+            .passed());
     }
 
     #[test]
