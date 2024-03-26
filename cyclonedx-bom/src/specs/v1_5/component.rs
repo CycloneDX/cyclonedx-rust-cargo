@@ -50,7 +50,7 @@ use xml::{reader, writer::XmlEvent};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(transparent)]
-pub(crate) struct Components(Vec<Component>);
+pub(crate) struct Components(pub(crate) Vec<Component>);
 
 impl From<models::component::Components> for Components {
     fn from(other: models::component::Components) -> Self {
@@ -113,53 +113,53 @@ impl FromXml for Components {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Component {
     #[serde(rename = "type")]
-    component_type: String,
+    pub(crate) component_type: String,
     #[serde(rename = "mime-type", skip_serializing_if = "Option::is_none")]
-    mime_type: Option<MimeType>,
+    pub(crate) mime_type: Option<MimeType>,
     #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
-    bom_ref: Option<String>,
+    pub(crate) bom_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    supplier: Option<OrganizationalEntity>,
+    pub(crate) supplier: Option<OrganizationalEntity>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    author: Option<String>,
+    pub(crate) author: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    publisher: Option<String>,
+    pub(crate) publisher: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    group: Option<String>,
-    name: String,
+    pub(crate) group: Option<String>,
+    pub(crate) name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    version: Option<String>,
+    pub(crate) version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub(crate) description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    scope: Option<String>,
+    pub(crate) scope: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    hashes: Option<Hashes>,
+    pub(crate) hashes: Option<Hashes>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    licenses: Option<Licenses>,
+    pub(crate) licenses: Option<Licenses>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    copyright: Option<String>,
+    pub(crate) copyright: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    cpe: Option<Cpe>,
+    pub(crate) cpe: Option<Cpe>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    purl: Option<String>,
+    pub(crate) purl: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    swid: Option<Swid>,
+    pub(crate) swid: Option<Swid>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    modified: Option<bool>,
+    pub(crate) modified: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pedigree: Option<Pedigree>,
+    pub(crate) pedigree: Option<Pedigree>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    external_references: Option<ExternalReferences>,
+    pub(crate) external_references: Option<ExternalReferences>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    properties: Option<Properties>,
+    pub(crate) properties: Option<Properties>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    components: Option<Components>,
+    pub(crate) components: Option<Components>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    evidence: Option<ComponentEvidence>,
+    pub(crate) evidence: Option<ComponentEvidence>,
     /// Available since version 1.4
     #[serde(skip_serializing_if = "Option::is_none")]
-    signature: Option<Signature>,
+    pub(crate) signature: Option<Signature>,
 }
 
 impl From<models::component::Component> for Component {
@@ -588,7 +588,7 @@ impl FromXml for Component {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-struct Swid {
+pub(crate) struct Swid {
     tag_id: String,
     name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -752,7 +752,7 @@ impl FromXml for Swid {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-struct Cpe(String);
+pub(crate) struct Cpe(String);
 
 impl From<models::component::Cpe> for Cpe {
     fn from(other: models::component::Cpe) -> Self {
@@ -792,7 +792,7 @@ impl FromXml for Cpe {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-struct ComponentEvidence {
+pub(crate) struct ComponentEvidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     licenses: Option<Licenses>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -900,7 +900,7 @@ impl FromXml for ComponentEvidence {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-struct Pedigree {
+pub(crate) struct Pedigree {
     #[serde(skip_serializing_if = "Option::is_none")]
     ancestors: Option<Components>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1185,7 +1185,7 @@ impl FromXml for CopyrightTexts {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-struct MimeType(String);
+pub(crate) struct MimeType(String);
 
 impl From<models::component::MimeType> for MimeType {
     fn from(other: models::component::MimeType) -> Self {

@@ -19,11 +19,11 @@
 use crate::{
     errors::XmlReadError,
     external_models::normalized_string::NormalizedString,
-    specs::common::hash::Hashes,
+    specs::{common::hash::Hashes, common::service::v1_5::Services, v1_5::component::Components},
     utilities::convert_vec,
     xml::{
-        read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
-        to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToXml,
+        read_lax_validation_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
+        unexpected_element_error, write_simple_tag, FromXml, ToXml,
     },
 };
 use crate::{models, utilities::convert_optional};
@@ -31,22 +31,50 @@ use serde::{Deserialize, Serialize};
 use xml::{reader, writer};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(transparent)]
-pub(crate) struct Tools(Vec<Tool>);
+#[serde(rename_all = "camelCase", untagged)]
+pub(crate) enum Tools {
+    /// Legacy version: https://cyclonedx.org/docs/1.4/json/#metadata_tools
+    List(Vec<Tool>),
+    /// Added in 1.5, see https://cyclonedx.org/docs/1.5/json/#metadata_tools
+    Object {
+        services: Services,
+        components: Components,
+    },
+}
 
 impl From<models::tool::Tools> for Tools {
     fn from(other: models::tool::Tools) -> Self {
-        Tools(convert_vec(other.0))
+        match other {
+            models::tool::Tools::List(tools) => Self::List(convert_vec(tools)),
+            models::tool::Tools::Object {
+                services,
+                components,
+            } => Self::Object {
+                services: services.into(),
+                components: components.into(),
+            },
+        }
     }
 }
 
 impl From<Tools> for models::tool::Tools {
     fn from(other: Tools) -> Self {
-        models::tool::Tools(convert_vec(other.0))
+        match other {
+            Tools::List(tools) => models::tool::Tools::List(convert_vec(tools)),
+            Tools::Object {
+                services,
+                components,
+            } => Self::Object {
+                services: services.into(),
+                components: components.into(),
+            },
+        }
     }
 }
 
 const TOOLS_TAG: &str = "tools";
+const COMPONENTS_TAG: &str = "components";
+const SERVICES_TAG: &str = "services";
 
 impl ToXml for Tools {
     fn write_xml_element<W: std::io::Write>(
@@ -57,8 +85,19 @@ impl ToXml for Tools {
             .write(writer::XmlEvent::start_element(TOOLS_TAG))
             .map_err(to_xml_write_error(TOOLS_TAG))?;
 
-        for tool in &self.0 {
-            tool.write_xml_element(writer)?;
+        match self {
+            Tools::List(tools) => {
+                for tool in tools {
+                    tool.write_xml_element(writer)?;
+                }
+            }
+            Tools::Object {
+                services,
+                components,
+            } => {
+                services.write_xml_element(writer)?;
+                components.write_xml_element(writer)?;
+            }
         }
 
         writer
@@ -77,7 +116,72 @@ impl FromXml for Tools {
     where
         Self: Sized,
     {
-        read_list_tag(event_reader, element_name, TOOL_TAG).map(Tools)
+        println!("FromXML for Tools: {:?}", element_name.local_name);
+
+        let mut tools: Option<Vec<Tool>> = None;
+        let mut components: Option<Components> = None;
+        let mut services: Option<Services> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(TOOL_TAG))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == TOOL_TAG => {
+                    tools.get_or_insert(Vec::new()).push(Tool::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == COMPONENTS_TAG => {
+                    components = Some(Components::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == SERVICES_TAG => {
+                    services = Some(Services::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => {
+                    return Err(unexpected_element_error(element_name, unexpected));
+                }
+            }
+        }
+
+        match (tools, components, services) {
+            (Some(tools), None, None) => Ok(Self::List(tools)),
+            (None, components, services) => {
+                let components = components.unwrap_or_else(|| Components(vec![]));
+                let services = services.unwrap_or_else(|| Services(vec![]));
+
+                Ok(Self::Object {
+                    services,
+                    components,
+                })
+            }
+            _ => Err(XmlReadError::RequiredDataMissing {
+                required_field: "tool array or services & components".to_string(),
+                element: element_name.local_name.to_string(),
+            }),
+        }
     }
 }
 
@@ -220,18 +324,31 @@ impl FromXml for Tool {
 #[cfg(test)]
 pub(crate) mod test {
     use crate::{
-        specs::common::hash::test::{corresponding_hashes, example_hashes},
+        specs::{
+            common::{
+                hash::{
+                    test::{corresponding_hashes, example_hashes},
+                    Hash, HashValue,
+                },
+                organization::OrganizationalEntity,
+            },
+            v1_5::{
+                component::{Component, Components},
+                service::{Service, Services},
+            },
+        },
         xml::test::{read_element_from_string, write_element_to_string},
     };
 
     use super::*;
+    use pretty_assertions::assert_eq;
 
     pub(crate) fn example_tools() -> Tools {
-        Tools(vec![example_tool()])
+        Tools::List(vec![example_tool()])
     }
 
     pub(crate) fn corresponding_tools() -> models::tool::Tools {
-        models::tool::Tools(vec![corresponding_tool()])
+        models::tool::Tools::List(vec![corresponding_tool()])
     }
 
     pub(crate) fn example_tool() -> Tool {
@@ -274,6 +391,92 @@ pub(crate) mod test {
 "#;
         let actual: Tools = read_element_from_string(input);
         let expected = example_tools();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_xml_with_services_and_components() {
+        let input = r#"
+<tools>
+  <components>
+    <component type="application">
+      <group>Awesome Vendor</group>
+      <name>Awesome Tool</name>
+      <version>9.1.2</version>
+      <hashes>
+        <hash alg="SHA-1">abcdefgh</hash>
+      </hashes>
+    </component>
+  </components>
+  <services>
+    <service>
+      <provider>
+        <name>Acme Org</name>
+        <url>https://example.com</url>
+      </provider>
+      <group>com.example</group>
+      <name>Acme Signing Server</name>
+      <description>Signs artifacts</description>
+    </service>
+  </services>
+</tools>
+"#;
+        let actual: Tools = read_element_from_string(input);
+        let service = Service {
+            bom_ref: None,
+            provider: Some(OrganizationalEntity {
+                name: Some("Acme Org".to_string()),
+                url: Some(vec!["https://example.com".to_string()]),
+                contact: None,
+            }),
+            group: Some("com.example".to_string()),
+            name: "Acme Signing Server".to_string(),
+            version: None,
+            description: Some("Signs artifacts".to_string()),
+            endpoints: None,
+            authenticated: None,
+            x_trust_boundary: None,
+            data: None,
+            licenses: None,
+            external_references: None,
+            properties: None,
+            services: None,
+            signature: None,
+            trust_zone: None,
+        };
+        let component = Component {
+            component_type: "application".to_string(),
+            mime_type: None,
+            bom_ref: None,
+            supplier: None,
+            author: None,
+            publisher: None,
+            group: Some("Awesome Vendor".to_string()),
+            name: "Awesome Tool".to_string(),
+            version: Some("9.1.2".to_string()),
+            description: None,
+            scope: None,
+            hashes: Some(Hashes(vec![Hash {
+                alg: "SHA-1".to_string(),
+                content: HashValue("abcdefgh".to_string()),
+            }])),
+            licenses: None,
+            copyright: None,
+            cpe: None,
+            purl: None,
+            swid: None,
+            modified: None,
+            pedigree: None,
+            external_references: None,
+            properties: None,
+            components: None,
+            evidence: None,
+            signature: None,
+        };
+        let expected = Tools::Object {
+            services: Services(vec![service]),
+            components: Components(vec![component]),
+        };
         assert_eq!(actual, expected);
     }
 }

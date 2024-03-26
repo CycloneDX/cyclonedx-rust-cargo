@@ -469,7 +469,7 @@ impl SbomGenerator {
 
         let tool = Tool::new("CycloneDX", "cargo-cyclonedx", env!("CARGO_PKG_VERSION"));
 
-        metadata.tools = Some(Tools(vec![tool]));
+        metadata.tools = Some(Tools::List(vec![tool]));
 
         Ok((metadata, target_kinds))
     }

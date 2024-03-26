@@ -22,9 +22,9 @@ use crate::{
     models,
     specs::common::{
         organization::OrganizationalContact, organization::OrganizationalEntity,
-        property::Properties, tool::Tools,
+        property::Properties,
     },
-    specs::v1_3::{component::Component, license::Licenses},
+    specs::v1_3::{component::Component, license::Licenses, tool::Tools},
     utilities::{convert_optional, convert_optional_vec, try_convert_optional},
     xml::{
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -285,11 +285,11 @@ pub(crate) mod test {
                 corresponding_contact, corresponding_entity, example_contact, example_entity,
             },
             property::test::{corresponding_properties, example_properties},
-            tool::test::{corresponding_tools, example_tools},
         },
         specs::v1_3::{
             component::test::{corresponding_component, example_component},
             license::test::{corresponding_licenses, example_licenses},
+            tool::test::{corresponding_tools, example_tools},
         },
         xml::test::{read_element_from_string, write_element_to_string},
     };

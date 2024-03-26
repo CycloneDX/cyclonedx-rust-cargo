@@ -119,7 +119,7 @@ mod test {
     fn valid_metadata_should_pass_validation() {
         let validation_result = Metadata {
             timestamp: Some(DateTime("1969-06-28T01:20:00.00-04:00".to_string())),
-            tools: Some(Tools(vec![Tool {
+            tools: Some(Tools::List(vec![Tool {
                 vendor: Some(NormalizedString::new("vendor")),
                 name: None,
                 version: None,
@@ -184,7 +184,7 @@ mod test {
     fn invalid_metadata_should_fail_validation() {
         let validation_result = Metadata {
             timestamp: Some(DateTime("invalid date".to_string())),
-            tools: Some(Tools(vec![Tool {
+            tools: Some(Tools::List(vec![Tool {
                 vendor: Some(NormalizedString("invalid\tvendor".to_string())),
                 name: None,
                 version: None,

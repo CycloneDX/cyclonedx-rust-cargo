@@ -23,6 +23,7 @@ pub(crate) mod composition;
 pub(crate) mod license;
 pub(crate) mod lifecycles;
 pub(crate) mod metadata;
+pub(crate) mod tool;
 pub(crate) mod vulnerability;
 pub(crate) mod vulnerability_analysis;
 pub(crate) mod vulnerability_credits;

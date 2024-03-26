@@ -67,7 +67,7 @@
 //!             .expect("Failed to create UrnUuid"),
 //!     ),
 //!     metadata: Some(Metadata {
-//!         tools: Some(Tools(vec![Tool {
+//!         tools: Some(Tools::List(vec![Tool {
 //!             name: Some(NormalizedString::new("my_tool")),
 //!             ..Tool::default()
 //!         }])),
