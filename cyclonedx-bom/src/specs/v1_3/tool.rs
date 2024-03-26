@@ -31,21 +31,25 @@ use serde::{Deserialize, Serialize};
 use xml::{reader, writer};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(transparent)]
-pub(crate) struct Tools(Vec<Tool>);
+#[serde(rename_all = "camelCase", untagged)]
+pub(crate) enum Tools {
+    List(Vec<Tool>),
+}
 
 impl From<models::tool::Tools> for Tools {
     fn from(other: models::tool::Tools) -> Self {
         match other {
-            models::tool::Tools::List(tools) => Tools(convert_vec(tools)),
-            models::tool::Tools::Object { .. } => Tools(vec![]),
+            models::tool::Tools::List(tools) => Tools::List(convert_vec(tools)),
+            models::tool::Tools::Object { .. } => Tools::List(vec![]),
         }
     }
 }
 
 impl From<Tools> for models::tool::Tools {
     fn from(other: Tools) -> Self {
-        models::tool::Tools::List(convert_vec(other.0))
+        match other {
+            Tools::List(tools) => models::tool::Tools::List(convert_vec(tools)),
+        }
     }
 }
 
@@ -60,8 +64,12 @@ impl ToXml for Tools {
             .write(writer::XmlEvent::start_element(TOOLS_TAG))
             .map_err(to_xml_write_error(TOOLS_TAG))?;
 
-        for tool in &self.0 {
-            tool.write_xml_element(writer)?;
+        match self {
+            Tools::List(tools) => {
+                for tool in tools {
+                    tool.write_xml_element(writer)?;
+                }
+            }
         }
 
         writer
@@ -80,7 +88,7 @@ impl FromXml for Tools {
     where
         Self: Sized,
     {
-        read_list_tag(event_reader, element_name, TOOL_TAG).map(Tools)
+        read_list_tag(event_reader, element_name, TOOL_TAG).map(Tools::List)
     }
 }
 
@@ -230,7 +238,7 @@ pub(crate) mod test {
     use super::*;
 
     pub(crate) fn example_tools() -> Tools {
-        Tools(vec![example_tool()])
+        Tools::List(vec![example_tool()])
     }
 
     pub(crate) fn corresponding_tools() -> models::tool::Tools {
