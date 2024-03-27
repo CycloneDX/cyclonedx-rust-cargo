@@ -619,6 +619,7 @@ impl From<DataContents> for models::modelcard::DataContents {
 }
 
 const URL_TAG: &str = "url";
+const PROPERTIES_TAG: &str = "properties";
 
 impl FromXml for DataContents {
     fn read_xml_element<R: std::io::Read>(
@@ -652,6 +653,16 @@ impl FromXml for DataContents {
                         &name,
                         &attributes,
                     )?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == PROPERTIES_TAG => {
+                    properties = Some(Properties::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?)
                 }
 
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
@@ -750,13 +761,13 @@ impl FromXml for Attachment {
 pub(crate) struct QuantitativeAnalysis {}
 
 impl From<models::modelcard::QuantitativeAnalysis> for QuantitativeAnalysis {
-    fn from(other: models::modelcard::QuantitativeAnalysis) -> Self {
+    fn from(_other: models::modelcard::QuantitativeAnalysis) -> Self {
         Self {}
     }
 }
 
 impl From<QuantitativeAnalysis> for models::modelcard::QuantitativeAnalysis {
-    fn from(other: QuantitativeAnalysis) -> Self {
+    fn from(_other: QuantitativeAnalysis) -> Self {
         Self {}
     }
 }
@@ -766,13 +777,13 @@ impl From<QuantitativeAnalysis> for models::modelcard::QuantitativeAnalysis {
 pub(crate) struct Considerations {}
 
 impl From<models::modelcard::Considerations> for Considerations {
-    fn from(other: models::modelcard::Considerations) -> Self {
+    fn from(_other: models::modelcard::Considerations) -> Self {
         Self {}
     }
 }
 
 impl From<Considerations> for models::modelcard::Considerations {
-    fn from(other: Considerations) -> Self {
+    fn from(_other: Considerations) -> Self {
         Self {}
     }
 }
@@ -1153,13 +1164,21 @@ pub struct DataGovernance {
 
 impl From<models::modelcard::DataGovernance> for DataGovernance {
     fn from(other: models::modelcard::DataGovernance) -> Self {
-        todo!()
+        Self {
+            custodians: other.custodians.map(convert_vec),
+            stewards: other.stewards.map(convert_vec),
+            owners: other.owners.map(convert_vec),
+        }
     }
 }
 
 impl From<DataGovernance> for models::modelcard::DataGovernance {
     fn from(other: DataGovernance) -> Self {
-        todo!()
+        Self {
+            custodians: other.custodians.map(convert_vec),
+            stewards: other.stewards.map(convert_vec),
+            owners: other.owners.map(convert_vec),
+        }
     }
 }
 
@@ -1221,9 +1240,33 @@ impl FromXml for DataGovernance {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub enum DataGovernanceResponsibleParty {
+pub(crate) enum DataGovernanceResponsibleParty {
     Organization(OrganizationalEntity),
     Contact(OrganizationalContact),
+}
+
+impl From<models::modelcard::DataGovernanceResponsibleParty> for DataGovernanceResponsibleParty {
+    fn from(other: models::modelcard::DataGovernanceResponsibleParty) -> Self {
+        match other {
+            models::modelcard::DataGovernanceResponsibleParty::Organization(organization) => {
+                Self::Organization(organization.into())
+            }
+            models::modelcard::DataGovernanceResponsibleParty::Contact(contact) => {
+                Self::Contact(contact.into())
+            }
+        }
+    }
+}
+
+impl From<DataGovernanceResponsibleParty> for models::modelcard::DataGovernanceResponsibleParty {
+    fn from(other: DataGovernanceResponsibleParty) -> Self {
+        match other {
+            DataGovernanceResponsibleParty::Organization(organization) => {
+                Self::Organization(organization.into())
+            }
+            DataGovernanceResponsibleParty::Contact(contact) => Self::Contact(contact.into()),
+        }
+    }
 }
 
 const ORGANIZATION_TAG: &str = "organization";
