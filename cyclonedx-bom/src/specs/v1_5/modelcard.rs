@@ -28,7 +28,10 @@ use crate::{
         property::Properties,
     },
     utilities::{convert_optional, convert_vec},
-    xml::{optional_attribute, read_simple_tag, to_xml_read_error, FromXml},
+    xml::{
+        optional_attribute, read_list_tag, read_simple_tag, to_xml_read_error,
+        unexpected_element_error, FromXml,
+    },
 };
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -362,6 +365,8 @@ impl From<Dataset> for models::modelcard::Dataset {
     }
 }
 
+/// Dataset component, for more details see:
+/// https://cyclonedx.org/docs/1.5/json/#tab-pane_components_items_modelCard_modelParameters_datasets_items_oneOf_i1
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ComponentData {
@@ -414,6 +419,19 @@ impl From<ComponentData> for models::modelcard::ComponentData {
             description: convert_optional(other.description),
             governance: convert_optional(other.governance),
         }
+    }
+}
+
+impl FromXml for ComponentData {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        todo!()
     }
 }
 
@@ -503,9 +521,6 @@ impl FromXml for DataContents {
 const DATASETS_TAG: &str = "datasets";
 const DATASET_TAG: &str = "dataset";
 const CONTENTS_TAG: &str = "contents";
-const CONTENT_TAG: &str = "content";
-const ENCODING_TAG: &str = "encoding";
-const CONTENT_TYPE_TAG: &str = "contentType";
 const NAME_TAG: &str = "name";
 
 impl FromXml for Dataset {
@@ -609,18 +624,21 @@ impl From<Attachment> for models::modelcard::Attachment {
     }
 }
 
+const ENCODING_ATTR: &str = "encoding";
+const CONTENT_TYPE_ATTR: &str = "content-type";
+
 impl FromXml for Attachment {
     fn read_xml_element<R: std::io::Read>(
         event_reader: &mut xml::EventReader<R>,
         element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
+        attributes: &[xml::attribute::OwnedAttribute],
     ) -> Result<Self, XmlReadError>
     where
         Self: Sized,
     {
+        let content_type: Option<String> = optional_attribute(attributes, CONTENT_TYPE_ATTR);
+        let encoding: Option<String> = optional_attribute(attributes, ENCODING_ATTR);
         let mut content: Option<String> = None;
-        let mut content_type: Option<String> = None;
-        let mut encoding: Option<String> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -629,33 +647,19 @@ impl FromXml for Attachment {
                 .map_err(to_xml_read_error(&element_name.local_name))?;
 
             match next_element {
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == CONTENT_TAG => {
-                    content = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. }
-                    if name.local_name == CONTENT_TYPE_TAG =>
-                {
-                    content_type = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == ENCODING_TAG => {
-                    encoding = Some(read_simple_tag(event_reader, &name)?);
+                reader::XmlEvent::Characters(image_content) => {
+                    content = Some(image_content);
                 }
 
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
-
-                // unexpected => {
-                //     return Err(unexpected_element_error(element_name, unexpected));
-                // }
                 _ => (),
             }
         }
 
         let content = content.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: CONTENT_TAG.to_string(),
+            required_field: "inner characters".to_string(),
             element: element_name.local_name.to_string(),
         })?;
 
@@ -907,16 +911,39 @@ impl From<Collection> for Vec<models::modelcard::Graphic> {
     }
 }
 
+const GRAPHIC_TAG: &str = "graphic";
+
 impl FromXml for Collection {
     fn read_xml_element<R: std::io::Read>(
-        _event_reader: &mut xml::EventReader<R>,
-        _element_name: &OwnedName,
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
         _attributes: &[xml::attribute::OwnedAttribute],
     ) -> Result<Self, XmlReadError>
     where
         Self: Sized,
     {
-        todo!()
+        let mut collection: Vec<Graphic> = Vec::new();
+        let mut got_end_tag = false;
+
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(OUTPUT_TAG))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == GRAPHIC_TAG => {
+                    collection.push(Graphic::read_xml_element(event_reader, &name, &attributes)?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                // unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+                _ => (),
+            }
+        }
+
+        Ok(Self(collection))
     }
 }
 
@@ -994,6 +1021,54 @@ impl From<Graphic> for models::modelcard::Graphic {
     }
 }
 
+const IMAGE_TAG: &str = "image";
+
+impl FromXml for Graphic {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut graphic_name: Option<String> = None;
+        let mut image: Option<Attachment> = None;
+
+        let mut got_end_tag = false;
+
+        while !got_end_tag {
+            let next_element = event_reader.next().map_err(to_xml_read_error(OUTPUT_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    graphic_name = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == IMAGE_TAG => {
+                    image = Some(Attachment::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+
+                _ => (),
+            }
+        }
+
+        Ok(Self {
+            name: graphic_name,
+            image,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct DataGovernance {
     custodians: Option<Vec<DataGovernanceResponsibleParty>>,
@@ -1013,10 +1088,120 @@ impl From<DataGovernance> for models::modelcard::DataGovernance {
     }
 }
 
+const CUSTODIANS_TAG: &str = "custodians";
+const CUSTODIAN_TAG: &str = "custodian";
+const STEWARDS_TAG: &str = "stewards";
+const STEWARD_TAG: &str = "steward";
+const OWNERS_TAG: &str = "owners";
+const OWNER_TAG: &str = "owner";
+
+impl FromXml for DataGovernance {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut custodians: Option<Vec<DataGovernanceResponsibleParty>> = None;
+        let mut stewards: Option<Vec<DataGovernanceResponsibleParty>> = None;
+        let mut owners: Option<Vec<DataGovernanceResponsibleParty>> = None;
+        let mut got_end_tag = false;
+
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == CUSTODIANS_TAG =>
+                {
+                    custodians = Some(read_list_tag(event_reader, &name, CUSTODIAN_TAG)?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == STEWARDS_TAG => {
+                    stewards = Some(read_list_tag(event_reader, &name, STEWARD_TAG)?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == OWNERS_TAG => {
+                    owners = Some(read_list_tag(event_reader, &name, OWNER_TAG)?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+
+                _ => (),
+            }
+        }
+
+        Ok(Self {
+            custodians,
+            stewards,
+            owners,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub enum DataGovernanceResponsibleParty {
     Organization(OrganizationalEntity),
     Contact(OrganizationalContact),
+}
+
+const ORGANIZATION_TAG: &str = "organization";
+const CONTACT_TAG: &str = "contact";
+
+impl FromXml for DataGovernanceResponsibleParty {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut party: Option<DataGovernanceResponsibleParty> = None;
+        let mut got_end_tag = false;
+
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == ORGANIZATION_TAG => {
+                    let organization =
+                        OrganizationalEntity::read_xml_element(event_reader, &name, &attributes)?;
+                    party = Some(DataGovernanceResponsibleParty::Organization(organization));
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == CONTACT_TAG => {
+                    let contact =
+                        OrganizationalContact::read_xml_element(event_reader, &name, &attributes)?;
+                    party = Some(DataGovernanceResponsibleParty::Contact(contact));
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        let party = party.ok_or_else(|| XmlReadError::RequiredDataMissing {
+            required_field: "organization or contact".to_string(),
+            element: element_name.local_name.to_string(),
+        })?;
+
+        Ok(party)
+    }
 }
 
 #[cfg(test)]
@@ -1026,7 +1211,7 @@ pub(crate) mod test {
     use crate::{
         models,
         specs::{
-            common::organization::OrganizationalEntity,
+            common::organization::{OrganizationalContact, OrganizationalEntity},
             v1_5::modelcard::{
                 Attachment, Collection, ComponentData, DataContents, DataGovernance,
                 DataGovernanceResponsibleParty, Dataset, Graphic, Graphics, Inputs, MLParameter,
@@ -1054,6 +1239,42 @@ pub(crate) mod test {
             considerations: None,
             properties: None,
         }
+    }
+
+    #[test]
+    fn it_should_read_xml_image_attachment() {
+        let input = r#"
+<image encoding="base64" content-type="image/jpeg">abcdefgh</image>
+"#;
+        let actual: Attachment = read_element_from_string(input);
+        let expected = Attachment {
+            content: "abcdefgh".to_string(),
+            content_type: Some("image/jpeg".to_string()),
+            encoding: Some("base64".to_string()),
+        };
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn it_should_read_xml_graphic() {
+        let input = r#"
+<graphic>
+  <name>FID vs CLIP Scores on 512x512 samples for different v1-versions</name>
+  <image encoding="base64" content-type="image/jpeg">abcdefgh</image>
+</graphic>
+"#;
+        let actual: Graphic = read_element_from_string(input);
+        let expected = Graphic {
+            name: Some(
+                "FID vs CLIP Scores on 512x512 samples for different v1-versions".to_string(),
+            ),
+            image: Some(Attachment {
+                content: "abcdefgh".to_string(),
+                content_type: Some("image/jpeg".to_string()),
+                encoding: Some("base64".to_string()),
+            }),
+        };
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -1087,24 +1308,6 @@ pub(crate) mod test {
     }
 
     #[test]
-    fn it_should_read_xml_attachment() {
-        let input = r#"
-<attachment>
-  <contentType>text/xml</contentType>
-  <encoding>base64</encoding>
-  <content>hello</content>
-</attachment>
-"#;
-        let actual: Attachment = read_element_from_string(input);
-        let expected = Attachment {
-            content: "hello".to_string(),
-            content_type: Some("text/xml".to_string()),
-            encoding: Some("base64".to_string()),
-        };
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
     fn it_should_read_xml_ml_parameter() {
         let input = r#"
 <input>
@@ -1130,6 +1333,49 @@ pub(crate) mod test {
 "#;
         let actual: Inputs = read_element_from_string(input);
         let expected = Inputs(vec![MLParameter::new("string"), MLParameter::new("input")]);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn it_should_read_xml_governance() {
+        let input = r#"
+<governance>
+  <owners>
+    <owner>
+      <organization>
+        <name>Organization 1</name>
+      </organization>
+    </owner>
+  </owners>
+  <custodians>
+    <custodian>
+      <contact bom-ref="custodian-1">
+        <name>Custodian 1</name>
+        <email>custodian@example.com</email>
+      </contact>
+    </custodian>
+  </custodians>
+</governance>
+"#;
+        let actual: DataGovernance = read_element_from_string(input);
+        let expected = DataGovernance {
+            custodians: Some(vec![DataGovernanceResponsibleParty::Contact(
+                OrganizationalContact {
+                    bom_ref: Some("custodian-1".to_string()),
+                    name: Some("Custodian 1".to_string()),
+                    email: Some("custodian@example.com".to_string()),
+                    phone: None,
+                },
+            )]),
+            stewards: None,
+            owners: Some(vec![DataGovernanceResponsibleParty::Organization(
+                OrganizationalEntity {
+                    contact: None,
+                    name: Some("Organization 1".to_string()),
+                    url: None,
+                },
+            )]),
+        };
         assert_eq!(expected, actual);
     }
 
