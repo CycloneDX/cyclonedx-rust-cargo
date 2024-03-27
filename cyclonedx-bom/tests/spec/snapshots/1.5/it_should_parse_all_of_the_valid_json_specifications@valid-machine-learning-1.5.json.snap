@@ -24,7 +24,27 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-machine-learning-1.5.json
           },
           "task": "task goes here",
           "architectureFamily": "the architecture family goes here",
-          "modelArchitecture": "The architecture of the model."
+          "modelArchitecture": "The architecture of the model.",
+          "datasets": [
+            {
+              "type": "dataset",
+              "name": "Training Data",
+              "contents": {
+                "url": "https://example.com/path/to/dataset"
+              },
+              "classification": "public"
+            }
+          ],
+          "inputs": [
+            {
+              "format": "string"
+            }
+          ],
+          "outputs": [
+            {
+              "format": "byte[]"
+            }
+          ]
         },
         "quantitativeAnalysis": {},
         "considerations": {}

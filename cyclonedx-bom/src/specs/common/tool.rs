@@ -133,8 +133,6 @@ pub(crate) mod base {
         where
             Self: Sized,
         {
-            println!("FromXML for Tools: {:?}", element_name.local_name);
-
             let mut tools: Option<Vec<Tool>> = None;
 
             #[versioned("1.5")]

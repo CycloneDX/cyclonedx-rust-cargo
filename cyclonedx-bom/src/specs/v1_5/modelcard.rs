@@ -232,6 +232,16 @@ impl FromXml for ModelParameters {
 
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
+                } if name.local_name == DATASETS_TAG => {
+                    datasets = Some(Datasets::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
                 } if name.local_name == INPUTS_TAG => {
                     inputs = Some(Inputs::read_xml_element(event_reader, &name, &attributes)?);
                 }
@@ -338,6 +348,43 @@ impl From<Datasets> for models::modelcard::Datasets {
     }
 }
 
+impl FromXml for Datasets {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut datasets = Vec::new();
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == DATASET_TAG => {
+                    datasets.push(Dataset::read_xml_element(event_reader, &name, &attributes)?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self(datasets))
+    }
+}
+
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase", untagged)]
 pub(crate) enum Dataset {
@@ -365,29 +412,147 @@ impl From<Dataset> for models::modelcard::Dataset {
     }
 }
 
+const DATASETS_TAG: &str = "datasets";
+const DATASET_TAG: &str = "dataset";
+const CONTENTS_TAG: &str = "contents";
+const GRAPHICS_TAG: &str = "graphics";
+const NAME_TAG: &str = "name";
+const CLASSIFICATION_TAG: &str = "classification";
+const SENSITIVE_DATA_TAG: &str = "sensitiveData";
+const GOVERNANCE_TAG: &str = "governance";
+
+impl FromXml for Dataset {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+        let mut data_type: Option<String> = None;
+        let mut data_name: Option<String> = None;
+        let mut contents: Option<DataContents> = None;
+        let mut classification: Option<String> = None;
+        let mut graphics: Option<Graphics> = None;
+        let mut description: Option<String> = None;
+        let mut governance: Option<DataGovernance> = None;
+        let sensitive_data: Option<Vec<String>> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(DATASET_TAG))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == TYPE_TAG => {
+                    data_type = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
+                    data_name = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == CONTENTS_TAG => {
+                    contents = Some(DataContents::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == DESCRIPTION_TAG =>
+                {
+                    description = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == CLASSIFICATION_TAG =>
+                {
+                    classification = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == GOVERNANCE_TAG => {
+                    governance = Some(DataGovernance::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == GRAPHICS_TAG => {
+                    graphics = Some(Graphics::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == SENSITIVE_DATA_TAG =>
+                {
+                    // NOTE: it's not fully clear how this tag works
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+
+                _ => (),
+            }
+        }
+
+        let data_type = data_type.ok_or_else(|| XmlReadError::RequiredDataMissing {
+            required_field: TYPE_TAG.to_string(),
+            element: element_name.local_name.to_string(),
+        })?;
+
+        Ok(Self::Component(ComponentData {
+            bom_ref,
+            data_type,
+            name: data_name,
+            contents,
+            classification,
+            sensitive_data,
+            graphics,
+            description,
+            governance,
+        }))
+    }
+}
+
 /// Dataset component, for more details see:
 /// https://cyclonedx.org/docs/1.5/json/#tab-pane_components_items_modelCard_modelParameters_datasets_items_oneOf_i1
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ComponentData {
     #[serde(skip_serializing_if = "Option::is_none")]
-    bom_ref: Option<String>,
+    pub(crate) bom_ref: Option<String>,
     #[serde(rename = "type")]
-    data_type: String,
+    pub(crate) data_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
+    pub(crate) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    contents: Option<DataContents>,
+    pub(crate) contents: Option<DataContents>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    classification: Option<String>,
+    pub(crate) classification: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    sensitive_data: Option<Vec<String>>,
+    pub(crate) sensitive_data: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    graphics: Option<Graphics>,
+    pub(crate) graphics: Option<Graphics>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub(crate) description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    governance: Option<DataGovernance>,
+    pub(crate) governance: Option<DataGovernance>,
 }
 
 impl From<models::modelcard::ComponentData> for ComponentData {
@@ -422,25 +587,15 @@ impl From<ComponentData> for models::modelcard::ComponentData {
     }
 }
 
-impl FromXml for ComponentData {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        todo!()
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DataContents {
-    attachment: Option<Attachment>,
-    url: Option<String>,
-    properties: Option<Properties>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) attachment: Option<Attachment>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) properties: Option<Properties>,
 }
 
 impl From<models::modelcard::DataContents> for DataContents {
@@ -469,7 +624,7 @@ impl FromXml for DataContents {
     fn read_xml_element<R: std::io::Read>(
         event_reader: &mut xml::EventReader<R>,
         element_name: &OwnedName,
-        attributes: &[xml::attribute::OwnedAttribute],
+        _attributes: &[xml::attribute::OwnedAttribute],
     ) -> Result<Self, XmlReadError>
     where
         Self: Sized,
@@ -503,9 +658,6 @@ impl FromXml for DataContents {
                     got_end_tag = true;
                 }
 
-                // unexpected => {
-                //     return Err(unexpected_element_error(element_name, unexpected));
-                // }
                 _ => (),
             }
         }
@@ -515,84 +667,6 @@ impl FromXml for DataContents {
             url,
             properties,
         })
-    }
-}
-
-const DATASETS_TAG: &str = "datasets";
-const DATASET_TAG: &str = "dataset";
-const CONTENTS_TAG: &str = "contents";
-const NAME_TAG: &str = "name";
-
-impl FromXml for Dataset {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
-        let mut data_type: Option<String> = None;
-        let mut data_name: Option<String> = None;
-        let mut contents: Option<DataContents> = None;
-        let mut classification: Option<String> = None;
-        let mut sensitive_data: Option<Vec<String>> = None;
-        let mut graphics: Option<Graphics> = None;
-        let mut description: Option<String> = None;
-        let mut governance: Option<DataGovernance> = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(DATASET_TAG))?;
-
-            match next_element {
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == TYPE_TAG => {
-                    data_type = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
-                    data_name = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == CONTENTS_TAG => {
-                    contents = Some(DataContents::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                // unexpected => {
-                //     return Err(unexpected_element_error(element_name, unexpected));
-                // }
-                _ => (),
-            }
-        }
-
-        let data_type = data_type.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: TYPE_TAG.to_string(),
-            element: element_name.local_name.to_string(),
-        })?;
-
-        Ok(Self::Component(ComponentData {
-            bom_ref,
-            data_type,
-            name: data_name,
-            contents,
-            classification,
-            sensitive_data,
-            graphics,
-            description,
-            governance,
-        }))
     }
 }
 
@@ -815,6 +889,7 @@ pub(crate) struct MLParameter {
 }
 
 impl MLParameter {
+    #[allow(unused)]
     pub fn new(format: &str) -> Self {
         Self {
             format: Some(format.to_string()),
@@ -938,7 +1013,7 @@ impl FromXml for Collection {
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
-                // unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+
                 _ => (),
             }
         }
@@ -985,7 +1060,7 @@ impl FromXml for Graphics {
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
-                // unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+
                 _ => (),
             }
         }
@@ -1191,6 +1266,7 @@ impl FromXml for DataGovernanceResponsibleParty {
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
+
                 unexpected => return Err(unexpected_element_error(element_name, unexpected)),
             }
         }
@@ -1214,8 +1290,8 @@ pub(crate) mod test {
             common::organization::{OrganizationalContact, OrganizationalEntity},
             v1_5::modelcard::{
                 Attachment, Collection, ComponentData, DataContents, DataGovernance,
-                DataGovernanceResponsibleParty, Dataset, Graphic, Graphics, Inputs, MLParameter,
-                ModelCard, ModelParameters, ModelParametersApproach, Outputs,
+                DataGovernanceResponsibleParty, Dataset, Datasets, Graphic, Graphics, Inputs,
+                MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
             },
         },
         xml::test::read_element_from_string,
@@ -1511,7 +1587,21 @@ pub(crate) mod test {
                 task: Some("Task".to_string()),
                 architecture_family: Some("Architecture".to_string()),
                 model_architecture: Some("Model".to_string()),
-                datasets: None,
+                datasets: Some(Datasets(vec![Dataset::Component(ComponentData {
+                    bom_ref: None,
+                    data_type: "dataset".to_string(),
+                    name: Some("Training Data".to_string()),
+                    contents: Some(DataContents {
+                        attachment: None,
+                        url: Some("https://example.com/path/to/dataset".to_string()),
+                        properties: None,
+                    }),
+                    classification: Some("public".to_string()),
+                    sensitive_data: None,
+                    graphics: None,
+                    description: None,
+                    governance: None,
+                })])),
                 inputs: Some(Inputs(vec![MLParameter::new("string")])),
                 outputs: Some(Outputs(vec![MLParameter::new("image")])),
             }),
