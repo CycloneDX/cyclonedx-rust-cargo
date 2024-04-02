@@ -1009,12 +1009,21 @@ impl FromXml for PerformanceMetrics {
 pub(crate) struct PerformanceMetric {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) metric_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) slice: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) confidence_interval: Option<ConfidenceInterval>,
 }
 
 impl From<PerformanceMetric> for models::modelcard::PerformanceMetric {
     fn from(other: PerformanceMetric) -> Self {
         Self {
             metric_type: convert_optional(other.metric_type),
+            value: convert_optional(other.value),
+            slice: convert_optional(other.slice),
+            confidence_interval: convert_optional(other.confidence_interval),
         }
     }
 }
@@ -1023,9 +1032,16 @@ impl From<models::modelcard::PerformanceMetric> for PerformanceMetric {
     fn from(other: models::modelcard::PerformanceMetric) -> Self {
         Self {
             metric_type: convert_optional(other.metric_type),
+            value: convert_optional(other.value),
+            slice: convert_optional(other.slice),
+            confidence_interval: convert_optional(other.confidence_interval),
         }
     }
 }
+
+const VALUE_TAG: &str = "value";
+const SLICE_TAG: &str = "slice";
+const CONFIDENCE_INTERVAL_TAG: &str = "confidenceInterval";
 
 impl ToXml for PerformanceMetric {
     fn write_xml_element<W: std::io::Write>(
@@ -1036,6 +1052,18 @@ impl ToXml for PerformanceMetric {
 
         if let Some(metric_type) = &self.metric_type {
             write_simple_tag(writer, TYPE_TAG, metric_type)?;
+        }
+
+        if let Some(value) = &self.value {
+            write_simple_tag(writer, VALUE_TAG, value)?;
+        }
+
+        if let Some(slice) = &self.slice {
+            write_simple_tag(writer, SLICE_TAG, slice)?;
+        }
+
+        if let Some(confidence_interval) = &self.confidence_interval {
+            confidence_interval.write_xml_element(writer)?;
         }
 
         write_close_tag(writer, PERFORMANCE_METRIC_TAG)?;
@@ -1054,6 +1082,9 @@ impl FromXml for PerformanceMetric {
         Self: Sized,
     {
         let mut metric_type: Option<String> = None;
+        let mut value: Option<String> = None;
+        let mut slice: Option<String> = None;
+        let mut confidence_interval: Option<ConfidenceInterval> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -1066,6 +1097,25 @@ impl FromXml for PerformanceMetric {
                     metric_type = Some(read_simple_tag(event_reader, &name)?);
                 }
 
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == VALUE_TAG => {
+                    value = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == SLICE_TAG => {
+                    slice = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == CONFIDENCE_INTERVAL_TAG => {
+                    confidence_interval = Some(ConfidenceInterval::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                // TODO:
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -1073,7 +1123,109 @@ impl FromXml for PerformanceMetric {
             }
         }
 
-        Ok(Self { metric_type })
+        Ok(Self {
+            metric_type,
+            value,
+            slice,
+            confidence_interval,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ConfidenceInterval {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) lower_bound: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) upper_bound: Option<String>,
+}
+
+impl From<ConfidenceInterval> for models::modelcard::ConfidenceInterval {
+    fn from(other: ConfidenceInterval) -> Self {
+        Self {
+            lower_bound: convert_optional(other.lower_bound),
+            upper_bound: convert_optional(other.upper_bound),
+        }
+    }
+}
+
+impl From<models::modelcard::ConfidenceInterval> for ConfidenceInterval {
+    fn from(other: models::modelcard::ConfidenceInterval) -> Self {
+        Self {
+            lower_bound: convert_optional(other.lower_bound),
+            upper_bound: convert_optional(other.upper_bound),
+        }
+    }
+}
+
+const LOWER_BOUND_TAG: &str = "lowerBound";
+const UPPER_BOUND_TAG: &str = "upperBound";
+
+impl ToXml for ConfidenceInterval {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, CONFIDENCE_INTERVAL_TAG)?;
+
+        if let Some(lower_bound) = &self.lower_bound {
+            write_simple_tag(writer, LOWER_BOUND_TAG, lower_bound)?;
+        }
+
+        if let Some(upper_bound) = &self.upper_bound {
+            write_simple_tag(writer, UPPER_BOUND_TAG, upper_bound)?;
+        }
+
+        write_close_tag(writer, CONFIDENCE_INTERVAL_TAG)?;
+
+        Ok(())
+    }
+}
+
+impl FromXml for ConfidenceInterval {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut lower_bound: Option<String> = None;
+        let mut upper_bound: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == LOWER_BOUND_TAG =>
+                {
+                    lower_bound = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == UPPER_BOUND_TAG =>
+                {
+                    upper_bound = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                // TODO:
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                _ => (),
+            }
+        }
+
+        Ok(Self {
+            lower_bound,
+            upper_bound,
+        })
     }
 }
 
@@ -1638,10 +1790,10 @@ pub(crate) mod test {
         specs::{
             common::organization::{OrganizationalContact, OrganizationalEntity},
             v1_5::modelcard::{
-                Attachment, Collection, ComponentData, DataContents, DataGovernance,
-                DataGovernanceResponsibleParty, Dataset, Datasets, Graphic, Graphics, Inputs,
-                MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
-                PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
+                Attachment, Collection, ComponentData, ConfidenceInterval, DataContents,
+                DataGovernance, DataGovernanceResponsibleParty, Dataset, Datasets, Graphic,
+                Graphics, Inputs, MLParameter, ModelCard, ModelParameters, ModelParametersApproach,
+                Outputs, PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
             },
         },
         xml::test::{read_element_from_string, write_element_to_string},
@@ -1678,6 +1830,12 @@ pub(crate) mod test {
             quantitative_analysis: Some(super::QuantitativeAnalysis {
                 performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
                     metric_type: Some("metric-1".to_string()),
+                    value: Some("metric value".to_string()),
+                    slice: None,
+                    confidence_interval: Some(ConfidenceInterval {
+                        lower_bound: Some("low".to_string()),
+                        upper_bound: Some("high".to_string()),
+                    }),
                 }])),
                 graphics: Some(Graphics {
                     description: Some("Graphic Desc".to_string()),
@@ -1734,6 +1892,12 @@ pub(crate) mod test {
                 performance_metrics: Some(models::modelcard::PerformanceMetrics(vec![
                     models::modelcard::PerformanceMetric {
                         metric_type: Some("metric-1".to_string()),
+                        value: Some("metric value".to_string()),
+                        slice: None,
+                        confidence_interval: Some(models::modelcard::ConfidenceInterval {
+                            lower_bound: Some("low".to_string()),
+                            upper_bound: Some("high".to_string()),
+                        }),
                     },
                 ])),
                 graphics: Some(models::modelcard::Graphics {
@@ -1757,6 +1921,22 @@ pub(crate) mod test {
     fn it_should_write_xml_model_card() {
         let xml_output = write_element_to_string(example_modelcard());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_confidence_interval() {
+        let input = r#"
+<confidenceInterval>
+  <lowerBound>The lower bound</lowerBound>
+  <upperBound>The upper bound</upperBound>
+</confidenceInterval>
+"#;
+        let actual: ConfidenceInterval = read_element_from_string(input);
+        let expected = ConfidenceInterval {
+            lower_bound: Some("The lower bound".to_string()),
+            upper_bound: Some("The upper bound".to_string()),
+        };
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -1789,6 +1969,12 @@ pub(crate) mod test {
         let expected = QuantitativeAnalysis {
             performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
                 metric_type: Some("The type of performance metric".to_string()),
+                value: Some("The value of the performance metric".to_string()),
+                slice: Some("The name of the slice this metric was computed on. By default, assume this metric is not sliced".to_string()),
+                confidence_interval: Some(ConfidenceInterval {
+                    lower_bound: Some("The lower bound of the confidence interval".to_string()),
+                    upper_bound: Some("The upper bound of the confidence interval".to_string())
+                })
             }])),
             graphics: Some(Graphics {
                 description: Some("Performance images".to_string()),

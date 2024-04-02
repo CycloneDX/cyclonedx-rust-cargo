@@ -383,10 +383,11 @@ mod test {
             hash::{Hash, HashAlgorithm, HashValue},
             license::LicenseChoice,
             modelcard::{
-                ApproachType, Attachment, ComponentData, ComponentDataType, Considerations,
-                DataContents, DataGovernance, DataGovernanceResponsibleParty, Dataset, Datasets,
-                Graphic, Graphics, Inputs, MLParameter, ModelParameters, ModelParametersApproach,
-                Outputs, PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
+                ApproachType, Attachment, ComponentData, ComponentDataType, ConfidenceInterval,
+                Considerations, DataContents, DataGovernance, DataGovernanceResponsibleParty,
+                Dataset, Datasets, Graphic, Graphics, Inputs, MLParameter, ModelParameters,
+                ModelParametersApproach, Outputs, PerformanceMetric, PerformanceMetrics,
+                QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
             property::Property,
@@ -530,6 +531,12 @@ mod test {
                 quantitative_analysis: Some(QuantitativeAnalysis {
                     performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
                         metric_type: Some("performance".to_string()),
+                        value: Some("metric value".to_string()),
+                        slice: None,
+                        confidence_interval: Some(ConfidenceInterval {
+                            lower_bound: Some("low".to_string()),
+                            upper_bound: Some("high".to_string()),
+                        }),
                     }])),
                     graphics: Some(Graphics {
                         description: Some("graphics".to_string()),

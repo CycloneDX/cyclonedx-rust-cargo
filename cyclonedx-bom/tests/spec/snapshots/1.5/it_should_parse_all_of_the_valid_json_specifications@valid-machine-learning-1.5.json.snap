@@ -48,7 +48,10 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-machine-learning-1.5.json
         },
         "quantitativeAnalysis": {
           "performanceMetrics": [
-            {}
+            {
+              "value": "The value of the performance metric",
+              "slice": "The name of the slice this metric was computed on. By default, assume this metric is not sliced"
+            }
           ],
           "graphics": {
             "description": "Performance images",

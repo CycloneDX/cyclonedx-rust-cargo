@@ -842,6 +842,11 @@ pub(crate) mod base {
         <performanceMetrics>
           <performanceMetric>
             <type>metric-1</type>
+            <value>metric value</value>
+            <confidenceInterval>
+              <lowerBound>low</lowerBound>
+              <upperBound>high</upperBound>
+            </confidenceInterval>
           </performanceMetric>
         </performanceMetrics>
         <graphics>

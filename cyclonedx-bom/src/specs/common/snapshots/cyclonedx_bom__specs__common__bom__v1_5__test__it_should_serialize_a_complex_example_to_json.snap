@@ -203,7 +203,12 @@ expression: actual
         "quantitativeAnalysis": {
           "performanceMetrics": [
             {
-              "metric_type": "metric-1"
+              "metric_type": "metric-1",
+              "value": "metric value",
+              "confidence_interval": {
+                "lowerBound": "low",
+                "upperBound": "high"
+              }
             }
           ],
           "graphics": {
@@ -439,7 +444,12 @@ expression: actual
         "quantitativeAnalysis": {
           "performanceMetrics": [
             {
-              "metric_type": "metric-1"
+              "metric_type": "metric-1",
+              "value": "metric value",
+              "confidence_interval": {
+                "lowerBound": "low",
+                "upperBound": "high"
+              }
             }
           ],
           "graphics": {

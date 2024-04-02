@@ -279,6 +279,15 @@ pub struct PerformanceMetrics(pub Vec<PerformanceMetric>);
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PerformanceMetric {
     pub metric_type: Option<String>,
+    pub value: Option<String>,
+    pub slice: Option<String>,
+    pub confidence_interval: Option<ConfidenceInterval>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ConfidenceInterval {
+    pub lower_bound: Option<String>,
+    pub upper_bound: Option<String>,
 }
 
 /// TODO: implement struct
@@ -291,11 +300,11 @@ mod test {
         models::{
             bom::BomReference,
             modelcard::{
-                ApproachType, Attachment, ComponentData, ComponentDataType, Considerations,
-                DataContents, DataGovernance, DataGovernanceResponsibleParty, Dataset, Datasets,
-                Graphic, Graphics, Inputs, MLParameter, ModelCard, ModelParameters,
-                ModelParametersApproach, Outputs, PerformanceMetric, PerformanceMetrics,
-                QuantitativeAnalysis,
+                ApproachType, Attachment, ComponentData, ComponentDataType, ConfidenceInterval,
+                Considerations, DataContents, DataGovernance, DataGovernanceResponsibleParty,
+                Dataset, Datasets, Graphic, Graphics, Inputs, MLParameter, ModelCard,
+                ModelParameters, ModelParametersApproach, Outputs, PerformanceMetric,
+                PerformanceMetrics, QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
             property::{Properties, Property},
@@ -360,6 +369,12 @@ mod test {
             quantitative_analysis: Some(QuantitativeAnalysis {
                 performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
                     metric_type: Some("performance".to_string()),
+                    value: Some("value".to_string()),
+                    slice: Some("slice".to_string()),
+                    confidence_interval: Some(ConfidenceInterval {
+                        lower_bound: Some("lower".to_string()),
+                        upper_bound: Some("upper".to_string()),
+                    }),
                 }])),
                 graphics: Some(Graphics {
                     description: Some("graphics".to_string()),
