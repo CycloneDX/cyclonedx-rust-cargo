@@ -186,7 +186,18 @@ expression: actual
               "contents": {
                 "url": "https://example.com/path/to/dataset"
               },
-              "classification": "public"
+              "classification": "public",
+              "governance": {
+                "owners": [
+                  {
+                    "Contact": {
+                      "bomRef": "contact-1",
+                      "name": "Contact",
+                      "email": "contact@example.com"
+                    }
+                  }
+                ]
+              }
             }
           ],
           "inputs": [
@@ -203,7 +214,7 @@ expression: actual
         "quantitativeAnalysis": {
           "performanceMetrics": [
             {
-              "metric_type": "metric-1",
+              "type": "metric-1",
               "value": "metric value",
               "confidence_interval": {
                 "lowerBound": "low",
@@ -427,7 +438,18 @@ expression: actual
               "contents": {
                 "url": "https://example.com/path/to/dataset"
               },
-              "classification": "public"
+              "classification": "public",
+              "governance": {
+                "owners": [
+                  {
+                    "Contact": {
+                      "bomRef": "contact-1",
+                      "name": "Contact",
+                      "email": "contact@example.com"
+                    }
+                  }
+                ]
+              }
             }
           ],
           "inputs": [
@@ -444,7 +466,7 @@ expression: actual
         "quantitativeAnalysis": {
           "performanceMetrics": [
             {
-              "metric_type": "metric-1",
+              "type": "metric-1",
               "value": "metric value",
               "confidence_interval": {
                 "lowerBound": "low",

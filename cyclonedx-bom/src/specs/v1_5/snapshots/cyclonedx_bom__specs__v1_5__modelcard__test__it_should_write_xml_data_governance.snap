@@ -1,0 +1,16 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/modelcard.rs
+assertion_line: 2121
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<governance>
+  <owners>
+    <owner>
+      <contact bom-ref="contact-1">
+        <name>Contact</name>
+        <email>contact@example.com</email>
+      </contact>
+    </owner>
+  </owners>
+</governance>

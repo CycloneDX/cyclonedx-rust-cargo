@@ -1531,6 +1531,16 @@ pub(crate) mod base {
                 <url>https://example.com/path/to/dataset</url>
               </contents>
               <classification>public</classification>
+              <governance>
+                <owners>
+                  <owner>
+                    <contact bom-ref="contact-1">
+                      <name>Contact</name>
+                      <email>contact@example.com</email>
+                    </contact>
+                  </owner>
+                </owners>
+              </governance>
             </dataset>
           </datasets>
           <inputs>
@@ -1715,6 +1725,16 @@ pub(crate) mod base {
                 <url>https://example.com/path/to/dataset</url>
               </contents>
               <classification>public</classification>
+              <governance>
+                <owners>
+                  <owner>
+                    <contact bom-ref="contact-1">
+                      <name>Contact</name>
+                      <email>contact@example.com</email>
+                    </contact>
+                  </owner>
+                </owners>
+              </governance>
             </dataset>
           </datasets>
           <inputs>
