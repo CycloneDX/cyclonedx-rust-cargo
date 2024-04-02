@@ -205,7 +205,20 @@ expression: actual
             {
               "metric_type": "metric-1"
             }
-          ]
+          ],
+          "graphics": {
+            "description": "Graphic Desc",
+            "collection": [
+              {
+                "name": "Graphic A",
+                "image": {
+                  "content": "1234",
+                  "contentType": null,
+                  "encoding": null
+                }
+              }
+            ]
+          }
         }
       }
     },
@@ -428,7 +441,20 @@ expression: actual
             {
               "metric_type": "metric-1"
             }
-          ]
+          ],
+          "graphics": {
+            "description": "Graphic Desc",
+            "collection": [
+              {
+                "name": "Graphic A",
+                "image": {
+                  "content": "1234",
+                  "contentType": null,
+                  "encoding": null
+                }
+              }
+            ]
+          }
         }
       }
     }

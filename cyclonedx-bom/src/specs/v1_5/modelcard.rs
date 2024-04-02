@@ -761,9 +761,9 @@ impl FromXml for DataContents {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Attachment {
-    content: String,
-    content_type: Option<String>,
-    encoding: Option<String>,
+    pub(crate) content: String,
+    pub(crate) content_type: Option<String>,
+    pub(crate) encoding: Option<String>,
 }
 
 impl From<models::modelcard::Attachment> for Attachment {
@@ -837,12 +837,14 @@ impl FromXml for Attachment {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct QuantitativeAnalysis {
     pub(crate) performance_metrics: Option<PerformanceMetrics>,
+    pub(crate) graphics: Option<Graphics>,
 }
 
 impl From<models::modelcard::QuantitativeAnalysis> for QuantitativeAnalysis {
     fn from(other: models::modelcard::QuantitativeAnalysis) -> Self {
         Self {
             performance_metrics: convert_optional(other.performance_metrics),
+            graphics: convert_optional(other.graphics),
         }
     }
 }
@@ -851,6 +853,7 @@ impl From<QuantitativeAnalysis> for models::modelcard::QuantitativeAnalysis {
     fn from(other: QuantitativeAnalysis) -> Self {
         Self {
             performance_metrics: convert_optional(other.performance_metrics),
+            graphics: convert_optional(other.graphics),
         }
     }
 }
@@ -886,6 +889,7 @@ impl FromXml for QuantitativeAnalysis {
         Self: Sized,
     {
         let mut performance_metrics: Option<PerformanceMetrics> = None;
+        let mut graphics: Option<Graphics> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -904,6 +908,16 @@ impl FromXml for QuantitativeAnalysis {
                     )?);
                 }
 
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == GRAPHICS_TAG => {
+                    graphics = Some(Graphics::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -913,6 +927,7 @@ impl FromXml for QuantitativeAnalysis {
 
         Ok(Self {
             performance_metrics,
+            graphics,
         })
     }
 }
@@ -1248,9 +1263,9 @@ impl FromXml for MLParameter {
 /// For more details see:
 /// https://cyclonedx.org/docs/1.5/json/#components_items_modelCard_modelParameters_datasets_items_oneOf_i0_graphics
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct Graphics {
-    description: Option<String>,
-    collection: Option<Collection>,
+pub(crate) struct Graphics {
+    pub(crate) description: Option<String>,
+    pub(crate) collection: Option<Collection>,
 }
 
 impl From<models::modelcard::Graphics> for Graphics {
@@ -1273,7 +1288,7 @@ impl From<Graphics> for models::modelcard::Graphics {
 
 /// Helper struct to collect all [`Graphic`].
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct Collection(pub Vec<Graphic>);
+pub(crate) struct Collection(pub(crate) Vec<Graphic>);
 
 impl From<Vec<models::modelcard::Graphic>> for Collection {
     fn from(other: Vec<models::modelcard::Graphic>) -> Self {
@@ -1374,9 +1389,9 @@ impl FromXml for Graphics {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct Graphic {
-    name: Option<String>,
-    image: Option<Attachment>,
+pub(crate) struct Graphic {
+    pub(crate) name: Option<String>,
+    pub(crate) image: Option<Attachment>,
 }
 
 impl From<models::modelcard::Graphic> for Graphic {
@@ -1664,6 +1679,17 @@ pub(crate) mod test {
                 performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
                     metric_type: Some("metric-1".to_string()),
                 }])),
+                graphics: Some(Graphics {
+                    description: Some("Graphic Desc".to_string()),
+                    collection: Some(Collection(vec![Graphic {
+                        name: Some("Graphic A".to_string()),
+                        image: Some(Attachment {
+                            content: "1234".to_string(),
+                            content_type: None,
+                            encoding: None,
+                        }),
+                    }])),
+                }),
             }),
             considerations: None,
             properties: None,
@@ -1710,6 +1736,17 @@ pub(crate) mod test {
                         metric_type: Some("metric-1".to_string()),
                     },
                 ])),
+                graphics: Some(models::modelcard::Graphics {
+                    description: Some("Graphic Desc".to_string()),
+                    collection: Some(vec![models::modelcard::Graphic {
+                        name: Some("Graphic A".to_string()),
+                        image: Some(models::modelcard::Attachment {
+                            content: "1234".to_string(),
+                            content_type: None,
+                            encoding: None,
+                        }),
+                    }]),
+                }),
             }),
             considerations: None,
             properties: None,
@@ -1753,6 +1790,20 @@ pub(crate) mod test {
             performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
                 metric_type: Some("The type of performance metric".to_string()),
             }])),
+            graphics: Some(Graphics {
+                description: Some("Performance images".to_string()),
+                collection: Some(Collection(vec![Graphic {
+                    name: Some(
+                        "FID vs CLIP Scores on 512x512 samples for different v1-versions"
+                            .to_string(),
+                    ),
+                    image: Some(Attachment {
+                        content: "1234".to_string(),
+                        content_type: Some("image/jpeg".to_string()),
+                        encoding: Some("base64".to_string()),
+                    }),
+                }])),
+            }),
         };
         assert_eq!(expected, actual);
     }

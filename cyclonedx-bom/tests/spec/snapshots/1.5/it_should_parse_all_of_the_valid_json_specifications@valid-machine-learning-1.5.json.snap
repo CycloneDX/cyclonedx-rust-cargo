@@ -49,7 +49,20 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-machine-learning-1.5.json
         "quantitativeAnalysis": {
           "performanceMetrics": [
             {}
-          ]
+          ],
+          "graphics": {
+            "description": "Performance images",
+            "collection": [
+              {
+                "name": "FID vs CLIP Scores on 512x512 samples for different v1-versions",
+                "image": {
+                  "content": "1234",
+                  "contentType": "image/jpeg",
+                  "encoding": "base64"
+                }
+              }
+            ]
+          }
         },
         "considerations": {}
       }

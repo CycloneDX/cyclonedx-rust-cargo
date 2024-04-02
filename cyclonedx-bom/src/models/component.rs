@@ -531,6 +531,10 @@ mod test {
                     performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
                         metric_type: Some("performance".to_string()),
                     }])),
+                    graphics: Some(Graphics {
+                        description: Some("graphics".to_string()),
+                        collection: None,
+                    }),
                 }),
                 considerations: Some(Considerations {}),
                 properties: Some(Properties(vec![Property {

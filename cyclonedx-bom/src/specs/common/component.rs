@@ -1836,6 +1836,15 @@ pub(crate) mod base {
             <type>metric-1</type>
           </performanceMetric>
         </performanceMetrics>
+        <graphics>
+          <description>Graphic Desc</description>
+          <collection>
+            <graphic>
+              <name>Graphic A</name>
+              <image>1234</image>
+            </graphic>
+          </collection>
+        </graphics>
       </quantitativeAnalysis>
     </modelCard>
   </component>
