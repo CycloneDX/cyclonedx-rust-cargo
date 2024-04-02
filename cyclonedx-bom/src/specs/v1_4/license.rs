@@ -510,9 +510,7 @@ pub(crate) mod test {
     };
 
     pub(crate) fn example_licenses() -> Licenses {
-        Licenses(vec![
-            LicenseChoice::Expression(example_license_expression()),
-        ])
+        Licenses(vec![example_license_expression()])
     }
 
     pub(crate) fn corresponding_licenses() -> models::license::Licenses {
@@ -557,8 +555,8 @@ pub(crate) mod test {
         })
     }
 
-    pub(crate) fn example_license_expression() -> String {
-        "expression".to_string()
+    pub(crate) fn example_license_expression() -> LicenseChoice {
+        LicenseChoice::Expression("expression".to_string())
     }
 
     pub(crate) fn corresponding_license_expression() -> models::license::LicenseChoice {
@@ -594,8 +592,8 @@ pub(crate) mod test {
     #[test]
     fn it_should_handle_licenses_correctly_license_choice_expressions() {
         let actual = Licenses(vec![
-            LicenseChoice::Expression(example_license_expression()),
-            LicenseChoice::Expression(example_license_expression()),
+            example_license_expression(),
+            example_license_expression(),
         ]);
 
         insta::assert_json_snapshot!(actual);
@@ -613,8 +611,8 @@ pub(crate) mod test {
     #[test]
     fn it_should_write_xml_full_license_choice_expressions() {
         let xml_output = write_element_to_string(Licenses(vec![
-            LicenseChoice::Expression(example_license_expression()),
-            LicenseChoice::Expression(example_license_expression()),
+            example_license_expression(),
+            example_license_expression(),
         ]));
         insta::assert_snapshot!(xml_output);
     }
@@ -650,8 +648,8 @@ pub(crate) mod test {
 "#;
         let actual: Licenses = read_element_from_string(input);
         let expected = Licenses(vec![
-            LicenseChoice::Expression(example_license_expression()),
-            LicenseChoice::Expression(example_license_expression()),
+            example_license_expression(),
+            example_license_expression(),
         ]);
         assert_eq!(actual, expected);
     }
