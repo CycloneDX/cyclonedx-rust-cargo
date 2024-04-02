@@ -118,18 +118,6 @@ pub(crate) enum LicenseChoice {
     Expression(String),
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) enum Lic {
-    #[serde(rename = "license")]
-    Lic(License),
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) enum Expr {
-    #[serde(rename = "expression")]
-    Expr(String),
-}
-
 impl From<models::license::LicenseChoice> for LicenseChoice {
     fn from(other: models::license::LicenseChoice) -> Self {
         match other {
@@ -192,84 +180,6 @@ impl FromXml for LicenseChoice {
                 element: "LicenseChoice".to_string(),
             }),
         }
-    }
-}
-
-impl FromXml for Lic {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut lic: Option<Lic> = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(&element_name.local_name))?;
-            match next_element {
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == LICENSE_TAG => {
-                    lic = Some(Lic::Lic(License::read_xml_element(
-                        event_reader,
-                        element_name,
-                        _attributes,
-                    )?))
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        let lic = lic.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: LICENSE_TAG.to_string(),
-            element: element_name.local_name.to_string(),
-        })?;
-
-        Ok(lic)
-    }
-}
-
-impl FromXml for Expr {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut expr: Option<Expr> = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(&element_name.local_name))?;
-            match next_element {
-                reader::XmlEvent::StartElement { name, .. }
-                    if name.local_name == EXPRESSION_TAG =>
-                {
-                    expr = Some(Expr::Expr(read_simple_tag(event_reader, &name)?))
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        let expr = expr.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: EXPRESSION_TAG.to_string(),
-            element: element_name.local_name.to_string(),
-        })?;
-
-        Ok(expr)
     }
 }
 
