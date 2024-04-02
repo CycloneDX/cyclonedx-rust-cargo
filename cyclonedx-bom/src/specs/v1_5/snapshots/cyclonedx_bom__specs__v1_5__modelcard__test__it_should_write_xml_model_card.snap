@@ -1,0 +1,13 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/modelcard.rs
+assertion_line: 1464
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<modelCard bom-ref="modelcard-1">
+  <modelParameters>
+    <approach>
+      <type>supervised</type>
+    </approach>
+  </modelParameters>
+</modelCard>

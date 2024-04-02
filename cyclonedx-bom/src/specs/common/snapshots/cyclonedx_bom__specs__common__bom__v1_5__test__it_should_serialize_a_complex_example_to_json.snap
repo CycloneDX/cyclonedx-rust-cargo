@@ -169,7 +169,39 @@ expression: actual
         "algorithm": "HS512",
         "value": "1234567890"
       },
-      "modelCard": {}
+      "modelCard": {
+        "bomRef": "modelcard-1",
+        "modelParameters": {
+          "approach": {
+            "type": "supervised"
+          },
+          "task": "Task",
+          "architectureFamily": "Architecture",
+          "modelArchitecture": "Model",
+          "datasets": [
+            {
+              "component": {
+                "type": "dataset",
+                "name": "Training Data",
+                "contents": {
+                  "url": "https://example.com/path/to/dataset"
+                },
+                "classification": "public"
+              }
+            }
+          ],
+          "inputs": [
+            {
+              "format": "string"
+            }
+          ],
+          "outputs": [
+            {
+              "format": "image"
+            }
+          ]
+        }
+      }
     },
     "manufacture": {
       "name": "name",
@@ -354,7 +386,39 @@ expression: actual
         "algorithm": "HS512",
         "value": "1234567890"
       },
-      "modelCard": {}
+      "modelCard": {
+        "bomRef": "modelcard-1",
+        "modelParameters": {
+          "approach": {
+            "type": "supervised"
+          },
+          "task": "Task",
+          "architectureFamily": "Architecture",
+          "modelArchitecture": "Model",
+          "datasets": [
+            {
+              "component": {
+                "type": "dataset",
+                "name": "Training Data",
+                "contents": {
+                  "url": "https://example.com/path/to/dataset"
+                },
+                "classification": "public"
+              }
+            }
+          ],
+          "inputs": [
+            {
+              "format": "string"
+            }
+          ],
+          "outputs": [
+            {
+              "format": "image"
+            }
+          ]
+        }
+      }
     }
   ],
   "services": [

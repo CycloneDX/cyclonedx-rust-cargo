@@ -17,7 +17,11 @@
  */
 
 use serde::{Deserialize, Serialize};
-use xml::{name::OwnedName, reader};
+use xml::{
+    name::OwnedName,
+    reader::{self},
+    writer,
+};
 
 use crate::{
     errors::XmlReadError,
@@ -29,8 +33,9 @@ use crate::{
     },
     utilities::{convert_optional, convert_vec},
     xml::{
-        optional_attribute, read_list_tag, read_simple_tag, to_xml_read_error,
-        unexpected_element_error, FromXml,
+        optional_attribute, read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
+        unexpected_element_error, write_close_tag, write_simple_tag, write_start_tag, FromXml,
+        ToXml,
     },
 };
 
@@ -73,8 +78,32 @@ impl From<ModelCard> for models::modelcard::ModelCard {
     }
 }
 
+const MODEL_CARD: &str = "modelCard";
 const MODEL_PARAMETERS_TAG: &str = "modelParameters";
 const BOM_REF_ATTR: &str = "bom-ref";
+
+impl ToXml for ModelCard {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        let mut model_card_start_tag = writer::XmlEvent::start_element(MODEL_CARD);
+        if let Some(bom_ref) = &self.bom_ref {
+            model_card_start_tag = model_card_start_tag.attr("bom-ref", bom_ref);
+        }
+        writer
+            .write(model_card_start_tag)
+            .map_err(to_xml_write_error(MODEL_CARD))?;
+
+        if let Some(model_parameters) = &self.model_parameters {
+            model_parameters.write_xml_element(writer)?;
+        }
+
+        write_close_tag(writer, MODEL_CARD)?;
+
+        Ok(())
+    }
+}
 
 impl FromXml for ModelCard {
     fn read_xml_element<R: std::io::Read>(
@@ -179,6 +208,23 @@ const OUTPUTS_TAG: &str = "outputs";
 const OUTPUT_TAG: &str = "output";
 const FORMAT_TAG: &str = "format";
 const ATTACHMENT_TAG: &str = "attachment";
+
+impl ToXml for ModelParameters {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, MODEL_PARAMETERS_TAG)?;
+
+        if let Some(approach) = &self.approach {
+            approach.write_xml_element(writer)?;
+        }
+
+        write_close_tag(writer, MODEL_PARAMETERS_TAG)?;
+
+        Ok(())
+    }
+}
 
 impl FromXml for ModelParameters {
     fn read_xml_element<R: std::io::Read>(
@@ -297,6 +343,22 @@ impl From<ModelParametersApproach> for models::modelcard::ModelParametersApproac
 }
 
 const TYPE_TAG: &str = "type";
+
+impl ToXml for ModelParametersApproach {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, APPROACH_TAG)?;
+
+        if let Some(approach_type) = &self.approach_type {
+            write_simple_tag(writer, TYPE_TAG, approach_type)?;
+        }
+
+        write_close_tag(writer, APPROACH_TAG)?;
+        Ok(())
+    }
+}
 
 impl FromXml for ModelParametersApproach {
     fn read_xml_element<R: std::io::Read>(
@@ -1328,7 +1390,7 @@ pub(crate) mod test {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        models,
+        models::{self, composition::BomReference},
         specs::{
             common::organization::{OrganizationalContact, OrganizationalEntity},
             v1_5::modelcard::{
@@ -1337,13 +1399,37 @@ pub(crate) mod test {
                 MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
             },
         },
-        xml::test::read_element_from_string,
+        xml::test::{read_element_from_string, write_element_to_string},
     };
 
     pub(crate) fn example_modelcard() -> ModelCard {
         ModelCard {
-            bom_ref: None,
-            model_parameters: None,
+            bom_ref: Some("modelcard-1".to_string()),
+            model_parameters: Some(ModelParameters {
+                approach: Some(ModelParametersApproach {
+                    approach_type: Some("supervised".to_string()),
+                }),
+                task: Some("Task".to_string()),
+                architecture_family: Some("Architecture".to_string()),
+                model_architecture: Some("Model".to_string()),
+                datasets: Some(Datasets(vec![Dataset::Component(ComponentData {
+                    bom_ref: None,
+                    data_type: "dataset".to_string(),
+                    name: Some("Training Data".to_string()),
+                    contents: Some(DataContents {
+                        attachment: None,
+                        url: Some("https://example.com/path/to/dataset".to_string()),
+                        properties: None,
+                    }),
+                    classification: Some("public".to_string()),
+                    sensitive_data: None,
+                    graphics: None,
+                    description: None,
+                    governance: None,
+                })])),
+                inputs: Some(Inputs(vec![MLParameter::new("string")])),
+                outputs: Some(Outputs(vec![MLParameter::new("image")])),
+            }),
             quantitative_analysis: None,
             considerations: None,
             properties: None,
@@ -1352,12 +1438,18 @@ pub(crate) mod test {
 
     pub(crate) fn corresponding_modelcard() -> models::modelcard::ModelCard {
         models::modelcard::ModelCard {
-            bom_ref: None,
+            bom_ref: Some(BomReference::new("modelcard-1")),
             model_parameters: None,
             quantitative_analysis: None,
             considerations: None,
             properties: None,
         }
+    }
+
+    #[test]
+    fn it_should_write_xml_model_card() {
+        let xml_output = write_element_to_string(example_modelcard());
+        insta::assert_snapshot!(xml_output);
     }
 
     #[test]
