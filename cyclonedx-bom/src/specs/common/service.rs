@@ -40,14 +40,9 @@ pub(crate) mod base {
         property::Properties,
     };
 
+    use crate::specs::common::license::Licenses;
     #[versioned("1.4", "1.5")]
     use crate::specs::common::signature::Signature;
-    #[versioned("1.3")]
-    use crate::specs::v1_3::license::Licenses;
-    #[versioned("1.4")]
-    use crate::specs::v1_4::license::Licenses;
-    #[versioned("1.5")]
-    use crate::specs::v1_5::license::Licenses;
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(transparent)]
@@ -573,14 +568,9 @@ pub(crate) mod base {
     #[cfg(test)]
     pub(crate) mod test {
         use super::*;
+        use crate::specs::common::license::test::{corresponding_licenses, example_licenses};
         #[versioned("1.4", "1.5")]
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
-        #[versioned("1.3")]
-        use crate::specs::v1_3::license::test::{corresponding_licenses, example_licenses};
-        #[versioned("1.4")]
-        use crate::specs::v1_4::license::test::{corresponding_licenses, example_licenses};
-        #[versioned("1.5")]
-        use crate::specs::v1_5::license::test::{corresponding_licenses, example_licenses};
         use crate::{
             specs::common::{
                 external_reference::test::{

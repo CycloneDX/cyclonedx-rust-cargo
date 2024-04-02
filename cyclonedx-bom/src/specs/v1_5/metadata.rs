@@ -20,10 +20,10 @@ use crate::{
     external_models::date_time::DateTime,
     models,
     specs::common::{
-        organization::OrganizationalContact, organization::OrganizationalEntity,
+        license::Licenses, organization::OrganizationalContact, organization::OrganizationalEntity,
         property::Properties,
     },
-    specs::v1_5::{component::Component, license::Licenses, lifecycles::Lifecycles, tool::Tools},
+    specs::v1_5::{component::Component, lifecycles::Lifecycles, tool::Tools},
     utilities::{convert_optional, convert_optional_vec},
     xml::{
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -297,6 +297,7 @@ pub(crate) mod test {
     use crate::{
         specs::{
             common::{
+                license::test::{corresponding_licenses, example_licenses},
                 organization::test::{
                     corresponding_contact, corresponding_entity, example_contact, example_entity,
                 },
@@ -304,7 +305,6 @@ pub(crate) mod test {
             },
             v1_5::{
                 component::test::{corresponding_component, example_component},
-                license::test::{corresponding_licenses, example_licenses},
                 lifecycles::test::{corresponding_lifecycles, example_lifecycles},
                 tool::test::{corresponding_tools, example_tools},
             },

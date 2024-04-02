@@ -24,10 +24,9 @@ use crate::{
     },
     specs::common::{
         attached_text::AttachedText, code::Commits, code::Patches,
-        external_reference::ExternalReferences, hash::Hashes, organization::OrganizationalEntity,
-        property::Properties, signature::Signature,
+        external_reference::ExternalReferences, hash::Hashes, license::Licenses,
+        organization::OrganizationalEntity, property::Properties, signature::Signature,
     },
-    specs::v1_4::license::Licenses,
     xml::{
         attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -1205,11 +1204,11 @@ pub(crate) mod test {
                 corresponding_external_references, example_external_references,
             },
             hash::test::{corresponding_hashes, example_hashes},
+            license::test::{corresponding_licenses, example_licenses},
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
             signature::test::{corresponding_signature, example_signature},
         },
-        specs::v1_4::license::test::{corresponding_licenses, example_licenses},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 
