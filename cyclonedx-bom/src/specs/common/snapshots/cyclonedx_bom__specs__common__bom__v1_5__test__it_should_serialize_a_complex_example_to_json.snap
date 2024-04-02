@@ -180,14 +180,13 @@ expression: actual
           "modelArchitecture": "Model",
           "datasets": [
             {
-              "component": {
-                "type": "dataset",
-                "name": "Training Data",
-                "contents": {
-                  "url": "https://example.com/path/to/dataset"
-                },
-                "classification": "public"
-              }
+              "bomRef": "dataset-1",
+              "type": "dataset",
+              "name": "Training Data",
+              "contents": {
+                "url": "https://example.com/path/to/dataset"
+              },
+              "classification": "public"
             }
           ],
           "inputs": [
@@ -397,14 +396,13 @@ expression: actual
           "modelArchitecture": "Model",
           "datasets": [
             {
-              "component": {
-                "type": "dataset",
-                "name": "Training Data",
-                "contents": {
-                  "url": "https://example.com/path/to/dataset"
-                },
-                "classification": "public"
-              }
+              "bomRef": "dataset-1",
+              "type": "dataset",
+              "name": "Training Data",
+              "contents": {
+                "url": "https://example.com/path/to/dataset"
+              },
+              "classification": "public"
             }
           ],
           "inputs": [

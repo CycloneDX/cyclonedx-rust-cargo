@@ -156,7 +156,7 @@ pub enum Dataset {
 /// Inline Component Data
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComponentData {
-    pub bom_ref: Option<String>,
+    pub bom_ref: Option<BomReference>,
     /// 'type' field
     pub data_type: ComponentDataType,
     pub name: Option<String>,

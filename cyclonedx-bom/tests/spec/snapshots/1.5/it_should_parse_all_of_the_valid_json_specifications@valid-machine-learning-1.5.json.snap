@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 52
+assertion_line: 55
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-machine-learning-1.5.json
 ---

@@ -620,7 +620,7 @@ pub(crate) struct ComponentData {
 impl From<models::modelcard::ComponentData> for ComponentData {
     fn from(other: models::modelcard::ComponentData) -> Self {
         Self {
-            bom_ref: other.bom_ref,
+            bom_ref: other.bom_ref.map(|r| r.0),
             data_type: other.data_type.to_string(),
             name: other.name,
             contents: convert_optional(other.contents),
@@ -636,7 +636,7 @@ impl From<models::modelcard::ComponentData> for ComponentData {
 impl From<ComponentData> for models::modelcard::ComponentData {
     fn from(other: ComponentData) -> Self {
         Self {
-            bom_ref: other.bom_ref,
+            bom_ref: other.bom_ref.map(BomReference::new),
             data_type: models::modelcard::ComponentDataType::new_unchecked(other.data_type),
             name: other.name,
             contents: convert_optional(other.contents),
@@ -1390,7 +1390,8 @@ pub(crate) mod test {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        models::{self, composition::BomReference},
+        models::{self, bom::BomReference},
+        prelude::Uri,
         specs::{
             common::organization::{OrganizationalContact, OrganizationalEntity},
             v1_5::modelcard::{
@@ -1413,7 +1414,7 @@ pub(crate) mod test {
                 architecture_family: Some("Architecture".to_string()),
                 model_architecture: Some("Model".to_string()),
                 datasets: Some(Datasets(vec![Dataset::Component(ComponentData {
-                    bom_ref: None,
+                    bom_ref: Some("dataset-1".to_string()),
                     data_type: "dataset".to_string(),
                     name: Some("Training Data".to_string()),
                     contents: Some(DataContents {
@@ -1439,7 +1440,37 @@ pub(crate) mod test {
     pub(crate) fn corresponding_modelcard() -> models::modelcard::ModelCard {
         models::modelcard::ModelCard {
             bom_ref: Some(BomReference::new("modelcard-1")),
-            model_parameters: None,
+            model_parameters: Some(models::modelcard::ModelParameters {
+                approach: Some(models::modelcard::ModelParametersApproach::new(
+                    "supervised",
+                )),
+                task: Some("Task".to_string()),
+                architecture_family: Some("Architecture".to_string()),
+                model_architecture: Some("Model".to_string()),
+                datasets: Some(models::modelcard::Datasets(vec![
+                    models::modelcard::Dataset::Component(models::modelcard::ComponentData {
+                        bom_ref: Some(BomReference::new("dataset-1")),
+                        data_type: models::modelcard::ComponentDataType::Dataset,
+                        name: Some("Training Data".to_string()),
+                        contents: Some(models::modelcard::DataContents {
+                            attachment: None,
+                            url: Some(Uri("https://example.com/path/to/dataset".to_string())),
+                            properties: None,
+                        }),
+                        classification: Some("public".to_string()),
+                        sensitive_data: None,
+                        graphics: None,
+                        description: None,
+                        governance: None,
+                    }),
+                ])),
+                inputs: Some(models::modelcard::Inputs(vec![
+                    models::modelcard::MLParameter::new("string"),
+                ])),
+                outputs: Some(models::modelcard::Outputs(vec![
+                    models::modelcard::MLParameter::new("image"),
+                ])),
+            }),
             quantitative_analysis: None,
             considerations: None,
             properties: None,
@@ -1642,6 +1673,39 @@ pub(crate) mod test {
     }
 
     #[test]
+    fn it_should_read_json_datasets() {
+        let input = r#"
+[
+  {
+    "type": "dataset",
+    "name": "Training Data",
+    "contents": {
+      "url": "https://example.com/path/to/dataset"
+    },
+    "classification": "public"
+  }
+]
+"#;
+        let actual: Datasets = serde_json::from_str(input).expect("Failed to parse JSON");
+        let expected = Datasets(vec![Dataset::Component(ComponentData {
+            bom_ref: None,
+            data_type: "dataset".to_string(),
+            name: Some("Training Data".to_string()),
+            contents: Some(DataContents {
+                attachment: None,
+                url: Some("https://example.com/path/to/dataset".to_string()),
+                properties: None,
+            }),
+            classification: Some("public".to_string()),
+            sensitive_data: None,
+            graphics: None,
+            description: None,
+            governance: None,
+        })]);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn it_should_read_xml_model_parameters_approach() {
         let input = r#"
 <approach>
@@ -1740,6 +1804,23 @@ pub(crate) mod test {
                 inputs: Some(Inputs(vec![MLParameter::new("string")])),
                 outputs: Some(Outputs(vec![MLParameter::new("image")])),
             }),
+            quantitative_analysis: None,
+            considerations: None,
+            properties: None,
+        };
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn it_should_read_xml_bom_ref_attribute_in_modelcard() {
+        let input = r#"
+<modelCard bom-ref="modelcard-1">
+</modelCard>
+        "#;
+        let actual: ModelCard = read_element_from_string(input);
+        let expected = ModelCard {
+            bom_ref: Some("modelcard-1".to_string()),
+            model_parameters: None,
             quantitative_analysis: None,
             considerations: None,
             properties: None,

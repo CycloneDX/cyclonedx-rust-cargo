@@ -1801,7 +1801,35 @@ pub(crate) mod base {
       <algorithm>HS512</algorithm>
       <value>1234567890</value>
     </signature>
-    <modelCard>
+    <modelCard bom-ref="modelcard-1">
+      <modelParameters>
+        <approach>
+          <type>supervised</type>
+        </approach>
+        <task>Task</task>
+        <architectureFamily>Architecture</architectureFamily>
+        <modelArchitecture>Model</modelArchitecture>
+        <datasets>
+          <dataset bom-ref="dataset-1">
+            <type>dataset</type>
+            <name>Training Data</name>
+            <contents>
+              <url>https://example.com/path/to/dataset</url>
+            </contents>
+            <classification>public</classification>
+          </dataset>
+        </datasets>
+        <inputs>
+          <input>
+            <format>string</format>
+          </input>
+        </inputs>
+        <outputs>
+          <output>
+            <format>image</format>
+          </output>
+        </outputs>
+      </modelParameters>
     </modelCard>
   </component>
 </components>
