@@ -499,7 +499,7 @@ mod test {
                             properties: Some(Properties(vec![])),
                         }),
                         classification: Some("data classification".to_string()),
-                        sensitive_data: Some(vec!["sensitive".to_string()]),
+                        sensitive_data: Some("sensitive".to_string()),
                         graphics: Some(Graphics {
                             description: Some("All graphics".to_string()),
                             collection: Some(vec![Graphic {

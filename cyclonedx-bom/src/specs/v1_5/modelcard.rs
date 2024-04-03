@@ -552,7 +552,6 @@ impl ToXml for Dataset {
                 component.write_xml_element(writer)?;
             }
             Dataset::Reference(reference) => {
-                // TODO: check this output
                 write_start_tag(writer, DATASET_TAG)?;
                 write_simple_tag(writer, REF_TAG, reference)?;
                 write_close_tag(writer, DATASET_TAG)?;
@@ -580,7 +579,7 @@ impl FromXml for Dataset {
         let mut graphics: Option<Graphics> = None;
         let mut description: Option<String> = None;
         let mut governance: Option<DataGovernance> = None;
-        let sensitive_data: Option<Vec<String>> = None;
+        let mut sensitive_data: Option<String> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -642,7 +641,7 @@ impl FromXml for Dataset {
                 reader::XmlEvent::StartElement { name, .. }
                     if name.local_name == SENSITIVE_DATA_TAG =>
                 {
-                    // NOTE: it's not fully clear how this tag works
+                    sensitive_data = Some(read_simple_tag(event_reader, &name)?);
                 }
 
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
@@ -687,8 +686,9 @@ pub(crate) struct ComponentData {
     pub(crate) contents: Option<DataContents>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) classification: Option<String>,
+    /// Marked as an array of `String`, but examples use a single entry
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) sensitive_data: Option<Vec<String>>,
+    pub(crate) sensitive_data: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) graphics: Option<Graphics>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -754,8 +754,8 @@ impl ToXml for ComponentData {
             write_simple_tag(writer, CLASSIFICATION_TAG, classification)?;
         }
 
-        if let Some(_sensitive_data) = &self.sensitive_data {
-            // TODO: how to write 'sensitiveData'?
+        if let Some(sensitive_data) = &self.sensitive_data {
+            write_simple_tag(writer, SENSITIVE_DATA_TAG, sensitive_data)?;
         }
 
         if let Some(graphics) = &self.graphics {

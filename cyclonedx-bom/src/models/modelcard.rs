@@ -162,7 +162,7 @@ pub struct ComponentData {
     pub name: Option<String>,
     pub contents: Option<DataContents>,
     pub classification: Option<String>,
-    pub sensitive_data: Option<Vec<String>>,
+    pub sensitive_data: Option<String>,
     pub graphics: Option<Graphics>,
     pub description: Option<String>,
     pub governance: Option<DataGovernance>,
@@ -337,7 +337,7 @@ mod test {
                         properties: Some(Properties(vec![])),
                     }),
                     classification: Some("data classification".to_string()),
-                    sensitive_data: Some(vec!["sensitive".to_string()]),
+                    sensitive_data: Some("sensitive".to_string()),
                     graphics: Some(Graphics {
                         description: Some("All graphics".to_string()),
                         collection: Some(vec![Graphic {
