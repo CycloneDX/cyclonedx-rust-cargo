@@ -17,6 +17,7 @@
  */
 
 use crate::{
+    external_models::uri::validate_uri,
     prelude::{Uri, Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
@@ -43,6 +44,13 @@ impl Validate for ModelCard {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_struct_option("model_parameters", self.model_parameters.as_ref(), version)
+            .add_struct_option(
+                "quantitative_analysis",
+                self.quantitative_analysis.as_ref(),
+                version,
+            )
+            .add_struct_option("considerations", self.considerations.as_ref(), version)
+            .add_struct_option("properties", self.properties.as_ref(), version)
             .into()
     }
 }
@@ -66,6 +74,8 @@ impl Validate for ModelParameters {
         ValidationContext::new()
             .add_struct_option("approach", self.approach.as_ref(), version)
             .add_struct_option("datasets", self.datasets.as_ref(), version)
+            .add_struct_option("inputs", self.inputs.as_ref(), version)
+            .add_struct_option("outputs", self.outputs.as_ref(), version)
             .into()
     }
 }
@@ -141,8 +151,12 @@ impl ToString for ApproachType {
 pub struct Datasets(pub Vec<Dataset>);
 
 impl Validate for Datasets {
-    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
-        ValidationContext::new().into()
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, |dataset| {
+                dataset.validate_version(version)
+            })
+            .into()
     }
 }
 
@@ -151,6 +165,15 @@ impl Validate for Datasets {
 pub enum Dataset {
     Component(ComponentData),
     Reference(String),
+}
+
+impl Validate for Dataset {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        match self {
+            Dataset::Component(component) => component.validate_version(version),
+            Dataset::Reference(_) => ValidationContext::new().into(),
+        }
+    }
 }
 
 /// Inline Component Data
@@ -166,6 +189,24 @@ pub struct ComponentData {
     pub graphics: Option<Graphics>,
     pub description: Option<String>,
     pub governance: Option<DataGovernance>,
+}
+
+impl Validate for ComponentData {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field("type", &self.data_type, validate_datatype)
+            .add_struct_option("contents", self.contents.as_ref(), version)
+            .add_struct_option("graphics", self.graphics.as_ref(), version)
+            .add_struct_option("governance", self.governance.as_ref(), version)
+            .into()
+    }
+}
+
+fn validate_datatype(datatype: &ComponentDataType) -> Result<(), ValidationError> {
+    if matches!(datatype, ComponentDataType::Unknown(_)) {
+        return Err("Unknown component data type found".into());
+    }
+    Ok(())
 }
 
 /// Type of data
@@ -210,8 +251,28 @@ impl ToString for ComponentDataType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Inputs(pub Vec<MLParameter>);
 
+impl Validate for Inputs {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, validate_mlparameter)
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Outputs(pub Vec<MLParameter>);
+
+impl Validate for Outputs {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, validate_mlparameter)
+            .into()
+    }
+}
+
+pub fn validate_mlparameter(_parameter: &MLParameter) -> Result<(), ValidationError> {
+    Ok(())
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MLParameter {
@@ -233,11 +294,36 @@ pub struct DataContents {
     pub properties: Option<Properties>,
 }
 
+impl Validate for DataContents {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_struct_option("attachment", self.attachment.as_ref(), version)
+            .add_field_option("url", self.url.as_ref(), validate_uri)
+            .add_struct_option("properties", self.properties.as_ref(), version)
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Attachment {
     pub content: String,
     pub content_type: Option<String>,
     pub encoding: Option<String>,
+}
+
+impl Validate for Attachment {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("encoding", self.encoding.as_ref(), validate_encoding)
+            .into()
+    }
+}
+
+fn validate_encoding(encoding: &String) -> Result<(), ValidationError> {
+    if encoding != "base64" {
+        return Err("Unsupported encoding found.".into());
+    }
+    Ok(())
 }
 
 /// See https://cyclonedx.org/docs/1.5/json/#components_items_modelCard_modelParameters_datasets_items_oneOf_i0_graphics
@@ -248,10 +334,28 @@ pub struct Graphics {
     pub collection: Option<Vec<Graphic>>,
 }
 
+impl Validate for Graphics {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list_option("collection", self.collection.as_ref(), |graphic| {
+                graphic.validate_version(version)
+            })
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Graphic {
     pub name: Option<String>,
     pub image: Option<Attachment>,
+}
+
+impl Validate for Graphic {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_struct_option("image", self.image.as_ref(), version)
+            .into()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -261,10 +365,35 @@ pub struct DataGovernance {
     pub owners: Option<Vec<DataGovernanceResponsibleParty>>,
 }
 
+impl Validate for DataGovernance {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list_option("custodians", self.custodians.as_ref(), |c| {
+                c.validate_version(version)
+            })
+            .add_list_option("stewards", self.stewards.as_ref(), |c| {
+                c.validate_version(version)
+            })
+            .add_list_option("owners", self.owners.as_ref(), |c| {
+                c.validate_version(version)
+            })
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DataGovernanceResponsibleParty {
     Organization(OrganizationalEntity),
     Contact(OrganizationalContact),
+}
+
+impl Validate for DataGovernanceResponsibleParty {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        match self {
+            DataGovernanceResponsibleParty::Organization(org) => org.validate_version(version),
+            DataGovernanceResponsibleParty::Contact(contact) => contact.validate_version(version),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -273,8 +402,29 @@ pub struct QuantitativeAnalysis {
     pub graphics: Option<Graphics>,
 }
 
+impl Validate for QuantitativeAnalysis {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_struct_option(
+                "performance_metrics",
+                self.performance_metrics.as_ref(),
+                version,
+            )
+            .add_struct_option("graphics", self.graphics.as_ref(), version)
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PerformanceMetrics(pub Vec<PerformanceMetric>);
+
+impl Validate for PerformanceMetrics {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, |metric| metric.validate_version(version))
+            .into()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PerformanceMetric {
@@ -282,6 +432,12 @@ pub struct PerformanceMetric {
     pub value: Option<String>,
     pub slice: Option<String>,
     pub confidence_interval: Option<ConfidenceInterval>,
+}
+
+impl Validate for PerformanceMetric {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new().into()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -293,6 +449,12 @@ pub struct ConfidenceInterval {
 /// TODO: implement struct
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Considerations {}
+
+impl Validate for Considerations {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new().into()
+    }
+}
 
 #[cfg(test)]
 mod test {
