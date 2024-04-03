@@ -394,6 +394,11 @@ pub(crate) mod base {
                 signature.write_xml_element(writer)?;
             }
 
+            #[versioned("1.5")]
+            if let Some(model_card) = &self.model_card {
+                model_card.write_xml_element(writer)?;
+            }
+
             writer
                 .write(XmlEvent::end_element())
                 .map_err(to_xml_write_error(COMPONENT_TAG))?;

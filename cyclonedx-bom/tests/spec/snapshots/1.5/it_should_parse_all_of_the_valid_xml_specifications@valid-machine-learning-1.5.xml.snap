@@ -13,6 +13,57 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-machine-learning-1.5.xml
       <name>stable-diffusion</name>
       <version>1.4</version>
       <description>Stable Diffusion is a latent text-to-image diffusion model capable of generating photo-realistic images given any text input. For more information about how Stable Diffusion functions, please have a look at 🤗's Stable Diffusion with 🧨Diffusers blog.</description>
+      <modelCard>
+        <modelParameters>
+          <approach>
+            <type>supervised</type>
+          </approach>
+          <task>task goes here</task>
+          <architectureFamily>the architecture family goes here</architectureFamily>
+          <modelArchitecture>The architecture of the model.</modelArchitecture>
+          <datasets>
+            <dataset>
+              <name>Training Data</name>
+              <contents>
+                <url>https://example.com/path/to/dataset</url>
+              </contents>
+              <classification>public</classification>
+            </dataset>
+          </datasets>
+          <inputs>
+            <input>
+              <format>string</format>
+            </input>
+          </inputs>
+          <outputs>
+            <output>
+              <format>string</format>
+            </output>
+          </outputs>
+        </modelParameters>
+        <quantitativeAnalysis>
+          <performanceMetrics>
+            <performanceMetric>
+              <type>The type of performance metric</type>
+              <value>The value of the performance metric</value>
+              <slice>The name of the slice this metric was computed on. By default, assume this metric is not sliced</slice>
+              <confidenceInterval>
+                <lowerBound>The lower bound of the confidence interval</lowerBound>
+                <upperBound>The upper bound of the confidence interval</upperBound>
+              </confidenceInterval>
+            </performanceMetric>
+          </performanceMetrics>
+          <graphics>
+            <description>Performance images</description>
+            <collection>
+              <graphic>
+                <name>FID vs CLIP Scores on 512x512 samples for different v1-versions</name>
+                <image encoding="base64" encoding="image/jpeg">1234</image>
+              </graphic>
+            </collection>
+          </graphics>
+        </quantitativeAnalysis>
+      </modelCard>
     </component>
   </components>
 </bom>
