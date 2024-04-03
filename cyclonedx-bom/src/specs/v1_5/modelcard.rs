@@ -260,6 +260,14 @@ impl ToXml for ModelParameters {
             datasets.write_xml_element(writer)?;
         }
 
+        if let Some(inputs) = &self.inputs {
+            inputs.write_xml_element(writer)?;
+        }
+
+        if let Some(outputs) = &self.outputs {
+            outputs.write_xml_element(writer)?;
+        }
+
         write_close_tag(writer, MODEL_PARAMETERS_TAG)?;
 
         Ok(())

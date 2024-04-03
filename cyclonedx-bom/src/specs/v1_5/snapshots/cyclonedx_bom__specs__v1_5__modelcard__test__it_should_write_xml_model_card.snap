@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/v1_5/modelcard.rs
-assertion_line: 2307
+assertion_line: 2340
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -31,6 +31,16 @@ expression: xml_output
         </governance>
       </dataset>
     </datasets>
+    <inputs>
+      <input>
+        <format>string</format>
+      </input>
+    </inputs>
+    <outputs>
+      <output>
+        <format>image</format>
+      </output>
+    </outputs>
   </modelParameters>
   <quantitativeAnalysis>
     <performanceMetrics>
