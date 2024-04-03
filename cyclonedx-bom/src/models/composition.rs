@@ -18,7 +18,10 @@
 
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
-use super::{bom::SpecVersion, signature::Signature};
+use super::{
+    bom::{BomReference, SpecVersion},
+    signature::Signature,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Composition {
@@ -98,9 +101,6 @@ impl AggregateType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BomReference(pub(crate) String);
-
 #[cfg(test)]
 mod test {
     use crate::{models::signature::Algorithm, validation};
@@ -112,8 +112,8 @@ mod test {
     fn it_should_pass_validation() {
         let validation_result = Compositions(vec![Composition {
             aggregate: AggregateType::Complete,
-            assemblies: Some(vec![BomReference("reference".to_string())]),
-            dependencies: Some(vec![BomReference("reference".to_string())]),
+            assemblies: Some(vec![BomReference::new("reference")]),
+            dependencies: Some(vec![BomReference::new("reference")]),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
@@ -125,8 +125,8 @@ mod test {
     fn it_should_fail_validation() {
         let validation_result = Compositions(vec![Composition {
             aggregate: AggregateType::UnknownAggregateType("unknown aggregate type".to_string()),
-            assemblies: Some(vec![BomReference("reference".to_string())]),
-            dependencies: Some(vec![BomReference("reference".to_string())]),
+            assemblies: Some(vec![BomReference::new("reference")]),
+            dependencies: Some(vec![BomReference::new("reference")]),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();

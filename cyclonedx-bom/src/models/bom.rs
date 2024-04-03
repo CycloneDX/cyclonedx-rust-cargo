@@ -41,8 +41,6 @@ use crate::models::vulnerability::Vulnerabilities;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 use crate::xml::{FromXmlDocument, ToXml};
 
-use super::composition::BomReference;
-
 /// Represents the spec version of a BOM.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy, PartialOrd)]
 #[repr(u16)]
@@ -83,6 +81,25 @@ impl ToString for SpecVersion {
             SpecVersion::V1_5 => "1.5",
         };
         s.to_string()
+    }
+}
+
+/// A reference to a Bom element
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BomReference(pub(crate) String);
+
+impl BomReference {
+    pub fn new<T>(input: T) -> Self
+    where
+        T: ToString,
+    {
+        Self(input.to_string())
+    }
+}
+
+impl AsRef<String> for BomReference {
+    fn as_ref(&self) -> &String {
+        &self.0
     }
 }
 
@@ -506,7 +523,7 @@ mod test {
         external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri},
         models::{
             component::{Classification, Component},
-            composition::{AggregateType, BomReference, Composition},
+            composition::{AggregateType, Composition},
             dependency::Dependency,
             external_reference::{ExternalReference, ExternalReferenceType},
             property::Property,

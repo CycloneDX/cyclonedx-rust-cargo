@@ -18,6 +18,7 @@
 
 pub(crate) mod advisory;
 pub(crate) mod attached_text;
+pub(crate) mod bom;
 pub(crate) mod code;
 pub(crate) mod dependency;
 pub(crate) mod external_reference;

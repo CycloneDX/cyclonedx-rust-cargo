@@ -19,11 +19,11 @@
 use crate::{
     errors::XmlReadError,
     models,
+    specs::common::bom::BomReference,
     utilities::{convert_optional_vec, convert_vec},
     xml::{
-        attribute_or_error, closing_tag_or_error, read_lax_validation_list_tag, read_simple_tag,
-        to_xml_read_error, to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml,
-        ToInnerXml, ToXml,
+        read_lax_validation_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
+        unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -225,60 +225,6 @@ impl FromXml for Composition {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-struct BomReference(String);
-
-impl From<models::composition::BomReference> for BomReference {
-    fn from(other: models::composition::BomReference) -> Self {
-        Self(other.0)
-    }
-}
-
-impl From<BomReference> for models::composition::BomReference {
-    fn from(other: BomReference) -> Self {
-        Self(other.0)
-    }
-}
-
-const REF_ATTR: &str = "ref";
-
-impl ToInnerXml for BomReference {
-    fn write_xml_named_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-        tag: &str,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        writer
-            .write(XmlEvent::start_element(tag).attr(REF_ATTR, &self.0))
-            .map_err(to_xml_write_error(tag))?;
-
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(to_xml_write_error(tag))?;
-
-        Ok(())
-    }
-}
-
-impl FromXml for BomReference {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let reference = attribute_or_error(element_name, attributes, REF_ATTR)?;
-        event_reader
-            .next()
-            .map_err(to_xml_read_error(&element_name.local_name))
-            .and_then(closing_tag_or_error(element_name))?;
-
-        Ok(Self(reference))
-    }
-}
-
 #[cfg(test)]
 pub(crate) mod test {
     use crate::xml::test::{read_element_from_string, write_element_to_string};
@@ -296,8 +242,8 @@ pub(crate) mod test {
     pub(crate) fn example_composition() -> Composition {
         Composition {
             aggregate: "aggregate".to_string(),
-            assemblies: Some(vec![BomReference("assembly".to_string())]),
-            dependencies: Some(vec![BomReference("dependency".to_string())]),
+            assemblies: Some(vec![BomReference::new("assembly")]),
+            dependencies: Some(vec![BomReference::new("dependency")]),
         }
     }
 
@@ -306,12 +252,8 @@ pub(crate) mod test {
             aggregate: models::composition::AggregateType::UnknownAggregateType(
                 "aggregate".to_string(),
             ),
-            assemblies: Some(vec![models::composition::BomReference(
-                "assembly".to_string(),
-            )]),
-            dependencies: Some(vec![models::composition::BomReference(
-                "dependency".to_string(),
-            )]),
+            assemblies: Some(vec![models::bom::BomReference::new("assembly")]),
+            dependencies: Some(vec![models::bom::BomReference::new("dependency")]),
             signature: None,
         }
     }
