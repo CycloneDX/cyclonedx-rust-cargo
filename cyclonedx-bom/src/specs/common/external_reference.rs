@@ -213,16 +213,18 @@ pub(crate) enum Uri {
     Url(String),
 }
 
-impl From<external_models::uri::Uri> for Uri {
-    fn from(value: external_models::uri::Uri) -> Self {
-        Self::Url(value.0)
+impl From<models::external_reference::Uri> for Uri {
+    fn from(value: models::external_reference::Uri) -> Self {
+        match value {
+            models::external_reference::Uri::Url(url) => Self::Url(url.0),
+        }
     }
 }
 
-impl From<Uri> for external_models::uri::Uri {
+impl From<Uri> for models::external_reference::Uri {
     fn from(value: Uri) -> Self {
         match value {
-            Uri::Url(url) => Self(url),
+            Uri::Url(url) => Self::Url(external_models::uri::Uri(url)),
         }
     }
 }
@@ -288,7 +290,7 @@ pub(crate) mod test {
                 models::external_reference::ExternalReferenceType::UnknownExternalReferenceType(
                     "external reference type".to_string(),
                 ),
-            url: external_models::uri::Uri("url".to_string()),
+            url: models::external_reference::Uri::Url(external_models::uri::Uri("url".to_string())),
             comment: Some("comment".to_string()),
             hashes: Some(corresponding_hashes()),
         }

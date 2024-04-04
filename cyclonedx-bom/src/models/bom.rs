@@ -520,12 +520,14 @@ fn matches_urn_uuid_regex(value: &str) -> bool {
 #[cfg(test)]
 mod test {
     use crate::{
-        external_models::{date_time::DateTime, normalized_string::NormalizedString, uri::Uri},
+        external_models::{
+            date_time::DateTime, normalized_string::NormalizedString, uri::Uri as Url,
+        },
         models::{
             component::{Classification, Component},
             composition::{AggregateType, Composition},
             dependency::Dependency,
-            external_reference::{ExternalReference, ExternalReferenceType},
+            external_reference::{ExternalReference, ExternalReferenceType, Uri},
             property::Property,
             service::Service,
             vulnerability::Vulnerability,
@@ -692,7 +694,7 @@ mod test {
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown".to_string(),
                 ),
-                url: Uri("https://example.com".to_string()),
+                url: Uri::Url(Url("https://example.com".to_string())),
                 comment: None,
                 hashes: None,
             }])),

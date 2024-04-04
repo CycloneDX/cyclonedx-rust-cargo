@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::external_models::uri::{validate_uri, Uri};
+use crate::external_models::uri::{validate_uri as validate_url, Uri as Url};
 use crate::models::hash::Hashes;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
@@ -44,10 +44,10 @@ impl ExternalReference {
     /// let external_reference = ExternalReference::new(ExternalReferenceType::Bom, url);
     /// # Ok::<(), UriError>(())
     /// ```
-    pub fn new(external_reference_type: ExternalReferenceType, url: Uri) -> Self {
+    pub fn new(external_reference_type: ExternalReferenceType, url: impl Into<Uri>) -> Self {
         Self {
             external_reference_type,
-            url,
+            url: url.into(),
             comment: None,
             hashes: None,
         }
@@ -164,6 +164,23 @@ impl ExternalReferenceType {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Uri {
+    Url(Url),
+}
+
+fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
+    match uri {
+        Uri::Url(url) => validate_url(url),
+    }
+}
+
+impl From<Url> for Uri {
+    fn from(url: Url) -> Self {
+        Self::Url(url)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{
@@ -178,7 +195,7 @@ mod test {
     fn it_should_pass_validation() {
         let validation_result = ExternalReferences(vec![ExternalReference {
             external_reference_type: ExternalReferenceType::Bom,
-            url: Uri("https://example.com".to_string()),
+            url: Uri::Url(Url("https://example.com".to_string())),
             comment: Some("Comment".to_string()),
             hashes: Some(Hashes(vec![])),
         }])
@@ -193,7 +210,7 @@ mod test {
             external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                 "unknown reference type".to_string(),
             ),
-            url: Uri("invalid uri".to_string()),
+            url: Uri::Url(Url("invalid uri".to_string())),
             comment: Some("Comment".to_string()),
             hashes: Some(Hashes(vec![Hash {
                 alg: crate::models::hash::HashAlgorithm::MD5,
