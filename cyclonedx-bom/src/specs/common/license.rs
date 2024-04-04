@@ -16,7 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::utilities::convert_vec;
 use crate::xml::write_simple_tag;
 use crate::{
     errors::XmlReadError,
@@ -26,6 +25,7 @@ use crate::{
         uri::Uri,
     },
     models,
+    utilities::convert_vec,
     xml::{
         closing_tag_or_error, inner_text_or_error, read_lax_validation_tag, read_simple_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, ToInnerXml,
@@ -413,6 +413,8 @@ impl FromXml for LicenseIdentifier {
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
+    use pretty_assertions::assert_eq;
+
     use crate::{
         external_models::spdx::SpdxExpression,
         specs::common::attached_text::test::{corresponding_attached_text, example_attached_text},

@@ -27,12 +27,12 @@ use crate::{
         normalized_string::NormalizedString,
         uri::{Purl, Uri},
     },
+    specs::common::license::Licenses,
     specs::common::{
         attached_text::AttachedText, code::Commits, code::Patches,
         external_reference::ExternalReferences, hash::Hashes, organization::OrganizationalEntity,
         property::Properties,
     },
-    specs::v1_3::license::Licenses,
     xml::{
         attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -1177,6 +1177,7 @@ impl From<MimeType> for models::component::MimeType {
 pub(crate) mod test {
     use crate::{
         models::bom::SpecVersion,
+        specs::common::license::test::{corresponding_licenses, example_licenses},
         specs::common::{
             attached_text::test::{corresponding_attached_text, example_attached_text},
             code::test::{
@@ -1189,7 +1190,6 @@ pub(crate) mod test {
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
         },
-        specs::v1_3::license::test::{corresponding_licenses, example_licenses},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 

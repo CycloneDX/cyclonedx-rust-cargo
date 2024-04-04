@@ -22,17 +22,15 @@ use crate::{
         normalized_string::NormalizedString,
         uri::{Purl, Uri},
     },
-    specs::{
-        common::{
-            attached_text::AttachedText,
-            code::{Commits, Patches},
-            external_reference::ExternalReferences,
-            hash::Hashes,
-            organization::OrganizationalEntity,
-            property::Properties,
-            signature::Signature,
-        },
-        v1_5::license::Licenses,
+    specs::common::{
+        attached_text::AttachedText,
+        code::{Commits, Patches},
+        external_reference::ExternalReferences,
+        hash::Hashes,
+        license::Licenses,
+        organization::OrganizationalEntity,
+        property::Properties,
+        signature::Signature,
     },
     xml::{
         attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
@@ -1211,11 +1209,11 @@ pub(crate) mod test {
                 corresponding_external_references, example_external_references,
             },
             hash::test::{corresponding_hashes, example_hashes},
+            license::test::{corresponding_licenses, example_licenses},
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
             signature::test::{corresponding_signature, example_signature},
         },
-        specs::v1_5::license::test::{corresponding_licenses, example_licenses},
         xml::test::{read_element_from_string, write_element_to_string},
     };
 

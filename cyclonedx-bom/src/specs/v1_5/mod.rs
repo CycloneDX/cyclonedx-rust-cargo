@@ -20,7 +20,6 @@ pub(crate) mod annotation;
 pub(crate) mod bom;
 pub(crate) mod component;
 pub(crate) mod composition;
-pub(crate) mod license;
 pub(crate) mod lifecycles;
 pub(crate) mod metadata;
 pub(crate) mod tool;
