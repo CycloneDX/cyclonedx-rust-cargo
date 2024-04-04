@@ -246,6 +246,21 @@ impl Fold for VersionFilter {
 
         fold::fold_item(self, item)
     }
+
+    fn fold_item_enum(&mut self, mut item: syn::ItemEnum) -> syn::ItemEnum {
+        item.variants = item
+            .variants
+            .into_iter()
+            .filter_map(
+                |mut variant| match self.extract_requirement(&mut variant.attrs) {
+                    Some(version) => self.matches(&version).then_some(variant),
+                    None => Some(variant),
+                },
+            )
+            .collect();
+
+        fold::fold_item_enum(self, item)
+    }
 }
 
 fn helper(

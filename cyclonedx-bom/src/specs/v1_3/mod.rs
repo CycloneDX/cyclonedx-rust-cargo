@@ -20,6 +20,6 @@ pub(crate) mod bom;
 pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod metadata;
-pub(crate) mod tool;
 
 pub(crate) use crate::specs::common::service::v1_3 as service;
+pub(crate) use crate::specs::common::tool::v1_3 as tool;

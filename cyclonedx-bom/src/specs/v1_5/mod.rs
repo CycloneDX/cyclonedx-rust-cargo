@@ -22,7 +22,6 @@ pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod lifecycles;
 pub(crate) mod metadata;
-pub(crate) mod tool;
 pub(crate) mod vulnerability;
 pub(crate) mod vulnerability_analysis;
 pub(crate) mod vulnerability_credits;
@@ -33,3 +32,4 @@ pub(crate) mod vulnerability_target;
 
 #[allow(unused_imports)]
 pub(crate) use crate::specs::common::service::v1_5 as service;
+pub(crate) use crate::specs::common::tool::v1_5 as tool;
