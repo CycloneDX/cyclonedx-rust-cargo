@@ -18,17 +18,15 @@
 
 use crate::{
     errors::XmlReadError,
-    external_models::uri::Uri,
+    external_models, models,
+    specs::common::hash::Hashes,
+    utilities::{convert_optional, convert_vec},
+    xml::to_xml_write_error,
     xml::{
         attribute_or_error, read_list_tag, read_simple_tag, to_xml_read_error,
         unexpected_element_error, write_simple_tag, FromXml, ToXml,
     },
 };
-use crate::{
-    models,
-    utilities::{convert_optional, convert_vec},
-};
-use crate::{specs::common::hash::Hashes, xml::to_xml_write_error};
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
 
@@ -88,7 +86,7 @@ impl FromXml for ExternalReferences {
 pub(crate) struct ExternalReference {
     #[serde(rename = "type")]
     external_reference_type: String,
-    url: String,
+    url: Uri,
     #[serde(skip_serializing_if = "Option::is_none")]
     comment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -99,7 +97,7 @@ impl From<models::external_reference::ExternalReference> for ExternalReference {
     fn from(other: models::external_reference::ExternalReference) -> Self {
         Self {
             external_reference_type: other.external_reference_type.to_string(),
-            url: other.url.to_string(),
+            url: other.url.into(),
             comment: other.comment,
             hashes: convert_optional(other.hashes),
         }
@@ -113,7 +111,7 @@ impl From<ExternalReference> for models::external_reference::ExternalReference {
                 models::external_reference::ExternalReferenceType::new_unchecked(
                     other.external_reference_type,
                 ),
-            url: Uri(other.url),
+            url: other.url.into(),
             comment: other.comment,
             hashes: convert_optional(other.hashes),
         }
@@ -137,7 +135,7 @@ impl ToXml for ExternalReference {
             )
             .map_err(to_xml_write_error(REFERENCE_TAG))?;
 
-        write_simple_tag(writer, URL_TAG, &self.url)?;
+        self.url.write_xml_element(writer)?;
 
         if let Some(comment) = &self.comment {
             write_simple_tag(writer, COMMENT_TAG, comment)?;
@@ -167,7 +165,7 @@ impl FromXml for ExternalReference {
         Self: Sized,
     {
         let reference_type = attribute_or_error(element_name, attributes, TYPE_ATTR)?;
-        let mut url: Option<String> = None;
+        let mut url: Option<Uri> = None;
         let mut comment: Option<String> = None;
         let mut hashes: Option<Hashes> = None;
 
@@ -178,7 +176,7 @@ impl FromXml for ExternalReference {
                 .map_err(to_xml_read_error(REFERENCE_TAG))?;
             match next_element {
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
-                    url = Some(read_simple_tag(event_reader, &name)?)
+                    url = Some(Uri::read_xml_element(event_reader, &name, &attributes)?)
                 }
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == COMMENT_TAG => {
                     comment = Some(read_simple_tag(event_reader, &name)?)
@@ -209,6 +207,50 @@ impl FromXml for ExternalReference {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", untagged)]
+pub(crate) enum Uri {
+    Url(String),
+}
+
+impl From<external_models::uri::Uri> for Uri {
+    fn from(value: external_models::uri::Uri) -> Self {
+        Self::Url(value.0)
+    }
+}
+
+impl From<Uri> for external_models::uri::Uri {
+    fn from(value: Uri) -> Self {
+        match value {
+            Uri::Url(url) => Self(url),
+        }
+    }
+}
+
+impl ToXml for Uri {
+    fn write_xml_element<W: std::io::prelude::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        match self {
+            Self::Url(url) => write_simple_tag(writer, URL_TAG, &url),
+        }
+    }
+}
+
+impl FromXml for Uri {
+    fn read_xml_element<R: std::io::prelude::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_simple_tag(event_reader, element_name).map(Self::Url)
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
@@ -226,10 +268,14 @@ pub(crate) mod test {
         models::external_reference::ExternalReferences(vec![corresponding_external_reference()])
     }
 
+    pub(crate) fn example_uri() -> Uri {
+        Uri::Url("url".to_string())
+    }
+
     pub(crate) fn example_external_reference() -> ExternalReference {
         ExternalReference {
             external_reference_type: "external reference type".to_string(),
-            url: "url".to_string(),
+            url: example_uri(),
             comment: Some("comment".to_string()),
             hashes: Some(example_hashes()),
         }
@@ -242,7 +288,7 @@ pub(crate) mod test {
                 models::external_reference::ExternalReferenceType::UnknownExternalReferenceType(
                     "external reference type".to_string(),
                 ),
-            url: Uri("url".to_string()),
+            url: external_models::uri::Uri("url".to_string()),
             comment: Some("comment".to_string()),
             hashes: Some(corresponding_hashes()),
         }
