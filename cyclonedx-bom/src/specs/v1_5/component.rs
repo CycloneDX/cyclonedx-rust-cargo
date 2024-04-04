@@ -25,13 +25,13 @@ use crate::{
     specs::common::{
         attached_text::AttachedText,
         code::{Commits, Patches},
-        external_reference::ExternalReferences,
         hash::Hashes,
         license::Licenses,
         organization::OrganizationalEntity,
         property::Properties,
         signature::Signature,
     },
+    specs::v1_5::external_reference::ExternalReferences,
     xml::{
         attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -1205,14 +1205,14 @@ pub(crate) mod test {
             code::test::{
                 corresponding_commits, corresponding_patches, example_commits, example_patches,
             },
-            external_reference::test::{
-                corresponding_external_references, example_external_references,
-            },
             hash::test::{corresponding_hashes, example_hashes},
             license::test::{corresponding_licenses, example_licenses},
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
             signature::test::{corresponding_signature, example_signature},
+        },
+        specs::v1_5::external_reference::test::{
+            corresponding_external_references, example_external_references,
         },
         xml::test::{read_element_from_string, write_element_to_string},
     };

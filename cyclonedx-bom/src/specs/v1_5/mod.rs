@@ -30,6 +30,7 @@ pub(crate) mod vulnerability_reference;
 pub(crate) mod vulnerability_source;
 pub(crate) mod vulnerability_target;
 
+pub(crate) use crate::specs::common::external_reference::v1_5 as external_reference;
 #[allow(unused_imports)]
 pub(crate) use crate::specs::common::service::v1_5 as service;
 pub(crate) use crate::specs::common::tool::v1_5 as tool;

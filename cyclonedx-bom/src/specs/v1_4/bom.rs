@@ -26,13 +26,10 @@ use crate::{
     },
 };
 use crate::{
-    specs::common::{
-        dependency::Dependencies, external_reference::ExternalReferences, property::Properties,
-        signature::Signature,
-    },
+    specs::common::{dependency::Dependencies, property::Properties, signature::Signature},
     specs::v1_4::{
-        component::Components, composition::Compositions, metadata::Metadata, service::Services,
-        vulnerability::Vulnerabilities,
+        component::Components, composition::Compositions, external_reference::ExternalReferences,
+        metadata::Metadata, service::Services, vulnerability::Vulnerabilities,
     },
     xml::ToXml,
 };
@@ -370,23 +367,21 @@ impl From<UrnUuid> for models::bom::UrnUuid {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::specs::v1_4::vulnerability::test::{
-        corresponding_vulnerabilities, example_vulnerabilities,
-    };
     use crate::{
         specs::common::{
             dependency::test::{corresponding_dependencies, example_dependencies},
-            external_reference::test::{
-                corresponding_external_references, example_external_references,
-            },
             property::test::{corresponding_properties, example_properties},
             signature::test::{corresponding_signature, example_signature},
         },
         specs::v1_4::{
             component::test::{corresponding_components, example_components},
             composition::test::{corresponding_compositions, example_compositions},
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
             metadata::test::{corresponding_metadata, example_metadata},
             service::test::{corresponding_services, example_services},
+            vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };

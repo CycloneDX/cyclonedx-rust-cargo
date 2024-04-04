@@ -21,5 +21,6 @@ pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod metadata;
 
+pub(crate) use crate::specs::common::external_reference::v1_3 as external_reference;
 pub(crate) use crate::specs::common::service::v1_3 as service;
 pub(crate) use crate::specs::common::tool::v1_3 as tool;

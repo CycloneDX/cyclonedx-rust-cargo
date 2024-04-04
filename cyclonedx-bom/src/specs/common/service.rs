@@ -35,10 +35,13 @@ pub(crate) mod base {
     use serde::{Deserialize, Serialize};
     use xml::{reader, writer::XmlEvent};
 
-    use crate::specs::common::{
-        external_reference::ExternalReferences, organization::OrganizationalEntity,
-        property::Properties,
-    };
+    use crate::specs::common::{organization::OrganizationalEntity, property::Properties};
+    #[versioned("1.3")]
+    use crate::specs::v1_3::external_reference::ExternalReferences;
+    #[versioned("1.4")]
+    use crate::specs::v1_4::external_reference::ExternalReferences;
+    #[versioned("1.5")]
+    use crate::specs::v1_5::external_reference::ExternalReferences;
 
     use crate::specs::common::license::Licenses;
     #[versioned("1.4", "1.5")]
@@ -571,11 +574,20 @@ pub(crate) mod base {
         use crate::specs::common::license::test::{corresponding_licenses, example_licenses};
         #[versioned("1.4", "1.5")]
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
+        #[versioned("1.3")]
+        use crate::specs::v1_3::external_reference::test::{
+            corresponding_external_references, example_external_references,
+        };
+        #[versioned("1.4")]
+        use crate::specs::v1_4::external_reference::test::{
+            corresponding_external_references, example_external_references,
+        };
+        #[versioned("1.5")]
+        use crate::specs::v1_5::external_reference::test::{
+            corresponding_external_references, example_external_references,
+        };
         use crate::{
             specs::common::{
-                external_reference::test::{
-                    corresponding_external_references, example_external_references,
-                },
                 organization::test::{corresponding_entity, example_entity},
                 property::test::{corresponding_properties, example_properties},
             },
