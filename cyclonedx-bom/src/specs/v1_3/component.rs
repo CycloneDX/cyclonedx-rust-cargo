@@ -190,7 +190,7 @@ impl TryFrom<models::component::Component> for Component {
                 swid: convert_optional(other.swid),
                 modified: other.modified,
                 pedigree: try_convert_optional(other.pedigree)?,
-                external_references: convert_optional(other.external_references),
+                external_references: try_convert_optional(other.external_references)?,
                 properties: convert_optional(other.properties),
                 components: try_convert_optional(other.components)?,
                 evidence: convert_optional(other.evidence),

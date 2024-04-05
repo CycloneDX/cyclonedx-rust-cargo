@@ -16,6 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+
 use crate::external_models::uri::{validate_uri as validate_url, Uri as Url};
 use crate::models::hash::Hashes;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
@@ -167,11 +170,13 @@ impl ExternalReferenceType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Uri {
     Url(Url),
+    BomLink(BomLink),
 }
 
 fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
     match uri {
         Uri::Url(url) => validate_url(url),
+        Uri::BomLink(bom_link) => validate_bom_link(bom_link),
     }
 }
 
@@ -179,6 +184,27 @@ impl From<Url> for Uri {
     fn from(url: Url) -> Self {
         Self::Url(url)
     }
+}
+
+impl From<BomLink> for Uri {
+    fn from(bom_link: BomLink) -> Self {
+        Self::BomLink(bom_link)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BomLink(pub(crate) String);
+
+fn validate_bom_link(bom_link: &BomLink) -> Result<(), ValidationError> {
+    static BOM_LINK_REGEX: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"^urn:cdx:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[1-9][0-9]*(#.+)?$").unwrap()
+    });
+
+    if !BOM_LINK_REGEX.is_match(&bom_link.0) {
+        return Err(ValidationError::new("Invalid BOM-Link"));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

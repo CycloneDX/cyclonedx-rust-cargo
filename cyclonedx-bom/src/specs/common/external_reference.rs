@@ -20,6 +20,8 @@ use cyclonedx_bom_macros::versioned;
 
 #[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
+    #[versioned("1.3", "1.4")]
+    use crate::{errors::BomError, utilities::try_convert_vec};
     use crate::{
         errors::XmlReadError,
         external_models, models,
@@ -38,6 +40,18 @@ pub(crate) mod base {
     #[serde(transparent)]
     pub(crate) struct ExternalReferences(Vec<ExternalReference>);
 
+    #[versioned("1.3", "1.4")]
+    impl TryFrom<models::external_reference::ExternalReferences> for ExternalReferences {
+        type Error = BomError;
+
+        fn try_from(
+            other: models::external_reference::ExternalReferences,
+        ) -> Result<Self, Self::Error> {
+            try_convert_vec(other.0).map(ExternalReferences)
+        }
+    }
+
+    #[versioned("1.5")]
     impl From<models::external_reference::ExternalReferences> for ExternalReferences {
         fn from(other: models::external_reference::ExternalReferences) -> Self {
             ExternalReferences(convert_vec(other.0))
@@ -97,6 +111,23 @@ pub(crate) mod base {
         hashes: Option<Hashes>,
     }
 
+    #[versioned("1.3", "1.4")]
+    impl TryFrom<models::external_reference::ExternalReference> for ExternalReference {
+        type Error = BomError;
+
+        fn try_from(
+            other: models::external_reference::ExternalReference,
+        ) -> Result<Self, Self::Error> {
+            Ok(Self {
+                external_reference_type: other.external_reference_type.to_string(),
+                url: other.url.try_into()?,
+                comment: other.comment,
+                hashes: convert_optional(other.hashes),
+            })
+        }
+    }
+
+    #[versioned("1.5")]
     impl From<models::external_reference::ExternalReference> for ExternalReference {
         fn from(other: models::external_reference::ExternalReference) -> Self {
             Self {
@@ -221,10 +252,36 @@ pub(crate) mod base {
         BomLink(String),
     }
 
+    #[versioned("1.3", "1.4")]
+    impl TryFrom<models::external_reference::Uri> for Uri {
+        type Error = BomError;
+
+        fn try_from(value: models::external_reference::Uri) -> Result<Self, Self::Error> {
+            match value {
+                models::external_reference::Uri::Url(url) => Ok(Self::Url(url.0)),
+                models::external_reference::Uri::BomLink(_) => {
+                    use models::bom::SpecVersion;
+
+                    #[versioned("1.3")]
+                    let version = SpecVersion::V1_3;
+                    #[versioned("1.4")]
+                    let version = SpecVersion::V1_4;
+
+                    Err(BomError::BomSerializationError(
+                        version,
+                        "Bom-Links as external reference's URLs are only avaiable on v1.5".into(),
+                    ))
+                }
+            }
+        }
+    }
+
+    #[versioned("1.5")]
     impl From<models::external_reference::Uri> for Uri {
         fn from(value: models::external_reference::Uri) -> Self {
             match value {
                 models::external_reference::Uri::Url(url) => Self::Url(url.0),
+                models::external_reference::Uri::BomLink(bom_link) => Self::BomLink(bom_link.0),
             }
         }
     }
