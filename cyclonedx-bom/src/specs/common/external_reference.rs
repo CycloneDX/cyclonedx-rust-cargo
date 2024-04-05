@@ -217,6 +217,8 @@ pub(crate) mod base {
     #[serde(rename_all = "camelCase", untagged)]
     pub(crate) enum Uri {
         Url(String),
+        #[versioned("1.5")]
+        BomLink(String),
     }
 
     impl From<models::external_reference::Uri> for Uri {
@@ -231,6 +233,8 @@ pub(crate) mod base {
         fn from(value: Uri) -> Self {
             match value {
                 Uri::Url(url) => Self::Url(external_models::uri::Uri(url)),
+                #[versioned("1.5")]
+                Uri::BomLink(bom_link) => Self::Url(external_models::uri::Uri(bom_link)),
             }
         }
     }
@@ -242,6 +246,8 @@ pub(crate) mod base {
         ) -> Result<(), crate::errors::XmlWriteError> {
             match self {
                 Self::Url(url) => write_simple_tag(writer, URL_TAG, &url),
+                #[versioned("1.5")]
+                Self::BomLink(bom_link) => write_simple_tag(writer, URL_TAG, &bom_link),
             }
         }
     }
@@ -255,7 +261,14 @@ pub(crate) mod base {
         where
             Self: Sized,
         {
-            read_simple_tag(event_reader, element_name).map(Self::Url)
+            read_simple_tag(event_reader, element_name).map(|uri| {
+                #[versioned("1.5")]
+                if uri.starts_with("urn:cdx:") {
+                    return Self::BomLink(uri);
+                }
+
+                Self::Url(uri)
+            })
         }
     }
 
