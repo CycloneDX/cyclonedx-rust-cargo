@@ -80,7 +80,7 @@ impl TryFrom<models::bom::Bom> for Bom {
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
-            vulnerabilities: convert_optional(other.vulnerabilities),
+            vulnerabilities: try_convert_optional(other.vulnerabilities)?,
             signature: convert_optional(other.signature),
         })
     }

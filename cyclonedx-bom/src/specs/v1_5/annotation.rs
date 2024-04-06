@@ -21,14 +21,14 @@ use xml::name::OwnedName;
 use xml::writer::XmlEvent;
 use xml::{reader, writer};
 
-use crate::errors::XmlReadError;
-use crate::models::{self};
+use crate::errors::{BomError, XmlReadError};
+use crate::models;
 use crate::prelude::DateTime;
 use crate::specs::common::organization::{OrganizationalContact, OrganizationalEntity};
 use crate::specs::common::service::v1_5::Service;
 use crate::specs::common::signature::Signature;
 use crate::specs::v1_5::component::Component;
-use crate::utilities::{convert_optional, convert_vec};
+use crate::utilities::{convert_optional, convert_vec, try_convert_vec};
 use crate::xml::{
     read_simple_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
     write_close_tag, write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
@@ -39,9 +39,11 @@ use crate::xml::{
 #[serde(transparent)]
 pub(crate) struct Annotations(Vec<Annotation>);
 
-impl From<models::annotation::Annotations> for Annotations {
-    fn from(other: models::annotation::Annotations) -> Self {
-        Annotations(convert_vec(other.0))
+impl TryFrom<models::annotation::Annotations> for Annotations {
+    type Error = BomError;
+
+    fn try_from(other: models::annotation::Annotations) -> Result<Self, Self::Error> {
+        try_convert_vec(other.0).map(Self)
     }
 }
 
@@ -126,16 +128,18 @@ pub(crate) struct Annotation {
     signature: Option<Signature>,
 }
 
-impl From<models::annotation::Annotation> for Annotation {
-    fn from(other: models::annotation::Annotation) -> Self {
-        Self {
+impl TryFrom<models::annotation::Annotation> for Annotation {
+    type Error = BomError;
+
+    fn try_from(other: models::annotation::Annotation) -> Result<Self, Self::Error> {
+        Ok(Self {
             bom_ref: convert_optional(other.bom_ref),
             subjects: convert_vec(other.subjects),
-            annotator: other.annotator.into(),
+            annotator: other.annotator.try_into()?,
             timestamp: other.timestamp.to_string(),
             text: other.text.clone(),
             signature: convert_optional(other.signature),
-        }
+        })
     }
 }
 
@@ -162,15 +166,19 @@ pub(crate) enum Annotator {
     Service(Service),
 }
 
-impl From<models::annotation::Annotator> for Annotator {
-    fn from(other: models::annotation::Annotator) -> Self {
+impl TryFrom<models::annotation::Annotator> for Annotator {
+    type Error = BomError;
+
+    fn try_from(other: models::annotation::Annotator) -> Result<Self, Self::Error> {
         match other {
-            models::annotation::Annotator::Organization(org) => Self::Organization(org.into()),
-            models::annotation::Annotator::Individual(contact) => Self::Individual(contact.into()),
-            models::annotation::Annotator::Component(component) => {
-                Self::Component(component.into())
+            models::annotation::Annotator::Organization(org) => Ok(Self::Organization(org.into())),
+            models::annotation::Annotator::Individual(contact) => {
+                Ok(Self::Individual(contact.into()))
             }
-            models::annotation::Annotator::Service(service) => Self::Service(service.into()),
+            models::annotation::Annotator::Component(component) => {
+                component.try_into().map(Self::Component)
+            }
+            models::annotation::Annotator::Service(service) => Ok(Self::Service(service.into())),
         }
     }
 }

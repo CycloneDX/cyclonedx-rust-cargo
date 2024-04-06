@@ -62,7 +62,7 @@ impl TryFrom<models::metadata::Metadata> for Metadata {
     fn try_from(other: models::metadata::Metadata) -> Result<Self, Self::Error> {
         Ok(Self {
             timestamp: other.timestamp.map(|t| t.to_string()),
-            tools: convert_optional(other.tools),
+            tools: try_convert_optional(other.tools)?,
             authors: convert_optional_vec(other.authors),
             component: try_convert_optional(other.component)?,
             manufacture: convert_optional(other.manufacture),
