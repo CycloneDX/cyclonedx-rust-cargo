@@ -44,12 +44,10 @@ impl Validate for Tools {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         let mut context = ValidationContext::new();
 
-        if version <= SpecVersion::V1_4 {
-            if !matches!(self, Tools::List(_)) {
-                return ValidationContext::new()
-                    .add_custom("inner", "Unsupported tools type found.")
-                    .into();
-            }
+        if version <= SpecVersion::V1_4 && !matches!(self, Tools::List(_)) {
+            return ValidationContext::new()
+                .add_custom("inner", "Unsupported tools type found.")
+                .into();
         }
 
         match self {

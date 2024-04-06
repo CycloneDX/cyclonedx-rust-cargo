@@ -21,16 +21,17 @@ use crate::{
         normalized_string::{validate_normalized_string, NormalizedString},
         uri::{validate_uri, Uri},
     },
-    validation::{Validate, ValidationContext, ValidationResult},
+    validation::{Validate, ValidationContext, ValidationError, ValidationResult},
 };
 
-use super::bom::SpecVersion;
+use super::bom::{BomReference, SpecVersion};
 
 /// Represents the contact information for an organization
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalContact)
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct OrganizationalContact {
+    pub bom_ref: Option<BomReference>,
     pub name: Option<NormalizedString>,
     pub email: Option<NormalizedString>,
     pub phone: Option<NormalizedString>,
@@ -45,6 +46,7 @@ impl OrganizationalContact {
     /// ```
     pub fn new(name: &str, email: Option<&str>) -> Self {
         Self {
+            bom_ref: None,
             name: Some(NormalizedString::new(name)),
             email: email.map(NormalizedString::new),
             phone: None,
@@ -53,13 +55,24 @@ impl OrganizationalContact {
 }
 
 impl Validate for OrganizationalContact {
-    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
+            .add_field_option("bom-ref", self.bom_ref.as_ref(), |bom_ref| {
+                validate_bom_ref(bom_ref, version)
+            })
             .add_field_option("name", self.name.as_ref(), validate_normalized_string)
             .add_field_option("email", self.email.as_ref(), validate_normalized_string)
             .add_field_option("phone", self.phone.as_ref(), validate_normalized_string)
             .into()
     }
+}
+
+/// The `bom-ref` attribute was added in spec version 1.5
+fn validate_bom_ref(_bom_ref: &BomReference, version: SpecVersion) -> Result<(), ValidationError> {
+    if version <= SpecVersion::V1_4 {
+        return Err("Attribute 'bom-ref' not supported in this format version".into());
+    }
+    Ok(())
 }
 
 /// Represents an organization with name, url, and contact information
@@ -89,7 +102,10 @@ mod test {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        models::organization::{OrganizationalContact, OrganizationalEntity},
+        models::{
+            bom::BomReference,
+            organization::{OrganizationalContact, OrganizationalEntity},
+        },
         prelude::{NormalizedString, Uri, Validate},
         validation,
     };
@@ -97,6 +113,7 @@ mod test {
     #[test]
     fn it_should_validate_an_empty_contact_as_passed() {
         let contact = OrganizationalContact {
+            bom_ref: None,
             name: None,
             email: None,
             phone: None,
@@ -108,6 +125,7 @@ mod test {
     #[test]
     fn it_should_validate_an_invalid_contact_as_failed() {
         let contact = OrganizationalContact {
+            bom_ref: None,
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
             email: None,
             phone: None,
@@ -124,8 +142,29 @@ mod test {
     }
 
     #[test]
+    fn it_should_validate_bom_ref_correctly() {
+        let contact = OrganizationalContact {
+            bom_ref: Some(BomReference::new("contact-a")),
+            name: Some(NormalizedString::new("Contact")),
+            email: Some("test@example.com".into()),
+            phone: Some("0123456789".into()),
+        };
+
+        assert!(contact
+            .validate_version(crate::prelude::SpecVersion::V1_3)
+            .has_errors());
+        assert!(contact
+            .validate_version(crate::prelude::SpecVersion::V1_4)
+            .has_errors());
+        assert!(contact
+            .validate_version(crate::prelude::SpecVersion::V1_5)
+            .passed());
+    }
+
+    #[test]
     fn it_should_validate_a_contact_with_multiple_validation_issues_as_failed() {
         let contact = OrganizationalContact {
+            bom_ref: None,
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
             email: Some(NormalizedString::new_unchecked(
                 "invalid\temail".to_string(),
@@ -180,6 +219,7 @@ mod test {
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
             url: Some(vec![Uri("invalid uri".to_string())]),
             contact: Some(vec![OrganizationalContact {
+                bom_ref: None,
                 name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
                 email: None,
                 phone: None,

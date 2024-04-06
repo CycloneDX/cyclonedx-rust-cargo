@@ -126,6 +126,7 @@ mod test {
                 hashes: None,
             }])),
             authors: Some(vec![OrganizationalContact {
+                bom_ref: None,
                 name: Some(NormalizedString::new("name")),
                 email: None,
                 phone: None,
@@ -191,6 +192,7 @@ mod test {
                 hashes: None,
             }])),
             authors: Some(vec![OrganizationalContact {
+                bom_ref: None,
                 name: Some(NormalizedString("invalid\tname".to_string())),
                 email: None,
                 phone: None,

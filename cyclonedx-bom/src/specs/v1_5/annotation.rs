@@ -609,7 +609,7 @@ pub(crate) mod test {
     fn it_should_read_xml_annotator() {
         let input = r#"
 <annotator>
-  <individual>
+  <individual bom-ref="contact">
     <name>Samantha Wright</name>
     <email>samantha.wright@example.com</email>
     <phone>800-555-1212</phone>
@@ -618,6 +618,7 @@ pub(crate) mod test {
 "#;
         let actual: Annotator = read_element_from_string(input);
         let expected = Annotator::Individual(OrganizationalContact {
+            bom_ref: Some("contact".to_string()),
             name: Some("Samantha Wright".to_string()),
             email: Some("samantha.wright@example.com".to_string()),
             phone: Some("800-555-1212".to_string()),
@@ -638,7 +639,7 @@ pub(crate) mod test {
       <organization>
         <name>Acme, Inc.</name>
         <url>https://example.com</url>
-        <contact>
+        <contact bom-ref="contact-1">
           <name>Acme Professional Services</name>
           <email>professional.services@example.com</email>
         </contact>
@@ -657,6 +658,7 @@ pub(crate) mod test {
                 name: Some(String::from("Acme, Inc.")),
                 url: Some(vec!["https://example.com".to_string()]),
                 contact: Some(vec![OrganizationalContact {
+                    bom_ref: Some("contact-1".to_string()),
                     name: Some("Acme Professional Services".to_string()),
                     email: Some("professional.services@example.com".to_string()),
                     phone: None,
