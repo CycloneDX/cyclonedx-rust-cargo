@@ -24,7 +24,7 @@ pub(crate) mod base {
     use crate::specs::v1_5::{component::Components, service::Services};
 
     use crate::{
-        errors::XmlReadError,
+        errors::{BomError, XmlReadError},
         external_models::normalized_string::NormalizedString,
         specs::common::hash::Hashes,
         utilities::convert_vec,
@@ -50,20 +50,22 @@ pub(crate) mod base {
         },
     }
 
-    impl From<models::tool::Tools> for Tools {
-        fn from(other: models::tool::Tools) -> Self {
+    impl TryFrom<models::tool::Tools> for Tools {
+        type Error = BomError;
+
+        fn try_from(other: models::tool::Tools) -> Result<Self, Self::Error> {
             match other {
-                models::tool::Tools::List(tools) => Self::List(convert_vec(tools)),
+                models::tool::Tools::List(tools) => Ok(Self::List(convert_vec(tools))),
                 #[versioned("1.3", "1.4")]
-                models::tool::Tools::Object { .. } => Self::List(vec![]),
+                models::tool::Tools::Object { .. } => Ok(Self::List(vec![])),
                 #[versioned("1.5")]
                 models::tool::Tools::Object {
                     services,
                     components,
-                } => Self::Object {
+                } => Ok(Self::Object {
                     services: services.into(),
-                    components: components.into(),
-                },
+                    components: components.try_into()?,
+                }),
             }
         }
     }

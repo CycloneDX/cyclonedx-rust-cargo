@@ -18,7 +18,6 @@
 
 pub(crate) mod annotation;
 pub(crate) mod bom;
-pub(crate) mod component;
 pub(crate) mod composition;
 pub(crate) mod lifecycles;
 pub(crate) mod metadata;
@@ -30,6 +29,7 @@ pub(crate) mod vulnerability_reference;
 pub(crate) mod vulnerability_source;
 pub(crate) mod vulnerability_target;
 
+pub(crate) use crate::specs::common::component::v1_5 as component;
 pub(crate) use crate::specs::common::external_reference::v1_5 as external_reference;
 #[allow(unused_imports)]
 pub(crate) use crate::specs::common::service::v1_5 as service;

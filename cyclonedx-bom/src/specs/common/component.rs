@@ -18,14 +18,17 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4")]
+#[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
+    #[versioned("1.4", "1.5")]
+    use crate::specs::common::signature::Signature;
+
+    #[versioned("1.4")]
+    use crate::specs::v1_4::external_reference::ExternalReferences;
+    #[versioned("1.5")]
+    use crate::specs::v1_5::external_reference::ExternalReferences;
     #[versioned("1.3")]
     use crate::{models::bom::SpecVersion, specs::v1_3::external_reference::ExternalReferences};
-    #[versioned("1.4")]
-    use crate::{
-        specs::common::signature::Signature, specs::v1_4::external_reference::ExternalReferences,
-    };
 
     use crate::{
         errors::BomError,
@@ -52,7 +55,7 @@ pub(crate) mod base {
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(transparent)]
-    pub(crate) struct Components(Vec<Component>);
+    pub(crate) struct Components(pub(crate) Vec<Component>);
 
     impl TryFrom<models::component::Components> for Components {
         type Error = BomError;
@@ -117,56 +120,56 @@ pub(crate) mod base {
     #[serde(rename_all = "camelCase")]
     pub(crate) struct Component {
         #[serde(rename = "type")]
-        component_type: String,
+        pub(crate) component_type: String,
         #[serde(rename = "mime-type", skip_serializing_if = "Option::is_none")]
-        mime_type: Option<MimeType>,
+        pub(crate) mime_type: Option<MimeType>,
         #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
-        bom_ref: Option<String>,
+        pub(crate) bom_ref: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        supplier: Option<OrganizationalEntity>,
+        pub(crate) supplier: Option<OrganizationalEntity>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        author: Option<String>,
+        pub(crate) author: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        publisher: Option<String>,
+        pub(crate) publisher: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        group: Option<String>,
-        name: String,
+        pub(crate) group: Option<String>,
+        pub(crate) name: String,
         #[versioned("1.3")]
         version: String,
-        #[versioned("1.4")]
+        #[versioned("1.4", "1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        version: Option<String>,
+        pub(crate) version: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        description: Option<String>,
+        pub(crate) description: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        scope: Option<String>,
+        pub(crate) scope: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        hashes: Option<Hashes>,
+        pub(crate) hashes: Option<Hashes>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        licenses: Option<Licenses>,
+        pub(crate) licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        copyright: Option<String>,
+        pub(crate) copyright: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        cpe: Option<Cpe>,
+        pub(crate) cpe: Option<Cpe>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        purl: Option<String>,
+        pub(crate) purl: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        swid: Option<Swid>,
+        pub(crate) swid: Option<Swid>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        modified: Option<bool>,
+        pub(crate) modified: Option<bool>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pedigree: Option<Pedigree>,
+        pub(crate) pedigree: Option<Pedigree>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        external_references: Option<ExternalReferences>,
+        pub(crate) external_references: Option<ExternalReferences>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        properties: Option<Properties>,
+        pub(crate) properties: Option<Properties>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        components: Option<Components>,
+        pub(crate) components: Option<Components>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        evidence: Option<ComponentEvidence>,
-        #[versioned("1.4")]
+        pub(crate) evidence: Option<ComponentEvidence>,
+        #[versioned("1.4", "1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        signature: Option<Signature>,
+        pub(crate) signature: Option<Signature>,
     }
 
     impl TryFrom<models::component::Component> for Component {
@@ -177,7 +180,7 @@ pub(crate) mod base {
             let version = other.version.map(|v| v.to_string()).ok_or_else(|| {
                 BomError::BomSerializationError(SpecVersion::V1_3, "version missing".to_string())
             })?;
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             let version = other.version.map(|v| v.to_string());
             Ok(Self {
                 component_type: other.component_type.to_string(),
@@ -199,11 +202,14 @@ pub(crate) mod base {
                 swid: convert_optional(other.swid),
                 modified: other.modified,
                 pedigree: try_convert_optional(other.pedigree)?,
+                #[versioned("1.3", "1.4")]
                 external_references: try_convert_optional(other.external_references)?,
+                #[versioned("1.5")]
+                external_references: convert_optional(other.external_references),
                 properties: convert_optional(other.properties),
                 components: try_convert_optional(other.components)?,
                 evidence: convert_optional(other.evidence),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
             })
         }
@@ -224,7 +230,7 @@ pub(crate) mod base {
                 name: NormalizedString::new_unchecked(other.name),
                 #[versioned("1.3")]
                 version: Some(NormalizedString::new_unchecked(other.version)),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 version: other.version.map(NormalizedString::new_unchecked),
                 description: other.description.map(NormalizedString::new_unchecked),
                 scope: other.scope.map(models::component::Scope::new_unchecked),
@@ -242,7 +248,7 @@ pub(crate) mod base {
                 evidence: convert_optional(other.evidence),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
             }
         }
@@ -263,7 +269,7 @@ pub(crate) mod base {
     const COPYRIGHT_TAG: &str = "copyright";
     const PURL_TAG: &str = "purl";
     const MODIFIED_TAG: &str = "modified";
-    #[versioned("1.4")]
+    #[versioned("1.4", "1.5")]
     const SIGNATURE_TAG: &str = "signature";
 
     impl ToXml for Component {
@@ -308,7 +314,7 @@ pub(crate) mod base {
 
             #[versioned("1.3")]
             write_simple_tag(writer, VERSION_TAG, &self.version)?;
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             if let Some(version) = &self.version {
                 write_simple_tag(writer, VERSION_TAG, &version)?;
             }
@@ -371,7 +377,7 @@ pub(crate) mod base {
                 }
             }
 
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             if let Some(signature) = &self.signature {
                 signature.write_xml_element(writer)?;
             }
@@ -422,7 +428,7 @@ pub(crate) mod base {
             let mut properties: Option<Properties> = None;
             let mut components: Option<Components> = None;
             let mut evidence: Option<ComponentEvidence> = None;
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             let mut signature: Option<Signature> = None;
 
             let mut got_end_tag = false;
@@ -551,7 +557,7 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.4")]
+                    #[versioned("1.4", "1.5")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == SIGNATURE_TAG => {
@@ -608,7 +614,7 @@ pub(crate) mod base {
                 properties,
                 components,
                 evidence,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature,
             })
         }
@@ -616,7 +622,7 @@ pub(crate) mod base {
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
-    struct Swid {
+    pub(crate) struct Swid {
         tag_id: String,
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -780,7 +786,7 @@ pub(crate) mod base {
     }
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
-    struct Cpe(String);
+    pub(crate) struct Cpe(String);
 
     impl From<models::component::Cpe> for Cpe {
         fn from(other: models::component::Cpe) -> Self {
@@ -820,7 +826,7 @@ pub(crate) mod base {
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
-    struct ComponentEvidence {
+    pub(crate) struct ComponentEvidence {
         #[serde(skip_serializing_if = "Option::is_none")]
         licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -928,7 +934,7 @@ pub(crate) mod base {
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
-    struct Pedigree {
+    pub(crate) struct Pedigree {
         #[serde(skip_serializing_if = "Option::is_none")]
         ancestors: Option<Components>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -1215,7 +1221,7 @@ pub(crate) mod base {
     }
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
-    struct MimeType(String);
+    pub(crate) struct MimeType(String);
 
     impl From<models::component::MimeType> for MimeType {
         fn from(other: models::component::MimeType) -> Self {
@@ -1231,12 +1237,16 @@ pub(crate) mod base {
 
     #[cfg(test)]
     pub(crate) mod test {
+        #[versioned("1.4", "1.5")]
+        use crate::specs::common::signature::test::{corresponding_signature, example_signature};
+
         #[versioned("1.4")]
-        use crate::specs::{
-            common::signature::test::{corresponding_signature, example_signature},
-            v1_4::external_reference::test::{
-                corresponding_external_references, example_external_references,
-            },
+        use crate::specs::v1_4::external_reference::test::{
+            corresponding_external_references, example_external_references,
+        };
+        #[versioned("1.5")]
+        use crate::specs::v1_5::external_reference::test::{
+            corresponding_external_references, example_external_references,
         };
         #[versioned("1.3")]
         use crate::{
@@ -1281,7 +1291,7 @@ pub(crate) mod base {
                 name: "name".to_string(),
                 #[versioned("1.3")]
                 version: "version".to_string(),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 version: Some("version".to_string()),
                 description: Some("description".to_string()),
                 scope: Some("scope".to_string()),
@@ -1297,7 +1307,7 @@ pub(crate) mod base {
                 properties: Some(example_properties()),
                 components: Some(example_empty_components()),
                 evidence: Some(example_evidence()),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: Some(example_signature()),
             }
         }
@@ -1331,7 +1341,7 @@ pub(crate) mod base {
                 evidence: Some(corresponding_evidence()),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: Some(corresponding_signature()),
             }
         }
@@ -1541,7 +1551,7 @@ pub(crate) mod base {
   </component>
 </components>
 "#;
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             let input = r#"
 <components>
   <component type="component type" mime-type="mime type" bom-ref="bom ref">
