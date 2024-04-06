@@ -219,12 +219,30 @@ mod test {
 
     #[test]
     fn it_should_pass_validation() {
-        let validation_result = ExternalReferences(vec![ExternalReference {
-            external_reference_type: ExternalReferenceType::Bom,
-            url: Uri::Url(Url("https://example.com".to_string())),
-            comment: Some("Comment".to_string()),
-            hashes: Some(Hashes(vec![])),
-        }])
+        let validation_result = ExternalReferences(vec![
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::Bom,
+                url: Uri::Url(Url("https://example.com".to_string())),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![])),
+            },
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::Bom,
+                url: Uri::BomLink(BomLink(
+                    "urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1".to_string(),
+                )),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![])),
+            },
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::Bom,
+                url: Uri::BomLink(BomLink(
+                    "urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1#componentA".to_string(),
+                )),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![])),
+            },
+        ])
         .validate();
 
         assert!(validation_result.passed());
@@ -232,49 +250,90 @@ mod test {
 
     #[test]
     fn it_should_fail_validation() {
-        let validation_result = ExternalReferences(vec![ExternalReference {
-            external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
-                "unknown reference type".to_string(),
-            ),
-            url: Uri::Url(Url("invalid uri".to_string())),
-            comment: Some("Comment".to_string()),
-            hashes: Some(Hashes(vec![Hash {
-                alg: crate::models::hash::HashAlgorithm::MD5,
-                content: HashValue("invalid hash".to_string()),
-            }])),
-        }])
+        let validation_result = ExternalReferences(vec![
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
+                    "unknown reference type".to_string(),
+                ),
+                url: Uri::Url(Url("invalid uri".to_string())),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![Hash {
+                    alg: crate::models::hash::HashAlgorithm::MD5,
+                    content: HashValue("invalid hash".to_string()),
+                }])),
+            },
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
+                    "unknown reference type".to_string(),
+                ),
+                url: Uri::BomLink(BomLink("invalid bom-link".to_string())),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![Hash {
+                    alg: crate::models::hash::HashAlgorithm::MD5,
+                    content: HashValue("invalid hash".to_string()),
+                }])),
+            },
+        ])
         .validate();
 
         assert_eq!(
             validation_result,
             validation::list(
                 "inner",
-                [(
-                    0,
-                    vec![
-                        validation::field(
-                            "external_reference_type",
-                            "Unknown external reference type"
-                        ),
-                        validation::field("url", "Uri does not conform to RFC 3986"),
-                        validation::list(
-                            "hashes",
-                            [(
-                                0,
-                                validation::list(
-                                    "inner",
-                                    [(
-                                        0,
-                                        validation::field(
-                                            "content",
-                                            "HashValue does not match regular expression"
-                                        )
-                                    )]
-                                )
-                            )]
-                        )
-                    ]
-                )]
+                [
+                    (
+                        0,
+                        vec![
+                            validation::field(
+                                "external_reference_type",
+                                "Unknown external reference type"
+                            ),
+                            validation::field("url", "Uri does not conform to RFC 3986"),
+                            validation::list(
+                                "hashes",
+                                [(
+                                    0,
+                                    validation::list(
+                                        "inner",
+                                        [(
+                                            0,
+                                            validation::field(
+                                                "content",
+                                                "HashValue does not match regular expression"
+                                            )
+                                        )]
+                                    )
+                                )]
+                            )
+                        ]
+                    ),
+                    (
+                        1,
+                        vec![
+                            validation::field(
+                                "external_reference_type",
+                                "Unknown external reference type"
+                            ),
+                            validation::field("url", "Invalid BOM-Link"),
+                            validation::list(
+                                "hashes",
+                                [(
+                                    0,
+                                    validation::list(
+                                        "inner",
+                                        [(
+                                            0,
+                                            validation::field(
+                                                "content",
+                                                "HashValue does not match regular expression"
+                                            )
+                                        )]
+                                    )
+                                )]
+                            )
+                        ]
+                    )
+                ]
             )
         );
     }
