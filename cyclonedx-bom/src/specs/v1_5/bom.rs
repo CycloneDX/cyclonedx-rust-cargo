@@ -18,7 +18,6 @@
 
 use crate::{
     models::{self, bom::SpecVersion},
-    specs::common::service::v1_5::Services,
     utilities::convert_optional,
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
@@ -27,13 +26,11 @@ use crate::{
     },
 };
 use crate::{
-    specs::common::{
-        dependency::Dependencies, external_reference::ExternalReferences, property::Properties,
-        signature::Signature,
-    },
+    specs::common::{dependency::Dependencies, property::Properties, signature::Signature},
     specs::v1_5::{
         annotation::Annotations, component::Components, composition::Compositions,
-        metadata::Metadata, vulnerability::Vulnerabilities,
+        external_reference::ExternalReferences, metadata::Metadata, service::Services,
+        vulnerability::Vulnerabilities,
     },
     xml::ToXml,
 };
@@ -392,9 +389,6 @@ pub(crate) mod test {
         specs::{
             common::{
                 dependency::test::{corresponding_dependencies, example_dependencies},
-                external_reference::test::{
-                    corresponding_external_references, example_external_references,
-                },
                 property::test::{corresponding_properties, example_properties},
                 signature::test::{corresponding_signature, example_signature},
             },
@@ -402,6 +396,9 @@ pub(crate) mod test {
                 annotation::test::{corresponding_annotations, example_annotations},
                 component::test::{corresponding_components, example_components},
                 composition::test::{corresponding_compositions, example_compositions},
+                external_reference::test::{
+                    corresponding_external_references, example_external_references,
+                },
                 metadata::test::{corresponding_metadata, example_metadata},
                 service::test::{corresponding_services, example_services},
                 vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},

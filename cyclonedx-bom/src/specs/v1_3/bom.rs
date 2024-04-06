@@ -28,11 +28,10 @@ use crate::{
     },
 };
 use crate::{
-    specs::common::{
-        dependency::Dependencies, external_reference::ExternalReferences, property::Properties,
-    },
+    specs::common::{dependency::Dependencies, property::Properties},
     specs::v1_3::{
-        component::Components, composition::Compositions, metadata::Metadata, service::Services,
+        component::Components, composition::Compositions, external_reference::ExternalReferences,
+        metadata::Metadata, service::Services,
     },
     xml::ToXml,
 };
@@ -74,8 +73,8 @@ impl TryFrom<models::bom::Bom> for Bom {
             serial_number: convert_optional(other.serial_number),
             metadata: try_convert_optional(other.metadata)?,
             components: try_convert_optional(other.components)?,
-            services: convert_optional(other.services),
-            external_references: convert_optional(other.external_references),
+            services: try_convert_optional(other.services)?,
+            external_references: try_convert_optional(other.external_references)?,
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
@@ -341,14 +340,14 @@ pub(crate) mod test {
     use crate::{
         specs::common::{
             dependency::test::{corresponding_dependencies, example_dependencies},
-            external_reference::test::{
-                corresponding_external_references, example_external_references,
-            },
             property::test::{corresponding_properties, example_properties},
         },
         specs::v1_3::{
             component::test::{corresponding_components, example_components},
             composition::test::{corresponding_compositions, example_compositions},
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
             metadata::test::{corresponding_metadata, example_metadata},
             service::test::{corresponding_services, example_services},
         },

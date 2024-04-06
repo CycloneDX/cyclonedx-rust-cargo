@@ -17,16 +17,17 @@
  */
 
 use crate::{
-    errors::XmlReadError,
+    errors::{BomError, XmlReadError},
     external_models::{
         normalized_string::NormalizedString,
         uri::{Purl, Uri},
     },
     specs::common::{
-        attached_text::AttachedText, code::Commits, code::Patches,
-        external_reference::ExternalReferences, hash::Hashes, license::Licenses,
+        attached_text::AttachedText, code::Commits, code::Patches, hash::Hashes, license::Licenses,
         organization::OrganizationalEntity, property::Properties, signature::Signature,
     },
+    specs::v1_4::external_reference::ExternalReferences,
+    utilities::{try_convert_optional, try_convert_vec},
     xml::{
         attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
         read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
@@ -45,9 +46,11 @@ use xml::{reader, writer::XmlEvent};
 #[serde(transparent)]
 pub(crate) struct Components(Vec<Component>);
 
-impl From<models::component::Components> for Components {
-    fn from(other: models::component::Components) -> Self {
-        Components(convert_vec(other.0))
+impl TryFrom<models::component::Components> for Components {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Components) -> Result<Self, Self::Error> {
+        try_convert_vec(other.0).map(Components)
     }
 }
 
@@ -155,9 +158,11 @@ pub(crate) struct Component {
     signature: Option<Signature>,
 }
 
-impl From<models::component::Component> for Component {
-    fn from(other: models::component::Component) -> Self {
-        Self {
+impl TryFrom<models::component::Component> for Component {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Component) -> Result<Self, Self::Error> {
+        Ok(Self {
             component_type: other.component_type.to_string(),
             mime_type: other.mime_type.map(|m| MimeType(m.0)),
             bom_ref: other.bom_ref,
@@ -176,13 +181,13 @@ impl From<models::component::Component> for Component {
             purl: other.purl.map(|p| p.0),
             swid: convert_optional(other.swid),
             modified: other.modified,
-            pedigree: convert_optional(other.pedigree),
-            external_references: convert_optional(other.external_references),
+            pedigree: try_convert_optional(other.pedigree)?,
+            external_references: try_convert_optional(other.external_references)?,
             properties: convert_optional(other.properties),
-            components: convert_optional(other.components),
+            components: try_convert_optional(other.components)?,
             evidence: convert_optional(other.evidence),
             signature: convert_optional(other.signature),
-        }
+        })
     }
 }
 
@@ -908,16 +913,18 @@ struct Pedigree {
     notes: Option<String>,
 }
 
-impl From<models::component::Pedigree> for Pedigree {
-    fn from(other: models::component::Pedigree) -> Self {
-        Self {
-            ancestors: convert_optional(other.ancestors),
-            descendants: convert_optional(other.descendants),
-            variants: convert_optional(other.variants),
+impl TryFrom<models::component::Pedigree> for Pedigree {
+    type Error = BomError;
+
+    fn try_from(other: models::component::Pedigree) -> Result<Self, Self::Error> {
+        Ok(Self {
+            ancestors: try_convert_optional(other.ancestors)?,
+            descendants: try_convert_optional(other.descendants)?,
+            variants: try_convert_optional(other.variants)?,
             commits: convert_optional(other.commits),
             patches: convert_optional(other.patches),
             notes: other.notes,
-        }
+        })
     }
 }
 
@@ -1200,14 +1207,14 @@ pub(crate) mod test {
             code::test::{
                 corresponding_commits, corresponding_patches, example_commits, example_patches,
             },
-            external_reference::test::{
-                corresponding_external_references, example_external_references,
-            },
             hash::test::{corresponding_hashes, example_hashes},
             license::test::{corresponding_licenses, example_licenses},
             organization::test::{corresponding_entity, example_entity},
             property::test::{corresponding_properties, example_properties},
             signature::test::{corresponding_signature, example_signature},
+        },
+        specs::v1_4::external_reference::test::{
+            corresponding_external_references, example_external_references,
         },
         xml::test::{read_element_from_string, write_element_to_string},
     };

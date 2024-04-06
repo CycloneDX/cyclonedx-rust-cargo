@@ -17,8 +17,9 @@
  */
 
 use crate::{
+    errors::BomError,
     models::{self, bom::SpecVersion},
-    utilities::convert_optional,
+    utilities::{convert_optional, try_convert_optional},
     xml::{
         expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, FromXmlDocument,
@@ -26,13 +27,10 @@ use crate::{
     },
 };
 use crate::{
-    specs::common::{
-        dependency::Dependencies, external_reference::ExternalReferences, property::Properties,
-        signature::Signature,
-    },
+    specs::common::{dependency::Dependencies, property::Properties, signature::Signature},
     specs::v1_4::{
-        component::Components, composition::Compositions, metadata::Metadata, service::Services,
-        vulnerability::Vulnerabilities,
+        component::Components, composition::Compositions, external_reference::ExternalReferences,
+        metadata::Metadata, service::Services, vulnerability::Vulnerabilities,
     },
     xml::ToXml,
 };
@@ -66,23 +64,25 @@ pub(crate) struct Bom {
     signature: Option<Signature>,
 }
 
-impl From<models::bom::Bom> for Bom {
-    fn from(other: models::bom::Bom) -> Self {
-        Self {
+impl TryFrom<models::bom::Bom> for Bom {
+    type Error = BomError;
+
+    fn try_from(other: models::bom::Bom) -> Result<Self, Self::Error> {
+        Ok(Self {
             bom_format: BomFormat::CycloneDX,
             spec_version: SpecVersion::V1_4,
             version: other.version,
             serial_number: convert_optional(other.serial_number),
-            metadata: convert_optional(other.metadata),
-            components: convert_optional(other.components),
-            services: convert_optional(other.services),
-            external_references: convert_optional(other.external_references),
+            metadata: try_convert_optional(other.metadata)?,
+            components: try_convert_optional(other.components)?,
+            services: try_convert_optional(other.services)?,
+            external_references: try_convert_optional(other.external_references)?,
             dependencies: convert_optional(other.dependencies),
             compositions: convert_optional(other.compositions),
             properties: convert_optional(other.properties),
             vulnerabilities: convert_optional(other.vulnerabilities),
             signature: convert_optional(other.signature),
-        }
+        })
     }
 }
 
@@ -370,23 +370,21 @@ impl From<UrnUuid> for models::bom::UrnUuid {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use crate::specs::v1_4::vulnerability::test::{
-        corresponding_vulnerabilities, example_vulnerabilities,
-    };
     use crate::{
         specs::common::{
             dependency::test::{corresponding_dependencies, example_dependencies},
-            external_reference::test::{
-                corresponding_external_references, example_external_references,
-            },
             property::test::{corresponding_properties, example_properties},
             signature::test::{corresponding_signature, example_signature},
         },
         specs::v1_4::{
             component::test::{corresponding_components, example_components},
             composition::test::{corresponding_compositions, example_compositions},
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
             metadata::test::{corresponding_metadata, example_metadata},
             service::test::{corresponding_services, example_services},
+            vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
         },
         xml::test::{read_document_from_string, write_element_to_string},
     };
@@ -480,7 +478,7 @@ pub(crate) mod test {
     #[test]
     fn it_can_convert_from_the_internal_model() {
         let model = corresponding_internal_model();
-        let spec: Bom = model.into();
+        let spec: Bom = model.try_into().unwrap();
         assert_eq!(spec, full_bom_example());
     }
 

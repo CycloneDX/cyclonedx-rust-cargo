@@ -20,6 +20,11 @@ use cyclonedx_bom_macros::versioned;
 
 #[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
+    #[versioned("1.3", "1.4")]
+    use crate::{
+        errors::BomError,
+        utilities::{try_convert_optional, try_convert_vec},
+    };
     use crate::{
         errors::XmlReadError,
         external_models::{normalized_string::NormalizedString, uri::Uri},
@@ -35,10 +40,13 @@ pub(crate) mod base {
     use serde::{Deserialize, Serialize};
     use xml::{reader, writer::XmlEvent};
 
-    use crate::specs::common::{
-        external_reference::ExternalReferences, organization::OrganizationalEntity,
-        property::Properties,
-    };
+    use crate::specs::common::{organization::OrganizationalEntity, property::Properties};
+    #[versioned("1.3")]
+    use crate::specs::v1_3::external_reference::ExternalReferences;
+    #[versioned("1.4")]
+    use crate::specs::v1_4::external_reference::ExternalReferences;
+    #[versioned("1.5")]
+    use crate::specs::v1_5::external_reference::ExternalReferences;
 
     use crate::specs::common::license::Licenses;
     #[versioned("1.4", "1.5")]
@@ -48,6 +56,16 @@ pub(crate) mod base {
     #[serde(transparent)]
     pub(crate) struct Services(pub Vec<Service>);
 
+    #[versioned("1.3", "1.4")]
+    impl TryFrom<models::service::Services> for Services {
+        type Error = BomError;
+
+        fn try_from(other: models::service::Services) -> Result<Self, Self::Error> {
+            try_convert_vec(other.0).map(Services)
+        }
+    }
+
+    #[versioned("1.5")]
     impl From<models::service::Services> for Services {
         fn from(other: models::service::Services) -> Self {
             Services(convert_vec(other.0))
@@ -134,6 +152,37 @@ pub(crate) mod base {
         pub(crate) trust_zone: Option<String>,
     }
 
+    #[versioned("1.3", "1.4")]
+    impl TryFrom<models::service::Service> for Service {
+        type Error = BomError;
+
+        fn try_from(other: models::service::Service) -> Result<Self, Self::Error> {
+            Ok(Self {
+                bom_ref: other.bom_ref,
+                provider: convert_optional(other.provider),
+                group: other.group.map(|g| g.to_string()),
+                name: other.name.to_string(),
+                version: other.version.map(|v| v.to_string()),
+                description: other.description.map(|d| d.to_string()),
+                endpoints: other
+                    .endpoints
+                    .map(|endpoints| endpoints.into_iter().map(|e| e.to_string()).collect()),
+                authenticated: other.authenticated,
+                x_trust_boundary: other.x_trust_boundary,
+                data: convert_optional_vec(other.data),
+                licenses: convert_optional(other.licenses),
+                external_references: try_convert_optional(other.external_references)?,
+                properties: convert_optional(other.properties),
+                services: try_convert_optional(other.services)?,
+                #[versioned("1.4", "1.5")]
+                signature: convert_optional(other.signature),
+                #[versioned("1.5")]
+                trust_zone: other.trust_zone.map(|tz| tz.to_string()),
+            })
+        }
+    }
+
+    #[versioned("1.5")]
     impl From<models::service::Service> for Service {
         fn from(other: models::service::Service) -> Self {
             Self {
@@ -571,11 +620,20 @@ pub(crate) mod base {
         use crate::specs::common::license::test::{corresponding_licenses, example_licenses};
         #[versioned("1.4", "1.5")]
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
+        #[versioned("1.3")]
+        use crate::specs::v1_3::external_reference::test::{
+            corresponding_external_references, example_external_references,
+        };
+        #[versioned("1.4")]
+        use crate::specs::v1_4::external_reference::test::{
+            corresponding_external_references, example_external_references,
+        };
+        #[versioned("1.5")]
+        use crate::specs::v1_5::external_reference::test::{
+            corresponding_external_references, example_external_references,
+        };
         use crate::{
             specs::common::{
-                external_reference::test::{
-                    corresponding_external_references, example_external_references,
-                },
                 organization::test::{corresponding_entity, example_entity},
                 property::test::{corresponding_properties, example_properties},
             },

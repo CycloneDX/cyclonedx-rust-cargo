@@ -20,7 +20,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::external_models::normalized_string::validate_normalized_string;
-use crate::external_models::uri::{validate_purl, validate_uri};
+use crate::external_models::uri::{validate_purl, validate_uri as validate_url};
 use crate::models::attached_text::AttachedText;
 use crate::models::code::{Commits, Patches};
 use crate::models::external_reference::ExternalReferences;
@@ -32,7 +32,7 @@ use crate::validation::ValidationError;
 use crate::{
     external_models::{
         normalized_string::NormalizedString,
-        uri::{Purl, Uri},
+        uri::{Purl, Uri as Url},
     },
     validation::{Validate, ValidationContext, ValidationResult},
 };
@@ -309,14 +309,14 @@ pub struct Swid {
     pub tag_version: Option<u32>,
     pub patch: Option<bool>,
     pub text: Option<AttachedText>,
-    pub url: Option<Uri>,
+    pub url: Option<Url>,
 }
 
 impl Validate for Swid {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_struct_option("text", self.text.as_ref(), version)
-            .add_field_option("url", self.url.as_ref(), validate_uri)
+            .add_field_option("url", self.url.as_ref(), validate_url)
             .into()
     }
 }
@@ -403,7 +403,7 @@ mod test {
         external_models::spdx::SpdxExpression,
         models::{
             code::{Commit, Patch, PatchClassification},
-            external_reference::{ExternalReference, ExternalReferenceType},
+            external_reference::{ExternalReference, ExternalReferenceType, Uri},
             hash::{Hash, HashAlgorithm, HashValue},
             license::LicenseChoice,
             property::Property,
@@ -453,7 +453,7 @@ mod test {
                     encoding: None,
                     content: "content".to_string(),
                 }),
-                url: Some(Uri("https://example.com".to_string())),
+                url: Some(Url("https://example.com".to_string())),
             }),
             modified: Some(true),
             pedigree: Some(Pedigree {
@@ -476,7 +476,7 @@ mod test {
             }),
             external_references: Some(ExternalReferences(vec![ExternalReference {
                 external_reference_type: ExternalReferenceType::Bom,
-                url: Uri("https://www.example.com".to_string()),
+                url: Uri::Url(Url("https://www.example.com".to_string())),
                 comment: None,
                 hashes: None,
             }])),
@@ -537,7 +537,7 @@ mod test {
                     encoding: None,
                     content: "content".to_string(),
                 }),
-                url: Some(Uri("invalid url".to_string())),
+                url: Some(Url("invalid url".to_string())),
             }),
             modified: Some(true),
             pedigree: Some(Pedigree {
@@ -564,7 +564,7 @@ mod test {
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown".to_string(),
                 ),
-                url: Uri("https://www.example.com".to_string()),
+                url: Uri::Url(Url("https://www.example.com".to_string())),
                 comment: None,
                 hashes: None,
             }])),

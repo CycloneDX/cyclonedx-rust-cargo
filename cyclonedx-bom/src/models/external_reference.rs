@@ -16,7 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::external_models::uri::{validate_uri, Uri};
+use once_cell::sync::Lazy;
+use regex::Regex;
+
+use crate::external_models::uri::{validate_uri as validate_url, Uri as Url};
 use crate::models::hash::Hashes;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
@@ -44,10 +47,10 @@ impl ExternalReference {
     /// let external_reference = ExternalReference::new(ExternalReferenceType::Bom, url);
     /// # Ok::<(), UriError>(())
     /// ```
-    pub fn new(external_reference_type: ExternalReferenceType, url: Uri) -> Self {
+    pub fn new(external_reference_type: ExternalReferenceType, url: impl Into<Uri>) -> Self {
         Self {
             external_reference_type,
-            url,
+            url: url.into(),
             comment: None,
             hashes: None,
         }
@@ -109,12 +112,36 @@ pub enum ExternalReferenceType {
     Documentation,
     Support,
     Distribution,
+    DistributionIntake,
     License,
     BuildMeta,
     BuildSystem,
     Other,
     #[doc(hidden)]
     UnknownExternalReferenceType(String),
+    ReleaseNotes,
+    SecurityContact,
+    ModelCard,
+    Log,
+    Configuration,
+    Evidence,
+    Formulation,
+    Attestation,
+    ThreatModel,
+    AdversaryModel,
+    RiskAssessment,
+    VulnerabilityAssertion,
+    ExploitabilityStatement,
+    PentestReport,
+    StaticAnalysisReport,
+    DynamicAnalysisReport,
+    RuntimeAnalysisReport,
+    ComponentAnalysisReport,
+    MaturityReport,
+    CertificationReport,
+    CondifiedInfrastructure,
+    QualityMetrics,
+    Poam,
 }
 
 impl ToString for ExternalReferenceType {
@@ -131,9 +158,33 @@ impl ToString for ExternalReferenceType {
             ExternalReferenceType::Documentation => "documentation",
             ExternalReferenceType::Support => "support",
             ExternalReferenceType::Distribution => "distribution",
+            ExternalReferenceType::DistributionIntake => "distribution-intake",
             ExternalReferenceType::License => "license",
             ExternalReferenceType::BuildMeta => "build-meta",
             ExternalReferenceType::BuildSystem => "build-system",
+            ExternalReferenceType::ReleaseNotes => "release-notes",
+            ExternalReferenceType::SecurityContact => "security-contact",
+            ExternalReferenceType::ModelCard => "model-card",
+            ExternalReferenceType::Log => "log",
+            ExternalReferenceType::Configuration => "configuration",
+            ExternalReferenceType::Evidence => "evidence",
+            ExternalReferenceType::Formulation => "formulation",
+            ExternalReferenceType::Attestation => "attestation",
+            ExternalReferenceType::ThreatModel => "threat-model",
+            ExternalReferenceType::AdversaryModel => "adversary-model",
+            ExternalReferenceType::RiskAssessment => "risk-assessment",
+            ExternalReferenceType::VulnerabilityAssertion => "vulnerability-assertion",
+            ExternalReferenceType::ExploitabilityStatement => "exploitability-statement",
+            ExternalReferenceType::PentestReport => "pentest-report",
+            ExternalReferenceType::StaticAnalysisReport => "static-analysis-report",
+            ExternalReferenceType::DynamicAnalysisReport => "dynamic-analysis-report",
+            ExternalReferenceType::RuntimeAnalysisReport => "runtime-analysis-report",
+            ExternalReferenceType::ComponentAnalysisReport => "component-analysis-report",
+            ExternalReferenceType::MaturityReport => "maturity-report",
+            ExternalReferenceType::CertificationReport => "certification-report",
+            ExternalReferenceType::CondifiedInfrastructure => "codified-infrastructure",
+            ExternalReferenceType::QualityMetrics => "quality-metrics",
+            ExternalReferenceType::Poam => "poam",
             ExternalReferenceType::Other => "other",
             ExternalReferenceType::UnknownExternalReferenceType(un) => un,
         }
@@ -155,13 +206,77 @@ impl ExternalReferenceType {
             "documentation" => Self::Documentation,
             "support" => Self::Support,
             "distribution" => Self::Distribution,
+            "distribution-intake" => Self::DistributionIntake,
             "license" => Self::License,
             "build-meta" => Self::BuildMeta,
             "build-system" => Self::BuildSystem,
+            "release-notes" => Self::ReleaseNotes,
+            "security-contact" => Self::SecurityContact,
+            "model-card" => Self::ModelCard,
+            "log" => Self::Log,
+            "configuration" => Self::Configuration,
+            "evidence" => Self::Evidence,
+            "formulation" => Self::Formulation,
+            "attestation" => Self::Attestation,
+            "threat-model" => Self::ThreatModel,
+            "adversary-model" => Self::AdversaryModel,
+            "risk-assessment" => Self::RiskAssessment,
+            "vulnerability-assertion" => Self::VulnerabilityAssertion,
+            "exploitability-statement" => Self::ExploitabilityStatement,
+            "pentest-report" => Self::PentestReport,
+            "static-analysis-report" => Self::StaticAnalysisReport,
+            "dynamic-analysis-report" => Self::DynamicAnalysisReport,
+            "runtime-analysis-report" => Self::RuntimeAnalysisReport,
+            "component-analysis-report" => Self::ComponentAnalysisReport,
+            "maturity-report" => Self::MaturityReport,
+            "certification-report" => Self::CertificationReport,
+            "codified-infrastructure" => Self::CondifiedInfrastructure,
+            "quality-metrics" => Self::QualityMetrics,
+            "poam" => Self::Poam,
             "other" => Self::Other,
             unknown => Self::UnknownExternalReferenceType(unknown.to_string()),
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Uri {
+    Url(Url),
+    BomLink(BomLink),
+}
+
+fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
+    match uri {
+        Uri::Url(url) => validate_url(url),
+        Uri::BomLink(bom_link) => validate_bom_link(bom_link),
+    }
+}
+
+impl From<Url> for Uri {
+    fn from(url: Url) -> Self {
+        Self::Url(url)
+    }
+}
+
+impl From<BomLink> for Uri {
+    fn from(bom_link: BomLink) -> Self {
+        Self::BomLink(bom_link)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BomLink(pub(crate) String);
+
+fn validate_bom_link(bom_link: &BomLink) -> Result<(), ValidationError> {
+    static BOM_LINK_REGEX: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"^urn:cdx:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[1-9][0-9]*(#.+)?$").unwrap()
+    });
+
+    if !BOM_LINK_REGEX.is_match(&bom_link.0) {
+        return Err(ValidationError::new("Invalid BOM-Link"));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -176,12 +291,30 @@ mod test {
 
     #[test]
     fn it_should_pass_validation() {
-        let validation_result = ExternalReferences(vec![ExternalReference {
-            external_reference_type: ExternalReferenceType::Bom,
-            url: Uri("https://example.com".to_string()),
-            comment: Some("Comment".to_string()),
-            hashes: Some(Hashes(vec![])),
-        }])
+        let validation_result = ExternalReferences(vec![
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::Bom,
+                url: Uri::Url(Url("https://example.com".to_string())),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![])),
+            },
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::Bom,
+                url: Uri::BomLink(BomLink(
+                    "urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1".to_string(),
+                )),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![])),
+            },
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::Bom,
+                url: Uri::BomLink(BomLink(
+                    "urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1#componentA".to_string(),
+                )),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![])),
+            },
+        ])
         .validate();
 
         assert!(validation_result.passed());
@@ -189,49 +322,90 @@ mod test {
 
     #[test]
     fn it_should_fail_validation() {
-        let validation_result = ExternalReferences(vec![ExternalReference {
-            external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
-                "unknown reference type".to_string(),
-            ),
-            url: Uri("invalid uri".to_string()),
-            comment: Some("Comment".to_string()),
-            hashes: Some(Hashes(vec![Hash {
-                alg: crate::models::hash::HashAlgorithm::MD5,
-                content: HashValue("invalid hash".to_string()),
-            }])),
-        }])
+        let validation_result = ExternalReferences(vec![
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
+                    "unknown reference type".to_string(),
+                ),
+                url: Uri::Url(Url("invalid uri".to_string())),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![Hash {
+                    alg: crate::models::hash::HashAlgorithm::MD5,
+                    content: HashValue("invalid hash".to_string()),
+                }])),
+            },
+            ExternalReference {
+                external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
+                    "unknown reference type".to_string(),
+                ),
+                url: Uri::BomLink(BomLink("invalid bom-link".to_string())),
+                comment: Some("Comment".to_string()),
+                hashes: Some(Hashes(vec![Hash {
+                    alg: crate::models::hash::HashAlgorithm::MD5,
+                    content: HashValue("invalid hash".to_string()),
+                }])),
+            },
+        ])
         .validate();
 
         assert_eq!(
             validation_result,
             validation::list(
                 "inner",
-                [(
-                    0,
-                    vec![
-                        validation::field(
-                            "external_reference_type",
-                            "Unknown external reference type"
-                        ),
-                        validation::field("url", "Uri does not conform to RFC 3986"),
-                        validation::list(
-                            "hashes",
-                            [(
-                                0,
-                                validation::list(
-                                    "inner",
-                                    [(
-                                        0,
-                                        validation::field(
-                                            "content",
-                                            "HashValue does not match regular expression"
-                                        )
-                                    )]
-                                )
-                            )]
-                        )
-                    ]
-                )]
+                [
+                    (
+                        0,
+                        vec![
+                            validation::field(
+                                "external_reference_type",
+                                "Unknown external reference type"
+                            ),
+                            validation::field("url", "Uri does not conform to RFC 3986"),
+                            validation::list(
+                                "hashes",
+                                [(
+                                    0,
+                                    validation::list(
+                                        "inner",
+                                        [(
+                                            0,
+                                            validation::field(
+                                                "content",
+                                                "HashValue does not match regular expression"
+                                            )
+                                        )]
+                                    )
+                                )]
+                            )
+                        ]
+                    ),
+                    (
+                        1,
+                        vec![
+                            validation::field(
+                                "external_reference_type",
+                                "Unknown external reference type"
+                            ),
+                            validation::field("url", "Invalid BOM-Link"),
+                            validation::list(
+                                "hashes",
+                                [(
+                                    0,
+                                    validation::list(
+                                        "inner",
+                                        [(
+                                            0,
+                                            validation::field(
+                                                "content",
+                                                "HashValue does not match regular expression"
+                                            )
+                                        )]
+                                    )
+                                )]
+                            )
+                        ]
+                    )
+                ]
             )
         );
     }
