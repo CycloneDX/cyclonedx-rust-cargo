@@ -18,12 +18,14 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4")]
+#[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
     #[versioned("1.3")]
     use crate::specs::v1_3::{component::Component, tool::Tools};
     #[versioned("1.4")]
     use crate::specs::v1_4::{component::Component, tool::Tools};
+    #[versioned("1.5")]
+    use crate::specs::v1_5::{component::Component, lifecycles::Lifecycles, tool::Tools};
 
     use crate::errors::BomError;
     use crate::{
@@ -63,6 +65,9 @@ pub(crate) mod base {
         licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
         properties: Option<Properties>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[versioned("1.5")]
+        lifecycles: Option<Lifecycles>,
     }
 
     impl TryFrom<models::metadata::Metadata> for Metadata {
@@ -78,6 +83,8 @@ pub(crate) mod base {
                 supplier: convert_optional(other.supplier),
                 licenses: convert_optional(other.licenses),
                 properties: convert_optional(other.properties),
+                #[versioned("1.5")]
+                lifecycles: convert_optional(other.lifecycles),
             })
         }
     }
@@ -93,7 +100,10 @@ pub(crate) mod base {
                 supplier: convert_optional(other.supplier),
                 licenses: convert_optional(other.licenses),
                 properties: convert_optional(other.properties),
+                #[versioned("1.3", "1.4")]
                 lifecycles: None,
+                #[versioned("1.5")]
+                lifecycles: convert_optional(other.lifecycles),
             }
         }
     }
@@ -158,6 +168,11 @@ pub(crate) mod base {
                 properties.write_xml_element(writer)?;
             }
 
+            #[versioned("1.5")]
+            if let Some(lifecycles) = &self.lifecycles {
+                lifecycles.write_xml_element(writer)?;
+            }
+
             writer
                 .write(XmlEvent::end_element())
                 .map_err(to_xml_write_error(METADATA_TAG))?;
@@ -181,6 +196,8 @@ pub(crate) mod base {
     const COMPONENT_TAG: &str = "component";
     const LICENSES_TAG: &str = "licenses";
     const PROPERTIES_TAG: &str = "properties";
+    #[versioned("1.5")]
+    const LIFECYCLES_TAG: &str = "lifecycles";
 
     impl FromXml for Metadata {
         fn read_xml_element<R: std::io::Read>(
@@ -199,6 +216,8 @@ pub(crate) mod base {
             let mut supplier: Option<OrganizationalEntity> = None;
             let mut licenses: Option<Licenses> = None;
             let mut properties: Option<Properties> = None;
+            #[versioned("1.5")]
+            let mut lifecycles: Option<Lifecycles> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -266,6 +285,16 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == LIFECYCLES_TAG => {
+                        lifecycles = Some(Lifecycles::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -286,6 +315,8 @@ pub(crate) mod base {
                 supplier,
                 licenses,
                 properties,
+                #[versioned("1.5")]
+                lifecycles,
             })
         }
     }
@@ -301,6 +332,12 @@ pub(crate) mod base {
         #[versioned("1.4")]
         use crate::specs::v1_4::{
             component::test::{corresponding_component, example_component},
+            tool::test::{corresponding_tools, example_tools},
+        };
+        #[versioned("1.5")]
+        use crate::specs::v1_5::{
+            component::test::{corresponding_component, example_component},
+            lifecycles::test::{corresponding_lifecycles, example_lifecycles},
             tool::test::{corresponding_tools, example_tools},
         };
         use crate::{
@@ -324,6 +361,8 @@ pub(crate) mod base {
                 supplier: Some(example_entity()),
                 licenses: Some(example_licenses()),
                 properties: Some(example_properties()),
+                #[versioned("1.5")]
+                lifecycles: Some(example_lifecycles()),
             }
         }
 
@@ -337,7 +376,10 @@ pub(crate) mod base {
                 supplier: Some(corresponding_entity()),
                 licenses: Some(corresponding_licenses()),
                 properties: Some(corresponding_properties()),
+                #[versioned("1.3", "1.4")]
                 lifecycles: None,
+                #[versioned("1.5")]
+                lifecycles: Some(corresponding_lifecycles()),
             }
         }
 
@@ -643,6 +685,161 @@ pub(crate) mod base {
   </properties>
 </metadata>
 "#;
+            #[versioned("1.5")]
+            let input = r#"
+<metadata>
+  <timestamp>timestamp</timestamp>
+  <tools>
+    <tool>
+      <vendor>vendor</vendor>
+      <name>name</name>
+      <version>version</version>
+      <hashes>
+        <hash alg="algorithm">hash value</hash>
+      </hashes>
+    </tool>
+  </tools>
+  <authors>
+    <author>
+      <name>name</name>
+      <email>email</email>
+      <phone>phone</phone>
+    </author>
+  </authors>
+  <component type="component type" mime-type="mime type" bom-ref="bom ref">
+    <supplier>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </supplier>
+    <author>author</author>
+    <publisher>publisher</publisher>
+    <group>group</group>
+    <name>name</name>
+    <version>version</version>
+    <description>description</description>
+    <scope>scope</scope>
+    <hashes>
+      <hash alg="algorithm">hash value</hash>
+    </hashes>
+    <licenses>
+      <expression>expression</expression>
+    </licenses>
+    <copyright>copyright</copyright>
+    <cpe>cpe</cpe>
+    <purl>purl</purl>
+    <swid tagId="tag id" name="name" version="version" tagVersion="1" patch="true">
+      <text content-type="content type" encoding="encoding">content</text>
+      <url>url</url>
+    </swid>
+    <modified>true</modified>
+    <pedigree>
+      <ancestors />
+      <descendants />
+      <variants />
+      <commits>
+        <commit>
+          <uid>uid</uid>
+          <url>url</url>
+          <author>
+            <timestamp>timestamp</timestamp>
+            <name>name</name>
+            <email>email</email>
+          </author>
+          <committer>
+            <timestamp>timestamp</timestamp>
+            <name>name</name>
+            <email>email</email>
+          </committer>
+          <message>message</message>
+        </commit>
+      </commits>
+      <patches>
+        <patch type="patch type">
+          <diff>
+            <text content-type="content type" encoding="encoding">content</text>
+            <url>url</url>
+          </diff>
+          <resolves>
+            <issue type="issue type">
+              <id>id</id>
+              <name>name</name>
+              <description>description</description>
+              <source>
+                <name>name</name>
+                <url>url</url>
+              </source>
+              <references>
+                <url>reference</url>
+              </references>
+            </issue>
+          </resolves>
+        </patch>
+      </patches>
+      <notes>notes</notes>
+    </pedigree>
+    <externalReferences>
+      <reference type="external reference type">
+        <url>url</url>
+        <comment>comment</comment>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </reference>
+    </externalReferences>
+    <properties>
+      <property name="name">value</property>
+    </properties>
+    <components />
+    <evidence>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <copyright>
+        <text><![CDATA[copyright]]></text>
+      </copyright>
+    </evidence>
+    <signature>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signature>
+  </component>
+  <manufacture>
+    <name>name</name>
+    <url>url</url>
+    <contact>
+      <name>name</name>
+      <email>email</email>
+      <phone>phone</phone>
+    </contact>
+  </manufacture>
+  <supplier>
+    <name>name</name>
+    <url>url</url>
+    <contact>
+      <name>name</name>
+      <email>email</email>
+      <phone>phone</phone>
+    </contact>
+  </supplier>
+  <licenses>
+    <expression>expression</expression>
+  </licenses>
+  <properties>
+    <property name="name">value</property>
+  </properties>
+  <lifecycles>
+    <lifecycle>
+      <phase>design</phase>
+    </lifecycle>
+  </lifecycles>
+</metadata>
+"#;
+
             let actual: Metadata = read_element_from_string(input);
             let expected = example_metadata();
             assert_eq!(actual, expected);
