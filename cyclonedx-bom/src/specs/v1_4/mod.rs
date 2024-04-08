@@ -18,7 +18,6 @@
 
 pub(crate) mod bom;
 pub(crate) mod composition;
-pub(crate) mod metadata;
 pub(crate) mod vulnerability;
 pub(crate) mod vulnerability_analysis;
 pub(crate) mod vulnerability_credits;
@@ -29,5 +28,6 @@ pub(crate) mod vulnerability_target;
 
 pub(crate) use crate::specs::common::component::v1_4 as component;
 pub(crate) use crate::specs::common::external_reference::v1_4 as external_reference;
+pub(crate) use crate::specs::common::metadata::v1_4 as metadata;
 pub(crate) use crate::specs::common::service::v1_4 as service;
 pub(crate) use crate::specs::common::tool::v1_4 as tool;
