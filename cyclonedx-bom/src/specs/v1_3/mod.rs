@@ -17,9 +17,9 @@
  */
 
 pub(crate) mod bom;
-pub(crate) mod composition;
 
 pub(crate) use crate::specs::common::component::v1_3 as component;
+pub(crate) use crate::specs::common::composition::v1_3 as composition;
 pub(crate) use crate::specs::common::external_reference::v1_3 as external_reference;
 pub(crate) use crate::specs::common::metadata::v1_3 as metadata;
 pub(crate) use crate::specs::common::service::v1_3 as service;
