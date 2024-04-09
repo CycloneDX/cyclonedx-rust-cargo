@@ -20,7 +20,6 @@ pub(crate) mod annotation;
 pub(crate) mod bom;
 pub(crate) mod lifecycles;
 pub(crate) mod vulnerability;
-pub(crate) mod vulnerability_analysis;
 
 pub(crate) use crate::specs::common::component::v1_5 as component;
 pub(crate) use crate::specs::common::composition::v1_5 as composition;
