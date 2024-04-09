@@ -24,7 +24,6 @@ pub(crate) mod vulnerability_credits;
 pub(crate) mod vulnerability_rating;
 pub(crate) mod vulnerability_reference;
 pub(crate) mod vulnerability_source;
-pub(crate) mod vulnerability_target;
 
 pub(crate) use crate::specs::common::component::v1_4 as component;
 pub(crate) use crate::specs::common::composition::v1_4 as composition;
