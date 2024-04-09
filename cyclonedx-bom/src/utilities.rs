@@ -24,10 +24,7 @@ pub(crate) fn try_convert_optional<A, B: TryFrom<A>>(
 where
     BomError: From<B::Error>,
 {
-    match value {
-        Some(value) => Ok(Some(value.try_into()?)),
-        None => Ok(None),
-    }
+    value.map(B::try_from).transpose().map_err(BomError::from)
 }
 
 pub(crate) fn convert_vec<A, B: From<A>>(value: Vec<A>) -> Vec<B> {
