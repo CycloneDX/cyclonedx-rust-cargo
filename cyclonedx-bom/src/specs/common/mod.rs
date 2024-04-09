@@ -32,5 +32,6 @@ pub(crate) mod property;
 pub(crate) mod service;
 pub(crate) mod signature;
 pub(crate) mod tool;
+pub(crate) mod vulnerability_reference;
 pub(crate) mod vulnerability_source;
 pub(crate) mod vulnerability_target;
