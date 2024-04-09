@@ -23,7 +23,7 @@ pub(crate) mod base {
     use crate::{
         errors::XmlReadError,
         models,
-        specs::common::bom::BomReference,
+        specs::common::bom_reference::BomReference,
         utilities::{convert_optional_vec, convert_vec},
         xml::{
             read_lax_validation_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
