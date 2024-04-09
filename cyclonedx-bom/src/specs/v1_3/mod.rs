@@ -16,8 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-pub(crate) mod bom;
-
+pub(crate) use crate::specs::common::bom::v1_3 as bom;
 pub(crate) use crate::specs::common::component::v1_3 as component;
 pub(crate) use crate::specs::common::composition::v1_3 as composition;
 pub(crate) use crate::specs::common::external_reference::v1_3 as external_reference;

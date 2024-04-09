@@ -1,8 +1,6 @@
 ---
-source: cyclonedx-bom/src/specs/v1_3/bom.rs
-assertion_line: 213
+source: cyclonedx-bom/src/specs/common/bom.rs
 expression: xml_output
-
 ---
 <?xml version="1.0" encoding="utf-8"?>
 <bom xmlns="http://cyclonedx.org/schema/bom/1.3" serialNumber="fake-uuid" version="1">
