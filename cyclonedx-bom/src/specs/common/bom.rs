@@ -17,7 +17,7 @@
  */
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4")]
+#[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
     #[versioned("1.3")]
     use crate::specs::v1_3::{
@@ -29,6 +29,15 @@ pub(crate) mod base {
         common::signature::Signature,
         v1_4::{
             component::Components, composition::Compositions,
+            external_reference::ExternalReferences, metadata::Metadata, service::Services,
+            vulnerability::Vulnerabilities,
+        },
+    };
+    #[versioned("1.5")]
+    use crate::specs::{
+        common::signature::Signature,
+        v1_5::{
+            annotation::Annotations, component::Components, composition::Compositions,
             external_reference::ExternalReferences, metadata::Metadata, service::Services,
             vulnerability::Vulnerabilities,
         },
@@ -55,11 +64,15 @@ pub(crate) mod base {
     const SPEC_VERSION: SpecVersion = SpecVersion::V1_3;
     #[versioned("1.4")]
     const SPEC_VERSION: SpecVersion = SpecVersion::V1_4;
+    #[versioned("1.5")]
+    const SPEC_VERSION: SpecVersion = SpecVersion::V1_5;
 
     #[versioned("1.3")]
     const NS: &str = "http://cyclonedx.org/schema/bom/1.3";
     #[versioned("1.4")]
     const NS: &str = "http://cyclonedx.org/schema/bom/1.4";
+    #[versioned("1.5")]
+    const NS: &str = "http://cyclonedx.org/schema/bom/1.5";
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
@@ -82,12 +95,15 @@ pub(crate) mod base {
         compositions: Option<Compositions>,
         #[serde(skip_serializing_if = "Option::is_none")]
         properties: Option<Properties>,
-        #[versioned("1.4")]
+        #[versioned("1.4", "1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         vulnerabilities: Option<Vulnerabilities>,
-        #[versioned("1.4")]
+        #[versioned("1.4", "1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         signature: Option<Signature>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        annotations: Option<Annotations>,
     }
 
     impl TryFrom<models::bom::Bom> for Bom {
@@ -106,10 +122,12 @@ pub(crate) mod base {
                 dependencies: convert_optional(other.dependencies),
                 compositions: convert_optional(other.compositions),
                 properties: convert_optional(other.properties),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 vulnerabilities: try_convert_optional(other.vulnerabilities)?,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
+                #[versioned("1.5")]
+                annotations: try_convert_optional(other.annotations)?,
             })
         }
     }
@@ -128,13 +146,16 @@ pub(crate) mod base {
                 properties: convert_optional(other.properties),
                 #[versioned("1.3")]
                 vulnerabilities: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 vulnerabilities: convert_optional(other.vulnerabilities),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
+                #[versioned("1.3", "1.4")]
                 annotations: None,
+                #[versioned("1.5")]
+                annotations: convert_optional(other.annotations),
             }
         }
     }
@@ -189,7 +210,7 @@ pub(crate) mod base {
                 properties.write_xml_element(writer)?;
             }
 
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             if let Some(vulnerabilities) = &self.vulnerabilities {
                 vulnerabilities.write_xml_element(writer)?;
             }
@@ -209,10 +230,12 @@ pub(crate) mod base {
     const DEPENDENCIES_TAG: &str = "dependencies";
     const COMPOSITIONS_TAG: &str = "compositions";
     const PROPERTIES_TAG: &str = "properties";
-    #[versioned("1.4")]
+    #[versioned("1.4", "1.5")]
     const VULNERABILITIES_TAG: &str = "vulnerabilities";
-    #[versioned("1.4")]
+    #[versioned("1.4", "1.5")]
     const SIGNATURE_TAG: &str = "signature";
+    #[versioned("1.5")]
+    const ANNOTATIONS_TAG: &str = "annotations";
 
     impl FromXmlDocument for Bom {
         fn read_xml_document<R: std::io::Read>(
@@ -242,6 +265,8 @@ pub(crate) mod base {
                         expected_namespace_or_error("1.3", &namespace)?;
                         #[versioned("1.4")]
                         expected_namespace_or_error("1.4", &namespace)?;
+                        #[versioned("1.5")]
+                        expected_namespace_or_error("1.5", &namespace)?;
                         let version =
                             if let Some(version) = optional_attribute(&attributes, VERSION_ATTR) {
                                 u32::from_xml_value(VERSION_ATTR, version)?
@@ -262,10 +287,12 @@ pub(crate) mod base {
             let mut dependencies: Option<Dependencies> = None;
             let mut compositions: Option<Compositions> = None;
             let mut properties: Option<Properties> = None;
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             let mut vulnerabilities: Option<Vulnerabilities> = None;
-            #[versioned("1.4")]
+            #[versioned("1.4", "1.5")]
             let mut signature: Option<Signature> = None;
+            #[versioned("1.5")]
+            let mut annotations: Option<Annotations> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -334,7 +361,7 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.4")]
+                    #[versioned("1.4", "1.5")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == VULNERABILITIES_TAG => {
@@ -344,11 +371,21 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.4")]
+                    #[versioned("1.4", "1.5")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == SIGNATURE_TAG => {
                         signature = Some(Signature::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == ANNOTATIONS_TAG => {
+                        annotations = Some(Annotations::read_xml_element(
                             event_reader,
                             &name,
                             &attributes,
@@ -385,10 +422,12 @@ pub(crate) mod base {
                 dependencies,
                 compositions,
                 properties,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 vulnerabilities,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature,
+                #[versioned("1.5")]
+                annotations,
             })
         }
     }
@@ -439,6 +478,21 @@ pub(crate) mod base {
                 vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
             },
         };
+        #[versioned("1.5")]
+        use crate::specs::{
+            common::signature::test::{corresponding_signature, example_signature},
+            v1_5::{
+                annotation::test::{corresponding_annotations, example_annotations},
+                component::test::{corresponding_components, example_components},
+                composition::test::{corresponding_compositions, example_compositions},
+                external_reference::test::{
+                    corresponding_external_references, example_external_references,
+                },
+                metadata::test::{corresponding_metadata, example_metadata},
+                service::test::{corresponding_services, example_services},
+                vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
+            },
+        };
         use crate::{
             specs::common::{
                 dependency::test::{corresponding_dependencies, example_dependencies},
@@ -462,10 +516,12 @@ pub(crate) mod base {
                 dependencies: None,
                 compositions: None,
                 properties: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 vulnerabilities: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: None,
+                #[versioned("1.5")]
+                annotations: None,
             }
         }
 
@@ -482,10 +538,12 @@ pub(crate) mod base {
                 dependencies: Some(example_dependencies()),
                 compositions: Some(example_compositions()),
                 properties: Some(example_properties()),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 vulnerabilities: Some(example_vulnerabilities()),
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: Some(example_signature()),
+                #[versioned("1.5")]
+                annotations: Some(example_annotations()),
             }
         }
 
@@ -502,13 +560,16 @@ pub(crate) mod base {
                 properties: Some(corresponding_properties()),
                 #[versioned("1.3")]
                 vulnerabilities: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 vulnerabilities: Some(corresponding_vulnerabilities()),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4")]
+                #[versioned("1.4", "1.5")]
                 signature: Some(corresponding_signature()),
+                #[versioned("1.3", "1.4")]
                 annotations: None,
+                #[versioned("1.5")]
+                annotations: Some(corresponding_annotations()),
             }
         }
 
@@ -1324,6 +1385,480 @@ pub(crate) mod base {
     <algorithm>HS512</algorithm>
     <value>1234567890</value>
   </signature>
+  <example:laxValidation>
+    <example:innerElement id="test" />
+  </example:laxValidation>
+</bom>
+"#.trim_start();
+            #[versioned("1.5")]
+            let input = r#"
+<?xml version="1.0" encoding="utf-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.5" xmlns:example="https://example.com" serialNumber="fake-uuid" version="1">
+  <metadata>
+    <timestamp>timestamp</timestamp>
+    <tools>
+      <tool>
+        <vendor>vendor</vendor>
+        <name>name</name>
+        <version>version</version>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </tool>
+    </tools>
+    <authors>
+      <author>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </author>
+    </authors>
+    <component type="component type" mime-type="mime type" bom-ref="bom ref">
+      <supplier>
+        <name>name</name>
+        <url>url</url>
+        <contact>
+          <name>name</name>
+          <email>email</email>
+          <phone>phone</phone>
+        </contact>
+      </supplier>
+      <author>author</author>
+      <publisher>publisher</publisher>
+      <group>group</group>
+      <name>name</name>
+      <version>version</version>
+      <description>description</description>
+      <scope>scope</scope>
+      <hashes>
+        <hash alg="algorithm">hash value</hash>
+      </hashes>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <copyright>copyright</copyright>
+      <cpe>cpe</cpe>
+      <purl>purl</purl>
+      <swid tagId="tag id" name="name" version="version" tagVersion="1" patch="true">
+        <text content-type="content type" encoding="encoding">content</text>
+        <url>url</url>
+      </swid>
+      <modified>true</modified>
+      <pedigree>
+        <ancestors />
+        <descendants />
+        <variants />
+        <commits>
+          <commit>
+            <uid>uid</uid>
+            <url>url</url>
+            <author>
+              <timestamp>timestamp</timestamp>
+              <name>name</name>
+              <email>email</email>
+            </author>
+            <committer>
+              <timestamp>timestamp</timestamp>
+              <name>name</name>
+              <email>email</email>
+            </committer>
+            <message>message</message>
+          </commit>
+        </commits>
+        <patches>
+          <patch type="patch type">
+            <diff>
+              <text content-type="content type" encoding="encoding">content</text>
+              <url>url</url>
+            </diff>
+            <resolves>
+              <issue type="issue type">
+                <id>id</id>
+                <name>name</name>
+                <description>description</description>
+                <source>
+                  <name>name</name>
+                  <url>url</url>
+                </source>
+                <references>
+                  <url>reference</url>
+                </references>
+              </issue>
+            </resolves>
+          </patch>
+        </patches>
+        <notes>notes</notes>
+      </pedigree>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+      <components />
+      <evidence>
+        <licenses>
+          <expression>expression</expression>
+        </licenses>
+        <copyright>
+          <text><![CDATA[copyright]]></text>
+        </copyright>
+      </evidence>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
+    </component>
+    <manufacture>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </manufacture>
+    <supplier>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </supplier>
+    <licenses>
+      <expression>expression</expression>
+    </licenses>
+    <properties>
+      <property name="name">value</property>
+    </properties>
+    <lifecycles>
+      <lifecycle>
+        <phase>design</phase>
+      </lifecycle>
+    </lifecycles>
+  </metadata>
+  <components>
+    <component type="component type" mime-type="mime type" bom-ref="bom ref">
+      <supplier>
+        <name>name</name>
+        <url>url</url>
+        <contact>
+          <name>name</name>
+          <email>email</email>
+          <phone>phone</phone>
+        </contact>
+      </supplier>
+      <author>author</author>
+      <publisher>publisher</publisher>
+      <group>group</group>
+      <name>name</name>
+      <version>version</version>
+      <description>description</description>
+      <scope>scope</scope>
+      <hashes>
+        <hash alg="algorithm">hash value</hash>
+      </hashes>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <copyright>copyright</copyright>
+      <cpe>cpe</cpe>
+      <purl>purl</purl>
+      <swid tagId="tag id" name="name" version="version" tagVersion="1" patch="true">
+        <text content-type="content type" encoding="encoding">content</text>
+        <url>url</url>
+      </swid>
+      <modified>true</modified>
+      <pedigree>
+        <ancestors />
+        <descendants />
+        <variants />
+        <commits>
+          <commit>
+            <uid>uid</uid>
+            <url>url</url>
+            <author>
+              <timestamp>timestamp</timestamp>
+              <name>name</name>
+              <email>email</email>
+            </author>
+            <committer>
+              <timestamp>timestamp</timestamp>
+              <name>name</name>
+              <email>email</email>
+            </committer>
+            <message>message</message>
+          </commit>
+        </commits>
+        <patches>
+          <patch type="patch type">
+            <diff>
+              <text content-type="content type" encoding="encoding">content</text>
+              <url>url</url>
+            </diff>
+            <resolves>
+              <issue type="issue type">
+                <id>id</id>
+                <name>name</name>
+                <description>description</description>
+                <source>
+                  <name>name</name>
+                  <url>url</url>
+                </source>
+                <references>
+                  <url>reference</url>
+                </references>
+              </issue>
+            </resolves>
+          </patch>
+        </patches>
+        <notes>notes</notes>
+      </pedigree>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+      <components />
+      <evidence>
+        <licenses>
+          <expression>expression</expression>
+        </licenses>
+        <copyright>
+          <text><![CDATA[copyright]]></text>
+        </copyright>
+      </evidence>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
+    </component>
+  </components>
+  <services>
+    <service bom-ref="bom-ref">
+      <provider>
+        <name>name</name>
+        <url>url</url>
+        <contact>
+          <name>name</name>
+          <email>email</email>
+          <phone>phone</phone>
+        </contact>
+      </provider>
+      <group>group</group>
+      <name>name</name>
+      <version>version</version>
+      <description>description</description>
+      <endpoints>
+        <endpoint>endpoint</endpoint>
+      </endpoints>
+      <authenticated>true</authenticated>
+      <x-trust-boundary>true</x-trust-boundary>
+      <data>
+        <classification flow="flow">classification</classification>
+      </data>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+      <services />
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
+      <trustZone>trust zone</trustZone>
+    </service>
+  </services>
+  <externalReferences>
+    <reference type="external reference type">
+      <url>url</url>
+      <comment>comment</comment>
+      <hashes>
+        <hash alg="algorithm">hash value</hash>
+      </hashes>
+    </reference>
+  </externalReferences>
+  <dependencies>
+    <dependency ref="ref">
+      <dependency ref="depends on" />
+    </dependency>
+  </dependencies>
+  <compositions>
+    <composition>
+      <aggregate>aggregate</aggregate>
+      <assemblies>
+        <assembly ref="assembly" />
+      </assemblies>
+      <dependencies>
+        <dependency ref="dependency" />
+      </dependencies>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
+    </composition>
+  </compositions>
+  <properties>
+    <property name="name">value</property>
+  </properties>
+  <vulnerabilities>
+    <vulnerability bom-ref="bom-ref">
+      <id>id</id>
+      <source>
+        <name>name</name>
+        <url>url</url>
+      </source>
+      <references>
+        <reference>
+          <id>id</id>
+          <source>
+            <name>name</name>
+            <url>url</url>
+          </source>
+        </reference>
+      </references>
+      <ratings>
+        <rating>
+          <source>
+            <name>name</name>
+            <url>url</url>
+          </source>
+          <score>9.8</score>
+          <severity>info</severity>
+          <method>CVSSv3</method>
+          <vector>vector</vector>
+          <justification>justification</justification>
+        </rating>
+      </ratings>
+      <cwes>
+        <cwe>1</cwe>
+        <cwe>2</cwe>
+        <cwe>3</cwe>
+      </cwes>
+      <description>description</description>
+      <detail>detail</detail>
+      <recommendation>recommendation</recommendation>
+      <advisories>
+        <advisory>
+          <title>title</title>
+          <url>url</url>
+        </advisory>
+      </advisories>
+      <created>created</created>
+      <published>published</published>
+      <updated>updated</updated>
+      <credits>
+        <organizations>
+          <organization>
+            <name>name</name>
+            <url>url</url>
+            <contact>
+              <name>name</name>
+              <email>email</email>
+              <phone>phone</phone>
+            </contact>
+          </organization>
+        </organizations>
+        <individuals>
+          <individual>
+            <name>name</name>
+            <email>email</email>
+            <phone>phone</phone>
+          </individual>
+        </individuals>
+      </credits>
+      <tools>
+        <tool>
+          <vendor>vendor</vendor>
+          <name>name</name>
+          <version>version</version>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </tool>
+      </tools>
+      <analysis>
+        <state>not_affected</state>
+        <justification>code_not_reachable</justification>
+        <responses>
+          <response>update</response>
+        </responses>
+        <detail>detail</detail>
+      </analysis>
+      <affects>
+        <target>
+          <ref>ref</ref>
+          <versions>
+            <version>
+              <version>5.0.0</version>
+              <status>unaffected</status>
+            </version>
+            <version>
+              <range>vers:npm/1.2.3|>=2.0.0|&lt;5.0.0</range>
+              <status>affected</status>
+            </version>
+          </versions>
+        </target>
+      </affects>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+    </vulnerability>
+  </vulnerabilities>
+  <signature>
+    <algorithm>HS512</algorithm>
+    <value>1234567890</value>
+  </signature>
+  <annotations>
+    <annotation bom-ref="annotation-1">
+      <subjects>
+        <subject ref="subject1" />
+      </subjects>
+      <annotator>
+        <organization>
+          <name>name</name>
+          <url>url</url>
+          <contact>
+            <name>name</name>
+            <email>email</email>
+            <phone>phone</phone>
+          </contact>
+        </organization>
+      </annotator>
+      <timestamp>timestamp</timestamp>
+      <text>Annotation text</text>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
+    </annotation>
+  </annotations>
   <example:laxValidation>
     <example:innerElement id="test" />
   </example:laxValidation>

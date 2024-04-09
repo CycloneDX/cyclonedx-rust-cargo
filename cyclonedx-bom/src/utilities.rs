@@ -18,16 +18,14 @@ pub(crate) fn convert_optional<A, B: From<A>>(value: Option<A>) -> Option<B> {
     value.map(std::convert::Into::into)
 }
 
-pub(crate) fn try_convert_optional<A, B: TryFrom<A, Error = BomError>>(
+pub(crate) fn try_convert_optional<A, B: TryFrom<A>>(
     value: Option<A>,
-) -> Result<Option<B>, BomError> {
-    // todo: check if this could be handled more elegantly
-    let value = value.map(std::convert::TryInto::try_into);
+) -> Result<Option<B>, BomError>
+where
+    BomError: From<B::Error>,
+{
     match value {
-        Some(result) => match result {
-            Err(e) => Err(e),
-            Ok(value) => Ok(Some(value)),
-        },
+        Some(value) => Ok(Some(value.try_into()?)),
         None => Ok(None),
     }
 }

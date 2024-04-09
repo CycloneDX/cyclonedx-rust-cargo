@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+use std::convert::Infallible;
+
 use crate::models::bom::SpecVersion;
 
 #[derive(Debug, thiserror::Error)]
@@ -32,6 +34,14 @@ pub enum BomError {
 
     #[error("Unsupported Spec Version '{0}'")]
     UnsupportedSpecVersion(String),
+}
+
+// This allows to use `TryFrom` when a type only implements `From` inside a
+// `TryFrom<Error = BomError>` implementation.
+impl From<Infallible> for BomError {
+    fn from(err: Infallible) -> Self {
+        match err {}
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
