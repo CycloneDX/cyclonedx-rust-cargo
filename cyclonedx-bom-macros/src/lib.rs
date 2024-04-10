@@ -2,14 +2,14 @@ use std::error::Error as StdError;
 use std::str::FromStr;
 
 use proc_macro::TokenStream;
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
     fold::{self, Fold},
     parse_quote,
     punctuated::Punctuated,
     token::Comma,
-    Error, Expr, Item,
+    Error, Expr, Item, Stmt,
 };
 
 #[derive(PartialEq, Eq)]
@@ -71,16 +71,19 @@ struct VersionFilter {
 }
 
 impl VersionFilter {
-    fn extract_requirement(&mut self, attrs: &mut Vec<syn::Attribute>) -> Option<VersionReq> {
-        let mut opt_version = None;
+    fn is_active(&mut self, attrs: &mut Vec<syn::Attribute>) -> bool {
+        let mut matches = true;
 
         attrs.retain(|attr| {
             let path = attr.path();
 
             if path.is_ident("versioned") {
                 match attr.parse_args::<VersionReq>() {
-                    Ok(version) => opt_version = Some(version),
-                    Err(err) => self.error = Some(err),
+                    Ok(req) => matches = req.matches(&self.version),
+                    Err(err) => match self.error.as_mut() {
+                        Some(error) => error.combine(err),
+                        None => self.error = Some(err),
+                    },
                 }
 
                 false
@@ -89,11 +92,7 @@ impl VersionFilter {
             }
         });
 
-        opt_version
-    }
-
-    fn matches(&self, requirement: &VersionReq) -> bool {
-        requirement.matches(&self.version)
+        matches
     }
 
     fn filter_fields(
@@ -102,12 +101,7 @@ impl VersionFilter {
     ) -> Punctuated<syn::Field, Comma> {
         fields
             .into_pairs()
-            .filter_map(
-                |mut pair| match self.extract_requirement(&mut pair.value_mut().attrs) {
-                    Some(version) => self.matches(&version).then_some(pair),
-                    None => Some(pair),
-                },
-            )
+            .filter_map(|mut pair| self.is_active(&mut pair.value_mut().attrs).then_some(pair))
             .collect()
     }
 }
@@ -123,69 +117,61 @@ impl Fold for VersionFilter {
         fields
     }
 
-    fn fold_stmt(&mut self, mut stmt: syn::Stmt) -> syn::Stmt {
-        match stmt {
-            syn::Stmt::Local(syn::Local { ref mut attrs, .. })
-            | syn::Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_requirement(attrs) {
-                    if !self.matches(&version) {
-                        stmt = parse_quote!({};);
-                    }
-                }
+    fn fold_stmt(&mut self, mut stmt: Stmt) -> Stmt {
+        if let Stmt::Local(syn::Local { ref mut attrs, .. })
+        | Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) = &mut stmt
+        {
+            if !self.is_active(attrs) {
+                stmt = Stmt::Item(Item::Verbatim(TokenStream2::new()));
             }
-            _ => {}
         }
 
         fold::fold_stmt(self, stmt)
     }
 
     fn fold_expr(&mut self, mut expr: Expr) -> Expr {
-        match &mut expr {
-            Expr::Array(syn::ExprArray { ref mut attrs, .. })
-            | Expr::Assign(syn::ExprAssign { ref mut attrs, .. })
-            | Expr::Async(syn::ExprAsync { ref mut attrs, .. })
-            | Expr::Await(syn::ExprAwait { ref mut attrs, .. })
-            | Expr::Binary(syn::ExprBinary { ref mut attrs, .. })
-            | Expr::Block(syn::ExprBlock { ref mut attrs, .. })
-            | Expr::Break(syn::ExprBreak { ref mut attrs, .. })
-            | Expr::Call(syn::ExprCall { ref mut attrs, .. })
-            | Expr::Cast(syn::ExprCast { ref mut attrs, .. })
-            | Expr::Closure(syn::ExprClosure { ref mut attrs, .. })
-            | Expr::Const(syn::ExprConst { ref mut attrs, .. })
-            | Expr::Continue(syn::ExprContinue { ref mut attrs, .. })
-            | Expr::Field(syn::ExprField { ref mut attrs, .. })
-            | Expr::ForLoop(syn::ExprForLoop { ref mut attrs, .. })
-            | Expr::Group(syn::ExprGroup { ref mut attrs, .. })
-            | Expr::If(syn::ExprIf { ref mut attrs, .. })
-            | Expr::Index(syn::ExprIndex { ref mut attrs, .. })
-            | Expr::Infer(syn::ExprInfer { ref mut attrs, .. })
-            | Expr::Let(syn::ExprLet { ref mut attrs, .. })
-            | Expr::Lit(syn::ExprLit { ref mut attrs, .. })
-            | Expr::Loop(syn::ExprLoop { ref mut attrs, .. })
-            | Expr::Macro(syn::ExprMacro { ref mut attrs, .. })
-            | Expr::Match(syn::ExprMatch { ref mut attrs, .. })
-            | Expr::MethodCall(syn::ExprMethodCall { ref mut attrs, .. })
-            | Expr::Paren(syn::ExprParen { ref mut attrs, .. })
-            | Expr::Path(syn::ExprPath { ref mut attrs, .. })
-            | Expr::Range(syn::ExprRange { ref mut attrs, .. })
-            | Expr::Reference(syn::ExprReference { ref mut attrs, .. })
-            | Expr::Repeat(syn::ExprRepeat { ref mut attrs, .. })
-            | Expr::Return(syn::ExprReturn { ref mut attrs, .. })
-            | Expr::Struct(syn::ExprStruct { ref mut attrs, .. })
-            | Expr::Try(syn::ExprTry { ref mut attrs, .. })
-            | Expr::TryBlock(syn::ExprTryBlock { ref mut attrs, .. })
-            | Expr::Tuple(syn::ExprTuple { ref mut attrs, .. })
-            | Expr::Unary(syn::ExprUnary { ref mut attrs, .. })
-            | Expr::Unsafe(syn::ExprUnsafe { ref mut attrs, .. })
-            | Expr::While(syn::ExprWhile { ref mut attrs, .. })
-            | Expr::Yield(syn::ExprYield { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_requirement(attrs) {
-                    if !self.matches(&version) {
-                        expr = parse_quote!({});
-                    }
-                }
+        if let Expr::Array(syn::ExprArray { ref mut attrs, .. })
+        | Expr::Assign(syn::ExprAssign { ref mut attrs, .. })
+        | Expr::Async(syn::ExprAsync { ref mut attrs, .. })
+        | Expr::Await(syn::ExprAwait { ref mut attrs, .. })
+        | Expr::Binary(syn::ExprBinary { ref mut attrs, .. })
+        | Expr::Block(syn::ExprBlock { ref mut attrs, .. })
+        | Expr::Break(syn::ExprBreak { ref mut attrs, .. })
+        | Expr::Call(syn::ExprCall { ref mut attrs, .. })
+        | Expr::Cast(syn::ExprCast { ref mut attrs, .. })
+        | Expr::Closure(syn::ExprClosure { ref mut attrs, .. })
+        | Expr::Const(syn::ExprConst { ref mut attrs, .. })
+        | Expr::Continue(syn::ExprContinue { ref mut attrs, .. })
+        | Expr::Field(syn::ExprField { ref mut attrs, .. })
+        | Expr::ForLoop(syn::ExprForLoop { ref mut attrs, .. })
+        | Expr::Group(syn::ExprGroup { ref mut attrs, .. })
+        | Expr::If(syn::ExprIf { ref mut attrs, .. })
+        | Expr::Index(syn::ExprIndex { ref mut attrs, .. })
+        | Expr::Infer(syn::ExprInfer { ref mut attrs, .. })
+        | Expr::Let(syn::ExprLet { ref mut attrs, .. })
+        | Expr::Lit(syn::ExprLit { ref mut attrs, .. })
+        | Expr::Loop(syn::ExprLoop { ref mut attrs, .. })
+        | Expr::Macro(syn::ExprMacro { ref mut attrs, .. })
+        | Expr::Match(syn::ExprMatch { ref mut attrs, .. })
+        | Expr::MethodCall(syn::ExprMethodCall { ref mut attrs, .. })
+        | Expr::Paren(syn::ExprParen { ref mut attrs, .. })
+        | Expr::Path(syn::ExprPath { ref mut attrs, .. })
+        | Expr::Range(syn::ExprRange { ref mut attrs, .. })
+        | Expr::Reference(syn::ExprReference { ref mut attrs, .. })
+        | Expr::Repeat(syn::ExprRepeat { ref mut attrs, .. })
+        | Expr::Return(syn::ExprReturn { ref mut attrs, .. })
+        | Expr::Struct(syn::ExprStruct { ref mut attrs, .. })
+        | Expr::Try(syn::ExprTry { ref mut attrs, .. })
+        | Expr::TryBlock(syn::ExprTryBlock { ref mut attrs, .. })
+        | Expr::Tuple(syn::ExprTuple { ref mut attrs, .. })
+        | Expr::Unary(syn::ExprUnary { ref mut attrs, .. })
+        | Expr::Unsafe(syn::ExprUnsafe { ref mut attrs, .. })
+        | Expr::While(syn::ExprWhile { ref mut attrs, .. })
+        | Expr::Yield(syn::ExprYield { ref mut attrs, .. }) = &mut expr
+        {
+            if !self.is_active(attrs) {
+                expr = parse_quote!({});
             }
-            _ => {}
         }
 
         fold::fold_expr(self, expr)
@@ -195,53 +181,38 @@ impl Fold for VersionFilter {
         expr.fields = expr
             .fields
             .into_pairs()
-            .filter_map(
-                |mut pair| match self.extract_requirement(&mut pair.value_mut().attrs) {
-                    Some(version) => self.matches(&version).then_some(pair),
-                    None => Some(pair),
-                },
-            )
+            .filter_map(|mut pair| self.is_active(&mut pair.value_mut().attrs).then_some(pair))
             .collect();
 
         fold::fold_expr_struct(self, expr)
     }
 
     fn fold_expr_match(&mut self, mut expr: syn::ExprMatch) -> syn::ExprMatch {
-        expr.arms
-            .retain_mut(|arm| match self.extract_requirement(&mut arm.attrs) {
-                Some(version) => self.matches(&version),
-                None => true,
-            });
+        expr.arms.retain_mut(|arm| self.is_active(&mut arm.attrs));
 
         fold::fold_expr_match(self, expr)
     }
 
     fn fold_item(&mut self, mut item: Item) -> Item {
-        match item {
-            Item::Const(syn::ItemConst { ref mut attrs, .. })
-            | Item::Enum(syn::ItemEnum { ref mut attrs, .. })
-            | Item::ExternCrate(syn::ItemExternCrate { ref mut attrs, .. })
-            | Item::Fn(syn::ItemFn { ref mut attrs, .. })
-            | Item::ForeignMod(syn::ItemForeignMod { ref mut attrs, .. })
-            | Item::Impl(syn::ItemImpl { ref mut attrs, .. })
-            | Item::Macro(syn::ItemMacro { ref mut attrs, .. })
-            | Item::Mod(syn::ItemMod { ref mut attrs, .. })
-            | Item::Static(syn::ItemStatic { ref mut attrs, .. })
-            | Item::Struct(syn::ItemStruct { ref mut attrs, .. })
-            | Item::Trait(syn::ItemTrait { ref mut attrs, .. })
-            | Item::TraitAlias(syn::ItemTraitAlias { ref mut attrs, .. })
-            | Item::Type(syn::ItemType { ref mut attrs, .. })
-            | Item::Union(syn::ItemUnion { ref mut attrs, .. })
-            | Item::Use(syn::ItemUse { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_requirement(attrs) {
-                    if !self.matches(&version) {
-                        item = parse_quote!(
-                            use {};
-                        );
-                    }
-                }
+        if let Item::Const(syn::ItemConst { ref mut attrs, .. })
+        | Item::Enum(syn::ItemEnum { ref mut attrs, .. })
+        | Item::ExternCrate(syn::ItemExternCrate { ref mut attrs, .. })
+        | Item::Fn(syn::ItemFn { ref mut attrs, .. })
+        | Item::ForeignMod(syn::ItemForeignMod { ref mut attrs, .. })
+        | Item::Impl(syn::ItemImpl { ref mut attrs, .. })
+        | Item::Macro(syn::ItemMacro { ref mut attrs, .. })
+        | Item::Mod(syn::ItemMod { ref mut attrs, .. })
+        | Item::Static(syn::ItemStatic { ref mut attrs, .. })
+        | Item::Struct(syn::ItemStruct { ref mut attrs, .. })
+        | Item::Trait(syn::ItemTrait { ref mut attrs, .. })
+        | Item::TraitAlias(syn::ItemTraitAlias { ref mut attrs, .. })
+        | Item::Type(syn::ItemType { ref mut attrs, .. })
+        | Item::Union(syn::ItemUnion { ref mut attrs, .. })
+        | Item::Use(syn::ItemUse { ref mut attrs, .. }) = &mut item
+        {
+            if !self.is_active(attrs) {
+                item = Item::Verbatim(TokenStream2::new());
             }
-            _ => {}
         }
 
         fold::fold_item(self, item)
@@ -251,22 +222,14 @@ impl Fold for VersionFilter {
         item.variants = item
             .variants
             .into_iter()
-            .filter_map(
-                |mut variant| match self.extract_requirement(&mut variant.attrs) {
-                    Some(version) => self.matches(&version).then_some(variant),
-                    None => Some(variant),
-                },
-            )
+            .filter_map(|mut variant| self.is_active(&mut variant.attrs).then_some(variant))
             .collect();
 
         fold::fold_item_enum(self, item)
     }
 }
 
-fn helper(
-    input: TokenStream,
-    annotated_item: TokenStream,
-) -> syn::Result<proc_macro2::TokenStream> {
+fn helper(input: TokenStream, annotated_item: TokenStream) -> syn::Result<TokenStream2> {
     // This parses the module being annotated by the `#[versioned(..)]` attribute.
     let module = syn::parse::<syn::ItemMod>(annotated_item)
         .map_err(|err| Error::new(err.span(), format!("cannot parse module: {err}")))?;
@@ -284,7 +247,7 @@ fn helper(
         .as_ref()
         .ok_or_else(|| Error::new(module.ident.span(), "found module without content"))?;
 
-    let mut tokens = proc_macro2::TokenStream::new();
+    let mut tokens = TokenStream2::new();
 
     for version in versions {
         let mod_vis = &module.vis;
