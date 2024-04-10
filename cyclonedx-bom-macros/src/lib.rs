@@ -9,7 +9,7 @@ use syn::{
     parse_quote,
     punctuated::Punctuated,
     token::Comma,
-    Error, Expr, Item,
+    Error, Expr, Item, Stmt,
 };
 
 #[derive(PartialEq, Eq)]
@@ -117,12 +117,12 @@ impl Fold for VersionFilter {
         fields
     }
 
-    fn fold_stmt(&mut self, mut stmt: syn::Stmt) -> syn::Stmt {
+    fn fold_stmt(&mut self, mut stmt: Stmt) -> Stmt {
         match stmt {
-            syn::Stmt::Local(syn::Local { ref mut attrs, .. })
-            | syn::Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) => {
+            Stmt::Local(syn::Local { ref mut attrs, .. })
+            | Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) => {
                 if !self.is_active(attrs) {
-                    stmt = parse_quote!({};);
+                    stmt = Stmt::Item(Item::Verbatim(TokenStream2::new()));
                 }
             }
             _ => {}
@@ -215,9 +215,7 @@ impl Fold for VersionFilter {
             | Item::Union(syn::ItemUnion { ref mut attrs, .. })
             | Item::Use(syn::ItemUse { ref mut attrs, .. }) => {
                 if !self.is_active(attrs) {
-                    item = parse_quote!(
-                        use {};
-                    );
+                    item = Item::Verbatim(TokenStream2::new());
                 }
             }
             _ => {}
