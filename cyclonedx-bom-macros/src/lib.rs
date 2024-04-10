@@ -80,7 +80,10 @@ impl VersionFilter {
             if path.is_ident("versioned") {
                 match attr.parse_args::<VersionReq>() {
                     Ok(req) => matches = req.matches(&self.version),
-                    Err(err) => self.error = Some(err),
+                    Err(err) => match self.error.as_mut() {
+                        Some(error) => error.combine(err),
+                        None => self.error = Some(err),
+                    },
                 }
 
                 false
