@@ -118,64 +118,60 @@ impl Fold for VersionFilter {
     }
 
     fn fold_stmt(&mut self, mut stmt: Stmt) -> Stmt {
-        match stmt {
-            Stmt::Local(syn::Local { ref mut attrs, .. })
-            | Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) => {
-                if !self.is_active(attrs) {
-                    stmt = Stmt::Item(Item::Verbatim(TokenStream2::new()));
-                }
+        if let Stmt::Local(syn::Local { ref mut attrs, .. })
+        | Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) = &mut stmt
+        {
+            if !self.is_active(attrs) {
+                stmt = Stmt::Item(Item::Verbatim(TokenStream2::new()));
             }
-            _ => {}
         }
 
         fold::fold_stmt(self, stmt)
     }
 
     fn fold_expr(&mut self, mut expr: Expr) -> Expr {
-        match &mut expr {
-            Expr::Array(syn::ExprArray { ref mut attrs, .. })
-            | Expr::Assign(syn::ExprAssign { ref mut attrs, .. })
-            | Expr::Async(syn::ExprAsync { ref mut attrs, .. })
-            | Expr::Await(syn::ExprAwait { ref mut attrs, .. })
-            | Expr::Binary(syn::ExprBinary { ref mut attrs, .. })
-            | Expr::Block(syn::ExprBlock { ref mut attrs, .. })
-            | Expr::Break(syn::ExprBreak { ref mut attrs, .. })
-            | Expr::Call(syn::ExprCall { ref mut attrs, .. })
-            | Expr::Cast(syn::ExprCast { ref mut attrs, .. })
-            | Expr::Closure(syn::ExprClosure { ref mut attrs, .. })
-            | Expr::Const(syn::ExprConst { ref mut attrs, .. })
-            | Expr::Continue(syn::ExprContinue { ref mut attrs, .. })
-            | Expr::Field(syn::ExprField { ref mut attrs, .. })
-            | Expr::ForLoop(syn::ExprForLoop { ref mut attrs, .. })
-            | Expr::Group(syn::ExprGroup { ref mut attrs, .. })
-            | Expr::If(syn::ExprIf { ref mut attrs, .. })
-            | Expr::Index(syn::ExprIndex { ref mut attrs, .. })
-            | Expr::Infer(syn::ExprInfer { ref mut attrs, .. })
-            | Expr::Let(syn::ExprLet { ref mut attrs, .. })
-            | Expr::Lit(syn::ExprLit { ref mut attrs, .. })
-            | Expr::Loop(syn::ExprLoop { ref mut attrs, .. })
-            | Expr::Macro(syn::ExprMacro { ref mut attrs, .. })
-            | Expr::Match(syn::ExprMatch { ref mut attrs, .. })
-            | Expr::MethodCall(syn::ExprMethodCall { ref mut attrs, .. })
-            | Expr::Paren(syn::ExprParen { ref mut attrs, .. })
-            | Expr::Path(syn::ExprPath { ref mut attrs, .. })
-            | Expr::Range(syn::ExprRange { ref mut attrs, .. })
-            | Expr::Reference(syn::ExprReference { ref mut attrs, .. })
-            | Expr::Repeat(syn::ExprRepeat { ref mut attrs, .. })
-            | Expr::Return(syn::ExprReturn { ref mut attrs, .. })
-            | Expr::Struct(syn::ExprStruct { ref mut attrs, .. })
-            | Expr::Try(syn::ExprTry { ref mut attrs, .. })
-            | Expr::TryBlock(syn::ExprTryBlock { ref mut attrs, .. })
-            | Expr::Tuple(syn::ExprTuple { ref mut attrs, .. })
-            | Expr::Unary(syn::ExprUnary { ref mut attrs, .. })
-            | Expr::Unsafe(syn::ExprUnsafe { ref mut attrs, .. })
-            | Expr::While(syn::ExprWhile { ref mut attrs, .. })
-            | Expr::Yield(syn::ExprYield { ref mut attrs, .. }) => {
-                if !self.is_active(attrs) {
-                    expr = parse_quote!({});
-                }
+        if let Expr::Array(syn::ExprArray { ref mut attrs, .. })
+        | Expr::Assign(syn::ExprAssign { ref mut attrs, .. })
+        | Expr::Async(syn::ExprAsync { ref mut attrs, .. })
+        | Expr::Await(syn::ExprAwait { ref mut attrs, .. })
+        | Expr::Binary(syn::ExprBinary { ref mut attrs, .. })
+        | Expr::Block(syn::ExprBlock { ref mut attrs, .. })
+        | Expr::Break(syn::ExprBreak { ref mut attrs, .. })
+        | Expr::Call(syn::ExprCall { ref mut attrs, .. })
+        | Expr::Cast(syn::ExprCast { ref mut attrs, .. })
+        | Expr::Closure(syn::ExprClosure { ref mut attrs, .. })
+        | Expr::Const(syn::ExprConst { ref mut attrs, .. })
+        | Expr::Continue(syn::ExprContinue { ref mut attrs, .. })
+        | Expr::Field(syn::ExprField { ref mut attrs, .. })
+        | Expr::ForLoop(syn::ExprForLoop { ref mut attrs, .. })
+        | Expr::Group(syn::ExprGroup { ref mut attrs, .. })
+        | Expr::If(syn::ExprIf { ref mut attrs, .. })
+        | Expr::Index(syn::ExprIndex { ref mut attrs, .. })
+        | Expr::Infer(syn::ExprInfer { ref mut attrs, .. })
+        | Expr::Let(syn::ExprLet { ref mut attrs, .. })
+        | Expr::Lit(syn::ExprLit { ref mut attrs, .. })
+        | Expr::Loop(syn::ExprLoop { ref mut attrs, .. })
+        | Expr::Macro(syn::ExprMacro { ref mut attrs, .. })
+        | Expr::Match(syn::ExprMatch { ref mut attrs, .. })
+        | Expr::MethodCall(syn::ExprMethodCall { ref mut attrs, .. })
+        | Expr::Paren(syn::ExprParen { ref mut attrs, .. })
+        | Expr::Path(syn::ExprPath { ref mut attrs, .. })
+        | Expr::Range(syn::ExprRange { ref mut attrs, .. })
+        | Expr::Reference(syn::ExprReference { ref mut attrs, .. })
+        | Expr::Repeat(syn::ExprRepeat { ref mut attrs, .. })
+        | Expr::Return(syn::ExprReturn { ref mut attrs, .. })
+        | Expr::Struct(syn::ExprStruct { ref mut attrs, .. })
+        | Expr::Try(syn::ExprTry { ref mut attrs, .. })
+        | Expr::TryBlock(syn::ExprTryBlock { ref mut attrs, .. })
+        | Expr::Tuple(syn::ExprTuple { ref mut attrs, .. })
+        | Expr::Unary(syn::ExprUnary { ref mut attrs, .. })
+        | Expr::Unsafe(syn::ExprUnsafe { ref mut attrs, .. })
+        | Expr::While(syn::ExprWhile { ref mut attrs, .. })
+        | Expr::Yield(syn::ExprYield { ref mut attrs, .. }) = &mut expr
+        {
+            if !self.is_active(attrs) {
+                expr = parse_quote!({});
             }
-            _ => {}
         }
 
         fold::fold_expr(self, expr)
@@ -198,27 +194,25 @@ impl Fold for VersionFilter {
     }
 
     fn fold_item(&mut self, mut item: Item) -> Item {
-        match item {
-            Item::Const(syn::ItemConst { ref mut attrs, .. })
-            | Item::Enum(syn::ItemEnum { ref mut attrs, .. })
-            | Item::ExternCrate(syn::ItemExternCrate { ref mut attrs, .. })
-            | Item::Fn(syn::ItemFn { ref mut attrs, .. })
-            | Item::ForeignMod(syn::ItemForeignMod { ref mut attrs, .. })
-            | Item::Impl(syn::ItemImpl { ref mut attrs, .. })
-            | Item::Macro(syn::ItemMacro { ref mut attrs, .. })
-            | Item::Mod(syn::ItemMod { ref mut attrs, .. })
-            | Item::Static(syn::ItemStatic { ref mut attrs, .. })
-            | Item::Struct(syn::ItemStruct { ref mut attrs, .. })
-            | Item::Trait(syn::ItemTrait { ref mut attrs, .. })
-            | Item::TraitAlias(syn::ItemTraitAlias { ref mut attrs, .. })
-            | Item::Type(syn::ItemType { ref mut attrs, .. })
-            | Item::Union(syn::ItemUnion { ref mut attrs, .. })
-            | Item::Use(syn::ItemUse { ref mut attrs, .. }) => {
-                if !self.is_active(attrs) {
-                    item = Item::Verbatim(TokenStream2::new());
-                }
+        if let Item::Const(syn::ItemConst { ref mut attrs, .. })
+        | Item::Enum(syn::ItemEnum { ref mut attrs, .. })
+        | Item::ExternCrate(syn::ItemExternCrate { ref mut attrs, .. })
+        | Item::Fn(syn::ItemFn { ref mut attrs, .. })
+        | Item::ForeignMod(syn::ItemForeignMod { ref mut attrs, .. })
+        | Item::Impl(syn::ItemImpl { ref mut attrs, .. })
+        | Item::Macro(syn::ItemMacro { ref mut attrs, .. })
+        | Item::Mod(syn::ItemMod { ref mut attrs, .. })
+        | Item::Static(syn::ItemStatic { ref mut attrs, .. })
+        | Item::Struct(syn::ItemStruct { ref mut attrs, .. })
+        | Item::Trait(syn::ItemTrait { ref mut attrs, .. })
+        | Item::TraitAlias(syn::ItemTraitAlias { ref mut attrs, .. })
+        | Item::Type(syn::ItemType { ref mut attrs, .. })
+        | Item::Union(syn::ItemUnion { ref mut attrs, .. })
+        | Item::Use(syn::ItemUse { ref mut attrs, .. }) = &mut item
+        {
+            if !self.is_active(attrs) {
+                item = Item::Verbatim(TokenStream2::new());
             }
-            _ => {}
         }
 
         fold::fold_item(self, item)
