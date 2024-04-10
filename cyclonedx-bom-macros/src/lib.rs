@@ -71,15 +71,15 @@ struct VersionFilter {
 }
 
 impl VersionFilter {
-    fn extract_requirement(&mut self, attrs: &mut Vec<syn::Attribute>) -> Option<VersionReq> {
-        let mut opt_version = None;
+    fn is_active(&mut self, attrs: &mut Vec<syn::Attribute>) -> bool {
+        let mut matches = true;
 
         attrs.retain(|attr| {
             let path = attr.path();
 
             if path.is_ident("versioned") {
                 match attr.parse_args::<VersionReq>() {
-                    Ok(version) => opt_version = Some(version),
+                    Ok(req) => matches = req.matches(&self.version),
                     Err(err) => self.error = Some(err),
                 }
 
@@ -89,11 +89,7 @@ impl VersionFilter {
             }
         });
 
-        opt_version
-    }
-
-    fn matches(&self, requirement: &VersionReq) -> bool {
-        requirement.matches(&self.version)
+        matches
     }
 
     fn filter_fields(
@@ -102,12 +98,7 @@ impl VersionFilter {
     ) -> Punctuated<syn::Field, Comma> {
         fields
             .into_pairs()
-            .filter_map(
-                |mut pair| match self.extract_requirement(&mut pair.value_mut().attrs) {
-                    Some(version) => self.matches(&version).then_some(pair),
-                    None => Some(pair),
-                },
-            )
+            .filter_map(|mut pair| self.is_active(&mut pair.value_mut().attrs).then_some(pair))
             .collect()
     }
 }
@@ -127,10 +118,8 @@ impl Fold for VersionFilter {
         match stmt {
             syn::Stmt::Local(syn::Local { ref mut attrs, .. })
             | syn::Stmt::Macro(syn::StmtMacro { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_requirement(attrs) {
-                    if !self.matches(&version) {
-                        stmt = parse_quote!({};);
-                    }
+                if !self.is_active(attrs) {
+                    stmt = parse_quote!({};);
                 }
             }
             _ => {}
@@ -179,10 +168,8 @@ impl Fold for VersionFilter {
             | Expr::Unsafe(syn::ExprUnsafe { ref mut attrs, .. })
             | Expr::While(syn::ExprWhile { ref mut attrs, .. })
             | Expr::Yield(syn::ExprYield { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_requirement(attrs) {
-                    if !self.matches(&version) {
-                        expr = parse_quote!({});
-                    }
+                if !self.is_active(attrs) {
+                    expr = parse_quote!({});
                 }
             }
             _ => {}
@@ -195,23 +182,14 @@ impl Fold for VersionFilter {
         expr.fields = expr
             .fields
             .into_pairs()
-            .filter_map(
-                |mut pair| match self.extract_requirement(&mut pair.value_mut().attrs) {
-                    Some(version) => self.matches(&version).then_some(pair),
-                    None => Some(pair),
-                },
-            )
+            .filter_map(|mut pair| self.is_active(&mut pair.value_mut().attrs).then_some(pair))
             .collect();
 
         fold::fold_expr_struct(self, expr)
     }
 
     fn fold_expr_match(&mut self, mut expr: syn::ExprMatch) -> syn::ExprMatch {
-        expr.arms
-            .retain_mut(|arm| match self.extract_requirement(&mut arm.attrs) {
-                Some(version) => self.matches(&version),
-                None => true,
-            });
+        expr.arms.retain_mut(|arm| self.is_active(&mut arm.attrs));
 
         fold::fold_expr_match(self, expr)
     }
@@ -233,12 +211,10 @@ impl Fold for VersionFilter {
             | Item::Type(syn::ItemType { ref mut attrs, .. })
             | Item::Union(syn::ItemUnion { ref mut attrs, .. })
             | Item::Use(syn::ItemUse { ref mut attrs, .. }) => {
-                if let Some(version) = self.extract_requirement(attrs) {
-                    if !self.matches(&version) {
-                        item = parse_quote!(
-                            use {};
-                        );
-                    }
+                if !self.is_active(attrs) {
+                    item = parse_quote!(
+                        use {};
+                    );
                 }
             }
             _ => {}
@@ -251,12 +227,7 @@ impl Fold for VersionFilter {
         item.variants = item
             .variants
             .into_iter()
-            .filter_map(
-                |mut variant| match self.extract_requirement(&mut variant.attrs) {
-                    Some(version) => self.matches(&version).then_some(variant),
-                    None => Some(variant),
-                },
-            )
+            .filter_map(|mut variant| self.is_active(&mut variant.attrs).then_some(variant))
             .collect();
 
         fold::fold_item_enum(self, item)
