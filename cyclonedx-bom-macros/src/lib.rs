@@ -2,7 +2,7 @@ use std::error::Error as StdError;
 use std::str::FromStr;
 
 use proc_macro::TokenStream;
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
     fold::{self, Fold},
@@ -263,10 +263,7 @@ impl Fold for VersionFilter {
     }
 }
 
-fn helper(
-    input: TokenStream,
-    annotated_item: TokenStream,
-) -> syn::Result<proc_macro2::TokenStream> {
+fn helper(input: TokenStream, annotated_item: TokenStream) -> syn::Result<TokenStream2> {
     // This parses the module being annotated by the `#[versioned(..)]` attribute.
     let module = syn::parse::<syn::ItemMod>(annotated_item)
         .map_err(|err| Error::new(err.span(), format!("cannot parse module: {err}")))?;
@@ -284,7 +281,7 @@ fn helper(
         .as_ref()
         .ok_or_else(|| Error::new(module.ident.span(), "found module without content"))?;
 
-    let mut tokens = proc_macro2::TokenStream::new();
+    let mut tokens = TokenStream2::new();
 
     for version in versions {
         let mod_vis = &module.vis;
