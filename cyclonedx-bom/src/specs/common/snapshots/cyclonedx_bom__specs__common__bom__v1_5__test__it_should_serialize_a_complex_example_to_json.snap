@@ -1,11 +1,10 @@
 ---
-source: cyclonedx-bom/src/specs/v1_4/bom.rs
-assertion_line: 460
+source: cyclonedx-bom/src/specs/common/bom.rs
 expression: actual
 ---
 {
   "bomFormat": "CycloneDX",
-  "specVersion": "1.4",
+  "specVersion": "1.5",
   "version": 1,
   "serialNumber": "fake-uuid",
   "metadata": {
@@ -205,6 +204,11 @@ expression: actual
       {
         "name": "name",
         "value": "value"
+      }
+    ],
+    "lifecycles": [
+      {
+        "phase": "design"
       }
     ]
   },
@@ -409,7 +413,8 @@ expression: actual
       "signature": {
         "algorithm": "HS512",
         "value": "1234567890"
-      }
+      },
+      "trustZone": "trust zone"
     }
   ],
   "externalReferences": [
@@ -572,5 +577,34 @@ expression: actual
   "signature": {
     "algorithm": "HS512",
     "value": "1234567890"
-  }
+  },
+  "annotations": [
+    {
+      "bomRef": "annotation-1",
+      "subjects": [
+        "subject1"
+      ],
+      "annotator": {
+        "organization": {
+          "name": "name",
+          "url": [
+            "url"
+          ],
+          "contact": [
+            {
+              "name": "name",
+              "email": "email",
+              "phone": "phone"
+            }
+          ]
+        }
+      },
+      "timestamp": "timestamp",
+      "text": "Annotation text",
+      "signature": {
+        "algorithm": "HS512",
+        "value": "1234567890"
+      }
+    }
+  ]
 }

@@ -19,6 +19,7 @@
 pub(crate) mod advisory;
 pub(crate) mod attached_text;
 pub(crate) mod bom;
+pub(crate) mod bom_reference;
 pub(crate) mod code;
 pub(crate) mod component;
 pub(crate) mod composition;
