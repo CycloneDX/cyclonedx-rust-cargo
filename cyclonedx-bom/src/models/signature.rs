@@ -78,7 +78,7 @@ impl Signature {
 }
 
 /// Supported signature algorithms.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::Display)]
 pub enum Algorithm {
     RS256,
     RS384,
@@ -117,27 +117,5 @@ impl FromStr for Algorithm {
             "HS512" => Ok(Algorithm::HS512),
             _ => Err(format!("Invalid signature algorithm '{}' found", s)),
         }
-    }
-}
-
-impl ToString for Algorithm {
-    fn to_string(&self) -> String {
-        let s = match self {
-            Algorithm::RS256 => "RS256",
-            Algorithm::RS384 => "RS384",
-            Algorithm::RS512 => "RS512",
-            Algorithm::PS256 => "PS256",
-            Algorithm::PS384 => "PS384",
-            Algorithm::PS512 => "PS512",
-            Algorithm::ES256 => "ES256",
-            Algorithm::ES384 => "ES384",
-            Algorithm::ES512 => "ES512",
-            Algorithm::Ed25519 => "Ed25519",
-            Algorithm::Ed448 => "Ed448",
-            Algorithm::HS256 => "HS256",
-            Algorithm::HS384 => "HS384",
-            Algorithm::HS512 => "HS512",
-        };
-        s.to_string()
     }
 }

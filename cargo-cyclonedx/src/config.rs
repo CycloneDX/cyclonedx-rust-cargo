@@ -179,9 +179,9 @@ impl FilenameOverride {
     }
 }
 
-impl ToString for FilenameOverride {
-    fn to_string(&self) -> String {
-        self.0.clone()
+impl std::fmt::Display for FilenameOverride {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 

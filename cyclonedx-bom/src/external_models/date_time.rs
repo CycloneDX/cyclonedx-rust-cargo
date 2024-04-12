@@ -71,9 +71,9 @@ impl TryFrom<String> for DateTime {
     }
 }
 
-impl ToString for DateTime {
-    fn to_string(&self) -> String {
-        self.0.clone()
+impl std::fmt::Display for DateTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 

@@ -181,7 +181,8 @@ pub fn validate_classification(
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
 #[repr(u16)]
 pub enum Classification {
     Application = 1,
@@ -201,28 +202,8 @@ pub enum Classification {
     /// Added in 1.5
     Data = 12,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownClassification(String),
-}
-
-impl ToString for Classification {
-    fn to_string(&self) -> String {
-        match self {
-            Classification::Application => "application",
-            Classification::Framework => "framework",
-            Classification::Library => "library",
-            Classification::Container => "container",
-            Classification::OperatingSystem => "operating-system",
-            Classification::Device => "device",
-            Classification::Firmware => "firmware",
-            Classification::File => "file",
-            Classification::Platform => "platform",
-            Classification::DeviceDriver => "device-driver",
-            Classification::MachineLearningModel => "machine-learning-model",
-            Classification::Data => "data",
-            Classification::UnknownClassification(uc) => uc,
-        }
-        .to_string()
-    }
 }
 
 impl Classification {
@@ -252,25 +233,15 @@ pub fn validate_scope(scope: &Scope) -> Result<(), ValidationError> {
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Scope {
     Required,
     Optional,
     Excluded,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownScope(String),
-}
-
-impl ToString for Scope {
-    fn to_string(&self) -> String {
-        match self {
-            Scope::Required => "required",
-            Scope::Optional => "optional",
-            Scope::Excluded => "excluded",
-            Scope::UnknownScope(us) => us,
-        }
-        .to_string()
-    }
 }
 
 impl Scope {

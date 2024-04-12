@@ -99,7 +99,8 @@ pub fn validate_external_reference_type(
 }
 
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_externalReferenceType).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ExternalReferenceType {
     Vcs,
     IssueTracker,
@@ -118,6 +119,7 @@ pub enum ExternalReferenceType {
     BuildSystem,
     Other,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownExternalReferenceType(String),
     ReleaseNotes,
     SecurityContact,
@@ -142,54 +144,6 @@ pub enum ExternalReferenceType {
     CondifiedInfrastructure,
     QualityMetrics,
     Poam,
-}
-
-impl ToString for ExternalReferenceType {
-    fn to_string(&self) -> String {
-        match self {
-            ExternalReferenceType::Vcs => "vcs",
-            ExternalReferenceType::IssueTracker => "issue-tracker",
-            ExternalReferenceType::Website => "website",
-            ExternalReferenceType::Advisories => "advisories",
-            ExternalReferenceType::Bom => "bom",
-            ExternalReferenceType::MailingList => "mailing-list",
-            ExternalReferenceType::Social => "social",
-            ExternalReferenceType::Chat => "chat",
-            ExternalReferenceType::Documentation => "documentation",
-            ExternalReferenceType::Support => "support",
-            ExternalReferenceType::Distribution => "distribution",
-            ExternalReferenceType::DistributionIntake => "distribution-intake",
-            ExternalReferenceType::License => "license",
-            ExternalReferenceType::BuildMeta => "build-meta",
-            ExternalReferenceType::BuildSystem => "build-system",
-            ExternalReferenceType::ReleaseNotes => "release-notes",
-            ExternalReferenceType::SecurityContact => "security-contact",
-            ExternalReferenceType::ModelCard => "model-card",
-            ExternalReferenceType::Log => "log",
-            ExternalReferenceType::Configuration => "configuration",
-            ExternalReferenceType::Evidence => "evidence",
-            ExternalReferenceType::Formulation => "formulation",
-            ExternalReferenceType::Attestation => "attestation",
-            ExternalReferenceType::ThreatModel => "threat-model",
-            ExternalReferenceType::AdversaryModel => "adversary-model",
-            ExternalReferenceType::RiskAssessment => "risk-assessment",
-            ExternalReferenceType::VulnerabilityAssertion => "vulnerability-assertion",
-            ExternalReferenceType::ExploitabilityStatement => "exploitability-statement",
-            ExternalReferenceType::PentestReport => "pentest-report",
-            ExternalReferenceType::StaticAnalysisReport => "static-analysis-report",
-            ExternalReferenceType::DynamicAnalysisReport => "dynamic-analysis-report",
-            ExternalReferenceType::RuntimeAnalysisReport => "runtime-analysis-report",
-            ExternalReferenceType::ComponentAnalysisReport => "component-analysis-report",
-            ExternalReferenceType::MaturityReport => "maturity-report",
-            ExternalReferenceType::CertificationReport => "certification-report",
-            ExternalReferenceType::CondifiedInfrastructure => "codified-infrastructure",
-            ExternalReferenceType::QualityMetrics => "quality-metrics",
-            ExternalReferenceType::Poam => "poam",
-            ExternalReferenceType::Other => "other",
-            ExternalReferenceType::UnknownExternalReferenceType(un) => un,
-        }
-        .to_string()
-    }
 }
 
 impl ExternalReferenceType {

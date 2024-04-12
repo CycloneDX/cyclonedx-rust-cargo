@@ -43,9 +43,9 @@ impl Purl {
     }
 }
 
-impl ToString for Purl {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+impl std::fmt::Display for Purl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 
@@ -79,9 +79,9 @@ impl TryFrom<String> for Uri {
     }
 }
 
-impl ToString for Uri {
-    fn to_string(&self) -> String {
-        self.0.clone()
+impl std::fmt::Display for Uri {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 

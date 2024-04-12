@@ -135,25 +135,15 @@ pub fn validate_issue_classification(
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "snake_case")]
 pub enum IssueClassification {
     Defect,
     Enhancement,
     Security,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownIssueClassification(String),
-}
-
-impl ToString for IssueClassification {
-    fn to_string(&self) -> String {
-        match self {
-            IssueClassification::Defect => "defect",
-            IssueClassification::Enhancement => "enhancement",
-            IssueClassification::Security => "security",
-            IssueClassification::UnknownIssueClassification(uic) => uic,
-        }
-        .to_string()
-    }
 }
 
 impl IssueClassification {
@@ -213,27 +203,16 @@ pub fn validate_patch_classification(
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
 pub enum PatchClassification {
     Unofficial,
     Monkey,
     Backport,
     CherryPick,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownPatchClassification(String),
-}
-
-impl ToString for PatchClassification {
-    fn to_string(&self) -> String {
-        match self {
-            PatchClassification::Unofficial => "unofficial",
-            PatchClassification::Monkey => "monkey",
-            PatchClassification::Backport => "backport",
-            PatchClassification::CherryPick => "cherry-pick",
-            PatchClassification::UnknownPatchClassification(upc) => upc,
-        }
-        .to_string()
-    }
 }
 
 impl PatchClassification {

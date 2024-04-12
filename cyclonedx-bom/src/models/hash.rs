@@ -63,53 +63,37 @@ pub fn validate_hash_algorithm(algorithm: &HashAlgorithm) -> Result<(), Validati
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashAlg)
 #[allow(non_camel_case_types)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
 pub enum HashAlgorithm {
     MD5,
+    #[strum(serialize = "SHA-1")]
     SHA1,
-    SHA256,
-    SHA384,
-    SHA512,
+    SHA_256,
+    SHA_384,
+    SHA_512,
     SHA3_256,
     SHA3_384,
     SHA3_512,
+    #[strum(serialize = "BLAKE2b-256")]
     BLAKE2b_256,
+    #[strum(serialize = "BLAKE2b-384")]
     BLAKE2b_384,
+    #[strum(serialize = "BLAKE2b-512")]
     BLAKE2b_512,
     BLAKE3,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownHashAlgorithm(String),
 }
-
-impl ToString for HashAlgorithm {
-    fn to_string(&self) -> String {
-        match self {
-            HashAlgorithm::MD5 => "MD5",
-            HashAlgorithm::SHA1 => "SHA-1",
-            HashAlgorithm::SHA256 => "SHA-256",
-            HashAlgorithm::SHA384 => "SHA-384",
-            HashAlgorithm::SHA512 => "SHA-512",
-            HashAlgorithm::SHA3_256 => "SHA3-256",
-            HashAlgorithm::SHA3_384 => "SHA3-384",
-            HashAlgorithm::SHA3_512 => "SHA3-512",
-            HashAlgorithm::BLAKE2b_256 => "BLAKE2b-256",
-            HashAlgorithm::BLAKE2b_384 => "BLAKE2b-384",
-            HashAlgorithm::BLAKE2b_512 => "BLAKE2b-512",
-            HashAlgorithm::BLAKE3 => "BLAKE3",
-            HashAlgorithm::UnknownHashAlgorithm(un) => un,
-        }
-        .to_string()
-    }
-}
-
 impl HashAlgorithm {
     pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "MD5" => Self::MD5,
             "SHA-1" => Self::SHA1,
-            "SHA-256" => Self::SHA256,
-            "SHA-384" => Self::SHA384,
-            "SHA-512" => Self::SHA512,
+            "SHA-256" => Self::SHA_256,
+            "SHA-384" => Self::SHA_384,
+            "SHA-512" => Self::SHA_512,
             "SHA3-256" => Self::SHA3_256,
             "SHA3-384" => Self::SHA3_384,
             "SHA3-512" => Self::SHA3_512,

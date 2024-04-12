@@ -74,9 +74,9 @@ impl TryFrom<String> for SpdxIdentifier {
     }
 }
 
-impl ToString for SpdxIdentifier {
-    fn to_string(&self) -> String {
-        self.0.clone()
+impl std::fmt::Display for SpdxIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 
@@ -164,9 +164,9 @@ impl TryFrom<String> for SpdxExpression {
     }
 }
 
-impl ToString for SpdxExpression {
-    fn to_string(&self) -> String {
-        self.0.clone()
+impl std::fmt::Display for SpdxExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 
