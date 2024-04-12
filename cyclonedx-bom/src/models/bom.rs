@@ -42,14 +42,17 @@ use crate::validation::{Validate, ValidationContext, ValidationError, Validation
 use crate::xml::{FromXmlDocument, ToXml};
 
 /// Represents the spec version of a BOM.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy, PartialOrd)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy, PartialOrd, strum::Display)]
 #[repr(u16)]
 #[non_exhaustive]
 pub enum SpecVersion {
+    #[strum(to_string = "1.3")]
     #[serde(rename = "1.3")]
     V1_3 = 1,
+    #[strum(to_string = "1.4")]
     #[serde(rename = "1.4")]
     V1_4 = 2,
+    #[strum(to_string = "1.5")]
     #[serde(rename = "1.5")]
     V1_5 = 3,
 }
@@ -70,17 +73,6 @@ impl FromStr for SpecVersion {
             "1.5" => Ok(SpecVersion::V1_5),
             s => Err(BomError::UnsupportedSpecVersion(s.to_string())),
         }
-    }
-}
-
-impl ToString for SpecVersion {
-    fn to_string(&self) -> String {
-        let s = match self {
-            SpecVersion::V1_3 => "1.3",
-            SpecVersion::V1_4 => "1.4",
-            SpecVersion::V1_5 => "1.5",
-        };
-        s.to_string()
     }
 }
 

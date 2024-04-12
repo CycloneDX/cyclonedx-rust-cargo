@@ -81,20 +81,13 @@ pub(crate) fn validate_encoding(encoding: &Encoding) -> Result<(), ValidationErr
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
 pub(crate) enum Encoding {
     Base64,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownEncoding(String),
-}
-
-impl ToString for Encoding {
-    fn to_string(&self) -> String {
-        match self {
-            Encoding::Base64 => "base64".to_string(),
-            Encoding::UnknownEncoding(ue) => ue.clone(),
-        }
-    }
 }
 
 impl Encoding {

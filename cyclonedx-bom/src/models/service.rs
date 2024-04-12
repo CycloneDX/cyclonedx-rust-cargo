@@ -160,27 +160,16 @@ impl Validate for DataClassification {
 /// Represents the flow direction of the data
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_dataFlowType)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
 pub enum DataFlowType {
     Inbound,
     Outbound,
     BiDirectional,
     Unknown,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownDataFlow(String),
-}
-
-impl ToString for DataFlowType {
-    fn to_string(&self) -> String {
-        match self {
-            DataFlowType::Inbound => "inbound",
-            DataFlowType::Outbound => "outbound",
-            DataFlowType::BiDirectional => "bi-directional",
-            DataFlowType::Unknown => "unknown",
-            DataFlowType::UnknownDataFlow(df) => df,
-        }
-        .to_string()
-    }
 }
 
 impl DataFlowType {

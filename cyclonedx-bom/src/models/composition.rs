@@ -60,7 +60,8 @@ pub fn validate_aggregate_type(aggregate_type: &AggregateType) -> Result<(), Val
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "snake_case")]
 pub enum AggregateType {
     Complete,
     Incomplete,
@@ -69,22 +70,8 @@ pub enum AggregateType {
     Unknown,
     NotSpecified,
     #[doc(hidden)]
+    #[strum(default)]
     UnknownAggregateType(String),
-}
-
-impl ToString for AggregateType {
-    fn to_string(&self) -> String {
-        match self {
-            AggregateType::Complete => "complete",
-            AggregateType::Incomplete => "incomplete",
-            AggregateType::IncompleteFirstPartyOnly => "incomplete_first_party_only",
-            AggregateType::IncompleteThirdPartyOnly => "incomplete_third_party_only",
-            AggregateType::Unknown => "unknown",
-            AggregateType::NotSpecified => "not_specified",
-            AggregateType::UnknownAggregateType(uat) => uat,
-        }
-        .to_string()
-    }
 }
 
 impl AggregateType {

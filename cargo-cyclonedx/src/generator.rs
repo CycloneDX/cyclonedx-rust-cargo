@@ -894,7 +894,7 @@ fn to_bom_hash(hash: &Checksum) -> cyclonedx_bom::models::hash::Hash {
     match hash {
         Checksum::Sha256(_) => {
             Hash {
-                alg: HashAlgorithm::SHA256,
+                alg: HashAlgorithm::SHA_256,
                 // {:x} means "format as lowercase hex"
                 content: HashValue(format!("{hash:x}")),
             }
