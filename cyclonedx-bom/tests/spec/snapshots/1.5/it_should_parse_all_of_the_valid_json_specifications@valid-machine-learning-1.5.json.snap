@@ -1,0 +1,75 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_5.rs
+assertion_line: 52
+expression: bom_output
+input_file: cyclonedx-bom/tests/spec/1.5/valid-machine-learning-1.5.json
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "components": [
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "component-a",
+      "group": "CompVis",
+      "name": "stable-diffusion",
+      "version": "1.4",
+      "description": "Stable Diffusion is a latent text-to-image diffusion model capable of generating photo-realistic images given any text input. For more information about how Stable Diffusion functions, please have a look at 🤗's Stable Diffusion with 🧨Diffusers blog.",
+      "modelCard": {
+        "modelParameters": {
+          "approach": {
+            "type": "supervised"
+          },
+          "task": "task goes here",
+          "architectureFamily": "the architecture family goes here",
+          "modelArchitecture": "The architecture of the model.",
+          "datasets": [
+            {
+              "type": "dataset",
+              "name": "Training Data",
+              "contents": {
+                "url": "https://example.com/path/to/dataset"
+              },
+              "classification": "public"
+            }
+          ],
+          "inputs": [
+            {
+              "format": "string"
+            }
+          ],
+          "outputs": [
+            {
+              "format": "byte[]"
+            }
+          ]
+        },
+        "quantitativeAnalysis": {
+          "performanceMetrics": [
+            {
+              "type": "The type of performance metric",
+              "value": "The value of the performance metric",
+              "slice": "The name of the slice this metric was computed on. By default, assume this metric is not sliced"
+            }
+          ],
+          "graphics": {
+            "description": "Performance images",
+            "collection": [
+              {
+                "name": "FID vs CLIP Scores on 512x512 samples for different v1-versions",
+                "image": {
+                  "content": "1234",
+                  "contentType": "image/jpeg",
+                  "encoding": "base64"
+                }
+              }
+            ]
+          }
+        },
+        "considerations": {}
+      }
+    }
+  ]
+}

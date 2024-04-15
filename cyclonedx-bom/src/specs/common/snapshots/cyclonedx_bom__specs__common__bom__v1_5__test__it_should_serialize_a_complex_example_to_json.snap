@@ -1,5 +1,6 @@
 ---
-source: cyclonedx-bom/src/specs/common/bom.rs
+source: cyclonedx-bom/src/specs/v1_5/bom.rs
+assertion_line: 484
 expression: actual
 ---
 {
@@ -167,6 +168,74 @@ expression: actual
       "signature": {
         "algorithm": "HS512",
         "value": "1234567890"
+      },
+      "modelCard": {
+        "bomRef": "modelcard-1",
+        "modelParameters": {
+          "approach": {
+            "type": "supervised"
+          },
+          "task": "Task",
+          "architectureFamily": "Architecture",
+          "modelArchitecture": "Model",
+          "datasets": [
+            {
+              "bomRef": "dataset-1",
+              "type": "dataset",
+              "name": "Training Data",
+              "contents": {
+                "url": "https://example.com/path/to/dataset"
+              },
+              "classification": "public",
+              "governance": {
+                "owners": [
+                  {
+                    "Contact": {
+                      "bomRef": "contact-1",
+                      "name": "Contact",
+                      "email": "contact@example.com"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "inputs": [
+            {
+              "format": "string"
+            }
+          ],
+          "outputs": [
+            {
+              "format": "image"
+            }
+          ]
+        },
+        "quantitativeAnalysis": {
+          "performanceMetrics": [
+            {
+              "type": "metric-1",
+              "value": "metric value",
+              "confidence_interval": {
+                "lowerBound": "low",
+                "upperBound": "high"
+              }
+            }
+          ],
+          "graphics": {
+            "description": "Graphic Desc",
+            "collection": [
+              {
+                "name": "Graphic A",
+                "image": {
+                  "content": "1234",
+                  "contentType": null,
+                  "encoding": null
+                }
+              }
+            ]
+          }
+        }
       }
     },
     "manufacture": {
@@ -351,6 +420,74 @@ expression: actual
       "signature": {
         "algorithm": "HS512",
         "value": "1234567890"
+      },
+      "modelCard": {
+        "bomRef": "modelcard-1",
+        "modelParameters": {
+          "approach": {
+            "type": "supervised"
+          },
+          "task": "Task",
+          "architectureFamily": "Architecture",
+          "modelArchitecture": "Model",
+          "datasets": [
+            {
+              "bomRef": "dataset-1",
+              "type": "dataset",
+              "name": "Training Data",
+              "contents": {
+                "url": "https://example.com/path/to/dataset"
+              },
+              "classification": "public",
+              "governance": {
+                "owners": [
+                  {
+                    "Contact": {
+                      "bomRef": "contact-1",
+                      "name": "Contact",
+                      "email": "contact@example.com"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "inputs": [
+            {
+              "format": "string"
+            }
+          ],
+          "outputs": [
+            {
+              "format": "image"
+            }
+          ]
+        },
+        "quantitativeAnalysis": {
+          "performanceMetrics": [
+            {
+              "type": "metric-1",
+              "value": "metric value",
+              "confidence_interval": {
+                "lowerBound": "low",
+                "upperBound": "high"
+              }
+            }
+          ],
+          "graphics": {
+            "description": "Graphic Desc",
+            "collection": [
+              {
+                "name": "Graphic A",
+                "image": {
+                  "content": "1234",
+                  "contentType": null,
+                  "encoding": null
+                }
+              }
+            ]
+          }
+        }
       }
     }
   ],

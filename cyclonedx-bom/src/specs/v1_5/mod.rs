@@ -18,6 +18,7 @@
 
 pub(crate) mod annotation;
 pub(crate) mod lifecycles;
+pub(crate) mod modelcard;
 
 pub(crate) use crate::specs::common::bom::v1_5 as bom;
 pub(crate) use crate::specs::common::component::v1_5 as component;

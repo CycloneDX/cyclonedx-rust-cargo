@@ -324,6 +324,8 @@ pub(crate) mod base {
     #[cfg(test)]
     pub(crate) mod test {
         use super::*;
+        use pretty_assertions::assert_eq;
+
         #[versioned("1.3")]
         use crate::specs::v1_3::{
             component::test::{corresponding_component, example_component},
@@ -807,6 +809,67 @@ pub(crate) mod base {
       <algorithm>HS512</algorithm>
       <value>1234567890</value>
     </signature>
+    <modelCard bom-ref="modelcard-1">
+      <modelParameters>
+        <approach>
+          <type>supervised</type>
+        </approach>
+        <task>Task</task>
+        <architectureFamily>Architecture</architectureFamily>
+        <modelArchitecture>Model</modelArchitecture>
+        <datasets>
+          <dataset bom-ref="dataset-1">
+            <type>dataset</type>
+            <name>Training Data</name>
+            <contents>
+              <url>https://example.com/path/to/dataset</url>
+            </contents>
+            <classification>public</classification>
+            <governance>
+              <owners>
+                <owner>
+                  <contact bom-ref="contact-1">
+                    <name>Contact</name>
+                    <email>contact@example.com</email>
+                  </contact>
+                </owner>
+              </owners>
+            </governance>
+          </dataset>
+        </datasets>
+        <inputs>
+          <input>
+            <format>string</format>
+          </input>
+        </inputs>
+        <outputs>
+          <output>
+            <format>image</format>
+          </output>
+        </outputs>
+      </modelParameters>
+      <quantitativeAnalysis>
+        <performanceMetrics>
+          <performanceMetric>
+            <type>metric-1</type>
+            <value>metric value</value>
+            <confidenceInterval>
+              <lowerBound>low</lowerBound>
+              <upperBound>high</upperBound>
+            </confidenceInterval>
+          </performanceMetric>
+        </performanceMetrics>
+        <graphics>
+          <description>Graphic Desc</description>
+          <collection>
+            <graphic>
+              <name>Graphic A</name>
+              <image>1234</image>
+            </graphic>
+          </collection>
+        </graphics>
+      </quantitativeAnalysis>
+    </modelCard>
   </component>
   <manufacture>
     <name>name</name>

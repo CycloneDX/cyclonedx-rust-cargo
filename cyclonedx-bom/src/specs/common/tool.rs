@@ -133,8 +133,6 @@ pub(crate) mod base {
         where
             Self: Sized,
         {
-            println!("FromXML for Tools: {:?}", element_name.local_name);
-
             let mut tools: Option<Vec<Tool>> = None;
 
             #[versioned("1.5")]
@@ -508,6 +506,7 @@ pub(crate) mod base {
                 components: None,
                 evidence: None,
                 signature: None,
+                model_card: None,
             };
             let expected = Tools::Object {
                 services: Services(vec![service]),
