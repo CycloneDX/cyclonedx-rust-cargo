@@ -838,6 +838,13 @@ pub(crate) mod base {
           </output>
         </outputs>
       </modelParameters>
+      <quantitativeAnalysis>
+        <performanceMetrics>
+          <performanceMetric>
+            <type>metric-1</type>
+          </performanceMetric>
+        </performanceMetrics>
+      </quantitativeAnalysis>
     </modelCard>
   </component>
   <manufacture>

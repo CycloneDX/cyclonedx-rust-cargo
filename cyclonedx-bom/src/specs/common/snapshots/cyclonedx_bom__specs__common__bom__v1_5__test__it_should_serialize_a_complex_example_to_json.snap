@@ -199,6 +199,13 @@ expression: actual
               "format": "image"
             }
           ]
+        },
+        "quantitativeAnalysis": {
+          "performanceMetrics": [
+            {
+              "metric_type": "metric-1"
+            }
+          ]
         }
       }
     },
@@ -413,6 +420,13 @@ expression: actual
           "outputs": [
             {
               "format": "image"
+            }
+          ]
+        },
+        "quantitativeAnalysis": {
+          "performanceMetrics": [
+            {
+              "metric_type": "metric-1"
             }
           ]
         }

@@ -328,7 +328,7 @@ pub(crate) mod base {
             write_simple_tag(writer, VERSION_TAG, &self.version)?;
             #[versioned("1.4", "1.5")]
             if let Some(version) = &self.version {
-                write_simple_tag(writer, VERSION_TAG, &version)?;
+                write_simple_tag(writer, VERSION_TAG, version)?;
             }
 
             if let Some(description) = &self.description {
@@ -1830,6 +1830,13 @@ pub(crate) mod base {
           </output>
         </outputs>
       </modelParameters>
+      <quantitativeAnalysis>
+        <performanceMetrics>
+          <performanceMetric>
+            <type>metric-1</type>
+          </performanceMetric>
+        </performanceMetrics>
+      </quantitativeAnalysis>
     </modelCard>
   </component>
 </components>

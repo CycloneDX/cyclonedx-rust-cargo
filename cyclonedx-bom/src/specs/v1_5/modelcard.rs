@@ -99,6 +99,10 @@ impl ToXml for ModelCard {
             model_parameters.write_xml_element(writer)?;
         }
 
+        if let Some(quantitative_analysis) = &self.quantitative_analysis {
+            quantitative_analysis.write_xml_element(writer)?;
+        }
+
         write_close_tag(writer, MODEL_CARD)?;
 
         Ok(())
@@ -116,6 +120,7 @@ impl FromXml for ModelCard {
     {
         let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
         let mut model_parameters: Option<ModelParameters> = None;
+        let mut quantitative_analysis: Option<QuantitativeAnalysis> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -134,6 +139,16 @@ impl FromXml for ModelCard {
                     )?)
                 }
 
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == QUANTITATIVE_ANALYSIS_TAG => {
+                    quantitative_analysis = Some(QuantitativeAnalysis::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -144,7 +159,7 @@ impl FromXml for ModelCard {
         Ok(Self {
             bom_ref,
             model_parameters,
-            quantitative_analysis: None,
+            quantitative_analysis,
             considerations: None,
             properties: None,
         })
@@ -820,17 +835,230 @@ impl FromXml for Attachment {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct QuantitativeAnalysis {}
+pub(crate) struct QuantitativeAnalysis {
+    pub(crate) performance_metrics: Option<PerformanceMetrics>,
+}
 
 impl From<models::modelcard::QuantitativeAnalysis> for QuantitativeAnalysis {
-    fn from(_other: models::modelcard::QuantitativeAnalysis) -> Self {
-        Self {}
+    fn from(other: models::modelcard::QuantitativeAnalysis) -> Self {
+        Self {
+            performance_metrics: convert_optional(other.performance_metrics),
+        }
     }
 }
 
 impl From<QuantitativeAnalysis> for models::modelcard::QuantitativeAnalysis {
-    fn from(_other: QuantitativeAnalysis) -> Self {
-        Self {}
+    fn from(other: QuantitativeAnalysis) -> Self {
+        Self {
+            performance_metrics: convert_optional(other.performance_metrics),
+        }
+    }
+}
+
+const QUANTITATIVE_ANALYSIS_TAG: &str = "quantitativeAnalysis";
+const PERFORMANCE_METRICS_TAG: &str = "performanceMetrics";
+const PERFORMANCE_METRIC_TAG: &str = "performanceMetric";
+
+impl ToXml for QuantitativeAnalysis {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, QUANTITATIVE_ANALYSIS_TAG)?;
+
+        if let Some(performance_metrics) = &self.performance_metrics {
+            performance_metrics.write_xml_element(writer)?;
+        }
+
+        write_close_tag(writer, QUANTITATIVE_ANALYSIS_TAG)?;
+
+        Ok(())
+    }
+}
+
+impl FromXml for QuantitativeAnalysis {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut performance_metrics: Option<PerformanceMetrics> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == PERFORMANCE_METRICS_TAG => {
+                    performance_metrics = Some(PerformanceMetrics::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                _ => (),
+            }
+        }
+
+        Ok(Self {
+            performance_metrics,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PerformanceMetrics(pub(crate) Vec<PerformanceMetric>);
+
+impl From<PerformanceMetrics> for models::modelcard::PerformanceMetrics {
+    fn from(other: PerformanceMetrics) -> Self {
+        Self(convert_vec(other.0))
+    }
+}
+
+impl From<models::modelcard::PerformanceMetrics> for PerformanceMetrics {
+    fn from(other: models::modelcard::PerformanceMetrics) -> Self {
+        Self(convert_vec(other.0))
+    }
+}
+
+impl ToXml for PerformanceMetrics {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, PERFORMANCE_METRICS_TAG)?;
+
+        for metric in self.0.iter() {
+            metric.write_xml_element(writer)?;
+        }
+
+        write_close_tag(writer, PERFORMANCE_METRICS_TAG)?;
+
+        Ok(())
+    }
+}
+
+impl FromXml for PerformanceMetrics {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut metrics = Vec::new();
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == PERFORMANCE_METRIC_TAG => {
+                    metrics.push(PerformanceMetric::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+
+                _ => ()
+            }
+        }
+
+        Ok(Self(metrics))
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub(crate) struct PerformanceMetric {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) metric_type: Option<String>,
+}
+
+impl From<PerformanceMetric> for models::modelcard::PerformanceMetric {
+    fn from(other: PerformanceMetric) -> Self {
+        Self {
+            metric_type: convert_optional(other.metric_type),
+        }
+    }
+}
+
+impl From<models::modelcard::PerformanceMetric> for PerformanceMetric {
+    fn from(other: models::modelcard::PerformanceMetric) -> Self {
+        Self {
+            metric_type: convert_optional(other.metric_type),
+        }
+    }
+}
+
+impl ToXml for PerformanceMetric {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, PERFORMANCE_METRIC_TAG)?;
+
+        if let Some(metric_type) = &self.metric_type {
+            write_simple_tag(writer, TYPE_TAG, metric_type)?;
+        }
+
+        write_close_tag(writer, PERFORMANCE_METRIC_TAG)?;
+
+        Ok(())
+    }
+}
+
+impl FromXml for PerformanceMetric {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut metric_type: Option<String> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_name.local_name))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == TYPE_TAG => {
+                    metric_type = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                _ => (),
+            }
+        }
+
+        Ok(Self { metric_type })
     }
 }
 
@@ -1398,6 +1626,7 @@ pub(crate) mod test {
                 Attachment, Collection, ComponentData, DataContents, DataGovernance,
                 DataGovernanceResponsibleParty, Dataset, Datasets, Graphic, Graphics, Inputs,
                 MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
+                PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
             },
         },
         xml::test::{read_element_from_string, write_element_to_string},
@@ -1431,7 +1660,11 @@ pub(crate) mod test {
                 inputs: Some(Inputs(vec![MLParameter::new("string")])),
                 outputs: Some(Outputs(vec![MLParameter::new("image")])),
             }),
-            quantitative_analysis: None,
+            quantitative_analysis: Some(super::QuantitativeAnalysis {
+                performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
+                    metric_type: Some("metric-1".to_string()),
+                }])),
+            }),
             considerations: None,
             properties: None,
         }
@@ -1471,7 +1704,13 @@ pub(crate) mod test {
                     models::modelcard::MLParameter::new("image"),
                 ])),
             }),
-            quantitative_analysis: None,
+            quantitative_analysis: Some(models::modelcard::QuantitativeAnalysis {
+                performance_metrics: Some(models::modelcard::PerformanceMetrics(vec![
+                    models::modelcard::PerformanceMetric {
+                        metric_type: Some("metric-1".to_string()),
+                    },
+                ])),
+            }),
             considerations: None,
             properties: None,
         }
@@ -1481,6 +1720,41 @@ pub(crate) mod test {
     fn it_should_write_xml_model_card() {
         let xml_output = write_element_to_string(example_modelcard());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_quantitative_analysis() {
+        let input = r#"
+<quantitativeAnalysis>
+  <performanceMetrics>
+    <performanceMetric>
+      <type>The type of performance metric</type>
+      <value>The value of the performance metric</value>
+      <slice>The name of the slice this metric was computed on. By default, assume this metric is not sliced</slice>
+      <confidenceInterval>
+        <lowerBound>The lower bound of the confidence interval</lowerBound>
+        <upperBound>The upper bound of the confidence interval</upperBound>
+      </confidenceInterval>
+    </performanceMetric>
+  </performanceMetrics>
+  <graphics>
+    <description>Performance images</description>
+    <collection>
+      <graphic>
+        <name>FID vs CLIP Scores on 512x512 samples for different v1-versions</name>
+        <image encoding="base64" content-type="image/jpeg">1234</image>
+      </graphic>
+    </collection>
+  </graphics>
+</quantitativeAnalysis>
+"#;
+        let actual: QuantitativeAnalysis = read_element_from_string(input);
+        let expected = QuantitativeAnalysis {
+            performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
+                metric_type: Some("The type of performance metric".to_string()),
+            }])),
+        };
+        assert_eq!(expected, actual);
     }
 
     #[test]

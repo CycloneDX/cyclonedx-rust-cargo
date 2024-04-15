@@ -267,9 +267,18 @@ pub enum DataGovernanceResponsibleParty {
     Contact(OrganizationalContact),
 }
 
-/// TODO: implement struct
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct QuantitativeAnalysis {}
+pub struct QuantitativeAnalysis {
+    pub performance_metrics: Option<PerformanceMetrics>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PerformanceMetrics(pub Vec<PerformanceMetric>);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PerformanceMetric {
+    pub metric_type: Option<String>,
+}
 
 /// TODO: implement struct
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -284,7 +293,8 @@ mod test {
                 ApproachType, Attachment, ComponentData, ComponentDataType, Considerations,
                 DataContents, DataGovernance, DataGovernanceResponsibleParty, Dataset, Datasets,
                 Graphic, Graphics, Inputs, MLParameter, ModelCard, ModelParameters,
-                ModelParametersApproach, Outputs, QuantitativeAnalysis,
+                ModelParametersApproach, Outputs, PerformanceMetric, PerformanceMetrics,
+                QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
             property::{Properties, Property},
@@ -346,7 +356,11 @@ mod test {
                 inputs: Some(Inputs(vec![MLParameter::new("string")])),
                 outputs: Some(Outputs(vec![MLParameter::new("image")])),
             }),
-            quantitative_analysis: Some(QuantitativeAnalysis {}),
+            quantitative_analysis: Some(QuantitativeAnalysis {
+                performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
+                    metric_type: Some("performance".to_string()),
+                }])),
+            }),
             considerations: Some(Considerations {}),
             properties: Some(Properties(vec![Property {
                 name: "property-a".to_string(),

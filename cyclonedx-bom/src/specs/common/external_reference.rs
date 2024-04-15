@@ -210,7 +210,9 @@ pub(crate) mod base {
                     .next()
                     .map_err(to_xml_read_error(REFERENCE_TAG))?;
                 match next_element {
-                    reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == URL_TAG => {
                         url = Some(Uri::read_xml_element(event_reader, &name, &attributes)?)
                     }
                     reader::XmlEvent::StartElement { name, .. }
@@ -302,9 +304,9 @@ pub(crate) mod base {
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
             match self {
-                Self::Url(url) => write_simple_tag(writer, URL_TAG, &url),
+                Self::Url(url) => write_simple_tag(writer, URL_TAG, url),
                 #[versioned("1.5")]
-                Self::BomLink(bom_link) => write_simple_tag(writer, URL_TAG, &bom_link),
+                Self::BomLink(bom_link) => write_simple_tag(writer, URL_TAG, bom_link),
             }
         }
     }

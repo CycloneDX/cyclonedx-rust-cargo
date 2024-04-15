@@ -386,7 +386,7 @@ mod test {
                 ApproachType, Attachment, ComponentData, ComponentDataType, Considerations,
                 DataContents, DataGovernance, DataGovernanceResponsibleParty, Dataset, Datasets,
                 Graphic, Graphics, Inputs, MLParameter, ModelParameters, ModelParametersApproach,
-                Outputs, QuantitativeAnalysis,
+                Outputs, PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
             property::Property,
@@ -527,7 +527,11 @@ mod test {
                     inputs: Some(Inputs(vec![MLParameter::new("string")])),
                     outputs: Some(Outputs(vec![MLParameter::new("image")])),
                 }),
-                quantitative_analysis: Some(QuantitativeAnalysis {}),
+                quantitative_analysis: Some(QuantitativeAnalysis {
+                    performance_metrics: Some(PerformanceMetrics(vec![PerformanceMetric {
+                        metric_type: Some("performance".to_string()),
+                    }])),
+                }),
                 considerations: Some(Considerations {}),
                 properties: Some(Properties(vec![Property {
                     name: "property".to_string(),
