@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 591
+assertion_line: 592
 expression: actual
 ---
 {
@@ -519,9 +519,7 @@ expression: actual
       "data": [
         {
           "flow": "flow",
-          "classification": "classification",
-          "name": "data-1",
-          "description": "data description"
+          "classification": "classification"
         }
       ],
       "licenses": [

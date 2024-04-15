@@ -26,6 +26,7 @@ use crate::models::property::Properties;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
 use super::bom::SpecVersion;
+use super::modelcard::DataGovernance;
 use super::signature::Signature;
 
 /// Represents a service as described in the [CycloneDX use cases](https://cyclonedx.org/use-cases/#service-definition)
@@ -42,7 +43,7 @@ pub struct Service {
     pub endpoints: Option<Vec<Url>>,
     pub authenticated: Option<bool>,
     pub x_trust_boundary: Option<bool>,
-    pub data: Option<Vec<DataClassification>>,
+    pub data: Option<Data>,
     pub licenses: Option<Licenses>,
     pub external_references: Option<ExternalReferences>,
     pub properties: Option<Properties>,
@@ -95,9 +96,7 @@ impl Validate for Service {
                 validate_normalized_string,
             )
             .add_list_option("endpoints", self.endpoints.as_ref(), validate_url)
-            .add_list_option("data", self.data.as_ref(), |data| {
-                data.validate_version(version)
-            })
+            .add_struct_option("data", self.data.as_ref(), version)
             .add_struct_option("licenses", self.licenses.as_ref(), version)
             .add_struct_option(
                 "external_references",
@@ -125,6 +124,37 @@ impl Validate for Services {
                 service.validate_version(version)
             })
             .into()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Data {
+    ServiceData(Vec<ServiceData>),
+    Classification(Vec<DataClassification>),
+}
+
+impl Validate for Data {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        match self {
+            Data::ServiceData(data) => ValidationContext::new()
+                .add_list("inner", data, |d| d.validate_version(version))
+                .into(),
+            Data::Classification(classification) => ValidationContext::new()
+                .add_list("inner", classification, |c| c.validate_version(version))
+                .into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ServiceData {
+    pub classification: DataClassification,
+    pub governance: Option<DataGovernance>,
+}
+
+impl Validate for ServiceData {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new().into()
     }
 }
 
@@ -216,10 +246,10 @@ mod test {
             endpoints: Some(vec![Url("https://example.com".to_string())]),
             authenticated: Some(true),
             x_trust_boundary: Some(true),
-            data: Some(vec![DataClassification {
+            data: Some(Data::Classification(vec![DataClassification {
                 flow: DataFlowType::Inbound,
                 classification: NormalizedString::new("classification"),
-            }]),
+            }])),
             licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                 "MIT".to_string(),
             ))])),
@@ -258,10 +288,10 @@ mod test {
             endpoints: Some(vec![Url("invalid url".to_string())]),
             authenticated: Some(true),
             x_trust_boundary: Some(true),
-            data: Some(vec![DataClassification {
+            data: Some(Data::Classification(vec![DataClassification {
                 flow: DataFlowType::UnknownDataFlow("unknown".to_string()),
                 classification: NormalizedString("invalid\tclassification".to_string()),
-            }]),
+            }])),
             licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                 "invalid license".to_string(),
             ))])),
@@ -321,21 +351,24 @@ mod test {
                                     validation::custom("", ["Uri does not conform to RFC 3986"])
                                 )]
                             ),
-                            validation::list(
+                            validation::r#struct(
                                 "data",
-                                [(
-                                    0,
-                                    vec![
-                                        validation::r#enum(
-                                            "flow",
-                                            "Unknown data flow type"
-                                        ),
-                                        validation::r#enum(
-                                            "classification",
-                                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                        )
-                                    ]
-                                )]
+                                validation::list(
+                                    "inner",
+                                    [(
+                                        0,
+                                        vec![
+                                            validation::r#enum(
+                                                "flow",
+                                                "Unknown data flow type"
+                                            ),
+                                            validation::r#enum(
+                                                "classification",
+                                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                                            )
+                                        ]
+                                    )]
+                                )
                             ),
                             validation::r#struct(
                                 "licenses",

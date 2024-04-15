@@ -1,0 +1,18 @@
+---
+source: cyclonedx-bom/src/specs/common/service.rs
+assertion_line: 888
+expression: write_element_to_string(actual)
+---
+<?xml version="1.0" encoding="utf-8"?>
+<dataset>
+  <classification flow="data flow">bi-directional</classification>
+  <governance>
+    <owners>
+      <owner>
+        <contact bom-ref="owner-1">
+          <name>owner</name>
+        </contact>
+      </owner>
+    </owners>
+  </governance>
+</dataset>

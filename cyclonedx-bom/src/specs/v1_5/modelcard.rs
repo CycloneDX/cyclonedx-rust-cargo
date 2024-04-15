@@ -1920,13 +1920,13 @@ impl FromXml for Graphic {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct DataGovernance {
+pub(crate) struct DataGovernance {
     #[serde(skip_serializing_if = "Option::is_none")]
-    custodians: Option<Vec<DataGovernanceResponsibleParty>>,
+    pub(crate) custodians: Option<Vec<DataGovernanceResponsibleParty>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stewards: Option<Vec<DataGovernanceResponsibleParty>>,
+    pub(crate) stewards: Option<Vec<DataGovernanceResponsibleParty>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    owners: Option<Vec<DataGovernanceResponsibleParty>>,
+    pub(crate) owners: Option<Vec<DataGovernanceResponsibleParty>>,
 }
 
 impl From<models::modelcard::DataGovernance> for DataGovernance {

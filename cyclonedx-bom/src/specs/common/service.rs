@@ -29,28 +29,27 @@ pub(crate) mod base {
         errors::XmlReadError,
         external_models::{normalized_string::NormalizedString, uri::Uri},
         models,
-        utilities::{convert_optional, convert_optional_vec, convert_vec},
+        utilities::{convert_optional, convert_vec},
         xml::{
             attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
             read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
-            to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToInnerXml,
-            ToXml,
+            to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag,
+            write_start_tag, FromXml, ToInnerXml, ToXml,
         },
     };
     use serde::{Deserialize, Serialize};
     use xml::{reader, writer::XmlEvent};
 
+    use crate::specs::common::license::Licenses;
+    #[versioned("1.4", "1.5")]
+    use crate::specs::common::signature::Signature;
     use crate::specs::common::{organization::OrganizationalEntity, property::Properties};
     #[versioned("1.3")]
     use crate::specs::v1_3::external_reference::ExternalReferences;
     #[versioned("1.4")]
     use crate::specs::v1_4::external_reference::ExternalReferences;
     #[versioned("1.5")]
-    use crate::specs::v1_5::external_reference::ExternalReferences;
-
-    use crate::specs::common::license::Licenses;
-    #[versioned("1.4", "1.5")]
-    use crate::specs::common::signature::Signature;
+    use crate::specs::v1_5::{external_reference::ExternalReferences, modelcard::DataGovernance};
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(transparent)]
@@ -135,7 +134,7 @@ pub(crate) mod base {
         #[serde(rename = "x-trust-boundary", skip_serializing_if = "Option::is_none")]
         pub(crate) x_trust_boundary: Option<bool>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub(crate) data: Option<Vec<DataClassification>>,
+        pub(crate) data: Option<Data>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -169,7 +168,7 @@ pub(crate) mod base {
                     .map(|endpoints| endpoints.into_iter().map(|e| e.to_string()).collect()),
                 authenticated: other.authenticated,
                 x_trust_boundary: other.x_trust_boundary,
-                data: convert_optional_vec(other.data),
+                data: convert_optional(other.data),
                 licenses: convert_optional(other.licenses),
                 external_references: try_convert_optional(other.external_references)?,
                 properties: convert_optional(other.properties),
@@ -197,7 +196,7 @@ pub(crate) mod base {
                     .map(|endpoints| endpoints.into_iter().map(|e| e.to_string()).collect()),
                 authenticated: other.authenticated,
                 x_trust_boundary: other.x_trust_boundary,
-                data: convert_optional_vec(other.data),
+                data: convert_optional(other.data),
                 licenses: convert_optional(other.licenses),
                 external_references: convert_optional(other.external_references),
                 properties: convert_optional(other.properties),
@@ -224,7 +223,7 @@ pub(crate) mod base {
                     .map(|endpoints| endpoints.into_iter().map(Uri).collect()),
                 authenticated: other.authenticated,
                 x_trust_boundary: other.x_trust_boundary,
-                data: convert_optional_vec(other.data),
+                data: convert_optional(other.data),
                 licenses: convert_optional(other.licenses),
                 external_references: convert_optional(other.external_references),
                 properties: convert_optional(other.properties),
@@ -253,6 +252,7 @@ pub(crate) mod base {
     const AUTHENTICATED_TAG: &str = "authenticated";
     const X_TRUST_BOUNDARY_TAG: &str = "x-trust-boundary";
     const DATA_TAG: &str = "data";
+    const DATA_SET_TAG: &str = "dataset";
     #[versioned("1.4", "1.5")]
     const SIGNATURE_TAG: &str = "signature";
     #[versioned("1.5")]
@@ -316,15 +316,9 @@ pub(crate) mod base {
             }
 
             if let Some(data) = &self.data {
-                writer
-                    .write(XmlEvent::start_element(DATA_TAG))
-                    .map_err(to_xml_write_error(DATA_TAG))?;
-                for d in data {
-                    d.write_xml_element(writer)?;
-                }
-                writer
-                    .write(XmlEvent::end_element())
-                    .map_err(to_xml_write_error(DATA_TAG))?;
+                write_start_tag(writer, DATA_TAG)?;
+                data.write_xml_element(writer)?;
+                write_close_tag(writer, DATA_TAG)?;
             }
 
             if let Some(licenses) = &self.licenses {
@@ -384,7 +378,7 @@ pub(crate) mod base {
             let mut endpoints: Option<Vec<String>> = None;
             let mut authenticated: Option<bool> = None;
             let mut x_trust_boundary: Option<bool> = None;
-            let mut data: Option<Vec<DataClassification>> = None;
+            let mut data: Option<Data> = None;
             let mut licenses: Option<Licenses> = None;
             let mut external_references: Option<ExternalReferences> = None;
             let mut properties: Option<Properties> = None;
@@ -448,8 +442,10 @@ pub(crate) mod base {
                         x_trust_boundary = Some(read_boolean_tag(event_reader, &name)?)
                     }
 
-                    reader::XmlEvent::StartElement { name, .. } if name.local_name == DATA_TAG => {
-                        data = Some(read_list_tag(event_reader, &name, CLASSIFICATION_TAG)?);
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == DATA_TAG => {
+                        data = Some(Data::read_xml_element(event_reader, &name, &attributes)?);
                     }
 
                     reader::XmlEvent::StartElement {
@@ -548,6 +544,146 @@ pub(crate) mod base {
     }
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase", untagged)]
+    pub(crate) enum Data {
+        /// Legacy entry type until version 1.4
+        Classification(Vec<DataClassification>),
+        /// New entry type in spec version 1.5
+        ServiceData(Vec<ServiceData>),
+    }
+
+    impl From<models::service::Data> for Data {
+        fn from(other: models::service::Data) -> Self {
+            match other {
+                models::service::Data::ServiceData(data) => Self::ServiceData(convert_vec(data)),
+                models::service::Data::Classification(classification) => {
+                    Self::Classification(convert_vec(classification))
+                }
+            }
+        }
+    }
+
+    impl From<Data> for models::service::Data {
+        fn from(other: Data) -> Self {
+            match other {
+                Data::ServiceData(data) => Self::ServiceData(convert_vec(data)),
+                Data::Classification(classification) => {
+                    Self::Classification(convert_vec(classification))
+                }
+            }
+        }
+    }
+
+    impl From<models::service::ServiceData> for ServiceData {
+        fn from(other: models::service::ServiceData) -> Self {
+            Self {
+                classification: other.classification.into(),
+                #[versioned("1.5")]
+                governance: convert_optional(other.governance),
+            }
+        }
+    }
+
+    impl From<ServiceData> for models::service::ServiceData {
+        fn from(other: ServiceData) -> Self {
+            Self {
+                classification: other.classification.into(),
+                #[versioned("1.3", "1.4")]
+                governance: None,
+                #[versioned("1.5")]
+                governance: convert_optional(other.governance),
+            }
+        }
+    }
+
+    impl FromXml for Data {
+        fn read_xml_element<R: std::io::Read>(
+            _event_reader: &mut xml::EventReader<R>,
+            _element_name: &xml::name::OwnedName,
+            _attributes: &[xml::attribute::OwnedAttribute],
+        ) -> Result<Self, XmlReadError>
+        where
+            Self: Sized,
+        {
+            Ok(Self::Classification(vec![]))
+        }
+    }
+
+    impl ToXml for Data {
+        fn write_xml_element<W: std::io::Write>(
+            &self,
+            writer: &mut xml::EventWriter<W>,
+        ) -> Result<(), crate::errors::XmlWriteError> {
+            match self {
+                Self::ServiceData(services) => {
+                    for service in services {
+                        service.write_xml_element(writer)?;
+                    }
+                    Ok(())
+                }
+                Self::Classification(classifications) => {
+                    for classification in classifications {
+                        classification.write_xml_element(writer)?;
+                    }
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct ServiceData {
+        classification: DataClassification,
+        #[versioned("1.5")]
+        governance: Option<DataGovernance>,
+    }
+
+    impl FromXml for ServiceData {
+        fn read_xml_element<R: std::io::Read>(
+            _event_reader: &mut xml::EventReader<R>,
+            _element_name: &xml::name::OwnedName,
+            _attributes: &[xml::attribute::OwnedAttribute],
+        ) -> Result<Self, XmlReadError>
+        where
+            Self: Sized,
+        {
+            let classification = DataClassification {
+                flow: "flow".to_string(),
+                classification: "bi-directional".to_string(),
+            };
+            #[versioned("1.5")]
+            let governance: Option<DataGovernance> = None;
+
+            Ok(Self {
+                classification,
+                #[versioned("1.5")]
+                governance,
+            })
+        }
+    }
+
+    impl ToXml for ServiceData {
+        fn write_xml_element<W: std::io::Write>(
+            &self,
+            writer: &mut xml::EventWriter<W>,
+        ) -> Result<(), crate::errors::XmlWriteError> {
+            write_start_tag(writer, DATA_SET_TAG)?;
+
+            self.classification.write_xml_element(writer)?;
+
+            #[versioned("1.5")]
+            if let Some(governance) = &self.governance {
+                governance.write_xml_element(writer)?;
+            }
+
+            write_close_tag(writer, DATA_SET_TAG)?;
+
+            Ok(())
+        }
+    }
+
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub(crate) struct DataClassification {
         flow: String,
@@ -607,6 +743,7 @@ pub(crate) mod base {
         {
             let flow = attribute_or_error(element_name, attributes, FLOW_ATTR)?;
             let classification = read_simple_tag(event_reader, element_name)?;
+
             Ok(Self {
                 flow,
                 classification,
@@ -617,6 +754,8 @@ pub(crate) mod base {
     #[cfg(test)]
     pub(crate) mod test {
         use super::*;
+        use pretty_assertions::assert_eq;
+
         use crate::specs::common::license::test::{corresponding_licenses, example_licenses};
         #[versioned("1.4", "1.5")]
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
@@ -629,8 +768,14 @@ pub(crate) mod base {
             corresponding_external_references, example_external_references,
         };
         #[versioned("1.5")]
-        use crate::specs::v1_5::external_reference::test::{
-            corresponding_external_references, example_external_references,
+        use crate::specs::{
+            common::organization::OrganizationalContact,
+            v1_5::{
+                external_reference::test::{
+                    corresponding_external_references, example_external_references,
+                },
+                modelcard::DataGovernanceResponsibleParty,
+            },
         };
         use crate::{
             specs::common::{
@@ -659,7 +804,7 @@ pub(crate) mod base {
                 endpoints: Some(vec!["endpoint".to_string()]),
                 authenticated: Some(true),
                 x_trust_boundary: Some(true),
-                data: Some(vec![example_data_classification()]),
+                data: Some(example_data_classification()),
                 licenses: Some(example_licenses()),
                 external_references: Some(example_external_references()),
                 properties: Some(example_properties()),
@@ -682,7 +827,7 @@ pub(crate) mod base {
                 endpoints: Some(vec![Uri("endpoint".to_string())]),
                 authenticated: Some(true),
                 x_trust_boundary: Some(true),
-                data: Some(vec![corresponding_data_classification()]),
+                data: Some(corresponding_data_classification()),
                 licenses: Some(corresponding_licenses()),
                 external_references: Some(corresponding_external_references()),
                 properties: Some(corresponding_properties()),
@@ -698,18 +843,18 @@ pub(crate) mod base {
             }
         }
 
-        fn example_data_classification() -> DataClassification {
-            DataClassification {
+        fn example_data_classification() -> Data {
+            Data::Classification(vec![DataClassification {
                 flow: "flow".to_string(),
                 classification: "classification".to_string(),
-            }
+            }])
         }
 
-        fn corresponding_data_classification() -> models::service::DataClassification {
-            models::service::DataClassification {
+        fn corresponding_data_classification() -> models::service::Data {
+            models::service::Data::Classification(vec![models::service::DataClassification {
                 flow: models::service::DataFlowType::UnknownDataFlow("flow".to_string()),
                 classification: NormalizedString::new_unchecked("classification".to_string()),
-            }
+            }])
         }
 
         #[test]
@@ -717,6 +862,67 @@ pub(crate) mod base {
             // NOTE: this only tests version 1.3 currently
             let xml_output = write_element_to_string(example_services());
             insta::assert_snapshot!(xml_output);
+        }
+
+        #[versioned("1.5")]
+        #[test]
+        fn it_should_write_xml_15_service_data() {
+            let actual = Data::ServiceData(vec![ServiceData {
+                classification: DataClassification {
+                    flow: "data flow".to_string(),
+                    classification: "bi-directional".to_string(),
+                },
+                governance: Some(DataGovernance {
+                    owners: Some(vec![DataGovernanceResponsibleParty::Contact(
+                        OrganizationalContact {
+                            bom_ref: Some("owner-1".to_string()),
+                            name: Some("owner".to_string()),
+                            email: None,
+                            phone: None,
+                        },
+                    )]),
+                    custodians: None,
+                    stewards: None,
+                }),
+            }]);
+            insta::assert_snapshot!(write_element_to_string(actual));
+        }
+
+        #[versioned("1.5")]
+        #[test]
+        fn it_should_read_xml_service_data() {
+            let input = r#"
+<dataflow name="Consumer to Stock Service" description="Traffic to/from consumer to service">
+  <classification flow="bi-directional">Customer</classification>
+  <governance>
+    <owners>
+      <owner>
+        <organization>
+          <name>Customer Name</name>
+        </organization>
+      </owner>
+    </owners>
+  </governance>
+  <source>
+    <url>https://0.0.0.0</url>
+  </source>
+  <destination>
+    <url>https://0.0.0.0</url>
+  </destination>
+</dataflow>"#;
+            let actual: ServiceData = read_element_from_string(input);
+            let expected = ServiceData {
+                classification: DataClassification {
+                    flow: "bi-directional".to_string(),
+                    classification: "Customer".to_string(),
+                },
+                governance: Some(DataGovernance {
+                    owners: Some(vec![]),
+                    custodians: None,
+                    stewards: None,
+                }),
+            };
+            assert_eq!(actual, expected);
         }
 
         #[test]

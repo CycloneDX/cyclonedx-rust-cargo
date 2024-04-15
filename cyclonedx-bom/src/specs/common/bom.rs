@@ -1794,6 +1794,8 @@ pub(crate) mod base {
       <x-trust-boundary>true</x-trust-boundary>
       <data>
         <classification flow="flow">classification</classification>
+        <name>data 1</name>
+        <description>data description</description>
       </data>
       <licenses>
         <expression>expression</expression>
