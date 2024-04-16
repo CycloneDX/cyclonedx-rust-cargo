@@ -635,6 +635,7 @@ pub(crate) mod base {
         where
             Self: Sized,
         {
+            let mut classifications: Vec<DataClassification> = Vec::new();
             let mut service_data: Vec<ServiceData> = Vec::new();
 
             let mut got_end_tag = false;
@@ -644,6 +645,16 @@ pub(crate) mod base {
                     .map_err(to_xml_read_error(&element_name.local_name))?;
 
                 match next_element {
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == CLASSIFICATION_TAG => {
+                        classifications.push(DataClassification::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == DATAFLOW_TAG => {
@@ -661,7 +672,11 @@ pub(crate) mod base {
                 }
             }
 
-            Ok(Self::ServiceData(service_data))
+            if !service_data.is_empty() {
+                Ok(Self::ServiceData(service_data))
+            } else {
+                Ok(Self::Classification(classifications))
+            }
         }
     }
 
@@ -693,6 +708,16 @@ pub(crate) mod base {
     pub(crate) struct DataClassification {
         pub(crate) flow: String,
         pub(crate) classification: String,
+    }
+
+    impl DataClassification {
+        #[allow(unused)]
+        pub fn new(flow: &str, classification: &str) -> Self {
+            Self {
+                flow: flow.to_string(),
+                classification: classification.to_string(),
+            }
+        }
     }
 
     impl From<models::service::DataClassification> for DataClassification {
@@ -876,10 +901,42 @@ pub(crate) mod base {
             }])
         }
 
+        #[versioned("1.3", "1.4")]
         fn corresponding_data_classification() -> models::service::Data {
             models::service::Data::Classification(vec![models::service::DataClassification {
                 flow: models::service::DataFlowType::UnknownDataFlow("flow".to_string()),
                 classification: NormalizedString::new_unchecked("classification".to_string()),
+            }])
+        }
+
+        #[versioned("1.5")]
+        fn corresponding_data_classification() -> models::service::Data {
+            models::service::Data::ServiceData(vec![models::service::ServiceData {
+                name: Some(NormalizedString::new_unchecked(
+                    "Consumer to Stock Service".to_string(),
+                )),
+                description: Some(NormalizedString::new_unchecked(
+                    "Traffic to/from consumer to service".to_string(),
+                )),
+                classification: models::service::DataClassification {
+                    flow: models::service::DataFlowType::UnknownDataFlow("flow".to_string()),
+                    classification: NormalizedString::new_unchecked("classification".to_string()),
+                },
+                governance: Some(models::modelcard::DataGovernance {
+                    custodians: None,
+                    stewards: None,
+                    owners: Some(vec![
+                        models::modelcard::DataGovernanceResponsibleParty::Organization(
+                            models::organization::OrganizationalEntity {
+                                name: Some(NormalizedString::new_unchecked(
+                                    "Organization 1".to_string(),
+                                )),
+                                url: None,
+                                contact: None,
+                            },
+                        ),
+                    ]),
+                }),
             }])
         }
 
@@ -888,6 +945,27 @@ pub(crate) mod base {
             // NOTE: this only tests version 1.3 currently
             let xml_output = write_element_to_string(example_services());
             insta::assert_snapshot!(xml_output);
+        }
+
+        #[test]
+        fn it_should_read_xml_data_classifications() {
+            let input = r#"
+<data>
+  <classification flow="inbound">PII</classification>
+  <classification flow="outbound">PIFI</classification>
+  <classification flow="bi-directional">public</classification>
+  <classification flow="unknown">partner-data</classification>
+</data>
+            "#;
+
+            let actual: Data = read_element_from_string(input);
+            let expected = Data::Classification(vec![
+                DataClassification::new("inbound", "PII"),
+                DataClassification::new("outbound", "PIFI"),
+                DataClassification::new("bi-directional", "public"),
+                DataClassification::new("unknown", "partner-data"),
+            ]);
+            assert_eq!(actual, expected);
         }
 
         #[test]
@@ -936,7 +1014,7 @@ pub(crate) mod base {
   </service>
 </services>
 "#;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4")]
             let input = r#"
 <services>
   <service bom-ref="bom-ref">
@@ -960,6 +1038,66 @@ pub(crate) mod base {
     <x-trust-boundary>true</x-trust-boundary>
     <data>
       <classification flow="flow">classification</classification>
+    </data>
+    <licenses>
+      <expression>expression</expression>
+    </licenses>
+    <externalReferences>
+      <reference type="external reference type">
+        <url>url</url>
+        <comment>comment</comment>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </reference>
+    </externalReferences>
+    <properties>
+      <property name="name">value</property>
+    </properties>
+    <services />
+    <signature>
+      <algorithm>HS512</algorithm>
+     <value>1234567890</value>
+    </signature>
+    <trustZone>trust zone</trustZone>
+  </service>
+</services>
+"#;
+            #[versioned("1.5")]
+            let input = r#"
+<services>
+  <service bom-ref="bom-ref">
+    <provider>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </provider>
+    <group>group</group>
+    <name>name</name>
+    <version>version</version>
+    <description>description</description>
+    <endpoints>
+      <endpoint>endpoint</endpoint>
+    </endpoints>
+    <authenticated>true</authenticated>
+    <x-trust-boundary>true</x-trust-boundary>
+    <data>
+      <dataflow name="Consumer to Stock Service" description="Traffic to/from consumer to service">
+        <classification flow="flow">classification</classification>
+        <governance>
+          <owners>
+            <owner>
+              <organization>
+                <name>Organization 1</name>
+              </organization>
+            </owner>
+          </owners>
+        </governance>
+      </dataflow>
     </data>
     <licenses>
       <expression>expression</expression>
