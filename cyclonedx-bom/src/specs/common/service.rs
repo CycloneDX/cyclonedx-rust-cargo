@@ -49,7 +49,7 @@ pub(crate) mod base {
     #[versioned("1.4")]
     use crate::specs::v1_4::external_reference::ExternalReferences;
     #[versioned("1.5")]
-    use crate::specs::v1_5::{external_reference::ExternalReferences, modelcard::DataGovernance};
+    use crate::specs::v1_5::{external_reference::ExternalReferences, service_data::ServiceData};
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(transparent)]
@@ -252,7 +252,6 @@ pub(crate) mod base {
     const AUTHENTICATED_TAG: &str = "authenticated";
     const X_TRUST_BOUNDARY_TAG: &str = "x-trust-boundary";
     const DATA_TAG: &str = "data";
-    const DATA_SET_TAG: &str = "dataset";
     #[versioned("1.4", "1.5")]
     const SIGNATURE_TAG: &str = "signature";
     #[versioned("1.5")]
@@ -543,22 +542,30 @@ pub(crate) mod base {
         }
     }
 
+    #[versioned("1.3", "1.4", "1.5")]
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase", untagged)]
     pub(crate) enum Data {
         /// Legacy entry type until version 1.4
         Classification(Vec<DataClassification>),
-        /// New entry type in spec version 1.5
+        #[versioned("1.5")]
         ServiceData(Vec<ServiceData>),
     }
 
     impl From<models::service::Data> for Data {
         fn from(other: models::service::Data) -> Self {
             match other {
-                models::service::Data::ServiceData(data) => Self::ServiceData(convert_vec(data)),
                 models::service::Data::Classification(classification) => {
                     Self::Classification(convert_vec(classification))
                 }
+                #[versioned("1.3", "1.4")]
+                models::service::Data::ServiceData(data) => {
+                    let classifications =
+                        data.into_iter().map(|d| d.classification.into()).collect();
+                    Self::Classification(classifications)
+                }
+                #[versioned("1.5")]
+                models::service::Data::ServiceData(data) => Self::ServiceData(convert_vec(data)),
             }
         }
     }
@@ -566,46 +573,95 @@ pub(crate) mod base {
     impl From<Data> for models::service::Data {
         fn from(other: Data) -> Self {
             match other {
-                Data::ServiceData(data) => Self::ServiceData(convert_vec(data)),
                 Data::Classification(classification) => {
                     Self::Classification(convert_vec(classification))
                 }
-            }
-        }
-    }
-
-    impl From<models::service::ServiceData> for ServiceData {
-        fn from(other: models::service::ServiceData) -> Self {
-            Self {
-                classification: other.classification.into(),
                 #[versioned("1.5")]
-                governance: convert_optional(other.governance),
+                Data::ServiceData(data) => Self::ServiceData(convert_vec(data)),
             }
         }
     }
 
-    impl From<ServiceData> for models::service::ServiceData {
-        fn from(other: ServiceData) -> Self {
-            Self {
-                classification: other.classification.into(),
-                #[versioned("1.3", "1.4")]
-                governance: None,
-                #[versioned("1.5")]
-                governance: convert_optional(other.governance),
-            }
-        }
-    }
+    #[versioned("1.5")]
+    const DATAFLOW_TAG: &str = "dataflow";
 
+    #[versioned("1.3", "1.4")]
     impl FromXml for Data {
         fn read_xml_element<R: std::io::Read>(
-            _event_reader: &mut xml::EventReader<R>,
-            _element_name: &xml::name::OwnedName,
+            event_reader: &mut xml::EventReader<R>,
+            element_name: &xml::name::OwnedName,
             _attributes: &[xml::attribute::OwnedAttribute],
         ) -> Result<Self, XmlReadError>
         where
             Self: Sized,
         {
-            Ok(Self::Classification(vec![]))
+            let mut classifications: Vec<DataClassification> = Vec::new();
+
+            let mut got_end_tag = false;
+            while !got_end_tag {
+                let next_element = event_reader
+                    .next()
+                    .map_err(to_xml_read_error(&element_name.local_name))?;
+
+                match next_element {
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == CLASSIFICATION_TAG => {
+                        classifications.push(DataClassification::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
+                    reader::XmlEvent::EndElement { name } if &name == element_name => {
+                        got_end_tag = true;
+                    }
+                    _ => (),
+                }
+            }
+
+            Ok(Self::Classification(classifications))
+        }
+    }
+
+    #[versioned("1.5")]
+    impl FromXml for Data {
+        fn read_xml_element<R: std::io::Read>(
+            event_reader: &mut xml::EventReader<R>,
+            element_name: &xml::name::OwnedName,
+            _attributes: &[xml::attribute::OwnedAttribute],
+        ) -> Result<Self, XmlReadError>
+        where
+            Self: Sized,
+        {
+            let mut service_data: Vec<ServiceData> = Vec::new();
+
+            let mut got_end_tag = false;
+            while !got_end_tag {
+                let next_element = event_reader
+                    .next()
+                    .map_err(to_xml_read_error(&element_name.local_name))?;
+
+                match next_element {
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == DATAFLOW_TAG => {
+                        service_data.push(ServiceData::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
+                    reader::XmlEvent::EndElement { name } if &name == element_name => {
+                        got_end_tag = true;
+                    }
+                    _ => (),
+                }
+            }
+
+            Ok(Self::ServiceData(service_data))
         }
     }
 
@@ -615,79 +671,28 @@ pub(crate) mod base {
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
             match self {
-                Self::ServiceData(services) => {
-                    for service in services {
-                        service.write_xml_element(writer)?;
-                    }
-                    Ok(())
-                }
                 Self::Classification(classifications) => {
                     for classification in classifications {
                         classification.write_xml_element(writer)?;
                     }
                     Ok(())
                 }
-            }
-        }
-    }
-
-    #[derive(Debug, Deserialize, Serialize, PartialEq)]
-    #[serde(rename_all = "camelCase")]
-    pub(crate) struct ServiceData {
-        classification: DataClassification,
-        #[versioned("1.5")]
-        governance: Option<DataGovernance>,
-    }
-
-    impl FromXml for ServiceData {
-        fn read_xml_element<R: std::io::Read>(
-            _event_reader: &mut xml::EventReader<R>,
-            _element_name: &xml::name::OwnedName,
-            _attributes: &[xml::attribute::OwnedAttribute],
-        ) -> Result<Self, XmlReadError>
-        where
-            Self: Sized,
-        {
-            let classification = DataClassification {
-                flow: "flow".to_string(),
-                classification: "bi-directional".to_string(),
-            };
-            #[versioned("1.5")]
-            let governance: Option<DataGovernance> = None;
-
-            Ok(Self {
-                classification,
                 #[versioned("1.5")]
-                governance,
-            })
-        }
-    }
-
-    impl ToXml for ServiceData {
-        fn write_xml_element<W: std::io::Write>(
-            &self,
-            writer: &mut xml::EventWriter<W>,
-        ) -> Result<(), crate::errors::XmlWriteError> {
-            write_start_tag(writer, DATA_SET_TAG)?;
-
-            self.classification.write_xml_element(writer)?;
-
-            #[versioned("1.5")]
-            if let Some(governance) = &self.governance {
-                governance.write_xml_element(writer)?;
+                Self::ServiceData(services) => {
+                    for service in services {
+                        service.write_xml_element(writer)?;
+                    }
+                    Ok(())
+                }
             }
-
-            write_close_tag(writer, DATA_SET_TAG)?;
-
-            Ok(())
         }
     }
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub(crate) struct DataClassification {
-        flow: String,
-        classification: String,
+        pub(crate) flow: String,
+        pub(crate) classification: String,
     }
 
     impl From<models::service::DataClassification> for DataClassification {
@@ -768,14 +773,11 @@ pub(crate) mod base {
             corresponding_external_references, example_external_references,
         };
         #[versioned("1.5")]
-        use crate::specs::{
-            common::organization::OrganizationalContact,
-            v1_5::{
-                external_reference::test::{
-                    corresponding_external_references, example_external_references,
-                },
-                modelcard::DataGovernanceResponsibleParty,
+        use crate::specs::v1_5::{
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
             },
+            modelcard::{DataGovernance, DataGovernanceResponsibleParty},
         };
         use crate::{
             specs::common::{
@@ -843,10 +845,34 @@ pub(crate) mod base {
             }
         }
 
+        #[versioned("1.3", "1.4")]
         fn example_data_classification() -> Data {
             Data::Classification(vec![DataClassification {
                 flow: "flow".to_string(),
                 classification: "classification".to_string(),
+            }])
+        }
+
+        #[versioned("1.5")]
+        fn example_data_classification() -> Data {
+            Data::ServiceData(vec![ServiceData {
+                name: Some("Consumer to Stock Service".to_string()),
+                description: Some("Traffic to/from consumer to service".to_string()),
+                classification: DataClassification {
+                    flow: "flow".to_string(),
+                    classification: "classification".to_string(),
+                },
+                governance: Some(DataGovernance {
+                    custodians: None,
+                    stewards: None,
+                    owners: Some(vec![DataGovernanceResponsibleParty::Organization(
+                        OrganizationalEntity {
+                            name: Some("Organization 1".to_string()),
+                            url: None,
+                            contact: None,
+                        },
+                    )]),
+                }),
             }])
         }
 
@@ -862,67 +888,6 @@ pub(crate) mod base {
             // NOTE: this only tests version 1.3 currently
             let xml_output = write_element_to_string(example_services());
             insta::assert_snapshot!(xml_output);
-        }
-
-        #[versioned("1.5")]
-        #[test]
-        fn it_should_write_xml_15_service_data() {
-            let actual = Data::ServiceData(vec![ServiceData {
-                classification: DataClassification {
-                    flow: "data flow".to_string(),
-                    classification: "bi-directional".to_string(),
-                },
-                governance: Some(DataGovernance {
-                    owners: Some(vec![DataGovernanceResponsibleParty::Contact(
-                        OrganizationalContact {
-                            bom_ref: Some("owner-1".to_string()),
-                            name: Some("owner".to_string()),
-                            email: None,
-                            phone: None,
-                        },
-                    )]),
-                    custodians: None,
-                    stewards: None,
-                }),
-            }]);
-            insta::assert_snapshot!(write_element_to_string(actual));
-        }
-
-        #[versioned("1.5")]
-        #[test]
-        fn it_should_read_xml_service_data() {
-            let input = r#"
-<dataflow name="Consumer to Stock Service" description="Traffic to/from consumer to service">
-  <classification flow="bi-directional">Customer</classification>
-  <governance>
-    <owners>
-      <owner>
-        <organization>
-          <name>Customer Name</name>
-        </organization>
-      </owner>
-    </owners>
-  </governance>
-  <source>
-    <url>https://0.0.0.0</url>
-  </source>
-  <destination>
-    <url>https://0.0.0.0</url>
-  </destination>
-</dataflow>"#;
-            let actual: ServiceData = read_element_from_string(input);
-            let expected = ServiceData {
-                classification: DataClassification {
-                    flow: "bi-directional".to_string(),
-                    classification: "Customer".to_string(),
-                },
-                governance: Some(DataGovernance {
-                    owners: Some(vec![]),
-                    custodians: None,
-                    stewards: None,
-                }),
-            };
-            assert_eq!(actual, expected);
         }
 
         #[test]

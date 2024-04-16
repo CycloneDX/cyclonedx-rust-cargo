@@ -1793,9 +1793,18 @@ pub(crate) mod base {
       <authenticated>true</authenticated>
       <x-trust-boundary>true</x-trust-boundary>
       <data>
-        <classification flow="flow">classification</classification>
-        <name>data 1</name>
-        <description>data description</description>
+        <dataflow name="Consumer to Stock Service" description="Traffic to/from consumer to service">
+          <classification flow="flow">classification</classification>
+          <governance>
+            <owners>
+              <owner>
+                <organization>
+                  <name>Organization 1</name>
+                </organization>
+              </owner>
+            </owners>
+          </governance>
+        </dataflow>
       </data>
       <licenses>
         <expression>expression</expression>

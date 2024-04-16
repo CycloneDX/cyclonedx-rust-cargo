@@ -1920,7 +1920,7 @@ impl FromXml for Graphic {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) struct DataGovernance {
+pub struct DataGovernance {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) custodians: Option<Vec<DataGovernanceResponsibleParty>>,
     #[serde(skip_serializing_if = "Option::is_none")]

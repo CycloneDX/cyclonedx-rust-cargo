@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 591
+assertion_line: 592
 expression: actual
 ---
 {
@@ -518,10 +518,19 @@ expression: actual
       "x-trust-boundary": true,
       "data": [
         {
+          "name": "Consumer to Stock Service",
+          "description": "Traffic to/from consumer to service",
           "flow": "flow",
           "classification": "classification",
-          "name": "data-1",
-          "description": "data description"
+          "governance": {
+            "owners": [
+              {
+                "Organization": {
+                  "name": "Organization 1"
+                }
+              }
+            ]
+          }
         }
       ],
       "licenses": [

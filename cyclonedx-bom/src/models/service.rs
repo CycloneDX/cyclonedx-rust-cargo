@@ -148,6 +148,8 @@ impl Validate for Data {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServiceData {
+    pub name: Option<NormalizedString>,
+    pub description: Option<NormalizedString>,
     pub classification: DataClassification,
     pub governance: Option<DataGovernance>,
 }

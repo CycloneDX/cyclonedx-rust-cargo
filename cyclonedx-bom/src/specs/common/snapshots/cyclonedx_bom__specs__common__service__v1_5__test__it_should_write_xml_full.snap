@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/service.rs
-assertion_line: 671
+assertion_line: 890
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -25,7 +25,18 @@ expression: xml_output
     <authenticated>true</authenticated>
     <x-trust-boundary>true</x-trust-boundary>
     <data>
-      <classification flow="flow">classification</classification>
+      <dataflow name="Consumer to Stock Service" name="Traffic to/from consumer to service">
+        <classification flow="flow">classification</classification>
+        <governance>
+          <owners>
+            <owner>
+              <organization>
+                <name>Organization 1</name>
+              </organization>
+            </owner>
+          </owners>
+        </governance>
+      </dataflow>
     </data>
     <licenses>
       <expression>expression</expression>
