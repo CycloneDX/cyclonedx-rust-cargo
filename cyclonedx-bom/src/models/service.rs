@@ -155,8 +155,17 @@ pub struct ServiceData {
 }
 
 impl Validate for ServiceData {
-    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
-        ValidationContext::new().into()
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("name", self.name.as_ref(), validate_normalized_string)
+            .add_field_option(
+                "description",
+                self.description.as_ref(),
+                validate_normalized_string,
+            )
+            .add_struct("classification", &self.classification, version)
+            .add_struct_option("governance", self.governance.as_ref(), version)
+            .into()
     }
 }
 
