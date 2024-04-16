@@ -898,6 +898,7 @@ pub(crate) mod base {
                         },
                     )]),
                 }),
+                source: Some(vec!["https://0.0.0.0".to_string()]),
             }])
         }
 
@@ -937,6 +938,7 @@ pub(crate) mod base {
                         ),
                     ]),
                 }),
+                source: Some(vec![Uri("https://0.0.0.0".to_string())]),
             }])
         }
 
@@ -1097,6 +1099,12 @@ pub(crate) mod base {
             </owner>
           </owners>
         </governance>
+        <source>
+          <url>https://0.0.0.0</url>
+        </source>
+        <destination>
+          <url>https://0.0.0.0</url>
+        </destination>
       </dataflow>
     </data>
     <licenses>

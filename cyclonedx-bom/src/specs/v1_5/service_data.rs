@@ -21,10 +21,12 @@ use xml::reader;
 
 use crate::{
     errors::XmlReadError,
+    external_models::uri::Uri,
     prelude::NormalizedString,
     utilities::convert_optional,
     xml::{
-        optional_attribute, to_xml_read_error, to_xml_write_error, write_close_tag, FromXml, ToXml,
+        optional_attribute, read_list_tag, to_xml_read_error, to_xml_write_error, write_close_tag,
+        FromXml, ToXml,
     },
 };
 
@@ -34,11 +36,16 @@ use crate::specs::v1_5::{modelcard::DataGovernance, service::DataClassification}
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ServiceData {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
     #[serde(flatten)]
     pub(crate) classification: DataClassification,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) governance: Option<DataGovernance>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) source: Option<Vec<String>>,
 }
 
 impl From<models::service::ServiceData> for ServiceData {
@@ -48,6 +55,9 @@ impl From<models::service::ServiceData> for ServiceData {
             description: other.description.map(|d| d.0),
             classification: other.classification.into(),
             governance: convert_optional(other.governance),
+            source: other
+                .source
+                .map(|uris| uris.into_iter().map(|url| url.0).collect()),
         }
     }
 }
@@ -59,15 +69,18 @@ impl From<ServiceData> for models::service::ServiceData {
             description: other.description.map(NormalizedString::new_unchecked),
             classification: other.classification.into(),
             governance: convert_optional(other.governance),
+            source: other.source.map(|uris| uris.into_iter().map(Uri).collect()),
         }
     }
 }
 
+const NAME_ATTR: &str = "name";
+const DESCRIPTION_ATTR: &str = "description";
 const DATAFLOW_TAG: &str = "dataflow";
 const CLASSIFICATION_TAG: &str = "classification";
 const GOVERNANCE_TAG: &str = "governance";
-const NAME_ATTR: &str = "name";
-const DESCRIPTION_ATTR: &str = "description";
+const SOURCE_TAG: &str = "source";
+const URL_TAG: &str = "url";
 
 impl FromXml for ServiceData {
     fn read_xml_element<R: std::io::Read>(
@@ -82,6 +95,7 @@ impl FromXml for ServiceData {
         let description = optional_attribute(attributes, DESCRIPTION_ATTR);
         let mut classification: Option<DataClassification> = None;
         let mut governance: Option<DataGovernance> = None;
+        let mut source: Option<Vec<String>> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -110,6 +124,10 @@ impl FromXml for ServiceData {
                     )?);
                 }
 
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == SOURCE_TAG => {
+                    source = Some(read_list_tag(event_reader, &name, URL_TAG)?);
+                }
+
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -127,6 +145,7 @@ impl FromXml for ServiceData {
             description,
             classification,
             governance,
+            source,
         })
     }
 }
@@ -201,6 +220,7 @@ pub(crate) mod test {
                 custodians: None,
                 stewards: None,
             }),
+            source: None,
         }]);
         insta::assert_snapshot!(write_element_to_string(actual));
     }
@@ -245,6 +265,7 @@ pub(crate) mod test {
                 custodians: None,
                 stewards: None,
             }),
+            source: Some(vec!["https://0.0.0.0".to_string()]),
         };
         assert_eq!(actual, expected);
     }

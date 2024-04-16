@@ -18,7 +18,7 @@
 
 use crate::external_models::normalized_string::validate_normalized_string;
 use crate::external_models::uri::validate_uri as validate_url;
-use crate::external_models::{normalized_string::NormalizedString, uri::Uri as Url};
+use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::license::Licenses;
 use crate::models::organization::OrganizationalEntity;
@@ -40,7 +40,7 @@ pub struct Service {
     pub name: NormalizedString,
     pub version: Option<NormalizedString>,
     pub description: Option<NormalizedString>,
-    pub endpoints: Option<Vec<Url>>,
+    pub endpoints: Option<Vec<Uri>>,
     pub authenticated: Option<bool>,
     pub x_trust_boundary: Option<bool>,
     pub data: Option<Data>,
@@ -152,6 +152,7 @@ pub struct ServiceData {
     pub description: Option<NormalizedString>,
     pub classification: DataClassification,
     pub governance: Option<DataGovernance>,
+    pub source: Option<Vec<Uri>>,
 }
 
 impl Validate for ServiceData {
@@ -165,6 +166,7 @@ impl Validate for ServiceData {
             )
             .add_struct("classification", &self.classification, version)
             .add_struct_option("governance", self.governance.as_ref(), version)
+            .add_list_option("source", self.source.as_ref(), validate_url)
             .into()
     }
 }
@@ -254,7 +256,7 @@ mod test {
             name: NormalizedString::new("name"),
             version: Some(NormalizedString::new("version")),
             description: Some(NormalizedString::new("description")),
-            endpoints: Some(vec![Url("https://example.com".to_string())]),
+            endpoints: Some(vec![Uri("https://example.com".to_string())]),
             authenticated: Some(true),
             x_trust_boundary: Some(true),
             data: Some(Data::Classification(vec![DataClassification {
@@ -266,7 +268,7 @@ mod test {
             ))])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
                 external_reference_type: ExternalReferenceType::Bom,
-                url: Uri::Url(Url("https://www.example.com".to_string())),
+                url: Uri::Url(Uri("https://www.example.com".to_string())),
                 comment: None,
                 hashes: None,
             }])),
@@ -296,7 +298,7 @@ mod test {
             name: NormalizedString("invalid\tname".to_string()),
             version: Some(NormalizedString("invalid\tversion".to_string())),
             description: Some(NormalizedString("invalid\tdescription".to_string())),
-            endpoints: Some(vec![Url("invalid url".to_string())]),
+            endpoints: Some(vec![Uri("invalid url".to_string())]),
             authenticated: Some(true),
             x_trust_boundary: Some(true),
             data: Some(Data::Classification(vec![DataClassification {
@@ -310,7 +312,7 @@ mod test {
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown".to_string(),
                 ),
-                url: Uri::Url(Url("https://www.example.com".to_string())),
+                url: Uri::Url(Uri("https://www.example.com".to_string())),
                 comment: None,
                 hashes: None,
             }])),
