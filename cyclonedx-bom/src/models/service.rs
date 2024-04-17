@@ -18,7 +18,7 @@
 
 use crate::external_models::normalized_string::validate_normalized_string;
 use crate::external_models::uri::validate_uri as validate_url;
-use crate::external_models::{normalized_string::NormalizedString, uri::Uri as Url};
+use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::license::Licenses;
 use crate::models::organization::OrganizationalEntity;
@@ -26,6 +26,7 @@ use crate::models::property::Properties;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
 use super::bom::SpecVersion;
+use super::modelcard::DataGovernance;
 use super::signature::Signature;
 
 /// Represents a service as described in the [CycloneDX use cases](https://cyclonedx.org/use-cases/#service-definition)
@@ -39,10 +40,10 @@ pub struct Service {
     pub name: NormalizedString,
     pub version: Option<NormalizedString>,
     pub description: Option<NormalizedString>,
-    pub endpoints: Option<Vec<Url>>,
+    pub endpoints: Option<Vec<Uri>>,
     pub authenticated: Option<bool>,
     pub x_trust_boundary: Option<bool>,
-    pub data: Option<Vec<DataClassification>>,
+    pub data: Option<Data>,
     pub licenses: Option<Licenses>,
     pub external_references: Option<ExternalReferences>,
     pub properties: Option<Properties>,
@@ -95,9 +96,7 @@ impl Validate for Service {
                 validate_normalized_string,
             )
             .add_list_option("endpoints", self.endpoints.as_ref(), validate_url)
-            .add_list_option("data", self.data.as_ref(), |data| {
-                data.validate_version(version)
-            })
+            .add_struct_option("data", self.data.as_ref(), version)
             .add_struct_option("licenses", self.licenses.as_ref(), version)
             .add_struct_option(
                 "external_references",
@@ -124,6 +123,52 @@ impl Validate for Services {
             .add_list("inner", &self.0, |service| {
                 service.validate_version(version)
             })
+            .into()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Data {
+    ServiceData(Vec<ServiceData>),
+    Classification(Vec<DataClassification>),
+}
+
+impl Validate for Data {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        match self {
+            Data::ServiceData(data) => ValidationContext::new()
+                .add_list("inner", data, |d| d.validate_version(version))
+                .into(),
+            Data::Classification(classification) => ValidationContext::new()
+                .add_list("inner", classification, |c| c.validate_version(version))
+                .into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ServiceData {
+    pub name: Option<NormalizedString>,
+    pub description: Option<NormalizedString>,
+    pub classification: DataClassification,
+    pub governance: Option<DataGovernance>,
+    pub source: Option<Vec<Uri>>,
+    pub destination: Option<Vec<Uri>>,
+}
+
+impl Validate for ServiceData {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("name", self.name.as_ref(), validate_normalized_string)
+            .add_field_option(
+                "description",
+                self.description.as_ref(),
+                validate_normalized_string,
+            )
+            .add_struct("classification", &self.classification, version)
+            .add_struct_option("governance", self.governance.as_ref(), version)
+            .add_list_option("source", self.source.as_ref(), validate_url)
+            .add_list_option("destination", self.destination.as_ref(), validate_url)
             .into()
     }
 }
@@ -209,19 +254,19 @@ mod test {
             name: NormalizedString::new("name"),
             version: Some(NormalizedString::new("version")),
             description: Some(NormalizedString::new("description")),
-            endpoints: Some(vec![Url("https://example.com".to_string())]),
+            endpoints: Some(vec![Uri("https://example.com".to_string())]),
             authenticated: Some(true),
             x_trust_boundary: Some(true),
-            data: Some(vec![DataClassification {
+            data: Some(Data::Classification(vec![DataClassification {
                 flow: DataFlowType::Inbound,
                 classification: NormalizedString::new("classification"),
-            }]),
+            }])),
             licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                 "MIT".to_string(),
             ))])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
                 external_reference_type: ExternalReferenceType::Bom,
-                url: Uri::Url(Url("https://www.example.com".to_string())),
+                url: Uri::Url(Uri("https://www.example.com".to_string())),
                 comment: None,
                 hashes: None,
             }])),
@@ -252,13 +297,13 @@ mod test {
             name: NormalizedString("invalid\tname".to_string()),
             version: Some(NormalizedString("invalid\tversion".to_string())),
             description: Some(NormalizedString("invalid\tdescription".to_string())),
-            endpoints: Some(vec![Url("invalid url".to_string())]),
+            endpoints: Some(vec![Uri("invalid url".to_string())]),
             authenticated: Some(true),
             x_trust_boundary: Some(true),
-            data: Some(vec![DataClassification {
+            data: Some(Data::Classification(vec![DataClassification {
                 flow: DataFlowType::UnknownDataFlow("unknown".to_string()),
                 classification: NormalizedString("invalid\tclassification".to_string()),
-            }]),
+            }])),
             licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
                 "invalid license".to_string(),
             ))])),
@@ -266,7 +311,7 @@ mod test {
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown".to_string(),
                 ),
-                url: Uri::Url(Url("https://www.example.com".to_string())),
+                url: Uri::Url(Uri("https://www.example.com".to_string())),
                 comment: None,
                 hashes: None,
             }])),
@@ -318,21 +363,24 @@ mod test {
                                     validation::custom("", ["Uri does not conform to RFC 3986"])
                                 )]
                             ),
-                            validation::list(
+                            validation::r#struct(
                                 "data",
-                                [(
-                                    0,
-                                    vec![
-                                        validation::r#enum(
-                                            "flow",
-                                            "Unknown data flow type"
-                                        ),
-                                        validation::r#enum(
-                                            "classification",
-                                            "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                                        )
-                                    ]
-                                )]
+                                validation::list(
+                                    "inner",
+                                    [(
+                                        0,
+                                        vec![
+                                            validation::r#enum(
+                                                "flow",
+                                                "Unknown data flow type"
+                                            ),
+                                            validation::r#enum(
+                                                "classification",
+                                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
+                                            )
+                                        ]
+                                    )]
+                                )
                             ),
                             validation::r#struct(
                                 "licenses",

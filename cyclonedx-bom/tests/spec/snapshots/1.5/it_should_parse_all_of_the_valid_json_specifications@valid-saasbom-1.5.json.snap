@@ -1,0 +1,232 @@
+---
+source: cyclonedx-bom/tests/specification_tests_v1_5.rs
+assertion_line: 52
+expression: bom_output
+input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.json
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "metadata": {
+    "timestamp": "2021-01-10T12:00:00Z",
+    "component": {
+      "type": "application",
+      "bom-ref": "acme-stock-application",
+      "name": "Acme SaaSBOM Example",
+      "version": "2022-1"
+    }
+  },
+  "services": [
+    {
+      "bom-ref": "stock-ticker-service",
+      "provider": {
+        "name": "Acme Inc",
+        "url": [
+          "https://example.com"
+        ]
+      },
+      "group": "com.example",
+      "name": "Stock Ticker Service",
+      "version": "2022-1",
+      "endpoints": [
+        "https://example.com/",
+        "https://example.com/app"
+      ],
+      "authenticated": true,
+      "data": [
+        {
+          "flow": "bi-directional",
+          "classification": "Customer"
+        },
+        {
+          "flow": "bi-directional",
+          "classification": "PII"
+        },
+        {
+          "flow": "bi-directional",
+          "classification": "PIFI"
+        },
+        {
+          "flow": "bi-directional",
+          "classification": "Public"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://example.com/app/swagger"
+        }
+      ],
+      "services": [
+        {
+          "bom-ref": "ms-1.example.com",
+          "provider": {
+            "name": "Acme Inc",
+            "url": [
+              "https://example.com"
+            ]
+          },
+          "group": "com.example",
+          "name": "Microservice 1",
+          "version": "2022-1",
+          "description": "Example Microservice",
+          "endpoints": [
+            "https://ms-1.example.com"
+          ],
+          "authenticated": true,
+          "data": [
+            {
+              "flow": "bi-directional",
+              "classification": "PII"
+            },
+            {
+              "flow": "bi-directional",
+              "classification": "PII"
+            }
+          ],
+          "externalReferences": [
+            {
+              "type": "documentation",
+              "url": "https://ms-1.example.com/swagger"
+            }
+          ],
+          "trustZone": "Acme Private Zone"
+        },
+        {
+          "bom-ref": "ms-2.example.com",
+          "provider": {
+            "name": "Acme Inc",
+            "url": [
+              "https://example.com"
+            ]
+          },
+          "group": "com.example",
+          "name": "Microservice 2",
+          "version": "2022-1",
+          "description": "Example Microservice",
+          "endpoints": [
+            "https://ms-2.example.com"
+          ],
+          "authenticated": true,
+          "data": [
+            {
+              "flow": "bi-directional",
+              "classification": "PIFI"
+            }
+          ],
+          "externalReferences": [
+            {
+              "type": "documentation",
+              "url": "https://ms-2.example.com/swagger"
+            }
+          ],
+          "trustZone": "Acme Private Zone"
+        },
+        {
+          "bom-ref": "ms-3.example.com",
+          "provider": {
+            "name": "Acme Inc",
+            "url": [
+              "https://example.com"
+            ]
+          },
+          "group": "com.example",
+          "name": "Microservice 3",
+          "version": "2022-1",
+          "description": "Example Microservice",
+          "endpoints": [
+            "https://ms-3.example.com"
+          ],
+          "authenticated": true,
+          "data": [
+            {
+              "flow": "bi-directional",
+              "classification": "Public"
+            },
+            {
+              "flow": "outbound",
+              "classification": "Public"
+            }
+          ],
+          "externalReferences": [
+            {
+              "type": "documentation",
+              "url": "https://ms-3.example.com/swagger"
+            }
+          ],
+          "trustZone": "Acme Private Zone"
+        },
+        {
+          "bom-ref": "ms-1-pgsql.example.com",
+          "group": "org.postgresql",
+          "name": "Postgres",
+          "version": "14.1",
+          "description": "Postgres database for Microservice #1",
+          "endpoints": [
+            "https://ms-1-pgsql.example.com:5432"
+          ],
+          "authenticated": true,
+          "data": [
+            {
+              "flow": "bi-directional",
+              "classification": "PII"
+            }
+          ],
+          "trustZone": "Acme Private Zone"
+        },
+        {
+          "bom-ref": "s3-example.amazon.com",
+          "group": "com.amazon",
+          "name": "S3",
+          "description": "S3 bucket",
+          "endpoints": [
+            "https://s3-example.amazon.com"
+          ],
+          "authenticated": true,
+          "data": [
+            {
+              "flow": "inbound",
+              "classification": "Public"
+            }
+          ],
+          "trustZone": "Public Internet"
+        }
+      ],
+      "trustZone": "Acme Public Zone"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "acme-stock-application",
+      "dependsOn": [
+        "stock-ticker-service"
+      ]
+    },
+    {
+      "ref": "stock-ticker-service",
+      "dependsOn": [
+        "ms-1.example.com",
+        "ms-2.example.com",
+        "ms-3.example.com"
+      ]
+    },
+    {
+      "ref": "ms-1.example.com",
+      "dependsOn": [
+        "ms-1-pgsql.example.com"
+      ]
+    },
+    {
+      "ref": "ms-2.example.com",
+      "dependsOn": []
+    },
+    {
+      "ref": "ms-3.example.com",
+      "dependsOn": [
+        "s3-example.amazon.com"
+      ]
+    }
+  ]
+}
