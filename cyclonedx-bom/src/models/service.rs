@@ -153,6 +153,7 @@ pub struct ServiceData {
     pub classification: DataClassification,
     pub governance: Option<DataGovernance>,
     pub source: Option<Vec<Uri>>,
+    pub destination: Option<Vec<Uri>>,
 }
 
 impl Validate for ServiceData {
@@ -167,6 +168,7 @@ impl Validate for ServiceData {
             .add_struct("classification", &self.classification, version)
             .add_struct_option("governance", self.governance.as_ref(), version)
             .add_list_option("source", self.source.as_ref(), validate_url)
+            .add_list_option("destination", self.destination.as_ref(), validate_url)
             .into()
     }
 }

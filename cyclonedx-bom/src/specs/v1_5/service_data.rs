@@ -46,6 +46,8 @@ pub(crate) struct ServiceData {
     pub(crate) governance: Option<DataGovernance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) source: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) destination: Option<Vec<String>>,
 }
 
 impl From<models::service::ServiceData> for ServiceData {
@@ -57,6 +59,9 @@ impl From<models::service::ServiceData> for ServiceData {
             governance: convert_optional(other.governance),
             source: other
                 .source
+                .map(|uris| uris.into_iter().map(|url| url.0).collect()),
+            destination: other
+                .destination
                 .map(|uris| uris.into_iter().map(|url| url.0).collect()),
         }
     }
@@ -70,6 +75,9 @@ impl From<ServiceData> for models::service::ServiceData {
             classification: other.classification.into(),
             governance: convert_optional(other.governance),
             source: other.source.map(|uris| uris.into_iter().map(Uri).collect()),
+            destination: other
+                .destination
+                .map(|uris| uris.into_iter().map(Uri).collect()),
         }
     }
 }
@@ -80,6 +88,7 @@ const DATAFLOW_TAG: &str = "dataflow";
 const CLASSIFICATION_TAG: &str = "classification";
 const GOVERNANCE_TAG: &str = "governance";
 const SOURCE_TAG: &str = "source";
+const DESTINATION_TAG: &str = "destination";
 const URL_TAG: &str = "url";
 
 impl FromXml for ServiceData {
@@ -96,6 +105,7 @@ impl FromXml for ServiceData {
         let mut classification: Option<DataClassification> = None;
         let mut governance: Option<DataGovernance> = None;
         let mut source: Option<Vec<String>> = None;
+        let mut destination: Option<Vec<String>> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -128,6 +138,12 @@ impl FromXml for ServiceData {
                     source = Some(read_list_tag(event_reader, &name, URL_TAG)?);
                 }
 
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == DESTINATION_TAG =>
+                {
+                    destination = Some(read_list_tag(event_reader, &name, URL_TAG)?);
+                }
+
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
                 }
@@ -146,6 +162,7 @@ impl FromXml for ServiceData {
             classification,
             governance,
             source,
+            destination,
         })
     }
 }
@@ -221,6 +238,7 @@ pub(crate) mod test {
                 stewards: None,
             }),
             source: None,
+            destination: None,
         }]);
         insta::assert_snapshot!(write_element_to_string(actual));
     }
@@ -266,6 +284,7 @@ pub(crate) mod test {
                 stewards: None,
             }),
             source: Some(vec!["https://0.0.0.0".to_string()]),
+            destination: Some(vec!["https://0.0.0.0".to_string()]),
         };
         assert_eq!(actual, expected);
     }

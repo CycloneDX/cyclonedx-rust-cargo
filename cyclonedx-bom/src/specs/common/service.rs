@@ -899,6 +899,7 @@ pub(crate) mod base {
                     )]),
                 }),
                 source: Some(vec!["https://0.0.0.0".to_string()]),
+                destination: Some(vec!["https://0.0.0.0".to_string()]),
             }])
         }
 
@@ -939,6 +940,7 @@ pub(crate) mod base {
                     ]),
                 }),
                 source: Some(vec![Uri("https://0.0.0.0".to_string())]),
+                destination: Some(vec![Uri("https://0.0.0.0".to_string())]),
             }])
         }
 
