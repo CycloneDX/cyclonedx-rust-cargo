@@ -26,7 +26,7 @@ use crate::{
     utilities::convert_optional,
     xml::{
         optional_attribute, read_list_tag, to_xml_read_error, to_xml_write_error, write_close_tag,
-        FromXml, ToXml,
+        write_simple_tag, write_start_tag, FromXml, ToXml,
     },
 };
 
@@ -190,6 +190,22 @@ impl ToXml for ServiceData {
 
         if let Some(governance) = &self.governance {
             governance.write_xml_element(writer)?;
+        }
+
+        if let Some(uris) = &self.source {
+            write_start_tag(writer, SOURCE_TAG)?;
+            for uri in uris {
+                write_simple_tag(writer, URL_TAG, uri.as_str())?;
+            }
+            write_close_tag(writer, SOURCE_TAG)?;
+        }
+
+        if let Some(uris) = &self.destination {
+            write_start_tag(writer, DESTINATION_TAG)?;
+            for uri in uris {
+                write_simple_tag(writer, URL_TAG, uri.as_str())?;
+            }
+            write_close_tag(writer, DESTINATION_TAG)?;
         }
 
         write_close_tag(writer, DATAFLOW_TAG)?;

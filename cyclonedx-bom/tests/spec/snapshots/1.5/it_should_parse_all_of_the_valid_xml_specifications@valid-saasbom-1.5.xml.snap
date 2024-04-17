@@ -38,15 +38,39 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
               </owner>
             </owners>
           </governance>
+          <source>
+            <url>https://0.0.0.0</url>
+          </source>
+          <destination>
+            <url>https://0.0.0.0</url>
+          </destination>
         </dataflow>
         <dataflow name="Stock Service to MS-1" name="Traffic to/from stock service to microservice-1">
           <classification flow="bi-directional">PII</classification>
+          <source>
+            <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-1.example.com</url>
+          </source>
+          <destination>
+            <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-1.example.com</url>
+          </destination>
         </dataflow>
         <dataflow name="Stock Service to MS-2" name="Traffic to/from stock service to microservice-2">
           <classification flow="bi-directional">PIFI</classification>
+          <source>
+            <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-2.example.com</url>
+          </source>
+          <destination>
+            <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-2.example.com</url>
+          </destination>
         </dataflow>
         <dataflow name="Stock Service to MS-3" name="Traffic to/from stock service to microservice-3">
           <classification flow="bi-directional">Public</classification>
+          <source>
+            <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-3.example.com</url>
+          </source>
+          <destination>
+            <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-3.example.com</url>
+          </destination>
         </dataflow>
       </data>
       <externalReferences>
@@ -69,9 +93,21 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
           <data>
             <dataflow name="Stock Service to MS-1" name="Traffic to/from stock service to microservice-1">
               <classification flow="bi-directional">PII</classification>
+              <source>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#stock-ticker-service</url>
+              </source>
+              <destination>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#stock-ticker-service</url>
+              </destination>
             </dataflow>
             <dataflow name="MS-1 to Database" name="Traffic to/from microservice-1 to database">
               <classification flow="bi-directional">PII</classification>
+              <source>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-1-pgsql.example.com</url>
+              </source>
+              <destination>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-1-pgsql.example.com</url>
+              </destination>
             </dataflow>
           </data>
           <externalReferences>
@@ -95,6 +131,12 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
           <data>
             <dataflow name="Stock Service to MS-2" name="Traffic to/from stock service to microservice-2">
               <classification flow="bi-directional">PII</classification>
+              <source>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#stock-ticker-service</url>
+              </source>
+              <destination>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#stock-ticker-service</url>
+              </destination>
             </dataflow>
           </data>
           <externalReferences>
@@ -118,9 +160,18 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
           <data>
             <dataflow name="Stock Service to MS-3" name="Traffic to/from stock service to microservice-3">
               <classification flow="bi-directional">PII</classification>
+              <source>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#stock-ticker-service</url>
+              </source>
+              <destination>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#stock-ticker-service</url>
+              </destination>
             </dataflow>
             <dataflow name="MS-3 to S3" name="Data pushed from microservice-3 to S3 bucket">
               <classification flow="outbound">Public</classification>
+              <destination>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#s3-example.amazon.com</url>
+              </destination>
             </dataflow>
           </data>
           <externalReferences>
@@ -142,6 +193,12 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
           <data>
             <dataflow name="MS-1 to Database" name="Traffic to/from microservice-1 to database">
               <classification flow="bi-directional">PII</classification>
+              <source>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-1.example.com</url>
+              </source>
+              <destination>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-1.example.com</url>
+              </destination>
             </dataflow>
           </data>
           <trustZone>Acme Private Zone</trustZone>
@@ -157,6 +214,9 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
           <data>
             <dataflow name="MS-3 to S3" name="Data pushed from microservice-3 to S3 bucket">
               <classification flow="inbound">Public</classification>
+              <source>
+                <url>urn:cdx:3e671687-395b-41f5-a30f-a58921a69b79/1#ms-3.example.com</url>
+              </source>
             </dataflow>
           </data>
           <trustZone>Public Internet</trustZone>

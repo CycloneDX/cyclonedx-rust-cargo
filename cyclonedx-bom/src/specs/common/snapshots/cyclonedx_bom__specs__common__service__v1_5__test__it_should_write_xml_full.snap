@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/service.rs
-assertion_line: 890
+assertion_line: 951
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -36,6 +36,12 @@ expression: xml_output
             </owner>
           </owners>
         </governance>
+        <source>
+          <url>https://0.0.0.0</url>
+        </source>
+        <destination>
+          <url>https://0.0.0.0</url>
+        </destination>
       </dataflow>
     </data>
     <licenses>
