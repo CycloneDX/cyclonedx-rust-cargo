@@ -204,11 +204,7 @@ mod test {
     fn valid_services_should_pass_validation() {
         let validation_result = Services(vec![Service {
             bom_ref: Some("bom ref".to_string()),
-            provider: Some(OrganizationalEntity {
-                name: Some(NormalizedString::new("name")),
-                url: None,
-                contact: None,
-            }),
+            provider: Some(OrganizationalEntity::new("name")),
             group: Some(NormalizedString::new("group")),
             name: NormalizedString::new("name"),
             version: Some(NormalizedString::new("version")),
@@ -247,6 +243,7 @@ mod test {
         let validation_result = Services(vec![Service {
             bom_ref: Some("bom ref".to_string()),
             provider: Some(OrganizationalEntity {
+                bom_ref: None,
                 name: Some(NormalizedString("invalid\tname".to_string())),
                 url: None,
                 contact: None,

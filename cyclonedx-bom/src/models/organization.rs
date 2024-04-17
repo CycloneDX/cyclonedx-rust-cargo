@@ -80,9 +80,21 @@ fn validate_bom_ref(_bom_ref: &BomReference, version: SpecVersion) -> Result<(),
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalEntity)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrganizationalEntity {
+    pub bom_ref: Option<BomReference>,
     pub name: Option<NormalizedString>,
     pub url: Option<Vec<Uri>>,
     pub contact: Option<Vec<OrganizationalContact>>,
+}
+
+impl OrganizationalEntity {
+    pub fn new(name: &str) -> Self {
+        Self {
+            bom_ref: None,
+            name: Some(NormalizedString::new_unchecked(name.to_string())),
+            url: None,
+            contact: None,
+        }
+    }
 }
 
 impl Validate for OrganizationalEntity {
@@ -197,11 +209,7 @@ mod test {
 
     #[test]
     fn it_should_validate_an_invalid_entity_as_failed() {
-        let entity = OrganizationalEntity {
-            name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
-            url: None,
-            contact: None,
-        };
+        let entity = OrganizationalEntity::new("invalid\tname");
         let actual = entity.validate();
 
         assert_eq!(
@@ -216,6 +224,7 @@ mod test {
     #[test]
     fn it_should_validate_an_entity_with_multiple_validation_issues_as_failed() {
         let entity = OrganizationalEntity {
+            bom_ref: None,
             name: Some(NormalizedString::new_unchecked("invalid\tname".to_string())),
             url: Some(vec![Uri("invalid uri".to_string())]),
             contact: Some(vec![OrganizationalContact {

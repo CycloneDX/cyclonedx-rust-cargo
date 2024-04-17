@@ -405,6 +405,7 @@ mod test {
             mime_type: Some(MimeType("text/text".to_string())),
             bom_ref: Some("bom ref".to_string()),
             supplier: Some(OrganizationalEntity {
+                bom_ref: Some(BomReference::new("Supplier 1")),
                 name: Some(NormalizedString::new("name")),
                 url: None,
                 contact: None,
@@ -562,6 +563,7 @@ mod test {
             mime_type: Some(MimeType("invalid mime type".to_string())),
             bom_ref: Some("bom ref".to_string()),
             supplier: Some(OrganizationalEntity {
+                bom_ref: Some(BomReference::new("Supplier 1")),
                 name: Some(NormalizedString("invalid\tname".to_string())),
                 url: None,
                 contact: None,

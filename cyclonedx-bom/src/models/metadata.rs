@@ -103,6 +103,7 @@ mod test {
     use crate::{
         external_models::{normalized_string::NormalizedString, spdx::SpdxExpression},
         models::{
+            bom::BomReference,
             component::Classification,
             license::LicenseChoice,
             lifecycle::{Description, Lifecycle, Phase},
@@ -159,11 +160,13 @@ mod test {
                 model_card: None,
             }),
             manufacture: Some(OrganizationalEntity {
+                bom_ref: Some(BomReference::new("Manufacturer")),
                 name: Some(NormalizedString::new("name")),
                 url: None,
                 contact: None,
             }),
             supplier: Some(OrganizationalEntity {
+                bom_ref: Some(BomReference::new("Supplier")),
                 name: Some(NormalizedString::new("name")),
                 url: None,
                 contact: None,
@@ -226,11 +229,13 @@ mod test {
                 model_card: None,
             }),
             manufacture: Some(OrganizationalEntity {
+                bom_ref: Some(BomReference::new("Manufacturer")),
                 name: Some(NormalizedString("invalid\tname".to_string())),
                 url: None,
                 contact: None,
             }),
             supplier: Some(OrganizationalEntity {
+                bom_ref: Some(BomReference::new("Supplier")),
                 name: Some(NormalizedString("invalid\tname".to_string())),
                 url: None,
                 contact: None,

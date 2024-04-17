@@ -160,6 +160,8 @@ impl FromXml for OrganizationalContact {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OrganizationalEntity {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) bom_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) url: Option<Vec<String>>,
@@ -167,9 +169,22 @@ pub(crate) struct OrganizationalEntity {
     pub(crate) contact: Option<Vec<OrganizationalContact>>,
 }
 
+impl OrganizationalEntity {
+    #[allow(unused)]
+    pub fn new(name: &str) -> Self {
+        Self {
+            bom_ref: None,
+            name: Some(name.to_string()),
+            url: None,
+            contact: None,
+        }
+    }
+}
+
 impl From<models::organization::OrganizationalEntity> for OrganizationalEntity {
     fn from(other: models::organization::OrganizationalEntity) -> Self {
         Self {
+            bom_ref: other.bom_ref.map(|r| r.0),
             name: other.name.map(|n| n.to_string()),
             url: other
                 .url
@@ -182,6 +197,7 @@ impl From<models::organization::OrganizationalEntity> for OrganizationalEntity {
 impl From<OrganizationalEntity> for models::organization::OrganizationalEntity {
     fn from(other: OrganizationalEntity) -> Self {
         Self {
+            bom_ref: other.bom_ref.map(BomReference::new),
             name: other.name.map(NormalizedString::new_unchecked),
             url: other.url.map(|urls| urls.into_iter().map(Uri).collect()),
             contact: convert_optional_vec(other.contact),
@@ -198,9 +214,13 @@ impl ToInnerXml for OrganizationalEntity {
         writer: &mut xml::EventWriter<W>,
         tag: &str,
     ) -> Result<(), XmlWriteError> {
-        writer
-            .write(XmlEvent::start_element(tag))
-            .map_err(to_xml_write_error(tag))?;
+        let mut start_tag = XmlEvent::start_element(tag);
+
+        if let Some(bom_ref) = &self.bom_ref {
+            start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
+        }
+
+        writer.write(start_tag).map_err(to_xml_write_error(tag))?;
 
         if let Some(name) = &self.name {
             write_simple_tag(writer, NAME_TAG, name)?;
@@ -236,11 +256,13 @@ impl FromXml for OrganizationalEntity {
     fn read_xml_element<R: std::io::Read>(
         event_reader: &mut xml::EventReader<R>,
         element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
+        attributes: &[xml::attribute::OwnedAttribute],
     ) -> Result<Self, crate::errors::XmlReadError>
     where
         Self: Sized,
     {
+        let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+
         let mut contact_name: Option<String> = None;
         let mut url: Option<Vec<String>> = None;
         let mut contact: Option<Vec<OrganizationalContact>> = None;
@@ -281,6 +303,7 @@ impl FromXml for OrganizationalEntity {
         }
 
         Ok(Self {
+            bom_ref,
             name: contact_name,
             url,
             contact,
@@ -293,6 +316,7 @@ pub(crate) mod test {
     use crate::xml::test::{read_element_from_string, write_named_element_to_string};
 
     use super::*;
+    use pretty_assertions::assert_eq;
 
     pub(crate) fn example_contact() -> OrganizationalContact {
         OrganizationalContact {
@@ -314,6 +338,7 @@ pub(crate) mod test {
 
     pub(crate) fn example_entity() -> OrganizationalEntity {
         OrganizationalEntity {
+            bom_ref: None,
             name: Some("name".to_string()),
             url: Some(vec!["url".to_string()]),
             contact: Some(vec![example_contact()]),
@@ -322,6 +347,7 @@ pub(crate) mod test {
 
     pub(crate) fn corresponding_entity() -> models::organization::OrganizationalEntity {
         models::organization::OrganizationalEntity {
+            bom_ref: None,
             name: Some(NormalizedString::new_unchecked("name".to_string())),
             url: Some(vec![Uri("url".to_string())]),
             contact: Some(vec![corresponding_contact()]),
@@ -357,6 +383,7 @@ pub(crate) mod test {
     fn it_should_not_write_xml_empty_contacts() {
         let xml_output = write_named_element_to_string(
             OrganizationalEntity {
+                bom_ref: Some("Supplier".to_string()),
                 name: Some("name".to_string()),
                 url: Some(vec!["url".to_string()]),
                 contact: Some(vec![OrganizationalContact {
@@ -375,6 +402,7 @@ pub(crate) mod test {
     fn it_should_write_xml_multiple_urls_contacts() {
         let xml_output = write_named_element_to_string(
             OrganizationalEntity {
+                bom_ref: Some("Supplier".to_string()),
                 name: Some("name".to_string()),
                 url: Some(vec!["url".to_string(), "url".to_string()]),
                 contact: Some(vec![example_contact(), example_contact()]),
@@ -405,7 +433,7 @@ pub(crate) mod test {
     #[test]
     fn it_should_read_xml_multiple_urls_contacts() {
         let input = r#"
-<supplier>
+<supplier bom-ref="Supplier">
   <name>name</name>
   <url>url</url>
   <url>url</url>
@@ -423,6 +451,7 @@ pub(crate) mod test {
 "#;
         let actual: OrganizationalEntity = read_element_from_string(input);
         let expected = OrganizationalEntity {
+            bom_ref: Some("Supplier".to_string()),
             name: Some("name".to_string()),
             url: Some(vec!["url".to_string(), "url".to_string()]),
             contact: Some(vec![example_contact(), example_contact()]),
