@@ -521,6 +521,7 @@ impl FromXml for Annotation {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use pretty_assertions::assert_eq;
     use xml::{EventReader, ParserConfig};
 
     use crate::{
@@ -644,7 +645,7 @@ pub(crate) mod test {
       <subject ref="component-a" />
     </subjects>
     <annotator>
-      <organization>
+      <organization bom-ref="Acme">
         <name>Acme, Inc.</name>
         <url>https://example.com</url>
         <contact bom-ref="contact-1">
@@ -663,6 +664,7 @@ pub(crate) mod test {
             bom_ref: Some("annotation-1".to_string()),
             subjects: vec!["component-a".to_string()],
             annotator: Annotator::Organization(OrganizationalEntity {
+                bom_ref: Some("Acme".to_string()),
                 name: Some(String::from("Acme, Inc.")),
                 url: Some(vec!["https://example.com".to_string()]),
                 contact: Some(vec![OrganizationalContact {

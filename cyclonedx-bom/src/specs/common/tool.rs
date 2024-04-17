@@ -459,6 +459,7 @@ pub(crate) mod base {
             let service = Service {
                 bom_ref: None,
                 provider: Some(OrganizationalEntity {
+                    bom_ref: None,
                     name: Some("Acme Org".to_string()),
                     url: Some(vec!["https://example.com".to_string()]),
                     contact: None,

@@ -1,9 +1,10 @@
 ---
 source: cyclonedx-bom/src/specs/common/organization.rs
+assertion_line: 398
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
-<supplier>
+<supplier bom-ref="Supplier">
   <name>name</name>
   <url>url</url>
 </supplier>

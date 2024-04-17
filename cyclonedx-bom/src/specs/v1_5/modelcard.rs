@@ -2545,11 +2545,7 @@ pub(crate) mod test {
             )]),
             stewards: None,
             owners: Some(vec![DataGovernanceResponsibleParty::Organization(
-                OrganizationalEntity {
-                    contact: None,
-                    name: Some("Organization 1".to_string()),
-                    url: None,
-                },
+                OrganizationalEntity::new("Organization 1"),
             )]),
         };
         assert_eq!(expected, actual);
@@ -2595,11 +2591,7 @@ pub(crate) mod test {
                 custodians: None,
                 stewards: None,
                 owners: Some(vec![DataGovernanceResponsibleParty::Organization(
-                    OrganizationalEntity {
-                        contact: None,
-                        name: Some("Organization name".to_string()),
-                        url: None,
-                    },
+                    OrganizationalEntity::new("Organization name"),
                 )]),
             }),
         });
