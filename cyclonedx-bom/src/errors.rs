@@ -18,6 +18,8 @@
 
 use std::convert::Infallible;
 
+use xml::name::OwnedName;
+
 use crate::models::bom::SpecVersion;
 
 #[derive(Debug, thiserror::Error)]
@@ -128,4 +130,13 @@ pub enum XmlReadError {
         expected_namespace: String,
         actual_namespace: Option<String>,
     },
+}
+
+impl XmlReadError {
+    pub fn required_data_missing(required_field: &str, element: &OwnedName) -> Self {
+        Self::RequiredDataMissing {
+            required_field: required_field.to_string(),
+            element: element.local_name.to_string(),
+        }
+    }
 }

@@ -31,6 +31,7 @@ pub(crate) mod base {
     use crate::{
         specs::v1_5::{external_reference::ExternalReferences, modelcard::ModelCard, tool::Tools},
         utilities::convert_optional_vec,
+        xml::{write_close_tag, write_start_tag},
     };
 
     use crate::{
@@ -1014,6 +1015,54 @@ pub(crate) mod base {
     pub(crate) struct Occurrences(Vec<Occurrence>);
 
     #[versioned("1.5")]
+    const OCCURRENCE_TAG: &str = "occurrence";
+    #[versioned("1.5")]
+    const OCCURRENCES_TAG: &str = "occurrences";
+
+    #[versioned("1.5")]
+    impl ToXml for Occurrences {
+        fn write_xml_element<W: std::io::Write>(
+            &self,
+            writer: &mut xml::EventWriter<W>,
+        ) -> Result<(), crate::errors::XmlWriteError> {
+            self.write_xml_named_element(writer, OCCURRENCES_TAG)
+        }
+    }
+
+    #[versioned("1.5")]
+    impl ToInnerXml for Occurrences {
+        fn write_xml_named_element<W: std::io::Write>(
+            &self,
+            writer: &mut xml::EventWriter<W>,
+            tag: &str,
+        ) -> Result<(), crate::errors::XmlWriteError> {
+            write_start_tag(writer, tag)?;
+
+            for occurrence in &self.0 {
+                occurrence.write_xml_element(writer)?;
+            }
+
+            write_close_tag(writer, tag)?;
+
+            Ok(())
+        }
+    }
+
+    #[versioned("1.5")]
+    impl FromXml for Occurrences {
+        fn read_xml_element<R: std::io::Read>(
+            event_reader: &mut xml::EventReader<R>,
+            element_name: &xml::name::OwnedName,
+            _attributes: &[xml::attribute::OwnedAttribute],
+        ) -> Result<Self, crate::errors::XmlReadError>
+        where
+            Self: Sized,
+        {
+            read_list_tag(event_reader, element_name, OCCURRENCE_TAG).map(Occurrences)
+        }
+    }
+
+    #[versioned("1.5")]
     impl From<Occurrences> for models::component::Occurrences {
         fn from(other: Occurrences) -> Self {
             Self(convert_vec(other.0))
@@ -1053,6 +1102,70 @@ pub(crate) mod base {
                 bom_ref: other.bom_ref.map(|s| s.0),
                 location: other.location,
             }
+        }
+    }
+
+    const LOCATION_TAG: &str = "location";
+
+    #[versioned("1.5")]
+    impl ToXml for Occurrence {
+        fn write_xml_element<W: std::io::Write>(
+            &self,
+            writer: &mut xml::EventWriter<W>,
+        ) -> Result<(), crate::errors::XmlWriteError> {
+            let mut start_tag = XmlEvent::start_element(OCCURRENCE_TAG);
+
+            if let Some(bom_ref) = &self.bom_ref {
+                start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
+            }
+
+            writer
+                .write(start_tag)
+                .map_err(to_xml_write_error(OCCURRENCE_TAG))?;
+
+            write_simple_tag(writer, LOCATION_TAG, &self.location)?;
+
+            write_close_tag(writer, OCCURRENCE_TAG)?;
+
+            Ok(())
+        }
+    }
+
+    #[versioned("1.5")]
+    impl FromXml for Occurrence {
+        fn read_xml_element<R: std::io::Read>(
+            event_reader: &mut xml::EventReader<R>,
+            element_name: &xml::name::OwnedName,
+            attributes: &[xml::attribute::OwnedAttribute],
+        ) -> Result<Self, crate::errors::XmlReadError>
+        where
+            Self: Sized,
+        {
+            let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+            let mut location: Option<String> = None;
+
+            let mut got_end_tag = false;
+            while !got_end_tag {
+                let next_element = event_reader
+                    .next()
+                    .map_err(to_xml_read_error(EVIDENCE_TAG))?;
+                match next_element {
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == LOCATION_TAG =>
+                    {
+                        location = Some(read_simple_tag(event_reader, &name)?);
+                    }
+                    reader::XmlEvent::EndElement { name } if &name == element_name => {
+                        got_end_tag = true;
+                    }
+                    unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+                }
+            }
+
+            let location = location
+                .ok_or_else(|| XmlReadError::required_data_missing(LOCATION_TAG, &element_name))?;
+
+            Ok(Self { bom_ref, location })
         }
     }
 
@@ -1810,6 +1923,41 @@ pub(crate) mod base {
 
         fn corresponding_copyright() -> models::component::Copyright {
             models::component::Copyright("copyright".to_string())
+        }
+
+        // TODO: add other serialization methods
+        #[versioned("1.5")]
+        #[test]
+        fn it_should_read_xml_occurrences() {
+            let input = r#"
+<occurrences>
+  <occurrence bom-ref="d6bf237e-4e11-4713-9f62-56d18d5e2079">
+    <location>/path/to/component</location>
+  </occurrence>
+  <occurrence bom-ref="b574d5d1-e3cf-4dcd-9ba5-f3507eb1b175">
+    <location>/another/path/to/component</location>
+  </occurrence>
+</occurrences>
+"#;
+            let actual: Occurrences = read_element_from_string(input);
+            let expected = Occurrences(vec![
+                Occurrence {
+                    bom_ref: Some("d6bf237e-4e11-4713-9f62-56d18d5e2079".to_string()),
+                    location: "/path/to/component".to_string(),
+                },
+                Occurrence {
+                    bom_ref: Some("b574d5d1-e3cf-4dcd-9ba5-f3507eb1b175".to_string()),
+                    location: "/another/path/to/component".to_string(),
+                },
+            ]);
+            assert_eq!(actual, expected);
+        }
+
+        #[versioned("1.5")]
+        #[test]
+        fn it_should_write_xml_occurrences() {
+            let xml_output = write_element_to_string(example_occurrences());
+            insta::assert_snapshot!(xml_output);
         }
 
         #[test]
