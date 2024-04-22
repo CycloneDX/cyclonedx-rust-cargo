@@ -22,15 +22,14 @@ use xml::reader;
 use crate::{
     errors::XmlReadError,
     models,
-    utilities::{convert_optional, convert_optional_vec, convert_vec, try_convert_optional},
+    specs::common::bom_reference::BomReference,
+    utilities::{convert_optional, convert_optional_vec, convert_vec},
     xml::{
         optional_attribute, read_lax_validation_list_tag, read_list_tag, read_simple_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, write_close_tag,
         write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
     },
 };
-
-use super::tool::Tools;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -308,7 +307,7 @@ pub(crate) struct Identity {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) methods: Option<Methods>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) tools: Option<Tools>,
+    pub(crate) tools: Option<Vec<BomReference>>,
 }
 
 impl From<Identity> for models::component::Identity {
@@ -319,7 +318,7 @@ impl From<Identity> for models::component::Identity {
                 .confidence
                 .map(models::component::ConfidenceScore::new),
             methods: convert_optional(other.methods),
-            tools: convert_optional(other.tools),
+            tools: convert_optional_vec(other.tools),
         }
     }
 }
@@ -330,8 +329,103 @@ impl From<models::component::Identity> for Identity {
             field: other.field,
             confidence: other.confidence.map(|s| s.get()),
             methods: convert_optional(other.methods),
-            tools: try_convert_optional(other.tools).expect("Failed to convert"),
+            tools: convert_optional_vec(other.tools),
         }
+    }
+}
+
+const IDENTITY_TAG: &str = "identity";
+const FIELD_TAG: &str = "field";
+const CONFIDENCE_TAG: &str = "confidence";
+const METHODS_TAG: &str = "methods";
+const METHOD_TAG: &str = "methods";
+const TECHNIQUE_TAG: &str = "technique";
+const VALUE_TAG: &str = "value";
+const TOOLS_TAG: &str = "tools";
+const TOOL_TAG: &str = "tool";
+const REF_ATTR: &str = "ref";
+
+impl ToXml for Identity {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, IDENTITY_TAG)?;
+
+        write_simple_tag(writer, FIELD_TAG, &self.field)?;
+
+        if let Some(confidence) = self.confidence {
+            write_simple_tag(writer, CONFIDENCE_TAG, confidence.to_string().as_str())?;
+        }
+
+        if let Some(methods) = &self.methods {
+            methods.write_xml_element(writer)?;
+        }
+
+        if let Some(tool_refs) = &self.tools {
+            write_start_tag(writer, TOOLS_TAG)?;
+
+            for tool_ref in tool_refs {
+                let start_tag = xml::writer::XmlEvent::start_element(TOOL_TAG)
+                    .attr(REF_ATTR, tool_ref.as_ref());
+
+                writer
+                    .write(start_tag)
+                    .map_err(to_xml_write_error(TOOL_TAG))?;
+
+                write_close_tag(writer, TOOL_TAG)?;
+            }
+
+            write_close_tag(writer, TOOLS_TAG)?;
+        }
+
+        write_close_tag(writer, IDENTITY_TAG)?;
+
+        Ok(())
+    }
+}
+
+impl FromXml for Identity {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut field: Option<String> = None;
+        let mut confidence: Option<f32> = None;
+        let mut methods: Option<Methods> = None;
+        let mut tools: Option<Vec<BomReference>> = None;
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(OCCURRENCE_TAG))?;
+
+            match next_element {
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == FIELD_TAG => {
+                    field = Some(read_simple_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                _ => (),
+            }
+        }
+
+        let field =
+            field.ok_or_else(|| XmlReadError::required_data_missing(FIELD_TAG, &element_name))?;
+
+        Ok(Self {
+            field,
+            confidence,
+            methods,
+            tools,
+        })
     }
 }
 
@@ -348,6 +442,33 @@ impl From<Methods> for models::component::Methods {
 impl From<models::component::Methods> for Methods {
     fn from(other: models::component::Methods) -> Self {
         Self(convert_vec(other.0))
+    }
+}
+
+impl ToInnerXml for Methods {
+    fn write_xml_named_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+        tag: &str,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, tag)?;
+
+        for method in &self.0 {
+            method.write_xml_element(writer)?;
+        }
+
+        write_close_tag(writer, tag)?;
+
+        Ok(())
+    }
+}
+
+impl ToXml for Methods {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        self.write_xml_named_element(writer, METHODS_TAG)
     }
 }
 
@@ -377,6 +498,27 @@ impl From<models::component::Method> for Method {
             confidence: other.confidence.get(),
             value: convert_optional(other.value),
         }
+    }
+}
+
+impl ToXml for Method {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, METHOD_TAG)?;
+
+        write_simple_tag(writer, TECHNIQUE_TAG, &self.technique)?;
+
+        write_simple_tag(writer, CONFIDENCE_TAG, self.confidence.to_string().as_str())?;
+
+        if let Some(value) = &self.value {
+            write_simple_tag(writer, VALUE_TAG, value)?;
+        }
+
+        write_close_tag(writer, METHODS_TAG)?;
+
+        Ok(())
     }
 }
 
@@ -434,7 +576,7 @@ pub(crate) mod test {
                 confidence: 0.8,
                 value: Some("identity-value".to_string()),
             }])),
-            tools: None,
+            tools: Some(vec![BomReference::new("identity-tool-ref")]),
         }
     }
 
@@ -539,6 +681,45 @@ pub(crate) mod test {
                 full_filename: Some("/path/to/HelloWorld.class".to_string()),
             },
         ]));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_write_xml_identity() {
+        let xml_output = write_element_to_string(example_identity());
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_identity() {
+        let input = r#"
+<identity>
+  <field>purl</field>
+  <confidence>1</confidence>
+  <methods>
+    <method>
+      <technique>filename</technique>
+      <confidence>0.1</confidence>
+      <value>findbugs-project-3.0.0.jar</value>
+    </method>
+  </methods>
+  <tools>
+    <tool ref="bom-ref-of-tool-that-performed-analysis"/>
+  </tools>
+</identity>"#;
+        let actual: Identity = read_element_from_string(input);
+        let expected = Identity {
+            field: "purl".to_string(),
+            confidence: Some(1.0),
+            methods: Some(Methods(vec![Method {
+                technique: "filename".to_string(),
+                confidence: 0.1,
+                value: Some("findbugs-project-3.0.0.jar".to_string()),
+            }])),
+            tools: Some(vec![BomReference::new(
+                "bom-ref-of-tool-that-performed-analysis",
+            )]),
+        };
         assert_eq!(actual, expected);
     }
 }

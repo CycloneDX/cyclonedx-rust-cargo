@@ -41,6 +41,13 @@ impl BomReference {
     }
 }
 
+#[allow(unused)]
+impl AsRef<str> for BomReference {
+    fn as_ref(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
 impl From<models::bom::BomReference> for BomReference {
     fn from(other: models::bom::BomReference) -> Self {
         Self(other.0)

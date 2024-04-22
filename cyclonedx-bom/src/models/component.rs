@@ -23,6 +23,7 @@ use regex::Regex;
 use crate::external_models::normalized_string::validate_normalized_string;
 use crate::external_models::uri::{validate_purl, validate_uri as validate_url};
 use crate::models::attached_text::AttachedText;
+use crate::models::bom::BomReference;
 use crate::models::code::{Commits, Patches};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::hash::Hashes;
@@ -38,10 +39,9 @@ use crate::{
     validation::{Validate, ValidationContext, ValidationResult},
 };
 
-use super::bom::{validate_bom_ref, BomReference, SpecVersion};
+use super::bom::{validate_bom_ref, SpecVersion};
 use super::modelcard::ModelCard;
 use super::signature::Signature;
-use super::tool::Tools;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Component {
@@ -413,7 +413,7 @@ pub struct Identity {
     /// Level between 0.0-1.0 (where 1.0 is highest confidence)
     pub confidence: Option<ConfidenceScore>,
     pub methods: Option<Methods>,
-    pub tools: Option<Tools>,
+    pub tools: Option<Vec<BomReference>>,
 }
 
 /// For more information see

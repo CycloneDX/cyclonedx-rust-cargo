@@ -947,6 +947,11 @@ pub(crate) mod base {
         }
     }
 
+    #[versioned("1.5")]
+    const OCCURRENCES_TAG: &str = "occurrences";
+    #[versioned("1.5")]
+    const CALLSTACK_TAG: &str = "callstack";
+
     impl FromXml for ComponentEvidence {
         fn read_xml_element<R: std::io::Read>(
             event_reader: &mut xml::EventReader<R>,
