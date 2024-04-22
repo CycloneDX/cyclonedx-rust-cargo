@@ -170,14 +170,16 @@ expression: actual
             "location": "location-1"
           }
         ],
-        "callstack": {
-          "package": "package-1",
-          "module": "module-1",
-          "function": "function",
-          "line": 10,
-          "column": 20,
-          "fullFilename": "full-filename"
-        },
+        "callstack": [
+          {
+            "package": "package-1",
+            "module": "module-1",
+            "function": "function",
+            "line": 10,
+            "column": 20,
+            "fullFilename": "full-filename"
+          }
+        ],
         "identity": {
           "field": "field",
           "confidence": 0.5,
@@ -447,14 +449,16 @@ expression: actual
             "location": "location-1"
           }
         ],
-        "callstack": {
-          "package": "package-1",
-          "module": "module-1",
-          "function": "function",
-          "line": 10,
-          "column": 20,
-          "fullFilename": "full-filename"
-        },
+        "callstack": [
+          {
+            "package": "package-1",
+            "module": "module-1",
+            "function": "function",
+            "line": 10,
+            "column": 20,
+            "fullFilename": "full-filename"
+          }
+        ],
         "identity": {
           "field": "field",
           "confidence": 0.5,

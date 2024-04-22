@@ -1521,6 +1521,13 @@ pub(crate) mod base {
         <copyright>
           <text><![CDATA[copyright]]></text>
         </copyright>
+        <occurrences>
+          <occurrence bom-ref="occurrence-1">
+            <location>location-1</location>
+          </occurrence>
+        </occurrences>
+        <callstack>
+        </callstack>
       </evidence>
       <signature>
         <algorithm>HS512</algorithm>

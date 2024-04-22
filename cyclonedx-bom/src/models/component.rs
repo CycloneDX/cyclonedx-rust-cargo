@@ -370,11 +370,17 @@ impl Validate for Occurrence {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Callstack(pub Frames);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Frames(pub Vec<Frame>);
+
 /// For more information see
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_callstack
 /// Added in version 1.5
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Callstack {
+pub struct Frame {
     pub package: Option<String>,
     pub module: String,
     pub function: Option<String>,
@@ -571,7 +577,7 @@ mod test {
                     bom_ref: None,
                     location: "location".to_string(),
                 }])),
-                callstack: Some(Callstack {
+                callstack: Some(Callstack(Frames(vec![Frame {
                     package: Some("package".to_string()),
                     module: "module".to_string(),
                     function: Some("function".to_string()),
@@ -579,7 +585,7 @@ mod test {
                     line: Some(10),
                     column: Some(20),
                     full_filename: Some("full_filename".to_string()),
-                }),
+                }]))),
                 identity: Some(Identity {
                     field: "component field".to_string(),
                     confidence: Some(ConfidenceScore::new(0.8)),

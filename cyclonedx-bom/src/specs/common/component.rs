@@ -917,6 +917,7 @@ pub(crate) mod base {
     }
 
     const EVIDENCE_TAG: &str = "evidence";
+    const CALLSTACK_TAG: &str = "callstack";
 
     impl ToXml for ComponentEvidence {
         fn write_xml_element<W: std::io::Write>(
@@ -978,7 +979,7 @@ pub(crate) mod base {
                             event_reader,
                             &name,
                             &attributes,
-                        )?)
+                        )?);
                     }
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
@@ -987,12 +988,35 @@ pub(crate) mod base {
                             event_reader,
                             &name,
                             &attributes,
-                        )?)
+                        )?);
                     }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == OCCURRENCES_TAG => {
+                        occurrences = Some(Occurrences::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == CALLSTACK_TAG => {
+                        callstack = Some(Callstack::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
                     reader::XmlEvent::EndElement { name } if &name == element_name => {
                         got_end_tag = true;
                     }
-                    unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+                    // unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+                    _ => (),
                 }
             }
 
@@ -1172,7 +1196,66 @@ pub(crate) mod base {
     #[versioned("1.5")]
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
-    pub(crate) struct Callstack {
+    pub(crate) struct Callstack(pub Frames);
+
+    #[versioned("1.5")]
+    impl From<Callstack> for models::component::Callstack {
+        fn from(other: Callstack) -> Self {
+            Self(other.0.into())
+        }
+    }
+
+    #[versioned("1.5")]
+    impl From<models::component::Callstack> for Callstack {
+        fn from(other: models::component::Callstack) -> Self {
+            Self(other.0.into())
+        }
+    }
+
+    #[versioned("1.5")]
+    const FRAMES_TAG: &str = "frames";
+    #[versioned("1.5")]
+    const FRAME_TAG: &str = "frame";
+
+    #[versioned("1.5")]
+    impl FromXml for Callstack {
+        fn read_xml_element<R: std::io::Read>(
+            event_reader: &mut xml::EventReader<R>,
+            element_name: &xml::name::OwnedName,
+            _attributes: &[xml::attribute::OwnedAttribute],
+        ) -> Result<Self, crate::errors::XmlReadError>
+        where
+            Self: Sized,
+        {
+            let frames =
+                read_lax_validation_list_tag(event_reader, element_name, FRAMES_TAG).map(Frames)?;
+            Ok(Self(frames))
+        }
+    }
+
+    #[versioned("1.5")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Frames(pub Vec<Frame>);
+
+    #[versioned("1.5")]
+    impl From<Frames> for models::component::Frames {
+        fn from(other: Frames) -> Self {
+            Self(convert_vec(other.0))
+        }
+    }
+
+    #[versioned("1.5")]
+    impl From<models::component::Frames> for Frames {
+        fn from(other: models::component::Frames) -> Self {
+            Self(convert_vec(other.0))
+        }
+    }
+
+    #[versioned("1.5")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Frame {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) package: Option<String>,
         pub(crate) module: String,
@@ -1189,8 +1272,8 @@ pub(crate) mod base {
     }
 
     #[versioned("1.5")]
-    impl From<Callstack> for models::component::Callstack {
-        fn from(other: Callstack) -> Self {
+    impl From<Frame> for models::component::Frame {
+        fn from(other: Frame) -> Self {
             Self {
                 package: convert_optional(other.package),
                 module: other.module,
@@ -1204,8 +1287,8 @@ pub(crate) mod base {
     }
 
     #[versioned("1.5")]
-    impl From<models::component::Callstack> for Callstack {
-        fn from(other: models::component::Callstack) -> Self {
+    impl From<models::component::Frame> for Frame {
+        fn from(other: models::component::Frame) -> Self {
             Self {
                 package: convert_optional(other.package),
                 module: other.module,
@@ -1215,6 +1298,32 @@ pub(crate) mod base {
                 column: convert_optional(other.column),
                 full_filename: convert_optional(other.full_filename),
             }
+        }
+    }
+
+    #[versioned("1.5")]
+    impl FromXml for Frame {
+        fn read_xml_element<R: std::io::Read>(
+            event_reader: &mut xml::EventReader<R>,
+            element_name: &xml::name::OwnedName,
+            _attributes: &[xml::attribute::OwnedAttribute],
+        ) -> Result<Self, XmlReadError>
+        where
+            Self: Sized,
+        {
+            let mut got_end_tag = false;
+            while !got_end_tag {
+                let next_element = event_reader.next().map_err(to_xml_read_error(FRAME_TAG))?;
+
+                match next_element {
+                    reader::XmlEvent::EndElement { name } if &name == element_name => {
+                        got_end_tag = true;
+                    }
+                    _ => (),
+                }
+            }
+
+            todo!("")
         }
     }
 
@@ -1861,7 +1970,7 @@ pub(crate) mod base {
 
         #[versioned("1.5")]
         fn example_callstack() -> Callstack {
-            Callstack {
+            Callstack(Frames(vec![Frame {
                 package: Some("package-1".to_string()),
                 module: "module-1".to_string(),
                 function: Some("function".to_string()),
@@ -1869,20 +1978,22 @@ pub(crate) mod base {
                 line: Some(10),
                 column: Some(20),
                 full_filename: Some("full-filename".to_string()),
-            }
+            }]))
         }
 
         #[versioned("1.5")]
         fn corresponding_callstack() -> models::component::Callstack {
-            models::component::Callstack {
-                package: Some("package-1".to_string()),
-                module: "module-1".to_string(),
-                function: Some("function".to_string()),
-                parameters: None,
-                line: Some(10),
-                column: Some(20),
-                full_filename: Some("full-filename".to_string()),
-            }
+            models::component::Callstack(models::component::Frames(vec![
+                models::component::Frame {
+                    package: Some("package-1".to_string()),
+                    module: "module-1".to_string(),
+                    function: Some("function".to_string()),
+                    parameters: None,
+                    line: Some(10),
+                    column: Some(20),
+                    full_filename: Some("full-filename".to_string()),
+                },
+            ]))
         }
 
         #[versioned("1.5")]
@@ -1925,7 +2036,6 @@ pub(crate) mod base {
             models::component::Copyright("copyright".to_string())
         }
 
-        // TODO: add other serialization methods
         #[versioned("1.5")]
         #[test]
         fn it_should_read_xml_occurrences() {
@@ -1958,6 +2068,64 @@ pub(crate) mod base {
         fn it_should_write_xml_occurrences() {
             let xml_output = write_element_to_string(example_occurrences());
             insta::assert_snapshot!(xml_output);
+        }
+
+        #[versioned("1.5")]
+        #[test]
+        fn it_should_read_xml_callstack() {
+            let input = r#"
+<callstack>
+  <frames>
+    <frame>
+      <package>com.apache.logging.log4j.core</package>
+      <module>Logger.class</module>
+      <function>logMessage</function>
+      <parameters>
+        <parameter>com.acme.HelloWorld</parameter>
+        <parameter>Level.INFO</parameter>
+        <parameter>null</parameter>
+        <parameter>Hello World</parameter>
+      </parameters>
+      <line>150</line>
+      <column>17</column>
+      <fullFilename>full-filename.java</fullFilename>
+    </frame>
+    <frame>
+      <module>HelloWorld.class</module>
+      <function>main</function>
+      <line>20</line>
+      <column>12</column>
+      <fullFilename>/path/to/HelloWorld.class</fullFilename>
+    </frame>
+  </frames>
+</callstack>"#;
+            let actual: Callstack = read_element_from_string(input);
+            let expected = Callstack(Frames(vec![
+                Frame {
+                    package: Some("com.apache.logging.log4j.core".to_string()),
+                    module: "Logger.class".to_string(),
+                    function: Some("logMessage".to_string()),
+                    parameters: Some(vec![
+                        "com.acme.HelloWorld".to_string(),
+                        "Level.INFO".to_string(),
+                        "null".to_string(),
+                        "Hello World".to_string(),
+                    ]),
+                    line: Some(150),
+                    column: Some(17),
+                    full_filename: Some("full-filename.java".to_string()),
+                },
+                Frame {
+                    package: None,
+                    module: "HelloWorld.class".to_string(),
+                    function: None,
+                    parameters: None,
+                    line: Some(20),
+                    column: Some(12),
+                    full_filename: Some("/path/to/HelloWorld.class".to_string()),
+                },
+            ]));
+            assert_eq!(actual, expected);
         }
 
         #[test]
