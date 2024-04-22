@@ -40,7 +40,7 @@ pub(crate) mod base {
             normalized_string::NormalizedString,
             uri::{Purl, Uri},
         },
-        models,
+        models::{self},
         specs::common::{
             attached_text::AttachedText,
             code::{Commits, Patches},
@@ -951,6 +951,8 @@ pub(crate) mod base {
     const OCCURRENCES_TAG: &str = "occurrences";
     #[versioned("1.5")]
     const CALLSTACK_TAG: &str = "callstack";
+    #[versioned("1.5")]
+    const IDENTITY_TAG: &str = "identity";
 
     impl FromXml for ComponentEvidence {
         fn read_xml_element<R: std::io::Read>(
@@ -1010,6 +1012,17 @@ pub(crate) mod base {
                         name, attributes, ..
                     } if name.local_name == CALLSTACK_TAG => {
                         callstack = Some(Callstack::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == IDENTITY_TAG => {
+                        identity = Some(Identity::read_xml_element(
                             event_reader,
                             &name,
                             &attributes,
@@ -1903,6 +1916,37 @@ pub(crate) mod base {
       <copyright>
         <text><![CDATA[copyright]]></text>
       </copyright>
+      <occurrences>
+        <occurrence bom-ref="occurrence-1">
+          <location>location-1</location>
+        </occurrence>
+      </occurrences>
+      <callstack>
+        <frame>
+          <frame>
+            <package>package-1</package>
+            <module>module-1</module>
+            <function>function</function>
+            <line>10</line>
+            <column>20</column>
+            <fullFilename>full-filename</fullFilename>
+          </frame>
+        </frame>
+      </callstack>
+      <identity>
+        <field>field</field>
+        <confidence>0.5</confidence>
+        <methods>
+          <method>
+            <technique>technique-1</technique>
+            <confidence>0.8</confidence>
+            <value>identity-value</value>
+          </method>
+        </methods>
+        <tools>
+          <tool ref="tool-ref-1" />
+        </tools>
+      </identity>
     </evidence>
     <signature>
       <algorithm>HS512</algorithm>

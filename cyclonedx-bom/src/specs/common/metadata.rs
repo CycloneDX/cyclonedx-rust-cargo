@@ -804,6 +804,37 @@ pub(crate) mod base {
       <copyright>
         <text><![CDATA[copyright]]></text>
       </copyright>
+      <occurrences>
+        <occurrence bom-ref="occurrence-1">
+          <location>location-1</location>
+        </occurrence>
+      </occurrences>
+      <callstack>
+        <frame>
+          <frame>
+            <package>package-1</package>
+            <module>module-1</module>
+            <function>function</function>
+            <line>10</line>
+            <column>20</column>
+            <fullFilename>full-filename</fullFilename>
+          </frame>
+        </frame>
+      </callstack>
+      <identity>
+        <field>field</field>
+        <confidence>0.5</confidence>
+        <methods>
+          <method>
+            <technique>technique-1</technique>
+            <confidence>0.8</confidence>
+            <value>identity-value</value>
+          </method>
+        </methods>
+        <tools>
+          <tool ref="tool-ref-1" />
+        </tools>
+      </identity>
     </evidence>
     <signature>
       <algorithm>HS512</algorithm>

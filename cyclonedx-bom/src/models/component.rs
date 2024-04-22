@@ -371,7 +371,15 @@ impl Validate for Occurrence {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Callstack(pub Frames);
+pub struct Callstack {
+    pub frames: Frames,
+}
+
+impl Callstack {
+    pub fn new(frames: Frames) -> Self {
+        Self { frames }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Frames(pub Vec<Frame>);
@@ -413,7 +421,7 @@ pub struct Identity {
     /// Level between 0.0-1.0 (where 1.0 is highest confidence)
     pub confidence: Option<ConfidenceScore>,
     pub methods: Option<Methods>,
-    pub tools: Option<Vec<BomReference>>,
+    pub tools: Option<ToolsReferences>,
 }
 
 /// For more information see
@@ -427,6 +435,9 @@ pub struct Method {
     pub confidence: ConfidenceScore,
     pub value: Option<String>,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ToolsReferences(pub Vec<String>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Pedigree {
@@ -577,7 +588,7 @@ mod test {
                     bom_ref: None,
                     location: "location".to_string(),
                 }])),
-                callstack: Some(Callstack(Frames(vec![Frame {
+                callstack: Some(Callstack::new(Frames(vec![Frame {
                     package: Some("package".to_string()),
                     module: "module".to_string(),
                     function: Some("function".to_string()),

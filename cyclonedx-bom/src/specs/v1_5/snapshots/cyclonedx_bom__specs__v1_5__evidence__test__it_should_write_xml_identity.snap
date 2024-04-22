@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/v1_5/evidence.rs
-assertion_line: 690
+assertion_line: 1100
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -8,13 +8,13 @@ expression: xml_output
   <field>field</field>
   <confidence>0.5</confidence>
   <methods>
-    <methods>
+    <method>
       <technique>technique-1</technique>
       <confidence>0.8</confidence>
       <value>identity-value</value>
-    </methods>
+    </method>
   </methods>
   <tools>
-    <tool ref="identity-tool-ref" />
+    <tool ref="tool-ref-1" />
   </tools>
 </identity>
