@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
+assertion_line: 612
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -328,9 +329,6 @@ expression: xml_output
       </signature>
     </composition>
   </compositions>
-  <properties>
-    <property name="name">value</property>
-  </properties>
   <vulnerabilities>
     <vulnerability bom-ref="bom-ref">
       <id>id</id>

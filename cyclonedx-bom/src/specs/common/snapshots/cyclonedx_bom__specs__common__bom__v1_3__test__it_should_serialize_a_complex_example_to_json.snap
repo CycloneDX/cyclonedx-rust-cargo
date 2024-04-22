@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
+assertion_line: 606
 expression: actual
 ---
 {
@@ -429,12 +430,6 @@ expression: actual
       "dependencies": [
         "dependency"
       ]
-    }
-  ],
-  "properties": [
-    {
-      "name": "name",
-      "value": "value"
     }
   ]
 }

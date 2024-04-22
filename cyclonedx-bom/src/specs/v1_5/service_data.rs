@@ -291,6 +291,7 @@ pub(crate) mod test {
             governance: Some(DataGovernance {
                 owners: Some(vec![DataGovernanceResponsibleParty::Organization(
                     OrganizationalEntity {
+                        bom_ref: None,
                         name: Some("Customer Name".to_string()),
                         url: None,
                         contact: None,

@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
+assertion_line: 606
 expression: actual
 ---
 {
@@ -445,12 +446,6 @@ expression: actual
         "algorithm": "HS512",
         "value": "1234567890"
       }
-    }
-  ],
-  "properties": [
-    {
-      "name": "name",
-      "value": "value"
     }
   ],
   "vulnerabilities": [
