@@ -17,6 +17,7 @@
  */
 
 use once_cell::sync::Lazy;
+use ordered_float::OrderedFloat;
 use regex::Regex;
 
 use crate::external_models::normalized_string::validate_normalized_string;
@@ -37,9 +38,10 @@ use crate::{
     validation::{Validate, ValidationContext, ValidationResult},
 };
 
-use super::bom::SpecVersion;
+use super::bom::{validate_bom_ref, BomReference, SpecVersion};
 use super::modelcard::ModelCard;
 use super::signature::Signature;
+use super::tool::Tools;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Component {
@@ -319,6 +321,12 @@ pub struct Cpe(pub(crate) String);
 pub struct ComponentEvidence {
     pub licenses: Option<Licenses>,
     pub copyright: Option<CopyrightTexts>,
+    /// Added in version 1.5
+    pub occurrences: Option<Occurrences>,
+    /// Added in version 1.5
+    pub callstack: Option<Callstack>,
+    /// Added in version 1.5
+    pub identity: Option<Identity>,
 }
 
 impl Validate for ComponentEvidence {
@@ -326,8 +334,92 @@ impl Validate for ComponentEvidence {
         ValidationContext::new()
             .add_struct_option("licenses", self.licenses.as_ref(), version)
             .add_struct_option("copyright", self.copyright.as_ref(), version)
+            // TODO: validate other fields
             .into()
     }
+}
+
+/// For more details see
+/// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_occurrences
+/// Added in version 1.5
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Occurrences(pub Vec<Occurrence>);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Occurrence {
+    pub bom_ref: Option<BomReference>,
+    pub location: String,
+}
+
+impl Occurrence {
+    pub fn new(location: &str) -> Self {
+        Self {
+            bom_ref: None,
+            location: location.to_string(),
+        }
+    }
+}
+
+impl Validate for Occurrence {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("bom-ref", self.bom_ref.as_ref(), |bom_ref| {
+                validate_bom_ref(bom_ref, version)
+            })
+            .into()
+    }
+}
+
+/// For more information see
+/// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_callstack
+/// Added in version 1.5
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Callstack {
+    pub package: Option<String>,
+    pub module: String,
+    pub function: Option<String>,
+    pub parameters: Option<Vec<String>>,
+    pub line: Option<u32>,
+    pub column: Option<u32>,
+    pub full_filename: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ConfidenceScore(pub OrderedFloat<f32>);
+
+impl ConfidenceScore {
+    pub fn new(value: f32) -> Self {
+        Self(OrderedFloat(value))
+    }
+
+    pub fn get(&self) -> f32 {
+        self.0 .0
+    }
+}
+
+/// For more information see
+/// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_identity
+/// Added in version 1.5
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Identity {
+    /// TODO: replace with enum?
+    pub field: String,
+    /// Level between 0.0-1.0 (where 1.0 is highest confidence)
+    pub confidence: Option<ConfidenceScore>,
+    pub methods: Option<Methods>,
+    pub tools: Option<Tools>,
+}
+
+/// For more information see
+/// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_identity_methods
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Methods(pub Vec<Method>);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Method {
+    pub technique: String,
+    pub confidence: ConfidenceScore,
+    pub value: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -475,6 +567,29 @@ mod test {
                     "MIT".to_string(),
                 ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
+                occurrences: Some(Occurrences(vec![Occurrence {
+                    bom_ref: None,
+                    location: "location".to_string(),
+                }])),
+                callstack: Some(Callstack {
+                    package: Some("package".to_string()),
+                    module: "module".to_string(),
+                    function: Some("function".to_string()),
+                    parameters: None,
+                    line: Some(10),
+                    column: Some(20),
+                    full_filename: Some("full_filename".to_string()),
+                }),
+                identity: Some(Identity {
+                    field: "component field".to_string(),
+                    confidence: Some(ConfidenceScore::new(0.8)),
+                    methods: Some(Methods(vec![Method {
+                        technique: "technique".to_string(),
+                        confidence: ConfidenceScore::new(0.5),
+                        value: Some("help".to_string()),
+                    }])),
+                    tools: None,
+                }),
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: Some(ModelCard {
@@ -637,6 +752,9 @@ mod test {
                     "invalid license".to_string(),
                 ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
+                occurrences: None,
+                callstack: None,
+                identity: None,
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: None,

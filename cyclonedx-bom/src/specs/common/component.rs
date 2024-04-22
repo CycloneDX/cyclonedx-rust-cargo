@@ -25,10 +25,13 @@ pub(crate) mod base {
 
     #[versioned("1.4")]
     use crate::specs::v1_4::external_reference::ExternalReferences;
-    #[versioned("1.5")]
-    use crate::specs::v1_5::{external_reference::ExternalReferences, modelcard::ModelCard};
     #[versioned("1.3")]
     use crate::{models::bom::SpecVersion, specs::v1_3::external_reference::ExternalReferences};
+    #[versioned("1.5")]
+    use crate::{
+        specs::v1_5::{external_reference::ExternalReferences, modelcard::ModelCard, tool::Tools},
+        utilities::convert_optional_vec,
+    };
 
     use crate::{
         errors::{BomError, XmlReadError},
@@ -70,7 +73,7 @@ pub(crate) mod base {
 
     impl From<Components> for models::component::Components {
         fn from(other: Components) -> Self {
-            models::component::Components(convert_vec(other.0))
+            Self(convert_vec(other.0))
         }
     }
 
@@ -865,6 +868,15 @@ pub(crate) mod base {
         licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
         copyright: Option<CopyrightTexts>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        occurrences: Option<Occurrences>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        callstack: Option<Callstack>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        identity: Option<Identity>,
     }
 
     impl From<models::component::ComponentEvidence> for ComponentEvidence {
@@ -872,6 +884,12 @@ pub(crate) mod base {
             Self {
                 licenses: convert_optional(other.licenses),
                 copyright: convert_optional(other.copyright),
+                #[versioned("1.5")]
+                occurrences: convert_optional(other.occurrences),
+                #[versioned("1.5")]
+                callstack: convert_optional(other.callstack),
+                #[versioned("1.5")]
+                identity: convert_optional(other.identity),
             }
         }
     }
@@ -881,6 +899,18 @@ pub(crate) mod base {
             Self {
                 licenses: convert_optional(other.licenses),
                 copyright: convert_optional(other.copyright),
+                #[versioned("1.3", "1.4")]
+                occurrences: None,
+                #[versioned("1.5")]
+                occurrences: convert_optional(other.occurrences),
+                #[versioned("1.3", "1.4")]
+                callstack: None,
+                #[versioned("1.5")]
+                callstack: convert_optional(other.callstack),
+                #[versioned("1.3", "1.4")]
+                identity: None,
+                #[versioned("1.5")]
+                identity: convert_optional(other.identity),
             }
         }
     }
@@ -927,6 +957,12 @@ pub(crate) mod base {
         {
             let mut licenses: Option<Licenses> = None;
             let mut copyright: Option<CopyrightTexts> = None;
+            #[versioned("1.5")]
+            let mut occurrences: Option<Occurrences> = None;
+            #[versioned("1.5")]
+            let mut callstack: Option<Callstack> = None;
+            #[versioned("1.5")]
+            let mut identity: Option<Identity> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -962,7 +998,200 @@ pub(crate) mod base {
             Ok(Self {
                 licenses,
                 copyright,
+                #[versioned("1.5")]
+                occurrences,
+                #[versioned("1.5")]
+                callstack,
+                #[versioned("1.5")]
+                identity,
             })
+        }
+    }
+
+    #[versioned("1.5")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Occurrences(Vec<Occurrence>);
+
+    #[versioned("1.5")]
+    impl From<Occurrences> for models::component::Occurrences {
+        fn from(other: Occurrences) -> Self {
+            Self(convert_vec(other.0))
+        }
+    }
+
+    #[versioned("1.5")]
+    impl From<models::component::Occurrences> for Occurrences {
+        fn from(other: models::component::Occurrences) -> Self {
+            Self(convert_vec(other.0))
+        }
+    }
+
+    #[versioned("1.5")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Occurrence {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub bom_ref: Option<String>,
+        pub location: String,
+    }
+
+    #[versioned("1.5")]
+    impl From<Occurrence> for models::component::Occurrence {
+        fn from(other: Occurrence) -> Self {
+            Self {
+                bom_ref: other.bom_ref.map(crate::models::bom::BomReference::new),
+                location: other.location,
+            }
+        }
+    }
+
+    #[versioned("1.5")]
+    impl From<models::component::Occurrence> for Occurrence {
+        fn from(other: models::component::Occurrence) -> Self {
+            Self {
+                bom_ref: other.bom_ref.map(|s| s.0),
+                location: other.location,
+            }
+        }
+    }
+
+    #[versioned("1.5")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Callstack {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) package: Option<String>,
+        pub(crate) module: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) function: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) parameters: Option<Vec<String>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) line: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) column: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) full_filename: Option<String>,
+    }
+
+    #[versioned("1.5")]
+    impl From<Callstack> for models::component::Callstack {
+        fn from(other: Callstack) -> Self {
+            Self {
+                package: convert_optional(other.package),
+                module: other.module,
+                function: convert_optional(other.function),
+                parameters: convert_optional_vec(other.parameters),
+                line: convert_optional(other.line),
+                column: convert_optional(other.column),
+                full_filename: convert_optional(other.full_filename),
+            }
+        }
+    }
+
+    #[versioned("1.5")]
+    impl From<models::component::Callstack> for Callstack {
+        fn from(other: models::component::Callstack) -> Self {
+            Self {
+                package: convert_optional(other.package),
+                module: other.module,
+                function: convert_optional(other.function),
+                parameters: convert_optional_vec(other.parameters),
+                line: convert_optional(other.line),
+                column: convert_optional(other.column),
+                full_filename: convert_optional(other.full_filename),
+            }
+        }
+    }
+
+    #[versioned("1.5")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Identity {
+        pub(crate) field: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) confidence: Option<f32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) methods: Option<Methods>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) tools: Option<Tools>,
+    }
+
+    #[versioned("1.5")]
+    impl From<Identity> for models::component::Identity {
+        fn from(other: Identity) -> Self {
+            Self {
+                field: other.field,
+                confidence: other
+                    .confidence
+                    .map(models::component::ConfidenceScore::new),
+                methods: convert_optional(other.methods),
+                tools: convert_optional(other.tools),
+            }
+        }
+    }
+
+    #[versioned("1.5")]
+    impl From<models::component::Identity> for Identity {
+        fn from(other: models::component::Identity) -> Self {
+            Self {
+                field: other.field,
+                confidence: other.confidence.map(|s| s.get()),
+                methods: convert_optional(other.methods),
+                tools: try_convert_optional(other.tools).expect("Failed to convert"),
+            }
+        }
+    }
+
+    #[versioned("1.5")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Methods(Vec<Method>);
+
+    #[versioned("1.5")]
+    impl From<Methods> for models::component::Methods {
+        fn from(other: Methods) -> Self {
+            Self(convert_vec(other.0))
+        }
+    }
+
+    #[versioned("1.5")]
+    impl From<models::component::Methods> for Methods {
+        fn from(other: models::component::Methods) -> Self {
+            Self(convert_vec(other.0))
+        }
+    }
+
+    #[versioned("1.5")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Method {
+        pub(crate) technique: String,
+        pub(crate) confidence: f32,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) value: Option<String>,
+    }
+
+    #[versioned("1.5")]
+    impl From<Method> for models::component::Method {
+        fn from(other: Method) -> Self {
+            Self {
+                technique: other.technique,
+                confidence: models::component::ConfidenceScore::new(other.confidence),
+                value: convert_optional(other.value),
+            }
+        }
+    }
+
+    #[versioned("1.5")]
+    impl From<models::component::Method> for Method {
+        fn from(other: models::component::Method) -> Self {
+            Self {
+                technique: other.technique,
+                confidence: other.confidence.get(),
+                value: convert_optional(other.value),
+            }
         }
     }
 
@@ -1452,6 +1681,7 @@ pub(crate) mod base {
             }
         }
 
+        #[versioned("1.3", "1.4")]
         fn example_evidence() -> ComponentEvidence {
             ComponentEvidence {
                 licenses: Some(example_licenses()),
@@ -1459,10 +1689,36 @@ pub(crate) mod base {
             }
         }
 
+        #[versioned("1.5")]
+        fn example_evidence() -> ComponentEvidence {
+            ComponentEvidence {
+                licenses: Some(example_licenses()),
+                copyright: Some(example_copyright_texts()),
+                occurrences: Some(example_occurrences()),
+                callstack: Some(example_callstack()),
+                identity: Some(example_identity()),
+            }
+        }
+
+        #[versioned("1.3", "1.4")]
         fn corresponding_evidence() -> models::component::ComponentEvidence {
             models::component::ComponentEvidence {
                 licenses: Some(corresponding_licenses()),
                 copyright: Some(corresponding_copyright_texts()),
+                occurrences: None,
+                callstack: None,
+                identity: None,
+            }
+        }
+
+        #[versioned("1.5")]
+        fn corresponding_evidence() -> models::component::ComponentEvidence {
+            models::component::ComponentEvidence {
+                licenses: Some(corresponding_licenses()),
+                copyright: Some(corresponding_copyright_texts()),
+                occurrences: Some(corresponding_occurrences()),
+                callstack: Some(corresponding_callstack()),
+                identity: Some(corresponding_identity()),
             }
         }
 
@@ -1472,6 +1728,78 @@ pub(crate) mod base {
 
         fn corresponding_copyright_texts() -> models::component::CopyrightTexts {
             models::component::CopyrightTexts(vec![corresponding_copyright()])
+        }
+
+        #[versioned("1.5")]
+        fn example_occurrences() -> Occurrences {
+            Occurrences(vec![Occurrence {
+                bom_ref: Some("occurrence-1".to_string()),
+                location: "location-1".to_string(),
+            }])
+        }
+
+        #[versioned("1.5")]
+        fn corresponding_occurrences() -> models::component::Occurrences {
+            models::component::Occurrences(vec![models::component::Occurrence {
+                bom_ref: Some(models::bom::BomReference::new("occurrence-1")),
+                location: "location-1".to_string(),
+            }])
+        }
+
+        #[versioned("1.5")]
+        fn example_callstack() -> Callstack {
+            Callstack {
+                package: Some("package-1".to_string()),
+                module: "module-1".to_string(),
+                function: Some("function".to_string()),
+                parameters: None,
+                line: Some(10),
+                column: Some(20),
+                full_filename: Some("full-filename".to_string()),
+            }
+        }
+
+        #[versioned("1.5")]
+        fn corresponding_callstack() -> models::component::Callstack {
+            models::component::Callstack {
+                package: Some("package-1".to_string()),
+                module: "module-1".to_string(),
+                function: Some("function".to_string()),
+                parameters: None,
+                line: Some(10),
+                column: Some(20),
+                full_filename: Some("full-filename".to_string()),
+            }
+        }
+
+        #[versioned("1.5")]
+        fn example_identity() -> Identity {
+            Identity {
+                field: "field".to_string(),
+                confidence: Some(0.5),
+                methods: Some(Methods(vec![Method {
+                    technique: "technique-1".to_string(),
+                    confidence: 0.8,
+                    value: Some("identity-value".to_string()),
+                }])),
+                tools: None,
+            }
+        }
+
+        #[versioned("1.5")]
+        fn corresponding_identity() -> models::component::Identity {
+            models::component::Identity {
+                field: "field".to_string(),
+                confidence: Some(models::component::ConfidenceScore::new(0.5)),
+                methods: Some(models::component::Methods(vec![
+                    models::component::Method {
+                        technique: "technique-1".to_string(),
+                        confidence: models::component::ConfidenceScore::new(0.8),
+                        value: Some("identity-value".to_string()),
+                    },
+                ])),
+                tools: None,
+            }
         }
 
         fn example_copyright() -> Copyright {
