@@ -548,10 +548,10 @@ mod test {
             external_references: None,
             dependencies: None,
             compositions: None,
-            properties: None,
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            properties: None,
         };
 
         let actual = bom.validate();

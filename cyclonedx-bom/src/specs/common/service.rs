@@ -892,6 +892,7 @@ pub(crate) mod base {
                     stewards: None,
                     owners: Some(vec![DataGovernanceResponsibleParty::Organization(
                         OrganizationalEntity {
+                            bom_ref: None,
                             name: Some("Organization 1".to_string()),
                             url: None,
                             contact: None,
@@ -930,6 +931,7 @@ pub(crate) mod base {
                     owners: Some(vec![
                         models::modelcard::DataGovernanceResponsibleParty::Organization(
                             models::organization::OrganizationalEntity {
+                                bom_ref: None,
                                 name: Some(NormalizedString::new_unchecked(
                                     "Organization 1".to_string(),
                                 )),

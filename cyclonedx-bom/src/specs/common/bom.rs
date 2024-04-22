@@ -24,20 +24,21 @@ pub(crate) mod base {
         component::Components, composition::Compositions, external_reference::ExternalReferences,
         metadata::Metadata, service::Services,
     };
+    #[versioned("1.5")]
+    use crate::specs::{
+        common::property::Properties,
+        common::signature::Signature,
+        v1_5::{
+            annotation::Annotations, component::Components, composition::Compositions,
+            external_reference::ExternalReferences, metadata::Metadata, service::Services,
+            vulnerability::Vulnerabilities,
+        },
+    };
     #[versioned("1.4")]
     use crate::specs::{
         common::signature::Signature,
         v1_4::{
             component::Components, composition::Compositions,
-            external_reference::ExternalReferences, metadata::Metadata, service::Services,
-            vulnerability::Vulnerabilities,
-        },
-    };
-    #[versioned("1.5")]
-    use crate::specs::{
-        common::signature::Signature,
-        v1_5::{
-            annotation::Annotations, component::Components, composition::Compositions,
             external_reference::ExternalReferences, metadata::Metadata, service::Services,
             vulnerability::Vulnerabilities,
         },
@@ -53,10 +54,7 @@ pub(crate) mod base {
         },
     };
 
-    use crate::{
-        specs::common::{dependency::Dependencies, property::Properties},
-        xml::ToXml,
-    };
+    use crate::{specs::common::dependency::Dependencies, xml::ToXml};
     use serde::{Deserialize, Serialize};
     use xml::{reader, writer::XmlEvent};
 
@@ -93,8 +91,6 @@ pub(crate) mod base {
         dependencies: Option<Dependencies>,
         #[serde(skip_serializing_if = "Option::is_none")]
         compositions: Option<Compositions>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        properties: Option<Properties>,
         #[versioned("1.4", "1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         vulnerabilities: Option<Vulnerabilities>,
@@ -104,6 +100,9 @@ pub(crate) mod base {
         #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         annotations: Option<Annotations>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        properties: Option<Properties>,
     }
 
     impl TryFrom<models::bom::Bom> for Bom {
@@ -121,13 +120,14 @@ pub(crate) mod base {
                 external_references: try_convert_optional(other.external_references)?,
                 dependencies: convert_optional(other.dependencies),
                 compositions: convert_optional(other.compositions),
-                properties: convert_optional(other.properties),
                 #[versioned("1.4", "1.5")]
                 vulnerabilities: try_convert_optional(other.vulnerabilities)?,
                 #[versioned("1.4", "1.5")]
                 signature: convert_optional(other.signature),
                 #[versioned("1.5")]
                 annotations: try_convert_optional(other.annotations)?,
+                #[versioned("1.5")]
+                properties: convert_optional(other.properties),
             })
         }
     }
@@ -143,7 +143,6 @@ pub(crate) mod base {
                 external_references: convert_optional(other.external_references),
                 dependencies: convert_optional(other.dependencies),
                 compositions: convert_optional(other.compositions),
-                properties: convert_optional(other.properties),
                 #[versioned("1.3")]
                 vulnerabilities: None,
                 #[versioned("1.4", "1.5")]
@@ -156,6 +155,10 @@ pub(crate) mod base {
                 annotations: None,
                 #[versioned("1.5")]
                 annotations: convert_optional(other.annotations),
+                #[versioned("1.3", "1.4")]
+                properties: None,
+                #[versioned("1.5")]
+                properties: convert_optional(other.properties),
             }
         }
     }
@@ -206,6 +209,7 @@ pub(crate) mod base {
                 compositions.write_xml_element(writer)?;
             }
 
+            #[versioned("1.5")]
             if let Some(properties) = &self.properties {
                 properties.write_xml_element(writer)?;
             }
@@ -229,13 +233,14 @@ pub(crate) mod base {
     const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
     const DEPENDENCIES_TAG: &str = "dependencies";
     const COMPOSITIONS_TAG: &str = "compositions";
-    const PROPERTIES_TAG: &str = "properties";
     #[versioned("1.4", "1.5")]
     const VULNERABILITIES_TAG: &str = "vulnerabilities";
     #[versioned("1.4", "1.5")]
     const SIGNATURE_TAG: &str = "signature";
     #[versioned("1.5")]
     const ANNOTATIONS_TAG: &str = "annotations";
+    #[versioned("1.5")]
+    const PROPERTIES_TAG: &str = "properties";
 
     impl FromXmlDocument for Bom {
         fn read_xml_document<R: std::io::Read>(
@@ -286,13 +291,14 @@ pub(crate) mod base {
             let mut external_references: Option<ExternalReferences> = None;
             let mut dependencies: Option<Dependencies> = None;
             let mut compositions: Option<Compositions> = None;
-            let mut properties: Option<Properties> = None;
             #[versioned("1.4", "1.5")]
             let mut vulnerabilities: Option<Vulnerabilities> = None;
             #[versioned("1.4", "1.5")]
             let mut signature: Option<Signature> = None;
             #[versioned("1.5")]
             let mut annotations: Option<Annotations> = None;
+            #[versioned("1.5")]
+            let mut properties: Option<Properties> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -352,15 +358,6 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    reader::XmlEvent::StartElement {
-                        name, attributes, ..
-                    } if name.local_name == PROPERTIES_TAG => {
-                        properties = Some(Properties::read_xml_element(
-                            event_reader,
-                            &name,
-                            &attributes,
-                        )?)
-                    }
                     #[versioned("1.4", "1.5")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
@@ -386,6 +383,16 @@ pub(crate) mod base {
                         name, attributes, ..
                     } if name.local_name == ANNOTATIONS_TAG => {
                         annotations = Some(Annotations::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == PROPERTIES_TAG => {
+                        properties = Some(Properties::read_xml_element(
                             event_reader,
                             &name,
                             &attributes,
@@ -421,13 +428,14 @@ pub(crate) mod base {
                 external_references,
                 dependencies,
                 compositions,
-                properties,
                 #[versioned("1.4", "1.5")]
                 vulnerabilities,
                 #[versioned("1.4", "1.5")]
                 signature,
                 #[versioned("1.5")]
                 annotations,
+                #[versioned("1.5")]
+                properties,
             })
         }
     }
@@ -464,6 +472,22 @@ pub(crate) mod base {
             metadata::test::{corresponding_metadata, example_metadata},
             service::test::{corresponding_services, example_services},
         };
+        #[versioned("1.5")]
+        use crate::specs::{
+            common::property::test::{corresponding_properties, example_properties},
+            common::signature::test::{corresponding_signature, example_signature},
+            v1_5::{
+                annotation::test::{corresponding_annotations, example_annotations},
+                component::test::{corresponding_components, example_components},
+                composition::test::{corresponding_compositions, example_compositions},
+                external_reference::test::{
+                    corresponding_external_references, example_external_references,
+                },
+                metadata::test::{corresponding_metadata, example_metadata},
+                service::test::{corresponding_services, example_services},
+                vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
+            },
+        };
         #[versioned("1.4")]
         use crate::specs::{
             common::signature::test::{corresponding_signature, example_signature},
@@ -478,26 +502,8 @@ pub(crate) mod base {
                 vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
             },
         };
-        #[versioned("1.5")]
-        use crate::specs::{
-            common::signature::test::{corresponding_signature, example_signature},
-            v1_5::{
-                annotation::test::{corresponding_annotations, example_annotations},
-                component::test::{corresponding_components, example_components},
-                composition::test::{corresponding_compositions, example_compositions},
-                external_reference::test::{
-                    corresponding_external_references, example_external_references,
-                },
-                metadata::test::{corresponding_metadata, example_metadata},
-                service::test::{corresponding_services, example_services},
-                vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
-            },
-        };
         use crate::{
-            specs::common::{
-                dependency::test::{corresponding_dependencies, example_dependencies},
-                property::test::{corresponding_properties, example_properties},
-            },
+            specs::common::dependency::test::{corresponding_dependencies, example_dependencies},
             xml::test::{read_document_from_string, write_element_to_string},
         };
 
@@ -516,13 +522,14 @@ pub(crate) mod base {
                 external_references: None,
                 dependencies: None,
                 compositions: None,
-                properties: None,
                 #[versioned("1.4", "1.5")]
                 vulnerabilities: None,
                 #[versioned("1.4", "1.5")]
                 signature: None,
                 #[versioned("1.5")]
                 annotations: None,
+                #[versioned("1.5")]
+                properties: None,
             }
         }
 
@@ -538,13 +545,14 @@ pub(crate) mod base {
                 external_references: Some(example_external_references()),
                 dependencies: Some(example_dependencies()),
                 compositions: Some(example_compositions()),
-                properties: Some(example_properties()),
                 #[versioned("1.4", "1.5")]
                 vulnerabilities: Some(example_vulnerabilities()),
                 #[versioned("1.4", "1.5")]
                 signature: Some(example_signature()),
                 #[versioned("1.5")]
                 annotations: Some(example_annotations()),
+                #[versioned("1.5")]
+                properties: Some(example_properties()),
             }
         }
 
@@ -558,7 +566,6 @@ pub(crate) mod base {
                 external_references: Some(corresponding_external_references()),
                 dependencies: Some(corresponding_dependencies()),
                 compositions: Some(corresponding_compositions()),
-                properties: Some(corresponding_properties()),
                 #[versioned("1.3")]
                 vulnerabilities: None,
                 #[versioned("1.4", "1.5")]
@@ -571,6 +578,10 @@ pub(crate) mod base {
                 annotations: None,
                 #[versioned("1.5")]
                 annotations: Some(corresponding_annotations()),
+                #[versioned("1.3", "1.4")]
+                properties: None,
+                #[versioned("1.5")]
+                properties: Some(corresponding_properties()),
             }
         }
 
