@@ -26,7 +26,11 @@ pub(crate) mod base {
     #[versioned("1.4")]
     use crate::specs::v1_4::external_reference::ExternalReferences;
     #[versioned("1.5")]
-    use crate::specs::v1_5::{external_reference::ExternalReferences, modelcard::ModelCard};
+    use crate::specs::v1_5::{
+        evidence::{Callstack, Identity, Occurrences},
+        external_reference::ExternalReferences,
+        modelcard::ModelCard,
+    };
     #[versioned("1.3")]
     use crate::{models::bom::SpecVersion, specs::v1_3::external_reference::ExternalReferences};
 
@@ -36,7 +40,7 @@ pub(crate) mod base {
             normalized_string::NormalizedString,
             uri::{Purl, Uri},
         },
-        models,
+        models::{self},
         specs::common::{
             attached_text::AttachedText,
             code::{Commits, Patches},
@@ -70,7 +74,7 @@ pub(crate) mod base {
 
     impl From<Components> for models::component::Components {
         fn from(other: Components) -> Self {
-            models::component::Components(convert_vec(other.0))
+            Self(convert_vec(other.0))
         }
     }
 
@@ -865,6 +869,15 @@ pub(crate) mod base {
         licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
         copyright: Option<CopyrightTexts>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        occurrences: Option<Occurrences>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        callstack: Option<Callstack>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        identity: Option<Identity>,
     }
 
     impl From<models::component::ComponentEvidence> for ComponentEvidence {
@@ -872,6 +885,12 @@ pub(crate) mod base {
             Self {
                 licenses: convert_optional(other.licenses),
                 copyright: convert_optional(other.copyright),
+                #[versioned("1.5")]
+                occurrences: convert_optional(other.occurrences),
+                #[versioned("1.5")]
+                callstack: convert_optional(other.callstack),
+                #[versioned("1.5")]
+                identity: convert_optional(other.identity),
             }
         }
     }
@@ -881,6 +900,18 @@ pub(crate) mod base {
             Self {
                 licenses: convert_optional(other.licenses),
                 copyright: convert_optional(other.copyright),
+                #[versioned("1.3", "1.4")]
+                occurrences: None,
+                #[versioned("1.5")]
+                occurrences: convert_optional(other.occurrences),
+                #[versioned("1.3", "1.4")]
+                callstack: None,
+                #[versioned("1.5")]
+                callstack: convert_optional(other.callstack),
+                #[versioned("1.3", "1.4")]
+                identity: None,
+                #[versioned("1.5")]
+                identity: convert_optional(other.identity),
             }
         }
     }
@@ -916,6 +947,13 @@ pub(crate) mod base {
         }
     }
 
+    #[versioned("1.5")]
+    const OCCURRENCES_TAG: &str = "occurrences";
+    #[versioned("1.5")]
+    const CALLSTACK_TAG: &str = "callstack";
+    #[versioned("1.5")]
+    const IDENTITY_TAG: &str = "identity";
+
     impl FromXml for ComponentEvidence {
         fn read_xml_element<R: std::io::Read>(
             event_reader: &mut xml::EventReader<R>,
@@ -927,6 +965,12 @@ pub(crate) mod base {
         {
             let mut licenses: Option<Licenses> = None;
             let mut copyright: Option<CopyrightTexts> = None;
+            #[versioned("1.5")]
+            let mut occurrences: Option<Occurrences> = None;
+            #[versioned("1.5")]
+            let mut callstack: Option<Callstack> = None;
+            #[versioned("1.5")]
+            let mut identity: Option<Identity> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -941,7 +985,7 @@ pub(crate) mod base {
                             event_reader,
                             &name,
                             &attributes,
-                        )?)
+                        )?);
                     }
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
@@ -950,18 +994,58 @@ pub(crate) mod base {
                             event_reader,
                             &name,
                             &attributes,
-                        )?)
+                        )?);
                     }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == OCCURRENCES_TAG => {
+                        occurrences = Some(Occurrences::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == CALLSTACK_TAG => {
+                        callstack = Some(Callstack::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == IDENTITY_TAG => {
+                        identity = Some(Identity::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
                     reader::XmlEvent::EndElement { name } if &name == element_name => {
                         got_end_tag = true;
                     }
-                    unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+                    // unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+                    _ => (),
                 }
             }
 
             Ok(Self {
                 licenses,
                 copyright,
+                #[versioned("1.5")]
+                occurrences,
+                #[versioned("1.5")]
+                callstack,
+                #[versioned("1.5")]
+                identity,
             })
         }
     }
@@ -1280,6 +1364,10 @@ pub(crate) mod base {
         };
         #[versioned("1.5")]
         use crate::specs::v1_5::{
+            evidence::test::{
+                corresponding_callstack, corresponding_identity, corresponding_occurrences,
+                example_callstack, example_identity, example_occurrences,
+            },
             external_reference::test::{
                 corresponding_external_references, example_external_references,
             },
@@ -1452,6 +1540,7 @@ pub(crate) mod base {
             }
         }
 
+        #[versioned("1.3", "1.4")]
         fn example_evidence() -> ComponentEvidence {
             ComponentEvidence {
                 licenses: Some(example_licenses()),
@@ -1459,10 +1548,36 @@ pub(crate) mod base {
             }
         }
 
+        #[versioned("1.5")]
+        fn example_evidence() -> ComponentEvidence {
+            ComponentEvidence {
+                licenses: Some(example_licenses()),
+                copyright: Some(example_copyright_texts()),
+                occurrences: Some(example_occurrences()),
+                callstack: Some(example_callstack()),
+                identity: Some(example_identity()),
+            }
+        }
+
+        #[versioned("1.3", "1.4")]
         fn corresponding_evidence() -> models::component::ComponentEvidence {
             models::component::ComponentEvidence {
                 licenses: Some(corresponding_licenses()),
                 copyright: Some(corresponding_copyright_texts()),
+                occurrences: None,
+                callstack: None,
+                identity: None,
+            }
+        }
+
+        #[versioned("1.5")]
+        fn corresponding_evidence() -> models::component::ComponentEvidence {
+            models::component::ComponentEvidence {
+                licenses: Some(corresponding_licenses()),
+                copyright: Some(corresponding_copyright_texts()),
+                occurrences: Some(corresponding_occurrences()),
+                callstack: Some(corresponding_callstack()),
+                identity: Some(corresponding_identity()),
             }
         }
 
@@ -1801,6 +1916,37 @@ pub(crate) mod base {
       <copyright>
         <text><![CDATA[copyright]]></text>
       </copyright>
+      <occurrences>
+        <occurrence bom-ref="occurrence-1">
+          <location>location-1</location>
+        </occurrence>
+      </occurrences>
+      <callstack>
+        <frame>
+          <frame>
+            <package>package-1</package>
+            <module>module-1</module>
+            <function>function</function>
+            <line>10</line>
+            <column>20</column>
+            <fullFilename>full-filename</fullFilename>
+          </frame>
+        </frame>
+      </callstack>
+      <identity>
+        <field>group</field>
+        <confidence>0.5</confidence>
+        <methods>
+          <method>
+            <technique>technique-1</technique>
+            <confidence>0.8</confidence>
+            <value>identity-value</value>
+          </method>
+        </methods>
+        <tools>
+          <tool ref="tool-ref-1" />
+        </tools>
+      </identity>
     </evidence>
     <signature>
       <algorithm>HS512</algorithm>

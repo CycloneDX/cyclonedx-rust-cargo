@@ -17,6 +17,7 @@
  */
 
 pub(crate) mod annotation;
+pub(crate) mod evidence;
 pub(crate) mod lifecycles;
 pub(crate) mod modelcard;
 pub(crate) mod service_data;

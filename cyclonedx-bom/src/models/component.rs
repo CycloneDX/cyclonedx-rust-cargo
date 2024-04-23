@@ -17,11 +17,13 @@
  */
 
 use once_cell::sync::Lazy;
+use ordered_float::OrderedFloat;
 use regex::Regex;
 
 use crate::external_models::normalized_string::validate_normalized_string;
 use crate::external_models::uri::{validate_purl, validate_uri as validate_url};
 use crate::models::attached_text::AttachedText;
+use crate::models::bom::BomReference;
 use crate::models::code::{Commits, Patches};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::hash::Hashes;
@@ -37,7 +39,7 @@ use crate::{
     validation::{Validate, ValidationContext, ValidationResult},
 };
 
-use super::bom::SpecVersion;
+use super::bom::{validate_bom_ref, SpecVersion};
 use super::modelcard::ModelCard;
 use super::signature::Signature;
 
@@ -319,6 +321,12 @@ pub struct Cpe(pub(crate) String);
 pub struct ComponentEvidence {
     pub licenses: Option<Licenses>,
     pub copyright: Option<CopyrightTexts>,
+    /// Added in version 1.5
+    pub occurrences: Option<Occurrences>,
+    /// Added in version 1.5
+    pub callstack: Option<Callstack>,
+    /// Added in version 1.5
+    pub identity: Option<Identity>,
 }
 
 impl Validate for ComponentEvidence {
@@ -326,9 +334,211 @@ impl Validate for ComponentEvidence {
         ValidationContext::new()
             .add_struct_option("licenses", self.licenses.as_ref(), version)
             .add_struct_option("copyright", self.copyright.as_ref(), version)
+            .add_struct_option("occurrences", self.occurrences.as_ref(), version)
+            .add_struct_option("callstack", self.callstack.as_ref(), version)
+            .add_struct_option("identity", self.identity.as_ref(), version)
             .into()
     }
 }
+
+/// For more details see
+/// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_occurrences
+/// Added in version 1.5
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Occurrences(pub Vec<Occurrence>);
+
+impl Validate for Occurrences {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("inner", &self.0, |occurrence| {
+                occurrence.validate_version(version)
+            })
+            .into()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Occurrence {
+    pub bom_ref: Option<BomReference>,
+    pub location: String,
+}
+
+impl Occurrence {
+    pub fn new(location: &str) -> Self {
+        Self {
+            bom_ref: None,
+            location: location.to_string(),
+        }
+    }
+}
+
+impl Validate for Occurrence {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("bom-ref", self.bom_ref.as_ref(), |bom_ref| {
+                validate_bom_ref(bom_ref, version)
+            })
+            .into()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Callstack {
+    pub frames: Frames,
+}
+
+impl Callstack {
+    pub fn new(frames: Frames) -> Self {
+        Self { frames }
+    }
+}
+
+impl Validate for Callstack {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        self.frames.validate_version(version)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Frames(pub Vec<Frame>);
+
+impl Validate for Frames {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list("frames", &self.0, |frame| frame.validate_version(version))
+            .into()
+    }
+}
+
+/// For more information see
+/// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_callstack
+/// Added in version 1.5
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Frame {
+    pub package: Option<NormalizedString>,
+    pub module: NormalizedString,
+    pub function: Option<NormalizedString>,
+    pub parameters: Option<Vec<NormalizedString>>,
+    pub line: Option<u32>,
+    pub column: Option<u32>,
+    pub full_filename: Option<NormalizedString>,
+}
+
+impl Validate for Frame {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field_option("package", self.package.as_ref(), validate_normalized_string)
+            .add_field("module", self.module.as_ref(), validate_normalized_string)
+            .add_field_option(
+                "function",
+                self.function.as_ref(),
+                validate_normalized_string,
+            )
+            .add_list_option(
+                "parameters",
+                self.parameters.as_ref(),
+                validate_normalized_string,
+            )
+            .add_field_option(
+                "full_filename",
+                self.full_filename.as_ref(),
+                validate_normalized_string,
+            )
+            .into()
+    }
+}
+
+pub fn validate_confidence(confidence: &ConfidenceScore) -> Result<(), ValidationError> {
+    if confidence.get() < 0.0 && 1.0 > confidence.get() {
+        return Err("Confidence score outside range 0.0 - 1.0".into());
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ConfidenceScore(pub OrderedFloat<f32>);
+
+impl ConfidenceScore {
+    pub fn new(value: f32) -> Self {
+        Self(OrderedFloat(value))
+    }
+
+    pub fn get(&self) -> f32 {
+        self.0 .0
+    }
+}
+
+pub fn validate_identity_field(field: &IdentityField) -> Result<(), ValidationError> {
+    if let IdentityField::Unknown(unknown) = field {
+        return Err(format!("Unknown identity found '{}' given", unknown).into());
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
+#[repr(u16)]
+pub enum IdentityField {
+    Group,
+    Name,
+    Version,
+    Purl,
+    Cpe,
+    Swid,
+    Hash,
+    Unknown(String),
+}
+
+impl IdentityField {
+    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+        match value.as_ref() {
+            "group" => Self::Group,
+            "name" => Self::Name,
+            "version" => Self::Version,
+            "purl" => Self::Purl,
+            "cpe" => Self::Cpe,
+            "swid" => Self::Swid,
+            "hash" => Self::Hash,
+            unknown => Self::Unknown(unknown.to_string()),
+        }
+    }
+}
+
+/// For more information see
+/// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_identity
+/// Added in version 1.5
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Identity {
+    pub field: IdentityField,
+    /// Level between 0.0-1.0 (where 1.0 is highest confidence)
+    pub confidence: Option<ConfidenceScore>,
+    pub methods: Option<Methods>,
+    pub tools: Option<ToolsReferences>,
+}
+
+impl Validate for Identity {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field("field", &self.field, validate_identity_field)
+            .add_field_option("confidence", self.confidence.as_ref(), validate_confidence)
+            .into()
+    }
+}
+
+/// For more information see
+/// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_identity_methods
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Methods(pub Vec<Method>);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Method {
+    pub technique: String,
+    pub confidence: ConfidenceScore,
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ToolsReferences(pub Vec<String>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Pedigree {
@@ -475,6 +685,29 @@ mod test {
                     "MIT".to_string(),
                 ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
+                occurrences: Some(Occurrences(vec![Occurrence {
+                    bom_ref: None,
+                    location: "location".to_string(),
+                }])),
+                callstack: Some(Callstack::new(Frames(vec![Frame {
+                    package: Some("package".into()),
+                    module: "module".into(),
+                    function: Some("function".into()),
+                    parameters: None,
+                    line: Some(10),
+                    column: Some(20),
+                    full_filename: Some("full_filename".into()),
+                }]))),
+                identity: Some(Identity {
+                    field: IdentityField::Group,
+                    confidence: Some(ConfidenceScore::new(0.8)),
+                    methods: Some(Methods(vec![Method {
+                        technique: "technique".to_string(),
+                        confidence: ConfidenceScore::new(0.5),
+                        value: Some("help".to_string()),
+                    }])),
+                    tools: None,
+                }),
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: Some(ModelCard {
@@ -637,6 +870,9 @@ mod test {
                     "invalid license".to_string(),
                 ))])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
+                occurrences: None,
+                callstack: None,
+                identity: None,
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: None,

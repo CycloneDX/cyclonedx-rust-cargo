@@ -76,6 +76,16 @@ impl FromStr for SpecVersion {
     }
 }
 
+pub(crate) fn validate_bom_ref(
+    _bom_ref: &BomReference,
+    version: SpecVersion,
+) -> Result<(), ValidationError> {
+    if version <= SpecVersion::V1_4 {
+        return Err("Attribute 'bom-ref' not supported in this format version".into());
+    }
+    Ok(())
+}
+
 /// A reference to a Bom element
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BomReference(pub(crate) String);

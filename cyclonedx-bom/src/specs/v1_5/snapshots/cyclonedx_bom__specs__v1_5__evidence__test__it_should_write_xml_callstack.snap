@@ -1,0 +1,30 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/evidence.rs
+assertion_line: 909
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<callstack>
+  <frames>
+    <frame>
+      <package>com.apache.logging.log4j.core</package>
+      <module>Logger.class</module>
+      <function>logMessage</function>
+      <parameters>
+        <parameter>com.acme.HelloWorld</parameter>
+        <parameter>Level.INFO</parameter>
+        <parameter>null</parameter>
+        <parameter>Hello World</parameter>
+      </parameters>
+      <line>150</line>
+      <column>17</column>
+      <fullFilename>full-filename.java</fullFilename>
+    </frame>
+    <frame>
+      <module>HelloWorld.class</module>
+      <line>20</line>
+      <column>12</column>
+      <fullFilename>/path/to/HelloWorld.class</fullFilename>
+    </frame>
+  </frames>
+</callstack>

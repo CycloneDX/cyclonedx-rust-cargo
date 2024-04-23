@@ -21,10 +21,10 @@ use crate::{
         normalized_string::{validate_normalized_string, NormalizedString},
         uri::{validate_uri, Uri},
     },
-    validation::{Validate, ValidationContext, ValidationError, ValidationResult},
+    validation::{Validate, ValidationContext, ValidationResult},
 };
 
-use super::bom::{BomReference, SpecVersion};
+use super::bom::{validate_bom_ref, BomReference, SpecVersion};
 
 /// Represents the contact information for an organization
 ///
@@ -65,14 +65,6 @@ impl Validate for OrganizationalContact {
             .add_field_option("phone", self.phone.as_ref(), validate_normalized_string)
             .into()
     }
-}
-
-/// The `bom-ref` attribute was added in spec version 1.5
-fn validate_bom_ref(_bom_ref: &BomReference, version: SpecVersion) -> Result<(), ValidationError> {
-    if version <= SpecVersion::V1_4 {
-        return Err("Attribute 'bom-ref' not supported in this format version".into());
-    }
-    Ok(())
 }
 
 /// Represents an organization with name, url, and contact information

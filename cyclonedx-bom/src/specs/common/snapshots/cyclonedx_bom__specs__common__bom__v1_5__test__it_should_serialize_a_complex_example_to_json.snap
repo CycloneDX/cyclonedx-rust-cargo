@@ -163,7 +163,39 @@ expression: actual
           {
             "text": "copyright"
           }
-        ]
+        ],
+        "occurrences": [
+          {
+            "bomRef": "occurrence-1",
+            "location": "location-1"
+          }
+        ],
+        "callstack": {
+          "frames": [
+            {
+              "package": "package-1",
+              "module": "module-1",
+              "function": "function",
+              "line": 10,
+              "column": 20,
+              "fullFilename": "full-filename"
+            }
+          ]
+        },
+        "identity": {
+          "field": "group",
+          "confidence": 0.5,
+          "methods": [
+            {
+              "technique": "technique-1",
+              "confidence": 0.8,
+              "value": "identity-value"
+            }
+          ],
+          "tools": [
+            "tool-ref-1"
+          ]
+        }
       },
       "signature": {
         "algorithm": "HS512",
@@ -415,7 +447,39 @@ expression: actual
           {
             "text": "copyright"
           }
-        ]
+        ],
+        "occurrences": [
+          {
+            "bomRef": "occurrence-1",
+            "location": "location-1"
+          }
+        ],
+        "callstack": {
+          "frames": [
+            {
+              "package": "package-1",
+              "module": "module-1",
+              "function": "function",
+              "line": 10,
+              "column": 20,
+              "fullFilename": "full-filename"
+            }
+          ]
+        },
+        "identity": {
+          "field": "group",
+          "confidence": 0.5,
+          "methods": [
+            {
+              "technique": "technique-1",
+              "confidence": 0.8,
+              "value": "identity-value"
+            }
+          ],
+          "tools": [
+            "tool-ref-1"
+          ]
+        }
       },
       "signature": {
         "algorithm": "HS512",
