@@ -23,7 +23,8 @@ use crate::{
     utilities::convert_vec,
     xml::{
         read_lax_validation_list_tag, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
-        to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToXml,
+        to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag,
+        write_start_tag, FromXml, ToXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -52,17 +53,13 @@ impl ToXml for Advisories {
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        writer
-            .write(XmlEvent::start_element(ADVISORIES_TAG))
-            .map_err(to_xml_write_error(ADVISORIES_TAG))?;
+        write_start_tag(writer, ADVISORIES_TAG)?;
 
         for advisory in &self.0 {
             advisory.write_xml_element(writer)?;
         }
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(to_xml_write_error(ADVISORIES_TAG))?;
+        write_close_tag(writer, ADVISORIES_TAG)?;
 
         Ok(())
     }

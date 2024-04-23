@@ -23,8 +23,8 @@ use crate::{
     errors::XmlReadError,
     models,
     xml::{
-        attribute_or_error, closing_tag_or_error, to_xml_read_error, to_xml_write_error, FromXml,
-        ToInnerXml,
+        attribute_or_error, closing_tag_or_error, to_xml_read_error, to_xml_write_error,
+        write_close_tag, FromXml, ToInnerXml,
     },
 };
 
@@ -72,9 +72,7 @@ impl ToInnerXml for BomReference {
             .write(XmlEvent::start_element(tag).attr(REF_ATTR, &self.0))
             .map_err(to_xml_write_error(tag))?;
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(to_xml_write_error(tag))?;
+        write_close_tag(writer, tag)?;
 
         Ok(())
     }

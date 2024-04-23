@@ -18,7 +18,6 @@
 
 use serde::{Deserialize, Serialize};
 use xml::name::OwnedName;
-use xml::writer::XmlEvent;
 use xml::{reader, writer};
 
 use crate::errors::{BomError, XmlReadError};
@@ -315,17 +314,13 @@ impl ToXml for Annotation {
             .map_err(to_xml_write_error(ANNOTATION_TAG))?;
 
         if !self.subjects.is_empty() {
-            writer
-                .write(XmlEvent::start_element(SUBJECTS_TAG))
-                .map_err(to_xml_write_error(SUBJECTS_TAG))?;
+            write_start_tag(writer, SUBJECTS_TAG)?;
 
             for subject in &self.subjects {
                 write_simple_tag(writer, SUBJECT_TAG, subject)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(SUBJECTS_TAG))?;
+            write_close_tag(writer, SUBJECTS_TAG)?;
         }
 
         self.annotator.write_xml_element(writer)?;

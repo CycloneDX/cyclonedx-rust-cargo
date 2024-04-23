@@ -84,17 +84,13 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
-            writer
-                .write(XmlEvent::start_element(SERVICES_TAG))
-                .map_err(to_xml_write_error(SERVICES_TAG))?;
+            write_start_tag(writer, SERVICES_TAG)?;
 
             for service in &self.0 {
                 service.write_xml_element(writer)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(SERVICES_TAG))?;
+            write_close_tag(writer, SERVICES_TAG)?;
 
             Ok(())
         }
@@ -291,15 +287,13 @@ pub(crate) mod base {
             }
 
             if let Some(endpoints) = &self.endpoints {
-                writer
-                    .write(XmlEvent::start_element(ENDPOINTS_TAG))
-                    .map_err(to_xml_write_error(ENDPOINTS_TAG))?;
+                write_start_tag(writer, ENDPOINTS_TAG)?;
+
                 for endpoint in endpoints {
                     write_simple_tag(writer, ENDPOINT_TAG, endpoint)?;
                 }
-                writer
-                    .write(XmlEvent::end_element())
-                    .map_err(to_xml_write_error(ENDPOINTS_TAG))?;
+
+                write_close_tag(writer, ENDPOINTS_TAG)?;
             }
 
             if let Some(authenticated) = &self.authenticated {
@@ -754,9 +748,7 @@ pub(crate) mod base {
                 .write(XmlEvent::characters(&self.classification))
                 .map_err(to_xml_write_error(CLASSIFICATION_TAG))?;
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(CLASSIFICATION_TAG))?;
+            write_close_tag(writer, CLASSIFICATION_TAG)?;
 
             Ok(())
         }

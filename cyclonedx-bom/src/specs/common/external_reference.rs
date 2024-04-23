@@ -27,10 +27,10 @@ pub(crate) mod base {
         external_models, models,
         specs::common::hash::Hashes,
         utilities::{convert_optional, convert_vec},
-        xml::to_xml_write_error,
         xml::{
             attribute_or_error, read_list_tag, read_simple_tag, to_xml_read_error,
-            unexpected_element_error, write_simple_tag, FromXml, ToXml,
+            to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag,
+            write_start_tag, FromXml, ToXml,
         },
     };
     use serde::{Deserialize, Serialize};
@@ -71,17 +71,14 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
-            writer
-                .write(XmlEvent::start_element(EXTERNAL_REFERENCES_TAG))
-                .map_err(to_xml_write_error(EXTERNAL_REFERENCES_TAG))?;
+            write_start_tag(writer, EXTERNAL_REFERENCES_TAG)?;
 
             for external_reference in &self.0 {
                 external_reference.write_xml_element(writer)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(EXTERNAL_REFERENCES_TAG))?;
+            write_close_tag(writer, EXTERNAL_REFERENCES_TAG)?;
+
             Ok(())
         }
     }
