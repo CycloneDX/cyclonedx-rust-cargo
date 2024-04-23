@@ -437,10 +437,10 @@ expression: actual
     {
       "aggregate": "aggregate",
       "assemblies": [
-        "assembly"
+        "assembly-ref"
       ],
       "dependencies": [
-        "dependency"
+        "dependency-ref"
       ],
       "signature": {
         "algorithm": "HS512",

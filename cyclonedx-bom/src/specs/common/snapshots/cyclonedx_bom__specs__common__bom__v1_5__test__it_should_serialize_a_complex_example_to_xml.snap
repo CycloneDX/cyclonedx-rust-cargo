@@ -458,14 +458,17 @@ expression: xml_output
     </dependency>
   </dependencies>
   <compositions>
-    <composition>
+    <composition bom-ref="composition-ref">
       <aggregate>aggregate</aggregate>
       <assemblies>
-        <assembly ref="assembly" />
+        <assembly ref="assembly-ref" />
       </assemblies>
       <dependencies>
-        <dependency ref="dependency" />
+        <dependency ref="dependency-ref" />
       </dependencies>
+      <vulnerabilities>
+        <vulnerability ref="vulnerability-ref" />
+      </vulnerabilities>
       <signature>
         <algorithm>HS512</algorithm>
         <value>1234567890</value>

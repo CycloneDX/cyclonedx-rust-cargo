@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 606
+assertion_line: 592
 expression: actual
 ---
 {
@@ -425,10 +425,10 @@ expression: actual
     {
       "aggregate": "aggregate",
       "assemblies": [
-        "assembly"
+        "assembly-ref"
       ],
       "dependencies": [
-        "dependency"
+        "dependency-ref"
       ]
     }
   ]

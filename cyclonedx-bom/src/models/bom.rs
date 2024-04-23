@@ -41,6 +41,8 @@ use crate::models::vulnerability::Vulnerabilities;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 use crate::xml::{FromXmlDocument, ToXml};
 
+use super::vulnerability::Vulnerability;
+
 /// Represents the spec version of a BOM.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy, PartialOrd, strum::Display)]
 #[repr(u16)]
@@ -325,6 +327,10 @@ impl Validate for Bom {
             validate_services(&mut context, &mut bom_refs, services);
         }
 
+        if let Some(vulnerabilities) = &self.vulnerabilities {
+            validate_vulnerabilities(&mut context, &mut bom_refs, vulnerabilities);
+        }
+
         // Check dependencies & sub dependencies
         if let Some(dependencies) = &self.dependencies {
             for dependency in &dependencies.0 {
@@ -391,11 +397,14 @@ impl Validate for Bom {
 struct BomReferencesContext {
     component_bom_refs: HashSet<String>,
     service_bom_refs: HashSet<String>,
+    vulnerabilities_bom_refs: HashSet<String>,
 }
 
 impl BomReferencesContext {
     fn contains(&self, bom_ref: &String) -> bool {
-        self.component_bom_refs.contains(bom_ref) || self.service_bom_refs.contains(bom_ref)
+        self.component_bom_refs.contains(bom_ref)
+            || self.service_bom_refs.contains(bom_ref)
+            || self.vulnerabilities_bom_refs.contains(bom_ref)
     }
 
     fn add_component_bom_ref(&mut self, bom_ref: impl ToString) {
@@ -404,6 +413,10 @@ impl BomReferencesContext {
 
     fn add_service_bom_ref(&mut self, bom_ref: impl ToString) {
         self.service_bom_refs.insert(bom_ref.to_string());
+    }
+
+    fn add_vulnerability_bom_ref(&mut self, bom_ref: impl ToString) {
+        self.vulnerabilities_bom_refs.insert(bom_ref.to_string());
     }
 }
 
@@ -459,6 +472,29 @@ fn validate_service_bom_refs(
 
     if let Some(services) = &service.services {
         validate_services(context, bom_refs, services);
+    }
+}
+
+fn validate_vulnerabilities(
+    context: &mut ValidationContext,
+    bom_refs: &mut BomReferencesContext,
+    vulnerabilities: &Vulnerabilities,
+) {
+    for vulnerability in &vulnerabilities.0 {
+        validate_vulnerabilities_bom_refs(context, bom_refs, vulnerability);
+    }
+}
+
+fn validate_vulnerabilities_bom_refs(
+    context: &mut ValidationContext,
+    bom_refs: &mut BomReferencesContext,
+    vulnerability: &Vulnerability,
+) {
+    if let Some(bom_ref) = &vulnerability.bom_ref {
+        if bom_refs.contains(bom_ref) {
+            context.add_custom("bom_ref", format!(r#"Bom ref "{bom_ref}" is not unique"#));
+        }
+        bom_refs.add_vulnerability_bom_ref(bom_ref);
     }
 }
 
@@ -618,9 +654,11 @@ mod test {
             external_references: None,
             dependencies: None,
             compositions: Some(Compositions(vec![Composition {
+                bom_ref: None,
                 aggregate: AggregateType::Complete,
                 assemblies: Some(vec![BomReference("assembly".to_string())]),
                 dependencies: Some(vec![BomReference("dependencies".to_string())]),
+                vulnerabilities: None,
                 signature: None,
             }])),
             properties: None,
@@ -700,9 +738,11 @@ mod test {
                 dependencies: vec![],
             }])),
             compositions: Some(Compositions(vec![Composition {
+                bom_ref: Some(BomReference::new("composition-1")),
                 aggregate: AggregateType::UnknownAggregateType("unknown".to_string()),
                 assemblies: None,
                 dependencies: None,
+                vulnerabilities: None,
                 signature: None,
             }])),
             properties: Some(Properties(vec![Property {
