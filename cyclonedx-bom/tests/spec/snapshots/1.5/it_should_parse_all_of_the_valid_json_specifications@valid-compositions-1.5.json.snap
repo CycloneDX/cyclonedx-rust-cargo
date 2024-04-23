@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 54
+assertion_line: 52
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-compositions-1.5.json
 ---
@@ -66,6 +66,21 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-compositions-1.5.json
       "assemblies": [
         "pkg:maven/acme/library@3.0"
       ]
+    },
+    {
+      "aggregate": "incomplete_first_party_only",
+      "vulnerabilities": [
+        "vulnerability-1"
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "vulnerability-1",
+      "id": "ACME-12345",
+      "source": {
+        "name": "Acme Inc"
+      }
     }
   ]
 }

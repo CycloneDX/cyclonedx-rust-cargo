@@ -943,10 +943,10 @@ pub(crate) mod base {
     <composition>
       <aggregate>aggregate</aggregate>
       <assemblies>
-        <assembly ref="assembly" />
+        <assembly ref="assembly-ref" />
       </assemblies>
       <dependencies>
-        <dependency ref="dependency" />
+        <dependency ref="dependency-ref" />
       </dependencies>
     </composition>
   </compositions>
@@ -1275,10 +1275,10 @@ pub(crate) mod base {
     <composition>
       <aggregate>aggregate</aggregate>
       <assemblies>
-        <assembly ref="assembly" />
+        <assembly ref="assembly-ref" />
       </assemblies>
       <dependencies>
-        <dependency ref="dependency" />
+        <dependency ref="dependency-ref" />
       </dependencies>
       <signature>
         <algorithm>HS512</algorithm>
@@ -1923,14 +1923,17 @@ pub(crate) mod base {
     </dependency>
   </dependencies>
   <compositions>
-    <composition>
+    <composition bom-ref="composition-ref">
       <aggregate>aggregate</aggregate>
       <assemblies>
-        <assembly ref="assembly" />
+        <assembly ref="assembly-ref" />
       </assemblies>
       <dependencies>
-        <dependency ref="dependency" />
+        <dependency ref="dependency-ref" />
       </dependencies>
+      <vulnerabilities>
+        <vulnerability ref="vulnerability-ref" />
+      </vulnerabilities>
       <signature>
         <algorithm>HS512</algorithm>
         <value>1234567890</value>

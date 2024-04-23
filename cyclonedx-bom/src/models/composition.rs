@@ -25,9 +25,11 @@ use super::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Composition {
+    pub bom_ref: Option<BomReference>,
     pub aggregate: AggregateType,
     pub assemblies: Option<Vec<BomReference>>,
     pub dependencies: Option<Vec<BomReference>>,
+    pub vulnerabilities: Option<Vec<BomReference>>,
     pub signature: Option<Signature>,
 }
 
@@ -98,9 +100,11 @@ mod test {
     #[test]
     fn it_should_pass_validation() {
         let validation_result = Compositions(vec![Composition {
+            bom_ref: Some(BomReference::new("composition-1")),
             aggregate: AggregateType::Complete,
-            assemblies: Some(vec![BomReference::new("reference")]),
-            dependencies: Some(vec![BomReference::new("reference")]),
+            assemblies: Some(vec![BomReference::new("assembly-ref")]),
+            dependencies: Some(vec![BomReference::new("dependency-ref")]),
+            vulnerabilities: Some(vec![BomReference::new("vulnerability-ref")]),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
@@ -111,9 +115,11 @@ mod test {
     #[test]
     fn it_should_fail_validation() {
         let validation_result = Compositions(vec![Composition {
+            bom_ref: Some(BomReference::new("composition-1")),
             aggregate: AggregateType::UnknownAggregateType("unknown aggregate type".to_string()),
-            assemblies: Some(vec![BomReference::new("reference")]),
-            dependencies: Some(vec![BomReference::new("reference")]),
+            assemblies: Some(vec![BomReference::new("assembly-ref")]),
+            dependencies: Some(vec![BomReference::new("dependency-ref")]),
+            vulnerabilities: Some(vec![BomReference::new("vulnerability-ref")]),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();

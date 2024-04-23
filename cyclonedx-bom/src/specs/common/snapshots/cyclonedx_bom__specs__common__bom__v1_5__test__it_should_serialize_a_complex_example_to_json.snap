@@ -658,12 +658,16 @@ expression: actual
   ],
   "compositions": [
     {
+      "bomRef": "composition-ref",
       "aggregate": "aggregate",
       "assemblies": [
-        "assembly"
+        "assembly-ref"
       ],
       "dependencies": [
-        "dependency"
+        "dependency-ref"
+      ],
+      "vulnerabilities": [
+        "vulnerability-ref"
       ],
       "signature": {
         "algorithm": "HS512",
