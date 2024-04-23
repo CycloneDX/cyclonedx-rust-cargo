@@ -22,7 +22,8 @@ use xml::reader;
 use crate::{
     errors::XmlReadError,
     models,
-    utilities::{convert_optional, convert_optional_vec, convert_vec},
+    prelude::NormalizedString,
+    utilities::{convert_optional, convert_vec},
     xml::{
         attribute_or_error, optional_attribute, read_f32_tag, read_list_tag, read_simple_tag,
         read_u32_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
@@ -311,13 +312,18 @@ pub(crate) struct Frame {
 impl From<Frame> for models::component::Frame {
     fn from(other: Frame) -> Self {
         Self {
-            package: convert_optional(other.package),
-            module: other.module,
-            function: convert_optional(other.function),
-            parameters: convert_optional_vec(other.parameters),
+            package: other.package.map(NormalizedString::new_unchecked),
+            module: NormalizedString::new_unchecked(other.module),
+            function: other.function.map(NormalizedString::new_unchecked),
+            parameters: other.parameters.map(|params| {
+                params
+                    .into_iter()
+                    .map(NormalizedString::new_unchecked)
+                    .collect()
+            }),
             line: convert_optional(other.line),
             column: convert_optional(other.column),
-            full_filename: convert_optional(other.full_filename),
+            full_filename: other.full_filename.map(NormalizedString::new_unchecked),
         }
     }
 }
@@ -325,13 +331,15 @@ impl From<Frame> for models::component::Frame {
 impl From<models::component::Frame> for Frame {
     fn from(other: models::component::Frame) -> Self {
         Self {
-            package: convert_optional(other.package),
-            module: other.module,
-            function: convert_optional(other.function),
-            parameters: convert_optional_vec(other.parameters),
+            package: other.package.map(|p| p.0),
+            module: other.module.0,
+            function: other.function.map(|f| f.0),
+            parameters: other
+                .parameters
+                .map(|params| params.into_iter().map(|p| p.0).collect()),
             line: convert_optional(other.line),
             column: convert_optional(other.column),
-            full_filename: convert_optional(other.full_filename),
+            full_filename: other.full_filename.map(|f| f.0),
         }
     }
 }
@@ -482,7 +490,7 @@ pub(crate) struct Identity {
 impl From<Identity> for models::component::Identity {
     fn from(other: Identity) -> Self {
         Self {
-            field: other.field,
+            field: models::component::IdentityField::new_unchecked(other.field),
             confidence: other
                 .confidence
                 .map(models::component::ConfidenceScore::new),
@@ -495,7 +503,7 @@ impl From<Identity> for models::component::Identity {
 impl From<models::component::Identity> for Identity {
     fn from(other: models::component::Identity) -> Self {
         Self {
-            field: other.field,
+            field: other.field.to_string(),
             confidence: other.confidence.map(|s| s.get()),
             methods: convert_optional(other.methods),
             tools: convert_optional(other.tools),
@@ -903,20 +911,20 @@ pub(crate) mod test {
     pub(crate) fn corresponding_callstack() -> models::component::Callstack {
         models::component::Callstack::new(models::component::Frames(vec![
             models::component::Frame {
-                package: Some("package-1".to_string()),
-                module: "module-1".to_string(),
-                function: Some("function".to_string()),
+                package: Some("package-1".into()),
+                module: "module-1".into(),
+                function: Some("function".into()),
                 parameters: None,
                 line: Some(10),
                 column: Some(20),
-                full_filename: Some("full-filename".to_string()),
+                full_filename: Some("full-filename".into()),
             },
         ]))
     }
 
     pub(crate) fn example_identity() -> Identity {
         Identity {
-            field: "field".to_string(),
+            field: "group".to_string(),
             confidence: Some(0.5),
             methods: Some(Methods(vec![Method {
                 technique: "technique-1".to_string(),
@@ -929,7 +937,7 @@ pub(crate) mod test {
 
     pub(crate) fn corresponding_identity() -> models::component::Identity {
         models::component::Identity {
-            field: "field".to_string(),
+            field: models::component::IdentityField::Group,
             confidence: Some(models::component::ConfidenceScore::new(0.5)),
             methods: Some(models::component::Methods(vec![
                 models::component::Method {

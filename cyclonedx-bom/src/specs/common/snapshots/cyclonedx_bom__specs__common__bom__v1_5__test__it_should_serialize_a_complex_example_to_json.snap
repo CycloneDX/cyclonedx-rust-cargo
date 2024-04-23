@@ -183,7 +183,7 @@ expression: actual
           ]
         },
         "identity": {
-          "field": "field",
+          "field": "group",
           "confidence": 0.5,
           "methods": [
             {
@@ -467,7 +467,7 @@ expression: actual
           ]
         },
         "identity": {
-          "field": "field",
+          "field": "group",
           "confidence": 0.5,
           "methods": [
             {

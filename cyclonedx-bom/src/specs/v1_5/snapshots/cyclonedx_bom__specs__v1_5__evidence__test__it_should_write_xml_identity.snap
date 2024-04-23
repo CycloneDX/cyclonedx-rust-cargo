@@ -1,11 +1,11 @@
 ---
 source: cyclonedx-bom/src/specs/v1_5/evidence.rs
-assertion_line: 1100
+assertion_line: 1124
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
 <identity>
-  <field>field</field>
+  <field>group</field>
   <confidence>0.5</confidence>
   <methods>
     <method>

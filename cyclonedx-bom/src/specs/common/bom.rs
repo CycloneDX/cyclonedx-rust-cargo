@@ -1539,7 +1539,7 @@ pub(crate) mod base {
           </frame>
         </callstack>
         <identity>
-          <field>field</field>
+          <field>group</field>
           <confidence>0.5</confidence>
           <methods>
             <method>
@@ -1764,7 +1764,7 @@ pub(crate) mod base {
           </frame>
         </callstack>
         <identity>
-          <field>field</field>
+          <field>group</field>
           <confidence>0.5</confidence>
           <methods>
             <method>
