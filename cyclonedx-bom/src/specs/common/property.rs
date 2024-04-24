@@ -22,7 +22,7 @@ use crate::{
     models,
     xml::{
         attribute_or_error, read_lax_validation_list_tag, read_simple_tag, to_xml_write_error,
-        FromXml, ToXml,
+        write_close_tag, write_start_tag, FromXml, ToXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -51,16 +51,13 @@ impl ToXml for Properties {
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), XmlWriteError> {
-        writer
-            .write(XmlEvent::start_element(PROPERTIES_TAG))
-            .map_err(to_xml_write_error(PROPERTIES_TAG))?;
+        write_start_tag(writer, PROPERTIES_TAG)?;
 
         for property in &self.0 {
             property.write_xml_element(writer)?;
         }
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(to_xml_write_error(PROPERTIES_TAG))?;
+
+        write_close_tag(writer, PROPERTIES_TAG)?;
 
         Ok(())
     }
@@ -120,9 +117,7 @@ impl ToXml for Property {
             .write(XmlEvent::characters(&self.value))
             .map_err(to_xml_write_error(PROPERTY_TAG))?;
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(to_xml_write_error(PROPERTY_TAG))?;
+        write_close_tag(writer, PROPERTY_TAG)?;
 
         Ok(())
     }

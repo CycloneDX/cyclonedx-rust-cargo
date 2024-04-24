@@ -34,7 +34,7 @@ pub(crate) mod base {
     #[versioned("1.4", "1.5")]
     use crate::{specs::common::signature::Signature, utilities::convert_optional};
     use serde::{Deserialize, Serialize};
-    use xml::{reader, writer::XmlEvent};
+    use xml::reader;
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(transparent)]
@@ -164,13 +164,13 @@ pub(crate) mod base {
         ) -> Result<(), crate::errors::XmlWriteError> {
             #[versioned("1.3", "1.4")]
             let start_tag = xml::writer::XmlEvent::start_element(COMPOSITION_TAG);
-
             #[versioned("1.5")]
             let mut start_tag = xml::writer::XmlEvent::start_element(COMPOSITION_TAG);
             #[versioned("1.5")]
             if let Some(bom_ref) = &self.bom_ref {
                 start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
             }
+
             writer
                 .write(start_tag)
                 .map_err(to_xml_write_error(COMPOSITION_TAG))?;
@@ -213,9 +213,7 @@ pub(crate) mod base {
                 signature.write_xml_element(writer)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(COMPOSITION_TAG))?;
+            write_close_tag(writer, COMPOSITION_TAG)?;
 
             Ok(())
         }

@@ -53,8 +53,8 @@ pub(crate) mod base {
         xml::{
             attribute_or_error, optional_attribute, read_boolean_tag, read_lax_validation_list_tag,
             read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
-            to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, FromXmlType,
-            ToInnerXml, ToXml,
+            to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag,
+            write_start_tag, FromXml, FromXmlType, ToInnerXml, ToXml,
         },
     };
     use serde::{Deserialize, Serialize};
@@ -84,17 +84,14 @@ pub(crate) mod base {
             writer: &mut xml::EventWriter<W>,
             tag: &str,
         ) -> Result<(), crate::errors::XmlWriteError> {
-            writer
-                .write(XmlEvent::start_element(tag))
-                .map_err(to_xml_write_error(tag))?;
+            write_start_tag(writer, tag)?;
 
             for component in &self.0 {
                 component.write_xml_element(writer)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(tag))?;
+            write_close_tag(writer, tag)?;
+
             Ok(())
         }
     }
@@ -923,9 +920,7 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
-            writer
-                .write(XmlEvent::start_element(EVIDENCE_TAG))
-                .map_err(to_xml_write_error(EVIDENCE_TAG))?;
+            write_start_tag(writer, EVIDENCE_TAG)?;
 
             if let Some(licenses) = &self.licenses {
                 licenses.write_xml_element(writer)?;
@@ -935,9 +930,7 @@ pub(crate) mod base {
                 copyright.write_xml_element(writer)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(EVIDENCE_TAG))?;
+            write_close_tag(writer, EVIDENCE_TAG)?;
 
             Ok(())
         }
@@ -1106,9 +1099,7 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
-            writer
-                .write(XmlEvent::start_element(PEDIGREE_TAG))
-                .map_err(to_xml_write_error(PEDIGREE_TAG))?;
+            write_start_tag(writer, PEDIGREE_TAG)?;
 
             if let Some(ancestors) = &self.ancestors {
                 ancestors.write_xml_named_element(writer, ANCESTORS_TAG)?;
@@ -1134,9 +1125,7 @@ pub(crate) mod base {
                 write_simple_tag(writer, NOTES_TAG, notes)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(PEDIGREE_TAG))?;
+            write_close_tag(writer, PEDIGREE_TAG)?;
 
             Ok(())
         }
@@ -1260,17 +1249,13 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
-            writer
-                .write(XmlEvent::start_element(TEXT_TAG))
-                .map_err(to_xml_write_error(TEXT_TAG))?;
+            write_start_tag(writer, TEXT_TAG)?;
 
             writer
                 .write(XmlEvent::cdata(&self.text))
                 .map_err(to_xml_write_error(TEXT_TAG))?;
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(TEXT_TAG))?;
+            write_close_tag(writer, TEXT_TAG)?;
 
             Ok(())
         }
@@ -1310,17 +1295,14 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
-            writer
-                .write(XmlEvent::start_element(COPYRIGHT_TAG))
-                .map_err(to_xml_write_error(COPYRIGHT_TAG))?;
+            write_start_tag(writer, COPYRIGHT_TAG)?;
 
             for copyright in &self.0 {
                 copyright.write_xml_element(writer)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(COPYRIGHT_TAG))?;
+            write_close_tag(writer, COPYRIGHT_TAG)?;
+
             Ok(())
         }
     }

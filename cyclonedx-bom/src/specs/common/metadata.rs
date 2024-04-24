@@ -28,6 +28,7 @@ pub(crate) mod base {
     use crate::specs::v1_5::{component::Component, lifecycles::Lifecycles, tool::Tools};
 
     use crate::errors::BomError;
+    use crate::xml::{write_close_tag, write_start_tag};
     use crate::{
         external_models::date_time::DateTime,
         models,
@@ -38,13 +39,12 @@ pub(crate) mod base {
         utilities::{convert_optional, convert_optional_vec, try_convert_optional},
         xml::{
             read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
-            to_xml_write_error, unexpected_element_error, write_simple_tag, FromXml, ToInnerXml,
-            ToXml,
+            unexpected_element_error, write_simple_tag, FromXml, ToInnerXml, ToXml,
         },
     };
     use serde::{Deserialize, Serialize};
     use std::convert::TryFrom;
-    use xml::{reader, writer::XmlEvent};
+    use xml::reader;
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
@@ -120,9 +120,7 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
-            writer
-                .write(XmlEvent::start_element(METADATA_TAG))
-                .map_err(to_xml_write_error(METADATA_TAG))?;
+            write_start_tag(writer, METADATA_TAG)?;
 
             if let Some(timestamp) = &self.timestamp {
                 write_simple_tag(writer, TIMESTAMP_TAG, timestamp)?;
@@ -133,9 +131,7 @@ pub(crate) mod base {
             }
 
             if let Some(authors) = &self.authors {
-                writer
-                    .write(XmlEvent::start_element(AUTHORS_TAG))
-                    .map_err(to_xml_write_error(AUTHORS_TAG))?;
+                write_start_tag(writer, AUTHORS_TAG)?;
 
                 for author in authors {
                     if author.will_write() {
@@ -143,9 +139,7 @@ pub(crate) mod base {
                     }
                 }
 
-                writer
-                    .write(XmlEvent::end_element())
-                    .map_err(to_xml_write_error(AUTHORS_TAG))?;
+                write_close_tag(writer, AUTHORS_TAG)?;
             }
 
             if let Some(component) = &self.component {
@@ -173,9 +167,7 @@ pub(crate) mod base {
                 lifecycles.write_xml_element(writer)?;
             }
 
-            writer
-                .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(METADATA_TAG))?;
+            write_close_tag(writer, METADATA_TAG)?;
 
             Ok(())
         }

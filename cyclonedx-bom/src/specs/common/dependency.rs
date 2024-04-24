@@ -21,7 +21,8 @@ use crate::{
     models,
     xml::{
         attribute_or_error, closing_tag_or_error, read_list_tag, to_xml_read_error,
-        to_xml_write_error, unexpected_element_error, FromXml, ToXml,
+        to_xml_write_error, unexpected_element_error, write_close_tag, write_start_tag, FromXml,
+        ToXml,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -49,17 +50,13 @@ impl ToXml for Dependencies {
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), XmlWriteError> {
-        writer
-            .write(XmlEvent::start_element(DEPENDENCIES_TAG))
-            .map_err(to_xml_write_error(DEPENDENCIES_TAG))?;
+        write_start_tag(writer, DEPENDENCIES_TAG)?;
 
         for dependency in &self.0 {
             dependency.write_xml_element(writer)?;
         }
 
-        writer
-            .write(XmlEvent::end_element())
-            .map_err(to_xml_write_error(DEPENDENCIES_TAG))?;
+        write_close_tag(writer, DEPENDENCIES_TAG)?;
 
         Ok(())
     }
