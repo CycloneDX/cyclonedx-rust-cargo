@@ -91,6 +91,17 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
           Print version
 ```
 
+## Differences from other tools
+
+A number of language-independent tools support generating SBOMs for Rust projects. However, they typically rely on parsing the `Cargo.lock` file, which severely limits the information available to them.
+
+By contrast, `cargo cyclonedx` sources data both from `Cargo.lock` and from [`cargo metadata`](https://doc.rust-lang.org/cargo/commands/cargo-metadata.html), which enables a number of features that tools limited to `Cargo.lock` cannot support:
+
+ - Create a SBOM for a particular crate or a particular binary, as opposed to the entire workspace
+ - Honor a particular combination of enabled Cargo features, matching your build configuration
+ - Omit dev-dependencies, which cannot affect the final executable
+ - Record additional fields such as the license for every component
+
 ## Contributing
 
 See [CONTRIBUTING](../CONTRIBUTING.md) for details.
