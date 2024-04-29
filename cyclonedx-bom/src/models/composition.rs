@@ -34,9 +34,12 @@ pub struct Composition {
 }
 
 impl Validate for Composition {
-    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_field("aggregate", &self.aggregate, validate_aggregate_type)
+            .add_field("aggregate", &self.aggregate, |at| {
+                validate_aggregate_type(at, version)
+            })
+            .add_struct_option("signature", self.signature.as_ref(), version)
             .into()
     }
 }
@@ -55,22 +58,40 @@ impl Validate for Compositions {
 }
 
 /// Validates the given [`AggregateType`].
-pub fn validate_aggregate_type(aggregate_type: &AggregateType) -> Result<(), ValidationError> {
-    if matches!(aggregate_type, AggregateType::UnknownAggregateType(_)) {
+pub fn validate_aggregate_type(
+    aggregate_type: &AggregateType,
+    version: SpecVersion,
+) -> Result<(), ValidationError> {
+    if version <= SpecVersion::V1_4 {
+        if AggregateType::IncompleteFirstPartyProprietaryOnly < *aggregate_type {
+            return Err("Unknown aggregate type".into());
+        }
+    } else if version <= SpecVersion::V1_5
+        && matches!(aggregate_type, AggregateType::UnknownAggregateType(_))
+    {
         return Err(ValidationError::new("Unknown aggregate type"));
     }
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display)]
 #[strum(serialize_all = "snake_case")]
+#[repr(u16)]
 pub enum AggregateType {
-    Complete,
-    Incomplete,
-    IncompleteFirstPartyOnly,
-    IncompleteThirdPartyOnly,
-    Unknown,
-    NotSpecified,
+    Complete = 1,
+    Incomplete = 2,
+    IncompleteFirstPartyOnly = 3,
+    IncompleteThirdPartyOnly = 4,
+    Unknown = 5,
+    NotSpecified = 6,
+    /// Added in 1.5
+    IncompleteFirstPartyProprietaryOnly = 7,
+    /// Added in 1.5
+    IncompleteFirstPartyOpensourceOnly = 8,
+    /// Added in 1.5
+    IncompleteThirdPartyProprietaryOnly = 9,
+    /// Added in 1.5
+    IncompleteThirdPartyOpensourceOnly = 10,
     #[doc(hidden)]
     #[strum(default)]
     UnknownAggregateType(String),
@@ -82,7 +103,11 @@ impl AggregateType {
             "complete" => Self::Complete,
             "incomplete" => Self::Incomplete,
             "incomplete_first_party_only" => Self::IncompleteFirstPartyOnly,
+            "incomplete_first_party_propprietary_only" => Self::IncompleteFirstPartyProprietaryOnly,
+            "incomplete_first_party_opensource_only" => Self::IncompleteFirstPartyOpensourceOnly,
             "incomplete_third_party_only" => Self::IncompleteThirdPartyOnly,
+            "incomplete_third_party_proprietary_only" => Self::IncompleteThirdPartyProprietaryOnly,
+            "incomplete_third_party_opensource_only" => Self::IncompleteThirdPartyOpensourceOnly,
             "unknown" => Self::Unknown,
             "not_specified" => Self::NotSpecified,
             unknown => Self::UnknownAggregateType(unknown.to_string()),
@@ -92,7 +117,7 @@ impl AggregateType {
 
 #[cfg(test)]
 mod test {
-    use crate::{models::signature::Algorithm, validation};
+    use crate::validation;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -105,7 +130,7 @@ mod test {
             assemblies: Some(vec![BomReference::new("assembly-ref")]),
             dependencies: Some(vec![BomReference::new("dependency-ref")]),
             vulnerabilities: Some(vec![BomReference::new("vulnerability-ref")]),
-            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
+            signature: Some(Signature::single("HS512", "abcdefgh")),
         }])
         .validate();
 
@@ -120,7 +145,7 @@ mod test {
             assemblies: Some(vec![BomReference::new("assembly-ref")]),
             dependencies: Some(vec![BomReference::new("dependency-ref")]),
             vulnerabilities: Some(vec![BomReference::new("vulnerability-ref")]),
-            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
+            signature: Some(Signature::single("HS512", "abcdefgh")),
         }])
         .validate();
 

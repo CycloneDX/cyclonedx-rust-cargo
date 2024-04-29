@@ -18,6 +18,11 @@
 
 use std::str::FromStr;
 
+use crate::{
+    prelude::{SpecVersion, Validate, ValidationResult},
+    validation::{ValidationContext, ValidationError},
+};
+
 /// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Signature {
@@ -27,6 +32,23 @@ pub enum Signature {
     Chain(Vec<Signer>),
     /// A single signature
     Single(Signer),
+}
+
+impl Validate for Signature {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        let mut context = ValidationContext::new();
+        match self {
+            Signature::Signers(signers) => context
+                .add_list("Signers", signers, |signer| {
+                    signer.validate_version(version)
+                })
+                .into(),
+            Signature::Chain(signers) => context
+                .add_list("Chain", signers, |signer| signer.validate_version(version))
+                .into(),
+            Signature::Single(signer) => context.add_struct("Single", signer, version).into(),
+        }
+    }
 }
 
 /// For now the [`Signer`] struct only holds algorithm and value
@@ -39,46 +61,51 @@ pub struct Signer {
 }
 
 impl Signer {
-    pub fn new(algorithm: Algorithm, value: &str) -> Self {
+    pub fn new(algorithm: &str, value: &str) -> Self {
         Self {
-            algorithm,
+            algorithm: Algorithm::new_unchecked(algorithm),
             value: value.to_string(),
         }
     }
 }
 
+impl Validate for Signer {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_field("algorithm", &self.algorithm, validate_algorithm)
+            .into()
+    }
+}
+
 impl Signature {
     /// Creates a single signature.
-    pub fn single(algorithm: Algorithm, value: &str) -> Self {
-        Self::Single(Signer {
-            algorithm,
-            value: value.to_string(),
-        })
+    pub fn single(algorithm: &str, value: &str) -> Self {
+        Self::Single(Signer::new(algorithm, value))
     }
 
     /// Creates a chain of multiple signatures
-    pub fn chain(chain: &[(Algorithm, &str)]) -> Self {
+    pub fn chain(chain: &[(&str, &str)]) -> Self {
         Self::Chain(
             chain
                 .iter()
-                .map(|(algorithm, value)| Signer::new(*algorithm, value))
+                .map(|(algorithm, value)| Signer::new(algorithm, value))
                 .collect(),
         )
     }
 
     /// Creates a list of multiple signatures.
-    pub fn signers(signers: &[(Algorithm, &str)]) -> Self {
+    pub fn signers(signers: &[(&str, &str)]) -> Self {
         Self::Signers(
             signers
                 .iter()
-                .map(|(algorithm, value)| Signer::new(*algorithm, value))
+                .map(|(algorithm, value)| Signer::new(algorithm, value))
                 .collect(),
         )
     }
 }
 
 /// Supported signature algorithms.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
 pub enum Algorithm {
     RS256,
     RS384,
@@ -94,6 +121,36 @@ pub enum Algorithm {
     HS256,
     HS384,
     HS512,
+    Unknown(String),
+}
+
+pub fn validate_algorithm(algorithm: &Algorithm) -> Result<(), ValidationError> {
+    if let Algorithm::Unknown(unknown) = algorithm {
+        return Err(format!("Unknown algorithm '{unknown}'").into());
+    }
+    Ok(())
+}
+
+impl Algorithm {
+    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+        match value.as_ref() {
+            "RS256" => Algorithm::RS256,
+            "RS384" => Algorithm::RS384,
+            "RS512" => Algorithm::RS512,
+            "PS256" => Algorithm::PS256,
+            "PS384" => Algorithm::PS384,
+            "PS512" => Algorithm::PS512,
+            "ES256" => Algorithm::ES256,
+            "ES384" => Algorithm::ES384,
+            "ES512" => Algorithm::ES512,
+            "Ed25519" => Algorithm::Ed25519,
+            "Ed448" => Algorithm::Ed448,
+            "HS256" => Algorithm::HS256,
+            "HS384" => Algorithm::HS384,
+            "HS512" => Algorithm::HS512,
+            unknown => Algorithm::Unknown(unknown.to_string()),
+        }
+    }
 }
 
 impl FromStr for Algorithm {
