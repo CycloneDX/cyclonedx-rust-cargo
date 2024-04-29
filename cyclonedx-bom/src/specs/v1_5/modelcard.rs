@@ -934,29 +934,37 @@ impl From<Attachment> for models::modelcard::Attachment {
 const ENCODING_ATTR: &str = "encoding";
 const CONTENT_TYPE_ATTR: &str = "content-type";
 
-impl ToXml for Attachment {
-    fn write_xml_element<W: std::io::Write>(
+impl ToInnerXml for Attachment {
+    fn write_xml_named_element<W: std::io::Write>(
         &self,
         writer: &mut xml::EventWriter<W>,
+        tag: &str,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        let mut start_tag = writer::XmlEvent::start_element(IMAGE_TAG);
+        let mut start_tag = writer::XmlEvent::start_element(tag);
         if let Some(encoding) = &self.encoding {
             start_tag = start_tag.attr(ENCODING_ATTR, encoding);
         }
         if let Some(content_type) = &self.content_type {
             start_tag = start_tag.attr(ENCODING_ATTR, content_type);
         }
-        writer
-            .write(start_tag)
-            .map_err(to_xml_write_error(IMAGE_TAG))?;
+        writer.write(start_tag).map_err(to_xml_write_error(tag))?;
 
         writer
             .write(writer::XmlEvent::characters(&self.content))
-            .map_err(to_xml_write_error(IMAGE_TAG))?;
+            .map_err(to_xml_write_error(tag))?;
 
-        write_close_tag(writer, IMAGE_TAG)?;
+        write_close_tag(writer, tag)?;
 
         Ok(())
+    }
+}
+
+impl ToXml for Attachment {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        self.write_xml_named_element(writer, IMAGE_TAG)
     }
 }
 

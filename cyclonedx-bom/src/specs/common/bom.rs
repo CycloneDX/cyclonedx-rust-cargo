@@ -1980,6 +1980,14 @@ pub(crate) mod base {
       <description>description</description>
       <detail>detail</detail>
       <recommendation>recommendation</recommendation>
+      <workaround>workaround</workaround>
+      <proofOfConcept>
+        <reproductionSteps>reproduction steps</reproductionSteps>
+        <environment>production</environment>
+        <supportingMaterial>
+          <attachment content-type="image/jpeg" encoding="base64">abcdefgh</attachment>
+        </supportingMaterial>
+      </proofOfConcept>
       <advisories>
         <advisory>
           <title>title</title>
@@ -1989,6 +1997,7 @@ pub(crate) mod base {
       <created>created</created>
       <published>published</published>
       <updated>updated</updated>
+      <rejected>rejected</rejected>
       <credits>
         <organizations>
           <organization>
@@ -2026,6 +2035,8 @@ pub(crate) mod base {
           <response>update</response>
         </responses>
         <detail>detail</detail>
+        <firstIssued>2024-01-02</firstIssued>
+        <lastUpdated>2024-01-10</lastUpdated>
       </analysis>
       <affects>
         <target>

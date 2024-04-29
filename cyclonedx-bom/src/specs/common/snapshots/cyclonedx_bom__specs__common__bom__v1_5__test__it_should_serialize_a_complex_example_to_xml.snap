@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 598
+assertion_line: 609
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -524,6 +524,7 @@ expression: xml_output
       <created>created</created>
       <published>published</published>
       <updated>updated</updated>
+      <rejected>rejected</rejected>
       <credits>
         <organizations>
           <organization>
@@ -561,6 +562,8 @@ expression: xml_output
           <response>update</response>
         </responses>
         <detail>detail</detail>
+        <firstIssued>2024-01-02</firstIssued>
+        <lastUpdated>2024-01-10</lastUpdated>
       </analysis>
       <affects>
         <target>
@@ -580,6 +583,7 @@ expression: xml_output
       <properties>
         <property name="name">value</property>
       </properties>
+      <workaround>workaround</workaround>
     </vulnerability>
   </vulnerabilities>
 </bom>
