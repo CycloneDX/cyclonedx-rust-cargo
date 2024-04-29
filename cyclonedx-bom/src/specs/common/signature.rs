@@ -16,8 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::str::FromStr;
-
 use serde::{Deserialize, Serialize};
 use xml::reader;
 
@@ -40,9 +38,9 @@ pub struct Signer {
 }
 
 impl Signer {
-    pub fn new(algorithm: Algorithm, value: &str) -> Self {
+    pub fn new(algorithm: &str, value: &str) -> Self {
         Self {
-            algorithm,
+            algorithm: Algorithm::new_unchecked(algorithm),
             value: value.to_string(),
         }
     }
@@ -103,15 +101,10 @@ impl FromXml for Signer {
             element: element_name.local_name.to_string(),
         })?;
 
-        let algorithm =
-            algorithm
-                .parse::<Algorithm>()
-                .map_err(|_| XmlReadError::InvalidEnumVariant {
-                    value: algorithm.to_string(),
-                    element: ALGORITHM_TAG.to_string(),
-                })?;
-
-        Ok(Self { algorithm, value })
+        Ok(Self {
+            algorithm: Algorithm::new_unchecked(algorithm.as_str()),
+            value,
+        })
     }
 }
 
@@ -129,26 +122,26 @@ pub enum Signature {
 
 impl Signature {
     /// Creates a single [`Signature::Single`].
-    pub fn single(algorithm: Algorithm, value: &str) -> Self {
+    pub fn single(algorithm: &str, value: &str) -> Self {
         Self::Single(Signer::new(algorithm, value))
     }
 
     /// Creates a [`Signature::Chain`].
-    pub fn chain(chain: &[(Algorithm, &str)]) -> Self {
+    pub fn chain(chain: &[(&str, &str)]) -> Self {
         Self::Chain(
             chain
                 .iter()
-                .map(|(algorithm, value)| Signer::new(*algorithm, value))
+                .map(|(algorithm, value)| Signer::new(algorithm, value))
                 .collect(),
         )
     }
 
     /// Creates a [`Signature::Signers`].
-    pub fn signers(signers: &[(Algorithm, &str)]) -> Self {
+    pub fn signers(signers: &[(&str, &str)]) -> Self {
         Self::Signers(
             signers
                 .iter()
-                .map(|(algorithm, value)| Signer::new(*algorithm, value))
+                .map(|(algorithm, value)| Signer::new(algorithm, value))
                 .collect(),
         )
     }
@@ -201,7 +194,7 @@ impl From<Signature> for models::signature::Signature {
 }
 
 /// Supported signature algorithms.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, strum::Display)]
 pub enum Algorithm {
     RS256,
     RS384,
@@ -217,47 +210,40 @@ pub enum Algorithm {
     HS256,
     HS384,
     HS512,
+    Unknown(String),
 }
 
-impl FromStr for Algorithm {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "RS256" => Ok(Algorithm::RS256),
-            "RS384" => Ok(Algorithm::RS384),
-            "RS512" => Ok(Algorithm::RS512),
-            "PS256" => Ok(Algorithm::PS256),
-            "PS384" => Ok(Algorithm::PS384),
-            "PS512" => Ok(Algorithm::PS512),
-            "ES256" => Ok(Algorithm::ES256),
-            "ES384" => Ok(Algorithm::ES384),
-            "ES512" => Ok(Algorithm::ES512),
-            "Ed25519" => Ok(Algorithm::Ed25519),
-            "Ed448" => Ok(Algorithm::Ed448),
-            "HS256" => Ok(Algorithm::HS256),
-            "HS384" => Ok(Algorithm::HS384),
-            "HS512" => Ok(Algorithm::HS512),
-            _ => Err(format!("Invalid signature algorithm '{}' found", s)),
+impl Algorithm {
+    pub fn new_unchecked(algorithm: &str) -> Self {
+        match algorithm {
+            "RS256" => Algorithm::RS256,
+            "RS384" => Algorithm::RS384,
+            "RS512" => Algorithm::RS512,
+            "PS256" => Algorithm::PS256,
+            "PS384" => Algorithm::PS384,
+            "PS512" => Algorithm::PS512,
+            "ES256" => Algorithm::ES256,
+            "ES384" => Algorithm::ES384,
+            "ES512" => Algorithm::ES512,
+            "Ed25519" => Algorithm::Ed25519,
+            "Ed448" => Algorithm::Ed448,
+            "HS256" => Algorithm::HS256,
+            "HS384" => Algorithm::HS384,
+            "HS512" => Algorithm::HS512,
+            unknown => Algorithm::Unknown(unknown.to_string()),
         }
     }
 }
 
 impl From<models::signature::Algorithm> for Algorithm {
     fn from(other: models::signature::Algorithm) -> Self {
-        other
-            .to_string()
-            .parse::<Algorithm>()
-            .expect("Failed to convert algorithm")
+        Algorithm::new_unchecked(other.to_string().as_str())
     }
 }
 
 impl From<Algorithm> for models::signature::Algorithm {
     fn from(other: Algorithm) -> Self {
-        other
-            .to_string()
-            .parse::<models::signature::Algorithm>()
-            .expect("Failed to convert algorithm")
+        Self::new_unchecked(other.to_string().as_str())
     }
 }
 
@@ -362,15 +348,7 @@ impl FromXml for Signature {
                 element: element_name.local_name.to_string(),
             })?;
 
-            let algorithm =
-                algorithm
-                    .parse::<Algorithm>()
-                    .map_err(|_| XmlReadError::InvalidEnumVariant {
-                        value: algorithm.to_string(),
-                        element: ALGORITHM_TAG.to_string(),
-                    })?;
-
-            Signature::single(algorithm, &value)
+            Signature::single(&algorithm, &value)
         };
 
         Ok(signature)
@@ -386,10 +364,10 @@ pub(crate) mod test {
         xml::{test::read_element_from_string, FromXml, ToXml},
     };
 
-    use super::{Algorithm, Signature};
+    use super::Signature;
 
     pub(crate) fn example_signature() -> Signature {
-        Signature::single(Algorithm::HS512, "1234567890")
+        Signature::single("HS512", "1234567890")
     }
 
     pub(crate) fn corresponding_signature() -> models::signature::Signature {
@@ -439,7 +417,7 @@ pub(crate) mod test {
     <value>abcdefghijklmnopqrstuvwxyz</value>
 </signature>
 "#;
-        let expected = Signature::single(Algorithm::RS512, "abcdefghijklmnopqrstuvwxyz");
+        let expected = Signature::single("RS512", "abcdefghijklmnopqrstuvwxyz");
         assert_valid_signature(input, expected);
     }
 
@@ -481,7 +459,7 @@ pub(crate) mod test {
   <algorithm>ES256</algorithm>
   <value>abcdefgh</value>
 </signature>"#;
-        let signature = Signature::single(Algorithm::ES256, "abcdefgh");
+        let signature = Signature::single("ES256", "abcdefgh");
         assert_write_xml(signature, expected);
     }
 
@@ -501,10 +479,7 @@ pub(crate) mod test {
   </signers>
 </signature>
 "#;
-        let signature = Signature::signers(&[
-            (Algorithm::ES256, "abcdefgh"),
-            (Algorithm::HS512, "1234567890"),
-        ]);
+        let signature = Signature::signers(&[("ES256", "abcdefgh"), ("HS512", "1234567890")]);
         assert_write_xml(signature, expected);
     }
 
@@ -524,10 +499,7 @@ pub(crate) mod test {
   </chain>
 </signature>
 "#;
-        let signature = Signature::chain(&[
-            (Algorithm::ES256, "abcdefgh"),
-            (Algorithm::HS512, "1234567890"),
-        ]);
+        let signature = Signature::chain(&[("ES256", "abcdefgh"), ("HS512", "1234567890")]);
         assert_write_xml(signature, expected);
     }
 
@@ -539,7 +511,7 @@ pub(crate) mod test {
   <value>abcdefgh</value>
 </signature>
         "#;
-        let expected = Signature::single(Algorithm::HS512, "abcdefgh");
+        let expected = Signature::single("HS512", "abcdefgh");
         let actual: Signature = read_element_from_string(input);
         assert_eq!(actual, expected);
     }
@@ -566,10 +538,7 @@ pub(crate) mod test {
   </signers>
 </signature>
         "#;
-        let expected = Signature::signers(&[
-            (Algorithm::ES256, "abcdefgh"),
-            (Algorithm::HS512, "1234567890"),
-        ]);
+        let expected = Signature::signers(&[("ES256", "abcdefgh"), ("HS512", "1234567890")]);
         let actual: Signature = read_element_from_string(input);
         assert_eq!(actual, expected);
     }
@@ -590,10 +559,7 @@ pub(crate) mod test {
   </chain>
 </signature>
         "#;
-        let expected = Signature::chain(&[
-            (Algorithm::ES256, "abcdefgh"),
-            (Algorithm::HS512, "1234567890"),
-        ]);
+        let expected = Signature::chain(&[("ES256", "abcdefgh"), ("HS512", "1234567890")]);
         let actual: Signature = read_element_from_string(input);
         assert_eq!(actual, expected);
     }
