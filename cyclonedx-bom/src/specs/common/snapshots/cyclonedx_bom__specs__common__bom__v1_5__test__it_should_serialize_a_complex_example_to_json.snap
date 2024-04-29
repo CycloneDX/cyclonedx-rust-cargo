@@ -778,7 +778,9 @@ expression: actual
         "responses": [
           "update"
         ],
-        "detail": "detail"
+        "detail": "detail",
+        "firstIssued": "2024-01-02",
+        "lastUpdated": "2024-01-10"
       },
       "affects": [
         {

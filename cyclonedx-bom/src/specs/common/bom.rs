@@ -2035,6 +2035,8 @@ pub(crate) mod base {
           <response>update</response>
         </responses>
         <detail>detail</detail>
+        <firstIssued>2024-01-02</firstIssued>
+        <lastUpdated>2024-01-10</lastUpdated>
       </analysis>
       <affects>
         <target>
