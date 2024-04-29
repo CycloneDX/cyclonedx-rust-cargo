@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 606
+assertion_line: 603
 expression: actual
 ---
 {
@@ -713,6 +713,7 @@ expression: actual
       "description": "description",
       "detail": "detail",
       "recommendation": "recommendation",
+      "workaround": "workaround",
       "advisories": [
         {
           "title": "title",

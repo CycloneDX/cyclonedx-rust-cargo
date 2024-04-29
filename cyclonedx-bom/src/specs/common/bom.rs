@@ -1980,6 +1980,7 @@ pub(crate) mod base {
       <description>description</description>
       <detail>detail</detail>
       <recommendation>recommendation</recommendation>
+      <workaround>workaround</workaround>
       <advisories>
         <advisory>
           <title>title</title>

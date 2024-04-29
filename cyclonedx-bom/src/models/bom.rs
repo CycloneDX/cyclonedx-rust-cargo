@@ -759,6 +759,7 @@ mod test {
                 description: None,
                 detail: None,
                 recommendation: None,
+                workaround: None,
                 advisories: None,
                 created: None,
                 published: None,
