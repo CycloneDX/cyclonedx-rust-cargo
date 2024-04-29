@@ -601,6 +601,7 @@ mod test {
             },
             organization::OrganizationalContact,
             property::Property,
+            signature::Algorithm,
         },
         validation,
     };
@@ -708,7 +709,7 @@ mod test {
                     tools: None,
                 }),
             }),
-            signature: Some(Signature::single("HS512", "abcdefgh")),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: Some(ModelCard {
                 bom_ref: None,
                 model_parameters: Some(ModelParameters {
@@ -873,7 +874,7 @@ mod test {
                 callstack: None,
                 identity: None,
             }),
-            signature: Some(Signature::single("HS512", "abcdefgh")),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: None,
         }])
         .validate();

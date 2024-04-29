@@ -61,9 +61,9 @@ pub struct Signer {
 }
 
 impl Signer {
-    pub fn new(algorithm: &str, value: &str) -> Self {
+    pub fn new(algorithm: Algorithm, value: &str) -> Self {
         Self {
-            algorithm: Algorithm::new_unchecked(algorithm),
+            algorithm,
             value: value.to_string(),
         }
     }
@@ -79,26 +79,26 @@ impl Validate for Signer {
 
 impl Signature {
     /// Creates a single signature.
-    pub fn single(algorithm: &str, value: &str) -> Self {
+    pub fn single(algorithm: Algorithm, value: &str) -> Self {
         Self::Single(Signer::new(algorithm, value))
     }
 
     /// Creates a chain of multiple signatures
-    pub fn chain(chain: &[(&str, &str)]) -> Self {
+    pub fn chain(chain: &[(Algorithm, &str)]) -> Self {
         Self::Chain(
             chain
                 .iter()
-                .map(|(algorithm, value)| Signer::new(algorithm, value))
+                .map(|(algorithm, value)| Signer::new(algorithm.clone(), value))
                 .collect(),
         )
     }
 
     /// Creates a list of multiple signatures.
-    pub fn signers(signers: &[(&str, &str)]) -> Self {
+    pub fn signers(signers: &[(Algorithm, &str)]) -> Self {
         Self::Signers(
             signers
                 .iter()
-                .map(|(algorithm, value)| Signer::new(algorithm, value))
+                .map(|(algorithm, value)| Signer::new(algorithm.clone(), value))
                 .collect(),
         )
     }
@@ -132,6 +132,7 @@ pub fn validate_algorithm(algorithm: &Algorithm) -> Result<(), ValidationError> 
 }
 
 impl Algorithm {
+    #[allow(unused)]
     pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "RS256" => Algorithm::RS256,

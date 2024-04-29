@@ -117,7 +117,7 @@ impl AggregateType {
 
 #[cfg(test)]
 mod test {
-    use crate::validation;
+    use crate::{models::signature::Algorithm, validation};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -130,7 +130,7 @@ mod test {
             assemblies: Some(vec![BomReference::new("assembly-ref")]),
             dependencies: Some(vec![BomReference::new("dependency-ref")]),
             vulnerabilities: Some(vec![BomReference::new("vulnerability-ref")]),
-            signature: Some(Signature::single("HS512", "abcdefgh")),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
 
@@ -145,7 +145,7 @@ mod test {
             assemblies: Some(vec![BomReference::new("assembly-ref")]),
             dependencies: Some(vec![BomReference::new("dependency-ref")]),
             vulnerabilities: Some(vec![BomReference::new("vulnerability-ref")]),
-            signature: Some(Signature::single("HS512", "abcdefgh")),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
         }])
         .validate();
 

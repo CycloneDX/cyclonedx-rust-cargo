@@ -237,6 +237,7 @@ mod test {
             external_reference::{ExternalReference, ExternalReferenceType, Uri},
             license::LicenseChoice,
             property::Property,
+            signature::Algorithm,
         },
         validation,
     };
@@ -274,7 +275,7 @@ mod test {
                 value: NormalizedString::new("value"),
             }])),
             services: Some(Services(vec![])),
-            signature: Some(Signature::single("HS512", "abcdefgh")),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             trust_zone: Some("Trust Zone".into()),
         }])
         .validate();
@@ -319,7 +320,7 @@ mod test {
                 value: NormalizedString("invalid\tvalue".to_string()),
             }])),
             services: Some(Services(vec![Service::new("invalid\tname", None)])),
-            signature: Some(Signature::single("HS512", "abcdefgh")),
+            signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             trust_zone: Some("Trust Zone".into()),
         }])
         .validate();

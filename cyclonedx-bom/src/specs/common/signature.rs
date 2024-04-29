@@ -374,7 +374,7 @@ pub(crate) mod test {
     }
 
     pub(crate) fn corresponding_signature() -> models::signature::Signature {
-        models::signature::Signature::single("HS512", "1234567890")
+        models::signature::Signature::single(models::signature::Algorithm::HS512, "1234567890")
     }
 
     #[track_caller]
