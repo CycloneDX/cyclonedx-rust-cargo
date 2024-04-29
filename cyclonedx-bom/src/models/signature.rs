@@ -16,8 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::str::FromStr;
-
 use crate::{
     prelude::{SpecVersion, Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
@@ -150,30 +148,6 @@ impl Algorithm {
             "HS384" => Algorithm::HS384,
             "HS512" => Algorithm::HS512,
             unknown => Algorithm::Unknown(unknown.to_string()),
-        }
-    }
-}
-
-impl FromStr for Algorithm {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "RS256" => Ok(Algorithm::RS256),
-            "RS384" => Ok(Algorithm::RS384),
-            "RS512" => Ok(Algorithm::RS512),
-            "PS256" => Ok(Algorithm::PS256),
-            "PS384" => Ok(Algorithm::PS384),
-            "PS512" => Ok(Algorithm::PS512),
-            "ES256" => Ok(Algorithm::ES256),
-            "ES384" => Ok(Algorithm::ES384),
-            "ES512" => Ok(Algorithm::ES512),
-            "Ed25519" => Ok(Algorithm::Ed25519),
-            "Ed448" => Ok(Algorithm::Ed448),
-            "HS256" => Ok(Algorithm::HS256),
-            "HS384" => Ok(Algorithm::HS384),
-            "HS512" => Ok(Algorithm::HS512),
-            _ => Err(format!("Invalid signature algorithm '{}' found", s)),
         }
     }
 }

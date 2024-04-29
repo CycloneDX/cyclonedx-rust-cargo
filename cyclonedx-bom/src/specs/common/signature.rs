@@ -243,10 +243,7 @@ impl From<models::signature::Algorithm> for Algorithm {
 
 impl From<Algorithm> for models::signature::Algorithm {
     fn from(other: Algorithm) -> Self {
-        other
-            .to_string()
-            .parse::<models::signature::Algorithm>()
-            .expect("Failed to convert algorithm")
+        Self::new_unchecked(other.to_string().as_str())
     }
 }
 
