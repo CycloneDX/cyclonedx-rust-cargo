@@ -760,6 +760,7 @@ mod test {
                 detail: None,
                 recommendation: None,
                 workaround: None,
+                proof_of_concept: None,
                 advisories: None,
                 created: None,
                 published: None,

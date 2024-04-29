@@ -714,6 +714,17 @@ expression: actual
       "detail": "detail",
       "recommendation": "recommendation",
       "workaround": "workaround",
+      "proofOfConcept": {
+        "reproductionSteps": "reproduction steps",
+        "environment": "production",
+        "supportingMaterial": [
+          {
+            "content": "abcdefgh",
+            "contentType": "image/jpeg",
+            "encoding": "base64"
+          }
+        ]
+      },
       "advisories": [
         {
           "title": "title",

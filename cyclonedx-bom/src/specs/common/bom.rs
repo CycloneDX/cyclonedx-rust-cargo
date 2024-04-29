@@ -1981,6 +1981,13 @@ pub(crate) mod base {
       <detail>detail</detail>
       <recommendation>recommendation</recommendation>
       <workaround>workaround</workaround>
+      <proofOfConcept>
+        <reproductionSteps>reproduction steps</reproductionSteps>
+        <environment>production</environment>
+        <supportingMaterial>
+          <attachment content-type="image/jpeg" encoding="base64">abcdefgh</attachment>
+        </supportingMaterial>
+      </proofOfConcept>
       <advisories>
         <advisory>
           <title>title</title>
