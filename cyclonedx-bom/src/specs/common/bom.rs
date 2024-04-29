@@ -1997,6 +1997,7 @@ pub(crate) mod base {
       <created>created</created>
       <published>published</published>
       <updated>updated</updated>
+      <rejected>rejected</rejected>
       <credits>
         <organizations>
           <organization>

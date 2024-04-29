@@ -734,6 +734,7 @@ expression: actual
       "created": "created",
       "published": "published",
       "updated": "updated",
+      "rejected": "rejected",
       "credits": {
         "organizations": [
           {

@@ -765,6 +765,7 @@ mod test {
                 created: None,
                 published: None,
                 updated: None,
+                rejected: None,
                 vulnerability_credits: None,
                 tools: None,
                 vulnerability_analysis: None,
