@@ -16,12 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use std::convert::TryFrom;
-
 use crate::external_models::normalized_string::validate_normalized_string;
-use crate::external_models::spdx::{
-    validate_spdx_expression, validate_spdx_identifier, SpdxIdentifierError,
-};
+use crate::external_models::spdx::{validate_spdx_expression, validate_spdx_identifier};
 use crate::external_models::uri::validate_uri;
 use crate::external_models::{
     normalized_string::NormalizedString,
@@ -31,7 +27,7 @@ use crate::external_models::{
 use crate::models::attached_text::AttachedText;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
-use super::bom::SpecVersion;
+use super::bom::{BomReference, SpecVersion};
 
 /// Represents whether a license is a named license or an SPDX license expression
 ///
@@ -80,6 +76,7 @@ impl Validate for LicenseChoice {
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseType)
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct License {
+    pub bom_ref: Option<BomReference>,
     pub license_identifier: LicenseIdentifier,
     pub text: Option<AttachedText>,
     pub url: Option<Uri>,
@@ -94,6 +91,7 @@ impl License {
     /// ```
     pub fn named_license(license: &str) -> Self {
         Self {
+            bom_ref: None,
             license_identifier: LicenseIdentifier::Name(NormalizedString::new(license)),
             text: None,
             url: None,
@@ -106,14 +104,14 @@ impl License {
     ///
     /// let license = License::license_id("LGPL-3.0-or-later");
     /// ```
-    pub fn license_id(license: &str) -> Result<Self, SpdxIdentifierError> {
-        Ok(Self {
-            license_identifier: LicenseIdentifier::SpdxId(SpdxIdentifier::try_from(
-                license.to_owned(),
-            )?),
+    pub fn license_id(license: &str) -> Self {
+        let identifier = SpdxIdentifier(license.to_string());
+        Self {
+            bom_ref: None,
+            license_identifier: LicenseIdentifier::SpdxId(identifier),
             text: None,
             url: None,
-        })
+        }
     }
 }
 
@@ -207,6 +205,7 @@ mod test {
     #[test]
     fn it_should_fail_validation_for_license_name() {
         let validation_result = Licenses(vec![LicenseChoice::License(License {
+            bom_ref: None,
             license_identifier: LicenseIdentifier::Name(NormalizedString(
                 "spaces and \ttabs".to_string(),
             )),
@@ -238,11 +237,9 @@ mod test {
 
     #[test]
     fn it_should_fail_validation_for_license_id() {
-        let validation_result = Licenses(vec![LicenseChoice::License(License {
-            license_identifier: LicenseIdentifier::SpdxId(SpdxIdentifier("Apache=2.0".to_string())),
-            text: None,
-            url: None,
-        })])
+        let validation_result = Licenses(vec![LicenseChoice::License(License::license_id(
+            "Apache=2.0",
+        ))])
         .validate();
 
         assert_eq!(
@@ -286,11 +283,13 @@ mod test {
     fn it_should_merge_validations_correctly_license_choice_licenses() {
         let validation_result = Licenses(vec![
             LicenseChoice::License(License {
+                bom_ref: None,
                 license_identifier: LicenseIdentifier::Name(NormalizedString("MIT".to_string())),
                 text: None,
                 url: None,
             }),
             LicenseChoice::License(License {
+                bom_ref: None,
                 license_identifier: LicenseIdentifier::Name(NormalizedString(
                     "spaces and \ttabs".to_string(),
                 )),
@@ -298,6 +297,7 @@ mod test {
                 url: None,
             }),
             LicenseChoice::License(License {
+                bom_ref: None,
                 license_identifier: LicenseIdentifier::SpdxId(SpdxIdentifier(
                     "Apache=2.0".to_string(),
                 )),

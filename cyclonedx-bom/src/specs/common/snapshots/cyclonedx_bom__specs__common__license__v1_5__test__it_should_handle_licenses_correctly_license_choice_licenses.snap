@@ -1,0 +1,31 @@
+---
+source: cyclonedx-bom/src/specs/common/license.rs
+assertion_line: 657
+expression: actual
+---
+[
+  {
+    "license": {
+      "bomRef": "license-id",
+      "id": "spdx id",
+      "text": {
+        "contentType": "content type",
+        "encoding": "encoding",
+        "content": "content"
+      },
+      "url": "url"
+    }
+  },
+  {
+    "license": {
+      "bomRef": "license-1",
+      "name": "name",
+      "text": {
+        "contentType": "content type",
+        "encoding": "encoding",
+        "content": "content"
+      },
+      "url": "url"
+    }
+  }
+]

@@ -31,6 +31,7 @@ pub(crate) use crate::specs::common::bom::v1_5 as bom;
 pub(crate) use crate::specs::common::component::v1_5 as component;
 pub(crate) use crate::specs::common::composition::v1_5 as composition;
 pub(crate) use crate::specs::common::external_reference::v1_5 as external_reference;
+pub(crate) use crate::specs::common::license::v1_5 as license;
 pub(crate) use crate::specs::common::metadata::v1_5 as metadata;
 pub(crate) use crate::specs::common::service::v1_5 as service;
 pub(crate) use crate::specs::common::tool::v1_5 as tool;

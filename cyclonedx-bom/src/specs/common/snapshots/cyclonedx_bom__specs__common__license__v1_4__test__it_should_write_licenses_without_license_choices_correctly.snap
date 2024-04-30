@@ -1,0 +1,7 @@
+---
+source: cyclonedx-bom/src/specs/common/license.rs
+assertion_line: 650
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<licenses />

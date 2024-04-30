@@ -1,0 +1,29 @@
+---
+source: cyclonedx-bom/src/specs/common/license.rs
+assertion_line: 657
+expression: actual
+---
+[
+  {
+    "license": {
+      "id": "spdx id",
+      "text": {
+        "contentType": "content type",
+        "encoding": "encoding",
+        "content": "content"
+      },
+      "url": "url"
+    }
+  },
+  {
+    "license": {
+      "name": "name",
+      "text": {
+        "contentType": "content type",
+        "encoding": "encoding",
+        "content": "content"
+      },
+      "url": "url"
+    }
+  }
+]
