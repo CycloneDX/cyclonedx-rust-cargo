@@ -21,7 +21,7 @@ use std::convert::TryFrom;
 use spdx::{Expression, ParseMode};
 use thiserror::Error;
 
-use crate::validation::ValidationError;
+use crate::{models::bom::BomReference, validation::ValidationError};
 
 /// An identifier for a single, specific license
 ///
@@ -98,7 +98,8 @@ pub enum SpdxIdentifierError {
 
 /// An expression that describes the set of licenses that cover the software
 ///
-/// The specification for a valid SPDX license expression can be found on the [SPDX website](https://spdx.github.io/spdx-spec/SPDX-license-expressions/)
+/// The specification for a valid SPDX license expression can be found on the
+/// [SPDX website](https://spdx.github.io/spdx-spec/v3.0/annexes/SPDX-license-expressions//)
 /// ```
 /// use cyclonedx_bom::prelude::*;
 /// # use cyclonedx_bom::external_models::spdx::SpdxExpressionError;
@@ -110,9 +111,20 @@ pub enum SpdxIdentifierError {
 /// # Ok::<(), SpdxExpressionError>(())
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct SpdxExpression(pub(crate) String);
+pub struct SpdxExpression {
+    pub(crate) bom_ref: Option<BomReference>,
+    pub(crate) expression: String,
+}
 
 impl SpdxExpression {
+    /// Creates a new `SpdxExpression` without validation.
+    pub fn new(expression: &str) -> Self {
+        Self {
+            bom_ref: None,
+            expression: expression.to_string(),
+        }
+    }
+
     /// Parse a mostly-valid SPDX expression into a valid expression
     ///
     /// Some Rust repositories have a `license` field of `"MIT/Apache-2.0"`,
@@ -129,7 +141,7 @@ impl SpdxExpression {
     /// ```
     pub fn parse_lax(value: String) -> Result<Self, SpdxExpressionError> {
         match Expression::parse_mode(&value, ParseMode::LAX) {
-            Ok(_) => Self(value).convert_lax(),
+            Ok(_) => Self::new(&value).convert_lax(),
             Err(e) => Err(SpdxExpressionError::InvalidLaxSpdxExpression(format!(
                 "{}",
                 e.reason
@@ -138,7 +150,7 @@ impl SpdxExpression {
     }
 
     fn convert_lax(self) -> Result<Self, SpdxExpressionError> {
-        let converted = self.0.replace('/', " OR ");
+        let converted = self.expression.replace('/', " OR ");
 
         match Self::try_from(converted) {
             Ok(converted) => Ok(converted),
@@ -155,7 +167,10 @@ impl TryFrom<String> for SpdxExpression {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match Expression::parse(&value) {
-            Ok(_) => Ok(Self(value)),
+            Ok(_) => Ok(Self {
+                bom_ref: None,
+                expression: value,
+            }),
             Err(e) => Err(SpdxExpressionError::InvalidSpdxExpression(format!(
                 "{}",
                 e.reason
@@ -166,12 +181,12 @@ impl TryFrom<String> for SpdxExpression {
 
 impl std::fmt::Display for SpdxExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
+        f.write_str(&self.expression)
     }
 }
 
 pub fn validate_spdx_expression(expression: &SpdxExpression) -> Result<(), ValidationError> {
-    if Expression::parse(&expression.0).is_err() {
+    if Expression::parse(&expression.expression).is_err() {
         return Err(ValidationError::new("SPDX expression is not valid"));
     }
     Ok(())
@@ -255,14 +270,14 @@ mod test {
     fn it_should_succeed_in_converting_an_spdx_expression() {
         let actual = SpdxExpression::try_from("MIT OR Apache-2.0".to_string())
             .expect("Failed to parse as a license");
-        assert_eq!(actual, SpdxExpression("MIT OR Apache-2.0".to_string()));
+        assert_eq!(actual, SpdxExpression::new("MIT OR Apache-2.0"));
     }
 
     #[test]
     fn it_should_succeed_in_converting_a_partially_valid_spdx_expression() {
         let actual = SpdxExpression::parse_lax("MIT/Apache-2.0".to_string())
             .expect("Failed to parse as a license");
-        assert_eq!(actual, SpdxExpression("MIT OR Apache-2.0".to_string()));
+        assert_eq!(actual, SpdxExpression::new("MIT OR Apache-2.0"));
     }
 
     #[test]
@@ -277,8 +292,7 @@ mod test {
 
     #[test]
     fn valid_spdx_expressions_should_pass_validation() {
-        let validation_result =
-            validate_spdx_expression(&SpdxExpression("MIT OR Apache-2.0".to_string()));
+        let validation_result = validate_spdx_expression(&SpdxExpression::new("MIT OR Apache-2.0"));
 
         assert!(validation_result.is_ok());
     }
@@ -286,7 +300,7 @@ mod test {
     #[test]
     fn invalid_spdx_expressions_should_fail_validation() {
         let validation_result =
-            validate_spdx_expression(&SpdxExpression("not a real license".to_string()));
+            validate_spdx_expression(&SpdxExpression::new("not a real license"));
 
         assert_eq!(
             validation_result,

@@ -172,9 +172,9 @@ mod test {
                 url: None,
                 contact: None,
             }),
-            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
-                "MIT".to_string(),
-            ))])),
+            licenses: Some(Licenses(vec![LicenseChoice::Expression(
+                SpdxExpression::new("MIT"),
+            )])),
             properties: Some(Properties(vec![Property {
                 name: "name".to_string(),
                 value: NormalizedString::new("value"),
@@ -242,9 +242,9 @@ mod test {
                 url: None,
                 contact: None,
             }),
-            licenses: Some(Licenses(vec![LicenseChoice::Expression(SpdxExpression(
-                "invalid license".to_string(),
-            ))])),
+            licenses: Some(Licenses(vec![LicenseChoice::Expression(
+                SpdxExpression::new("invalid license"),
+            )])),
             properties: Some(Properties(vec![Property {
                 name: "name".to_string(),
                 value: NormalizedString("invalid\tvalue".to_string()),

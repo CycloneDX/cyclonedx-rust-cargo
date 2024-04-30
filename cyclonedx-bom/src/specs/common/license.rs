@@ -16,7 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use crate::xml::write_simple_tag;
+use crate::models::bom::BomReference;
+use crate::xml::{optional_attribute, write_close_tag, write_simple_tag};
 use crate::{
     errors::XmlReadError,
     external_models::{
@@ -115,14 +116,15 @@ impl FromXml for Licenses {
 #[serde(rename_all = "camelCase")]
 pub(crate) enum LicenseChoice {
     License(License),
-    Expression(String),
+    #[serde(untagged)]
+    Expression(Expression),
 }
 
 impl From<models::license::LicenseChoice> for LicenseChoice {
     fn from(other: models::license::LicenseChoice) -> Self {
         match other {
             models::license::LicenseChoice::License(l) => Self::License(l.into()),
-            models::license::LicenseChoice::Expression(e) => Self::Expression(e.0),
+            models::license::LicenseChoice::Expression(e) => Self::Expression(e.into()),
         }
     }
 }
@@ -131,11 +133,12 @@ impl From<LicenseChoice> for models::license::LicenseChoice {
     fn from(other: LicenseChoice) -> Self {
         match other {
             LicenseChoice::License(l) => Self::License(l.into()),
-            LicenseChoice::Expression(e) => Self::Expression(SpdxExpression(e)),
+            LicenseChoice::Expression(e) => Self::Expression(e.into()),
         }
     }
 }
 
+const BOM_REF_ATTR: &str = "bom-ref";
 const EXPRESSION_TAG: &str = "expression";
 
 impl ToXml for LicenseChoice {
@@ -148,7 +151,7 @@ impl ToXml for LicenseChoice {
                 l.write_xml_element(writer)?;
             }
             LicenseChoice::Expression(e) => {
-                write_simple_tag(writer, EXPRESSION_TAG, e)?;
+                e.write_xml_element(writer)?;
             }
         }
 
@@ -171,9 +174,10 @@ impl FromXml for LicenseChoice {
                 element_name,
                 attributes,
             )?)),
-            EXPRESSION_TAG => Ok(Self::Expression(read_simple_tag(
+            EXPRESSION_TAG => Ok(Self::Expression(Expression::read_xml_element(
                 event_reader,
                 element_name,
+                attributes,
             )?)),
             unexpected => Err(XmlReadError::UnexpectedElementReadError {
                 error: format!("Got unexpected element {:?}", unexpected),
@@ -410,6 +414,86 @@ impl FromXml for LicenseIdentifier {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Expression {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bom_ref: Option<String>,
+    expression: String,
+}
+
+impl Expression {
+    #[allow(unused)]
+    pub fn new(expression: &str) -> Self {
+        Self {
+            bom_ref: None,
+            expression: expression.to_string(),
+        }
+    }
+}
+
+impl From<Expression> for SpdxExpression {
+    fn from(other: Expression) -> Self {
+        Self {
+            bom_ref: other.bom_ref.map(BomReference::new),
+            expression: other.expression,
+        }
+    }
+}
+
+impl From<SpdxExpression> for Expression {
+    fn from(other: SpdxExpression) -> Self {
+        Self {
+            bom_ref: other.bom_ref.map(|b| b.0),
+            expression: other.expression,
+        }
+    }
+}
+
+impl ToXml for Expression {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        let mut start_tag = xml::writer::XmlEvent::start_element(EXPRESSION_TAG);
+
+        if let Some(bom_ref) = &self.bom_ref {
+            start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
+        }
+
+        writer
+            .write(start_tag)
+            .map_err(to_xml_write_error(EXPRESSION_TAG))?;
+
+        writer
+            .write(writer::XmlEvent::characters(&self.expression))
+            .map_err(to_xml_write_error(EXPRESSION_TAG))?;
+
+        write_close_tag(writer, EXPRESSION_TAG)?;
+
+        Ok(())
+    }
+}
+
+impl FromXml for Expression {
+    fn read_xml_element<R: std::io::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &OwnedName,
+        attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+        let expression = read_simple_tag(event_reader, element_name)?;
+
+        Ok(Expression {
+            bom_ref,
+            expression,
+        })
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
@@ -468,11 +552,11 @@ pub(crate) mod test {
     }
 
     pub(crate) fn example_license_expression() -> LicenseChoice {
-        LicenseChoice::Expression("expression".to_string())
+        LicenseChoice::Expression(Expression::new("expression"))
     }
 
     pub(crate) fn corresponding_license_expression() -> models::license::LicenseChoice {
-        models::license::LicenseChoice::Expression(SpdxExpression("expression".to_string()))
+        models::license::LicenseChoice::Expression(SpdxExpression::new("expression"))
     }
 
     #[test]

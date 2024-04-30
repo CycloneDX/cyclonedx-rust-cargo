@@ -46,6 +46,16 @@ impl LicenseChoice {
     pub fn is_license(&self) -> bool {
         matches!(self, LicenseChoice::License(_))
     }
+
+    /// Creates a new license with given string.
+    pub fn license(license: &str) -> Self {
+        Self::License(License::named_license(license))
+    }
+
+    /// Creates a new expression.
+    pub fn expression(expression: &str) -> Self {
+        Self::Expression(SpdxExpression::new(expression))
+    }
 }
 
 impl Validate for LicenseChoice {
@@ -186,8 +196,8 @@ mod test {
 
     #[test]
     fn it_should_pass_validation() {
-        let validation_result = Licenses(vec![LicenseChoice::Expression(SpdxExpression(
-            "MIT OR Apache-2.0".to_string(),
+        let validation_result = Licenses(vec![LicenseChoice::Expression(SpdxExpression::new(
+            "MIT OR Apache-2.0",
         ))])
         .validate();
 
@@ -255,8 +265,8 @@ mod test {
 
     #[test]
     fn it_should_fail_validation_for_license_expression() {
-        let validation_result = Licenses(vec![LicenseChoice::Expression(SpdxExpression(
-            "MIT OR".to_string(),
+        let validation_result = Licenses(vec![LicenseChoice::Expression(SpdxExpression::new(
+            "MIT OR",
         ))])
         .validate();
 
@@ -330,9 +340,9 @@ mod test {
     #[test]
     fn it_should_merge_validations_correctly_license_choice_expressions() {
         let validation_result = Licenses(vec![
-            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
-            LicenseChoice::Expression(SpdxExpression("MIT OR".to_string())),
-            LicenseChoice::Expression(SpdxExpression("MIT OR".to_string())),
+            LicenseChoice::Expression(SpdxExpression::new("MIT OR Apache-2.0")),
+            LicenseChoice::Expression(SpdxExpression::new("MIT OR")),
+            LicenseChoice::Expression(SpdxExpression::new("MIT OR")),
         ])
         .validate();
 
@@ -358,7 +368,7 @@ mod test {
     fn it_should_fail_with_mixed_license_nodes_in_version_15() {
         let licenses = Licenses(vec![
             LicenseChoice::License(License::named_license("MIT OR Apache-2.0")),
-            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+            LicenseChoice::Expression(SpdxExpression::new("MIT OR Apache-2.0")),
         ]);
         let validation_result = licenses.validate_version(SpecVersion::V1_5);
 
@@ -374,8 +384,8 @@ mod test {
     #[test]
     fn it_should_fail_with_multiple_license_expressions_in_version_15() {
         let validation_result = Licenses(vec![
-            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
-            LicenseChoice::Expression(SpdxExpression("MIT OR Apache-2.0".to_string())),
+            LicenseChoice::Expression(SpdxExpression::new("MIT OR Apache-2.0")),
+            LicenseChoice::Expression(SpdxExpression::new("MIT OR Apache-2.0")),
         ])
         .validate_version(SpecVersion::V1_5);
 
