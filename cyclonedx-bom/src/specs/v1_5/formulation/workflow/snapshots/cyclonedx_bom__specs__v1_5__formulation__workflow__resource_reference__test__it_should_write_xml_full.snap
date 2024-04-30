@@ -1,0 +1,10 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/formulation/workflow/resource_reference.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<resourceReferences>
+  <resourceReference>
+    <ref>component-a</ref>
+  </resourceReference>
+</resourceReferences>
