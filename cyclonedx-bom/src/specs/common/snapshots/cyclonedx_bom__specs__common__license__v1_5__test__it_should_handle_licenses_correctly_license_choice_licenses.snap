@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/license.rs
-assertion_line: 657
+assertion_line: 689
 expression: actual
 ---
 [
@@ -13,7 +13,35 @@ expression: actual
         "encoding": "encoding",
         "content": "content"
       },
-      "url": "url"
+      "url": "url",
+      "licensing": {
+        "altIds": [
+          "alt-id"
+        ],
+        "licensor": {
+          "individual": {
+            "bomRef": "licensor-1",
+            "name": "licensor name"
+          }
+        },
+        "licensee": {
+          "organization": {
+            "bomRef": "licensee-1",
+            "name": "licensee name"
+          }
+        },
+        "purchaser": {
+          "organization": {
+            "bomRef": "purchaser-1",
+            "name": "purchaser name"
+          }
+        },
+        "purchaseOrder": "Subscription",
+        "licenseTypes": [
+          "User"
+        ],
+        "lastRenewal": "2024-01-10T10:10:12"
+      }
     }
   },
   {
@@ -25,7 +53,35 @@ expression: actual
         "encoding": "encoding",
         "content": "content"
       },
-      "url": "url"
+      "url": "url",
+      "licensing": {
+        "altIds": [
+          "alt-id"
+        ],
+        "licensor": {
+          "individual": {
+            "bomRef": "licensor-1",
+            "name": "licensor name"
+          }
+        },
+        "licensee": {
+          "organization": {
+            "bomRef": "licensee-1",
+            "name": "licensee name"
+          }
+        },
+        "purchaser": {
+          "organization": {
+            "bomRef": "purchaser-1",
+            "name": "purchaser name"
+          }
+        },
+        "purchaseOrder": "Subscription",
+        "licenseTypes": [
+          "User"
+        ],
+        "lastRenewal": "2024-01-10T10:10:12"
+      }
     }
   }
 ]

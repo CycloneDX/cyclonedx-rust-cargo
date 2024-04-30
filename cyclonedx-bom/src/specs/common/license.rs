@@ -22,6 +22,8 @@ use cyclonedx_bom_macros::versioned;
 pub(crate) mod base {
     use crate::models;
     use crate::models::bom::BomReference;
+    #[versioned("1.5")]
+    use crate::specs::v1_5::licensing::Licensing;
     use crate::xml::{optional_attribute, write_close_tag, write_simple_tag};
     use crate::{
         errors::XmlReadError,
@@ -203,6 +205,9 @@ pub(crate) mod base {
         text: Option<AttachedText>,
         #[serde(skip_serializing_if = "Option::is_none")]
         url: Option<String>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        licensing: Option<Licensing>,
     }
 
     impl From<models::license::License> for License {
@@ -213,6 +218,8 @@ pub(crate) mod base {
                 license_identifier: other.license_identifier.into(),
                 text: convert_optional(other.text),
                 url: other.url.map(|u| u.to_string()),
+                #[versioned("1.5")]
+                licensing: convert_optional(other.licensing),
             }
         }
     }
@@ -227,6 +234,10 @@ pub(crate) mod base {
                 license_identifier: other.license_identifier.into(),
                 text: convert_optional(other.text),
                 url: other.url.map(Uri),
+                #[versioned("1.3", "1.4")]
+                licensing: None,
+                #[versioned("1.5")]
+                licensing: convert_optional(other.licensing),
             }
         }
     }
@@ -234,6 +245,8 @@ pub(crate) mod base {
     const LICENSE_TAG: &str = "license";
     const TEXT_TAG: &str = "text";
     const URL_TAG: &str = "url";
+    #[versioned("1.5")]
+    const LICENSING_TAG: &str = "licensing";
 
     impl ToXml for License {
         fn write_xml_element<W: std::io::Write>(
@@ -250,7 +263,9 @@ pub(crate) mod base {
                 start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
             }
 
-            writer.write(start_tag).map_err(to_xml_write_error(LICENSE_TAG))?;
+            writer
+                .write(start_tag)
+                .map_err(to_xml_write_error(LICENSE_TAG))?;
 
             self.license_identifier.write_xml_element(writer)?;
 
@@ -284,6 +299,8 @@ pub(crate) mod base {
             let mut license_identifier: Option<LicenseIdentifier> = None;
             let mut text: Option<AttachedText> = None;
             let mut url: Option<String> = None;
+            #[versioned("1.5")]
+            let mut licensing: Option<Licensing> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -323,6 +340,17 @@ pub(crate) mod base {
                     reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
                         url = Some(read_simple_tag(event_reader, &name)?)
                     }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == LICENSING_TAG => {
+                        licensing = Some(Licensing::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
+
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -345,6 +373,8 @@ pub(crate) mod base {
                 license_identifier,
                 text,
                 url,
+                #[versioned("1.5")]
+                licensing,
             })
         }
     }
@@ -525,6 +555,9 @@ pub(crate) mod base {
         use super::*;
         use pretty_assertions::assert_eq;
 
+        #[versioned("1.5")]
+        use crate::specs::v1_5::licensing::test::{corresponding_licensing, example_licensing};
+
         use crate::{
             external_models::spdx::SpdxExpression,
             specs::common::attached_text::test::{
@@ -557,6 +590,7 @@ pub(crate) mod base {
                 license_identifier: LicenseIdentifier::SpdxId("spdx id".to_string()),
                 text: Some(example_attached_text()),
                 url: Some("url".to_string()),
+                licensing: Some(example_licensing()),
             })
         }
 
@@ -570,6 +604,7 @@ pub(crate) mod base {
                 )),
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
+                licensing: None,
             })
         }
 
@@ -583,6 +618,7 @@ pub(crate) mod base {
                 )),
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
+                licensing: Some(corresponding_licensing()),
             })
         }
 
@@ -602,6 +638,7 @@ pub(crate) mod base {
                 license_identifier: LicenseIdentifier::Name("name".to_string()),
                 text: Some(example_attached_text()),
                 url: Some("url".to_string()),
+                licensing: Some(example_licensing()),
             })
         }
 
@@ -615,6 +652,7 @@ pub(crate) mod base {
                 ),
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
+                licensing: None,
             })
         }
 
@@ -628,6 +666,7 @@ pub(crate) mod base {
                 ),
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
+                licensing: Some(corresponding_licensing()),
             })
         }
 
@@ -729,6 +768,8 @@ pub(crate) mod base {
         <name>name</name>
         <text content-type="content type" encoding="encoding">content</text>
         <url>url</url>
+        <licensing>
+        </licensing>
       </license>
     </licenses>
     "#;

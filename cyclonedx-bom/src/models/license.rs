@@ -20,14 +20,17 @@ use crate::external_models::normalized_string::validate_normalized_string;
 use crate::external_models::spdx::{validate_spdx_expression, validate_spdx_identifier};
 use crate::external_models::uri::validate_uri;
 use crate::external_models::{
+    date_time::DateTime,
     normalized_string::NormalizedString,
     spdx::{SpdxExpression, SpdxIdentifier},
     uri::Uri,
 };
-use crate::models::attached_text::AttachedText;
+use crate::models::{
+    attached_text::AttachedText,
+    bom::{BomReference, SpecVersion},
+    organization::{OrganizationalContact, OrganizationalEntity},
+};
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
-
-use super::bom::{BomReference, SpecVersion};
 
 /// Represents whether a license is a named license or an SPDX license expression
 ///
@@ -80,6 +83,7 @@ pub struct License {
     pub license_identifier: LicenseIdentifier,
     pub text: Option<AttachedText>,
     pub url: Option<Uri>,
+    pub licensing: Option<Licensing>,
 }
 
 impl License {
@@ -95,6 +99,7 @@ impl License {
             license_identifier: LicenseIdentifier::Name(NormalizedString::new(license)),
             text: None,
             url: None,
+            licensing: None,
         }
     }
 
@@ -111,6 +116,7 @@ impl License {
             license_identifier: LicenseIdentifier::SpdxId(identifier),
             text: None,
             url: None,
+            licensing: None,
         }
     }
 }
@@ -185,6 +191,75 @@ impl Validate for LicenseIdentifier {
     }
 }
 
+/// Represents Licensing information, added in spec version 1.5.
+///
+/// For more details see: https://cyclonedx.org/docs/1.5/json/#metadata_licenses_oneOf_i0_items_license_licensing
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Licensing {
+    pub alt_ids: Option<Vec<String>>,
+    pub licensor: Option<LicenseContact>,
+    pub licensee: Option<LicenseContact>,
+    pub purchaser: Option<LicenseContact>,
+    pub purchase_order: Option<String>,
+    pub license_types: Option<Vec<LicenseType>>,
+    pub last_renewal: Option<DateTime>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum LicenseContact {
+    Organization(OrganizationalEntity),
+    Contact(OrganizationalContact),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display, Hash)]
+#[strum(serialize_all = "kebab-case")]
+#[repr(u16)]
+pub enum LicenseType {
+    Academic = 1,
+    Appliance,
+    ClientAccess,
+    ConcurrentUser,
+    CorePoints,
+    CustomMetric,
+    Device,
+    Evaluation,
+    NamedUser,
+    NodeLocked,
+    Oem,
+    Perpetual,
+    ProcessorPoints,
+    Subscription,
+    User,
+    Other,
+    #[doc(hidden)]
+    #[strum(default)]
+    Unknown(String),
+}
+
+impl LicenseType {
+    pub fn new_unchecked(value: &str) -> Self {
+        match value {
+            "academic" => Self::Academic,
+            "appliance" => Self::Appliance,
+            "client-access" => Self::ClientAccess,
+            "concurrent-user" => Self::ConcurrentUser,
+            "core-points" => Self::CorePoints,
+            "custom-metric" => Self::CustomMetric,
+            "device" => Self::Device,
+            "evaluation" => Self::Evaluation,
+            "named-user" => Self::NamedUser,
+            "node-locked" => Self::NodeLocked,
+            "oem" => Self::Oem,
+            "perpetual" => Self::Perpetual,
+            "processor-points" => Self::ProcessorPoints,
+            "subscription" => Self::Subscription,
+            "user" => Self::User,
+            "other" => Self::Other,
+            unknown => Self::Unknown(unknown.to_string()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::validation;
@@ -211,6 +286,7 @@ mod test {
             )),
             text: None,
             url: None,
+            licensing: None,
         })])
         .validate();
 
@@ -287,6 +363,7 @@ mod test {
                 license_identifier: LicenseIdentifier::Name(NormalizedString("MIT".to_string())),
                 text: None,
                 url: None,
+                licensing: None,
             }),
             LicenseChoice::License(License {
                 bom_ref: None,
@@ -295,6 +372,7 @@ mod test {
                 )),
                 text: None,
                 url: None,
+                licensing: None,
             }),
             LicenseChoice::License(License {
                 bom_ref: None,
@@ -303,6 +381,7 @@ mod test {
                 )),
                 text: None,
                 url: None,
+                licensing: None,
             }),
         ])
         .validate();

@@ -22,6 +22,7 @@ pub(crate) mod component_data;
 pub(crate) mod data_governance;
 pub(crate) mod evidence;
 pub(crate) mod formulation;
+pub(crate) mod licensing;
 pub(crate) mod lifecycles;
 pub(crate) mod modelcard;
 pub(crate) mod proof_of_concept;
