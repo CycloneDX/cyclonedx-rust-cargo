@@ -5,9 +5,72 @@ use crate::{
     specs::common::bom_reference::BomReference,
     xml::{
         attribute_or_error, read_lax_validation_tag, to_xml_read_error, to_xml_write_error,
-        unexpected_element_error, write_close_tag, FromXml, ToInnerXml, ToXml,
+        unexpected_element_error, write_close_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
     },
 };
+
+#[derive(Serialize, Deserialize)]
+struct RuntimeTopology(Vec<Dependency>);
+
+const RUNTIME_TOPOLOGY_TAG: &str = "runtimeTopology";
+
+impl FromXml for RuntimeTopology {
+    fn read_xml_element<R: std::io::prelude::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, crate::errors::XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut dependencies = vec![];
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(DEPENDENCY_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == DEPENDENCY_TAG => {
+                    dependencies.push(Dependency::read_xml_element(
+                        event_reader,
+                        &name,
+                        &attributes,
+                    )?);
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self(dependencies))
+    }
+}
+
+impl ToXml for RuntimeTopology {
+    fn write_xml_element<W: std::io::prelude::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, RUNTIME_TOPOLOGY_TAG)?;
+
+        for dependency in &self.0 {
+            dependency.write_xml_element(writer)?;
+        }
+
+        write_close_tag(writer, RUNTIME_TOPOLOGY_TAG)?;
+
+        Ok(())
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct Dependency {
