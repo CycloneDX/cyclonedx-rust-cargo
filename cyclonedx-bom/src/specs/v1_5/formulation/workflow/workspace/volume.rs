@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Volume {
     uid: Option<String>,
     name: Option<String>,
@@ -144,5 +144,49 @@ impl FromXml for Volume {
             remote,
             properties,
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::xml::test::{read_element_from_string, write_element_to_string};
+
+    use super::*;
+
+    fn example_volume() -> Volume {
+        Volume {
+            uid: Some("volume-1".into()),
+            name: Some("My volume".into()),
+            mode: Some("filesystem".into()),
+            path: Some("/".into()),
+            size_allocated: Some("10GB".into()),
+            persistent: Some(true),
+            remote: Some(false),
+            properties: None,
+        }
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_element_to_string(example_volume());
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<volume>
+  <uid>volume-1</uid>
+  <name>My volume</name>
+  <mode>filesystem</mode>
+  <path>/</path>
+  <sizeAllocated>10GB</sizeAllocated>
+  <persistent>true</persistent>
+  <remote>false</remote>
+</volume>
+"#;
+        let actual: Volume = read_element_from_string(input);
+        let expected = example_volume();
+        assert_eq!(actual, expected);
     }
 }
