@@ -3,8 +3,7 @@ mod workflow;
 
 // #definitions/formula
 pub(crate) struct Formulation {
-    // TODO(@divma): adjust type
-    bom_ref: u8,
+    bom_ref: crate::specs::common::bom_reference::BomReference,
     // TODO(@divma): adjust type
     components: u8,
     // TODO(@divma): adjust type
