@@ -9,7 +9,7 @@ use crate::{
     },
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct RuntimeTopology(Vec<Dependency>);
 
 const RUNTIME_TOPOLOGY_TAG: &str = "runtimeTopology";
@@ -72,7 +72,7 @@ impl ToXml for RuntimeTopology {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Dependency {
     r#ref: String,
     depends_on: Vec<BomReference>,
@@ -142,5 +142,39 @@ impl ToXml for Dependency {
         write_close_tag(writer, DEPENDENCY_TAG)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::xml::test::{read_element_from_string, write_element_to_string};
+
+    use super::*;
+
+    fn example_runtime_topology() -> RuntimeTopology {
+        RuntimeTopology(vec![Dependency {
+            r#ref: "component-1".into(),
+            depends_on: vec![BomReference::new("component-2")],
+        }])
+    }
+
+    #[test]
+    fn it_should_write_xml_full() {
+        let xml_output = write_element_to_string(example_runtime_topology());
+        insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_read_xml_full() {
+        let input = r#"
+<runtimeTopology>
+    <dependency ref="component-1">
+        <dependency ref="component-2" />
+    </dependency>
+</runtimeTopology>
+"#;
+        let actual: RuntimeTopology = read_element_from_string(input);
+        let expected = example_runtime_topology();
+        assert_eq!(actual, expected);
     }
 }
