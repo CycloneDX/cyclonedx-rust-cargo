@@ -25,6 +25,19 @@ pub(crate) trait ToXml {
     }
 }
 
+impl<T: ToXml> ToXml for Option<T> {
+    fn write_xml_element<W: Write>(
+        &self,
+        writer: &mut EventWriter<W>,
+    ) -> Result<(), XmlWriteError> {
+        if let Some(item) = self {
+            item.write_xml_element(writer)?;
+        }
+
+        Ok(())
+    }
+}
+
 pub(crate) trait ToInnerXml {
     fn write_xml_named_element<W: Write>(
         &self,
@@ -57,6 +70,18 @@ pub(crate) fn write_simple_tag<W: Write>(
     Ok(())
 }
 
+pub(crate) fn write_simple_option_tag<W: Write>(
+    writer: &mut EventWriter<W>,
+    tag: &str,
+    content: &Option<impl AsRef<str>>,
+) -> Result<(), XmlWriteError> {
+    if let Some(content) = content.as_ref() {
+        write_simple_tag(writer, tag, content.as_ref())?
+    }
+
+    Ok(())
+}
+
 /// Writes a simple start tag of the form `<tag>` without attributes.
 pub(crate) fn write_start_tag<W: Write>(
     writer: &mut EventWriter<W>,
@@ -75,6 +100,20 @@ pub(crate) fn write_close_tag<W: Write>(
     writer
         .write(XmlEvent::end_element())
         .map_err(to_xml_write_error(tag))
+}
+
+pub(crate) fn write_list_tag<W: Write>(
+    writer: &mut EventWriter<W>,
+    tag: &str,
+    list: &[impl ToXml],
+) -> Result<(), XmlWriteError> {
+    write_start_tag(writer, tag)?;
+
+    for item in list {
+        item.write_xml_element(writer)?;
+    }
+
+    write_close_tag(writer, tag)
 }
 
 pub(crate) fn to_xml_write_error(

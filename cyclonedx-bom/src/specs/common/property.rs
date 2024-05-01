@@ -30,7 +30,7 @@ use xml::writer::XmlEvent;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Properties(Vec<Property>);
+pub(crate) struct Properties(pub(crate) Vec<Property>);
 
 impl From<models::property::Properties> for Properties {
     fn from(other: models::property::Properties) -> Self {
@@ -79,8 +79,8 @@ impl FromXml for Properties {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Property {
-    name: String,
-    value: String,
+    pub(crate) name: String,
+    pub(crate) value: String,
 }
 
 impl From<models::property::Property> for Property {
