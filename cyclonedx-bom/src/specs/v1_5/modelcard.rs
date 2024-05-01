@@ -39,6 +39,8 @@ use crate::{
     },
 };
 
+use super::attachment::Attachment;
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ModelCard {
@@ -823,7 +825,7 @@ impl ToXml for DataContents {
         write_start_tag(writer, CONTENTS_TAG)?;
 
         if let Some(attachment) = &self.attachment {
-            attachment.write_xml_element(writer)?;
+            attachment.write_xml_named_element(writer, ATTACHMENT_TAG)?;
         }
 
         if let Some(url) = &self.url {
@@ -899,108 +901,6 @@ impl FromXml for DataContents {
             attachment,
             url,
             properties,
-        })
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct Attachment {
-    pub(crate) content: String,
-    pub(crate) content_type: Option<String>,
-    pub(crate) encoding: Option<String>,
-}
-
-impl From<models::modelcard::Attachment> for Attachment {
-    fn from(other: models::modelcard::Attachment) -> Self {
-        Self {
-            content: other.content,
-            content_type: convert_optional(other.content_type),
-            encoding: convert_optional(other.encoding),
-        }
-    }
-}
-
-impl From<Attachment> for models::modelcard::Attachment {
-    fn from(other: Attachment) -> Self {
-        Self {
-            content: other.content,
-            content_type: convert_optional(other.content_type),
-            encoding: convert_optional(other.encoding),
-        }
-    }
-}
-
-const ENCODING_ATTR: &str = "encoding";
-const CONTENT_TYPE_ATTR: &str = "content-type";
-
-impl ToXml for Attachment {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let mut start_tag = writer::XmlEvent::start_element(IMAGE_TAG);
-        if let Some(encoding) = &self.encoding {
-            start_tag = start_tag.attr(ENCODING_ATTR, encoding);
-        }
-        if let Some(content_type) = &self.content_type {
-            start_tag = start_tag.attr(ENCODING_ATTR, content_type);
-        }
-        writer
-            .write(start_tag)
-            .map_err(to_xml_write_error(IMAGE_TAG))?;
-
-        writer
-            .write(writer::XmlEvent::characters(&self.content))
-            .map_err(to_xml_write_error(IMAGE_TAG))?;
-
-        write_close_tag(writer, IMAGE_TAG)?;
-
-        Ok(())
-    }
-}
-
-impl FromXml for Attachment {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let content_type: Option<String> = optional_attribute(attributes, CONTENT_TYPE_ATTR);
-        let encoding: Option<String> = optional_attribute(attributes, ENCODING_ATTR);
-        let mut content: Option<String> = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(&element_name.local_name))?;
-
-            match next_element {
-                reader::XmlEvent::Characters(image_content) => {
-                    content = Some(image_content);
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                _ => (),
-            }
-        }
-
-        let content = content.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: "inner characters".to_string(),
-            element: element_name.local_name.to_string(),
-        })?;
-
-        Ok(Self {
-            content,
-            content_type,
-            encoding,
         })
     }
 }
@@ -1864,7 +1764,7 @@ impl ToXml for Graphic {
         }
 
         if let Some(image) = &self.image {
-            image.write_xml_element(writer)?;
+            image.write_xml_named_element(writer, IMAGE_TAG)?;
         }
 
         write_close_tag(writer, GRAPHIC_TAG)?;
@@ -2221,7 +2121,7 @@ pub(crate) mod test {
                     description: Some("Graphic Desc".to_string()),
                     collection: Some(vec![models::modelcard::Graphic {
                         name: Some("Graphic A".to_string()),
-                        image: Some(models::modelcard::Attachment {
+                        image: Some(models::attachment::Attachment {
                             content: "1234".to_string(),
                             content_type: None,
                             encoding: None,

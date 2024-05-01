@@ -18,6 +18,7 @@
 
 use crate::{
     external_models::uri::validate_uri,
+    models::attachment::Attachment,
     prelude::{Uri, Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
@@ -302,28 +303,6 @@ impl Validate for DataContents {
             .add_struct_option("properties", self.properties.as_ref(), version)
             .into()
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Attachment {
-    pub content: String,
-    pub content_type: Option<String>,
-    pub encoding: Option<String>,
-}
-
-impl Validate for Attachment {
-    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_field_option("encoding", self.encoding.as_ref(), validate_encoding)
-            .into()
-    }
-}
-
-fn validate_encoding(encoding: &String) -> Result<(), ValidationError> {
-    if encoding != "base64" {
-        return Err("Unsupported encoding found.".into());
-    }
-    Ok(())
 }
 
 /// See https://cyclonedx.org/docs/1.5/json/#components_items_modelCard_modelParameters_datasets_items_oneOf_i0_graphics

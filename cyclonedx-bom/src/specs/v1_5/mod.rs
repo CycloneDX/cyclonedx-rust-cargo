@@ -17,11 +17,12 @@
  */
 
 pub(crate) mod annotation;
+pub(crate) mod attachment;
 pub(crate) mod evidence;
+pub(crate) mod formulation;
 pub(crate) mod lifecycles;
 pub(crate) mod modelcard;
 pub(crate) mod service_data;
-pub(crate) mod formulation;
 
 pub(crate) use crate::specs::common::bom::v1_5 as bom;
 pub(crate) use crate::specs::common::component::v1_5 as component;

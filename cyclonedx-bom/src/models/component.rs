@@ -587,17 +587,17 @@ mod test {
     use crate::{
         external_models::spdx::SpdxExpression,
         models::{
+            attachment::Attachment,
             bom::BomReference,
             code::{Commit, Patch, PatchClassification},
             external_reference::{ExternalReference, ExternalReferenceType, Uri},
             hash::{Hash, HashAlgorithm, HashValue},
             license::LicenseChoice,
             modelcard::{
-                ApproachType, Attachment, ComponentData, ComponentDataType, ConfidenceInterval,
-                Considerations, DataContents, DataGovernance, DataGovernanceResponsibleParty,
-                Dataset, Datasets, Graphic, Graphics, Inputs, MLParameter, ModelParameters,
-                ModelParametersApproach, Outputs, PerformanceMetric, PerformanceMetrics,
-                QuantitativeAnalysis,
+                ApproachType, ComponentData, ComponentDataType, ConfidenceInterval, Considerations,
+                DataContents, DataGovernance, DataGovernanceResponsibleParty, Dataset, Datasets,
+                Graphic, Graphics, Inputs, MLParameter, ModelParameters, ModelParametersApproach,
+                Outputs, PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
             property::Property,
