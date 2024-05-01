@@ -13,7 +13,7 @@ use crate::{
 
 use super::resource_reference::ResourceReference;
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Outputs(Vec<Output>);
+pub(crate) struct Outputs(pub(crate) Vec<Output>);
 
 const OUTPUTS_TAG: &str = "outputs";
 
@@ -72,15 +72,15 @@ impl FromXml for Outputs {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Output {
     #[serde(flatten)]
-    required: RequiredOutputField,
+    pub(crate) required: RequiredOutputField,
     #[serde(skip_serializing_if = "Option::is_none")]
-    r#type: Option<Type>,
+    pub(crate) r#type: Option<Type>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    source: Option<ResourceReference>,
+    pub(crate) source: Option<ResourceReference>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    target: Option<ResourceReference>,
+    pub(crate) target: Option<ResourceReference>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    properties: Option<Properties>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const OUTPUT_TAG: &str = "output";

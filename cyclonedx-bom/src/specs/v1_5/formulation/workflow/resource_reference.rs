@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct ResourceReferences(Vec<ResourceReference>);
+pub(crate) struct ResourceReferences(pub(crate) Vec<ResourceReference>);
 
 const RESOURCE_REFERENCES_TAG: &str = "resourceReferences";
 

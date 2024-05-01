@@ -36,6 +36,10 @@ impl<T: ToXml> ToXml for Option<T> {
 
         Ok(())
     }
+
+    fn will_write(&self) -> bool {
+        self.is_some()
+    }
 }
 
 pub(crate) trait ToInnerXml {
@@ -47,6 +51,24 @@ pub(crate) trait ToInnerXml {
 
     fn will_write(&self) -> bool {
         true
+    }
+}
+
+impl<T: ToInnerXml> ToInnerXml for Option<T> {
+    fn write_xml_named_element<W: Write>(
+        &self,
+        writer: &mut EventWriter<W>,
+        tag: &str,
+    ) -> Result<(), XmlWriteError> {
+        if let Some(item) = self {
+            item.write_xml_named_element(writer, tag)?;
+        }
+
+        Ok(())
+    }
+
+    fn will_write(&self) -> bool {
+        self.is_some()
     }
 }
 

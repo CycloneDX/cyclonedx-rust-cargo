@@ -13,7 +13,7 @@ use crate::{
 
 use super::resource_reference::ResourceReference;
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Inputs(Vec<Input>);
+pub(crate) struct Inputs(pub(crate) Vec<Input>);
 
 const OUTPUTS_TAG: &str = "inputs";
 
@@ -72,13 +72,13 @@ impl FromXml for Inputs {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Input {
     #[serde(flatten)]
-    required: RequiredInputField,
+    pub(crate) required: RequiredInputField,
     #[serde(skip_serializing_if = "Option::is_none")]
-    source: Option<ResourceReference>,
+    pub(crate) source: Option<ResourceReference>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    target: Option<ResourceReference>,
+    pub(crate) target: Option<ResourceReference>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    properties: Option<Properties>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const OUTPUT_TAG: &str = "input";
