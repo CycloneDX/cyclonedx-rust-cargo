@@ -90,6 +90,15 @@ impl ToInnerXml for Attachment {
     }
 }
 
+impl ToXml for Attachment {
+    fn write_xml_element<W: std::io::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        self.write_xml_named_element(writer, IMAGE_TAG)
+    }
+}
+
 impl FromXml for Attachment {
     fn read_xml_element<R: std::io::Read>(
         event_reader: &mut xml::EventReader<R>,
