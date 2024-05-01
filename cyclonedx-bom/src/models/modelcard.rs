@@ -18,14 +18,13 @@
 
 use crate::{
     external_models::uri::validate_uri,
-    models::attachment::Attachment,
+    models::{attachment::Attachment, data_governance::DataGovernance},
     prelude::{Uri, Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
 
 use super::{
     bom::{BomReference, SpecVersion},
-    organization::{OrganizationalContact, OrganizationalEntity},
     property::Properties,
 };
 
@@ -338,44 +337,6 @@ impl Validate for Graphic {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DataGovernance {
-    pub custodians: Option<Vec<DataGovernanceResponsibleParty>>,
-    pub stewards: Option<Vec<DataGovernanceResponsibleParty>>,
-    pub owners: Option<Vec<DataGovernanceResponsibleParty>>,
-}
-
-impl Validate for DataGovernance {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_list_option("custodians", self.custodians.as_ref(), |c| {
-                c.validate_version(version)
-            })
-            .add_list_option("stewards", self.stewards.as_ref(), |c| {
-                c.validate_version(version)
-            })
-            .add_list_option("owners", self.owners.as_ref(), |c| {
-                c.validate_version(version)
-            })
-            .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum DataGovernanceResponsibleParty {
-    Organization(OrganizationalEntity),
-    Contact(OrganizationalContact),
-}
-
-impl Validate for DataGovernanceResponsibleParty {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        match self {
-            DataGovernanceResponsibleParty::Organization(org) => org.validate_version(version),
-            DataGovernanceResponsibleParty::Contact(contact) => contact.validate_version(version),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantitativeAnalysis {
     pub performance_metrics: Option<PerformanceMetrics>,
     pub graphics: Option<Graphics>,
@@ -440,12 +401,12 @@ mod test {
     use crate::{
         models::{
             bom::BomReference,
+            data_governance::{DataGovernance, DataGovernanceResponsibleParty},
             modelcard::{
                 ApproachType, Attachment, ComponentData, ComponentDataType, ConfidenceInterval,
-                Considerations, DataContents, DataGovernance, DataGovernanceResponsibleParty,
-                Dataset, Datasets, Graphic, Graphics, Inputs, MLParameter, ModelCard,
-                ModelParameters, ModelParametersApproach, Outputs, PerformanceMetric,
-                PerformanceMetrics, QuantitativeAnalysis,
+                Considerations, DataContents, Dataset, Datasets, Graphic, Graphics, Inputs,
+                MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
+                PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
             property::{Properties, Property},

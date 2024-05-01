@@ -18,6 +18,7 @@
 
 pub(crate) mod annotation;
 pub(crate) mod attachment;
+pub(crate) mod data_governance;
 pub(crate) mod evidence;
 pub(crate) mod formulation;
 pub(crate) mod lifecycles;

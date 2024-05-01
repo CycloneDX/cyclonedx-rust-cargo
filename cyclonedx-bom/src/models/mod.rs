@@ -24,6 +24,7 @@ pub mod bom;
 pub mod code;
 pub mod component;
 pub mod composition;
+pub mod data_governance;
 pub mod dependency;
 pub mod external_reference;
 pub mod hash;

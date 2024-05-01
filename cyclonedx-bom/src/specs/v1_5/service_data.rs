@@ -26,12 +26,12 @@ use crate::{
     utilities::convert_optional,
     xml::{
         optional_attribute, read_list_tag, to_xml_read_error, to_xml_write_error, write_close_tag,
-        write_simple_tag, write_start_tag, FromXml, ToXml,
+        write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 
 use crate::models;
-use crate::specs::v1_5::{modelcard::DataGovernance, service::DataClassification};
+use crate::specs::v1_5::{data_governance::DataGovernance, service::DataClassification};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -189,7 +189,7 @@ impl ToXml for ServiceData {
         self.classification.write_xml_element(writer)?;
 
         if let Some(governance) = &self.governance {
-            governance.write_xml_element(writer)?;
+            governance.write_xml_named_element(writer, GOVERNANCE_TAG)?;
         }
 
         if let Some(uris) = &self.source {
@@ -225,7 +225,7 @@ pub(crate) mod test {
                 service::v1_5::{Data, DataClassification},
             },
             v1_5::{
-                modelcard::{DataGovernance, DataGovernanceResponsibleParty},
+                data_governance::{DataGovernance, DataGovernanceResponsibleParty},
                 service_data::ServiceData,
             },
         },
