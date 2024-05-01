@@ -40,6 +40,7 @@ use crate::{
 };
 
 use super::bom::{validate_bom_ref, SpecVersion};
+use super::component_data::ComponentData;
 use super::modelcard::ModelCard;
 use super::signature::Signature;
 
@@ -72,6 +73,8 @@ pub struct Component {
     pub signature: Option<Signature>,
     /// Added in version 1.5
     pub model_card: Option<ModelCard>,
+    /// Added in version 1.5
+    pub data: Option<ComponentData>,
 }
 
 impl Component {
@@ -107,6 +110,7 @@ impl Component {
             evidence: None,
             signature: None,
             model_card: None,
+            data: None,
         }
     }
 }
@@ -587,17 +591,20 @@ mod test {
     use crate::{
         external_models::spdx::SpdxExpression,
         models::{
+            attachment::Attachment,
             bom::BomReference,
             code::{Commit, Patch, PatchClassification},
+            component_data::{
+                ComponentData, ComponentDataType, DataContents, Graphic, GraphicsCollection,
+            },
+            data_governance::{DataGovernance, DataGovernanceResponsibleParty},
             external_reference::{ExternalReference, ExternalReferenceType, Uri},
             hash::{Hash, HashAlgorithm, HashValue},
             license::LicenseChoice,
             modelcard::{
-                ApproachType, Attachment, ComponentData, ComponentDataType, ConfidenceInterval,
-                Considerations, DataContents, DataGovernance, DataGovernanceResponsibleParty,
-                Dataset, Datasets, Graphic, Graphics, Inputs, MLParameter, ModelParameters,
-                ModelParametersApproach, Outputs, PerformanceMetric, PerformanceMetrics,
-                QuantitativeAnalysis,
+                ApproachType, ConfidenceInterval, Considerations, Dataset, Datasets, Inputs,
+                MLParameter, ModelParameters, ModelParametersApproach, Outputs, PerformanceMetric,
+                PerformanceMetrics, QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
             property::Property,
@@ -734,7 +741,7 @@ mod test {
                         }),
                         classification: Some("data classification".to_string()),
                         sensitive_data: Some("sensitive".to_string()),
-                        graphics: Some(Graphics {
+                        graphics: Some(GraphicsCollection {
                             description: Some("All graphics".to_string()),
                             collection: Some(vec![Graphic {
                                 name: Some("graphic-1".to_string()),
@@ -772,7 +779,7 @@ mod test {
                             upper_bound: Some("high".to_string()),
                         }),
                     }])),
-                    graphics: Some(Graphics {
+                    graphics: Some(GraphicsCollection {
                         description: Some("graphics".to_string()),
                         collection: None,
                     }),
@@ -782,6 +789,25 @@ mod test {
                     name: "property".to_string(),
                     value: NormalizedString("value".to_string()),
                 }])),
+            }),
+            data: Some(ComponentData {
+                bom_ref: None,
+                data_type: ComponentDataType::SourceCode,
+                name: Some("github".into()),
+                contents: Some(DataContents {
+                    attachment: Some(Attachment {
+                        content: "some pic".into(),
+                        content_type: None,
+                        encoding: Some("base64".into()),
+                    }),
+                    url: None,
+                    properties: None,
+                }),
+                classification: None,
+                sensitive_data: None,
+                graphics: None,
+                description: None,
+                governance: None,
             }),
         }];
         let validation_result = Components(vec).validate();
@@ -876,6 +902,7 @@ mod test {
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: None,
+            data: None,
         }])
         .validate();
 
@@ -1120,6 +1147,7 @@ mod test {
             evidence: None,
             signature: None,
             model_card: None,
+            data: None,
         }
     }
 

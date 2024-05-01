@@ -26,7 +26,7 @@ use crate::models::property::Properties;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
 use super::bom::SpecVersion;
-use super::modelcard::DataGovernance;
+use super::data_governance::DataGovernance;
 use super::signature::Signature;
 
 /// Represents a service as described in the [CycloneDX use cases](https://cyclonedx.org/use-cases/#service-definition)

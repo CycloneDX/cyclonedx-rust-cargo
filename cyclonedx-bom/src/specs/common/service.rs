@@ -791,10 +791,10 @@ pub(crate) mod base {
         };
         #[versioned("1.5")]
         use crate::specs::v1_5::{
+            data_governance::{DataGovernance, DataGovernanceResponsibleParty},
             external_reference::test::{
                 corresponding_external_references, example_external_references,
             },
-            modelcard::{DataGovernance, DataGovernanceResponsibleParty},
         };
         use crate::{
             specs::common::{
@@ -917,11 +917,11 @@ pub(crate) mod base {
                     flow: models::service::DataFlowType::UnknownDataFlow("flow".to_string()),
                     classification: NormalizedString::new_unchecked("classification".to_string()),
                 },
-                governance: Some(models::modelcard::DataGovernance {
+                governance: Some(models::data_governance::DataGovernance {
                     custodians: None,
                     stewards: None,
                     owners: Some(vec![
-                        models::modelcard::DataGovernanceResponsibleParty::Organization(
+                        models::data_governance::DataGovernanceResponsibleParty::Organization(
                             models::organization::OrganizationalEntity {
                                 bom_ref: None,
                                 name: Some(NormalizedString::new_unchecked(

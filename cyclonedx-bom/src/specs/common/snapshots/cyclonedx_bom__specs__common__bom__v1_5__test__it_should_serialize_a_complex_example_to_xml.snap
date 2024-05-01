@@ -135,6 +135,7 @@ expression: xml_output
           <modelArchitecture>Model</modelArchitecture>
           <datasets>
             <dataset bom-ref="dataset-1">
+              <type>dataset</type>
               <name>Training Data</name>
               <contents>
                 <url>https://example.com/path/to/dataset</url>
@@ -185,6 +186,13 @@ expression: xml_output
           </graphics>
         </quantitativeAnalysis>
       </modelCard>
+      <data>
+        <type>configuration</type>
+        <name>config</name>
+        <contents>
+          <attachment>foo: bar</attachment>
+        </contents>
+      </data>
     </component>
     <manufacture>
       <name>name</name>
@@ -328,6 +336,7 @@ expression: xml_output
           <modelArchitecture>Model</modelArchitecture>
           <datasets>
             <dataset bom-ref="dataset-1">
+              <type>dataset</type>
               <name>Training Data</name>
               <contents>
                 <url>https://example.com/path/to/dataset</url>
@@ -378,6 +387,13 @@ expression: xml_output
           </graphics>
         </quantitativeAnalysis>
       </modelCard>
+      <data>
+        <type>configuration</type>
+        <name>config</name>
+        <contents>
+          <attachment>foo: bar</attachment>
+        </contents>
+      </data>
     </component>
   </components>
   <services>

@@ -177,6 +177,9 @@ pub(crate) mod base {
         #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) model_card: Option<ModelCard>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) data: Option<crate::specs::v1_5::component_data::ComponentData>,
     }
 
     impl TryFrom<models::component::Component> for Component {
@@ -220,6 +223,8 @@ pub(crate) mod base {
                 signature: convert_optional(other.signature),
                 #[versioned("1.5")]
                 model_card: convert_optional(other.model_card),
+                #[versioned("1.5")]
+                data: convert_optional(other.data),
             })
         }
     }
@@ -263,6 +268,10 @@ pub(crate) mod base {
                 model_card: None,
                 #[versioned("1.5")]
                 model_card: convert_optional(other.model_card),
+                #[versioned("1.3", "1.4")]
+                data: None,
+                #[versioned("1.5")]
+                data: convert_optional(other.data),
             }
         }
     }
@@ -284,6 +293,8 @@ pub(crate) mod base {
     const MODIFIED_TAG: &str = "modified";
     #[versioned("1.4", "1.5")]
     const SIGNATURE_TAG: &str = "signature";
+    #[versioned("1.5")]
+    const COMPONENT_DATA_TAG: &str = "data";
 
     impl ToXml for Component {
         fn write_xml_element<W: std::io::Write>(
@@ -400,6 +411,11 @@ pub(crate) mod base {
                 model_card.write_xml_element(writer)?;
             }
 
+            #[versioned("1.5")]
+            if let Some(data) = &self.data {
+                data.write_xml_named_element(writer, COMPONENT_DATA_TAG)?;
+            }
+
             writer
                 .write(XmlEvent::end_element())
                 .map_err(to_xml_write_error(COMPONENT_TAG))?;
@@ -452,6 +468,8 @@ pub(crate) mod base {
             let mut signature: Option<Signature> = None;
             #[versioned("1.5")]
             let mut model_card: Option<ModelCard> = None;
+            #[versioned("1.5")]
+            let mut data: Option<crate::specs::v1_5::component_data::ComponentData> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -600,6 +618,19 @@ pub(crate) mod base {
                         )?)
                     }
 
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == COMPONENT_DATA_TAG => {
+                        data = Some(
+                            crate::specs::v1_5::component_data::ComponentData::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?,
+                        )
+                    }
+
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -651,6 +682,8 @@ pub(crate) mod base {
                 signature,
                 #[versioned("1.5")]
                 model_card,
+                #[versioned("1.5")]
+                data,
             })
         }
     }
@@ -1344,8 +1377,10 @@ pub(crate) mod base {
         use crate::specs::v1_4::external_reference::test::{
             corresponding_external_references, example_external_references,
         };
+
         #[versioned("1.5")]
         use crate::specs::v1_5::{
+            component_data::tests::{corresponding_component_data, example_component_data},
             evidence::test::{
                 corresponding_callstack, corresponding_identity, corresponding_occurrences,
                 example_callstack, example_identity, example_occurrences,
@@ -1355,6 +1390,7 @@ pub(crate) mod base {
             },
             modelcard::test::{corresponding_modelcard, example_modelcard},
         };
+
         #[versioned("1.3")]
         use crate::{
             models::bom::SpecVersion,
@@ -1419,6 +1455,8 @@ pub(crate) mod base {
                 signature: Some(example_signature()),
                 #[versioned("1.5")]
                 model_card: Some(example_modelcard()),
+                #[versioned("1.5")]
+                data: Some(example_component_data()),
             }
         }
 
@@ -1457,6 +1495,10 @@ pub(crate) mod base {
                 model_card: None,
                 #[versioned("1.5")]
                 model_card: Some(corresponding_modelcard()),
+                #[versioned("1.3", "1.4")]
+                data: None,
+                #[versioned("1.5")]
+                data: Some(corresponding_component_data()),
             }
         }
 
@@ -1995,6 +2037,13 @@ pub(crate) mod base {
         </graphics>
       </quantitativeAnalysis>
     </modelCard>
+    <data>
+      <type>configuration</type>
+      <name>config</name>
+      <contents>
+        <attachment>foo: bar</attachment>
+      </contents>
+    </data>
   </component>
 </components>
 "#;

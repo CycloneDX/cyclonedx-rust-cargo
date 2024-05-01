@@ -25,19 +25,17 @@ use xml::{
 
 use crate::{
     errors::XmlReadError,
-    models::{self, bom::BomReference},
-    prelude::Uri,
-    specs::common::{
-        organization::{OrganizationalContact, OrganizationalEntity},
-        property::Properties,
-    },
+    models,
+    specs::common::property::Properties,
     utilities::{convert_optional, convert_vec},
     xml::{
-        optional_attribute, read_list_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
+        optional_attribute, read_simple_tag, to_xml_read_error, to_xml_write_error,
         unexpected_element_error, write_close_tag, write_simple_tag, write_start_tag, FromXml,
         ToInnerXml, ToXml,
     },
 };
+
+use super::component_data::{ComponentData, GraphicsCollection};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -69,7 +67,7 @@ impl From<models::modelcard::ModelCard> for ModelCard {
 impl From<ModelCard> for models::modelcard::ModelCard {
     fn from(other: ModelCard) -> Self {
         Self {
-            bom_ref: other.bom_ref.map(BomReference::new),
+            bom_ref: other.bom_ref.map(models::bom::BomReference::new),
             model_parameters: convert_optional(other.model_parameters),
             quantitative_analysis: convert_optional(other.quantitative_analysis),
             considerations: convert_optional(other.considerations),
@@ -231,7 +229,6 @@ const INPUT_TAG: &str = "input";
 const OUTPUTS_TAG: &str = "outputs";
 const OUTPUT_TAG: &str = "output";
 const FORMAT_TAG: &str = "format";
-const ATTACHMENT_TAG: &str = "attachment";
 
 impl ToXml for ModelParameters {
     fn write_xml_element<W: std::io::Write>(
@@ -542,12 +539,7 @@ impl From<Dataset> for models::modelcard::Dataset {
 
 const DATASETS_TAG: &str = "datasets";
 const DATASET_TAG: &str = "dataset";
-const CONTENTS_TAG: &str = "contents";
 const GRAPHICS_TAG: &str = "graphics";
-const NAME_TAG: &str = "name";
-const CLASSIFICATION_TAG: &str = "classification";
-const SENSITIVE_DATA_TAG: &str = "sensitiveData";
-const GOVERNANCE_TAG: &str = "governance";
 const REF_TAG: &str = "ref";
 
 impl ToXml for Dataset {
@@ -557,7 +549,7 @@ impl ToXml for Dataset {
     ) -> Result<(), crate::errors::XmlWriteError> {
         match self {
             Dataset::Component(component) => {
-                component.write_xml_element(writer)?;
+                component.write_xml_named_element(writer, DATASET_TAG)?;
             }
             Dataset::Reference(reference) => {
                 write_start_tag(writer, DATASET_TAG)?;
@@ -579,437 +571,13 @@ impl FromXml for Dataset {
     where
         Self: Sized,
     {
-        let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
-        let mut data_type: Option<String> = None;
-        let mut data_name: Option<String> = None;
-        let mut contents: Option<DataContents> = None;
-        let mut classification: Option<String> = None;
-        let mut graphics: Option<Graphics> = None;
-        let mut description: Option<String> = None;
-        let mut governance: Option<DataGovernance> = None;
-        let mut sensitive_data: Option<String> = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(DATASET_TAG))?;
-
-            match next_element {
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == TYPE_TAG => {
-                    data_type = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
-                    data_name = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == CONTENTS_TAG => {
-                    contents = Some(DataContents::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. }
-                    if name.local_name == DESCRIPTION_TAG =>
-                {
-                    description = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. }
-                    if name.local_name == CLASSIFICATION_TAG =>
-                {
-                    classification = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == GOVERNANCE_TAG => {
-                    governance = Some(DataGovernance::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == GRAPHICS_TAG => {
-                    graphics = Some(Graphics::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. }
-                    if name.local_name == SENSITIVE_DATA_TAG =>
-                {
-                    sensitive_data = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                _ => (),
-            }
-        }
-
-        let data_type = data_type.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: TYPE_TAG.to_string(),
-            element: element_name.local_name.to_string(),
-        })?;
-
-        Ok(Self::Component(ComponentData {
-            bom_ref,
-            data_type,
-            name: data_name,
-            contents,
-            classification,
-            sensitive_data,
-            graphics,
-            description,
-            governance,
-        }))
-    }
-}
-
-/// Dataset component, for more details see:
-/// https://cyclonedx.org/docs/1.5/json/#tab-pane_components_items_modelCard_modelParameters_datasets_items_oneOf_i1
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ComponentData {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) bom_ref: Option<String>,
-    #[serde(rename = "type")]
-    pub(crate) data_type: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) contents: Option<DataContents>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) classification: Option<String>,
-    /// Marked as an array of `String`, but examples use a single entry
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) sensitive_data: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) graphics: Option<Graphics>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) governance: Option<DataGovernance>,
-}
-
-impl From<models::modelcard::ComponentData> for ComponentData {
-    fn from(other: models::modelcard::ComponentData) -> Self {
-        Self {
-            bom_ref: other.bom_ref.map(|r| r.0),
-            data_type: other.data_type.to_string(),
-            name: other.name,
-            contents: convert_optional(other.contents),
-            classification: convert_optional(other.classification),
-            sensitive_data: convert_optional(other.sensitive_data),
-            graphics: convert_optional(other.graphics),
-            description: convert_optional(other.description),
-            governance: convert_optional(other.governance),
-        }
-    }
-}
-
-impl From<ComponentData> for models::modelcard::ComponentData {
-    fn from(other: ComponentData) -> Self {
-        Self {
-            bom_ref: other.bom_ref.map(BomReference::new),
-            data_type: models::modelcard::ComponentDataType::new_unchecked(other.data_type),
-            name: other.name,
-            contents: convert_optional(other.contents),
-            classification: convert_optional(other.classification),
-            sensitive_data: convert_optional(other.sensitive_data),
-            graphics: convert_optional(other.graphics),
-            description: convert_optional(other.description),
-            governance: convert_optional(other.governance),
-        }
-    }
-}
-
-impl ToXml for ComponentData {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let mut start_tag = writer::XmlEvent::start_element(DATASET_TAG);
-        if let Some(bom_ref) = &self.bom_ref {
-            start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
-        }
-        writer
-            .write(start_tag)
-            .map_err(to_xml_write_error(DATASET_TAG))?;
-
-        if let Some(name) = &self.name {
-            write_simple_tag(writer, NAME_TAG, name)?;
-        }
-
-        if let Some(contents) = &self.contents {
-            contents.write_xml_element(writer)?;
-        }
-
-        if let Some(classification) = &self.classification {
-            write_simple_tag(writer, CLASSIFICATION_TAG, classification)?;
-        }
-
-        if let Some(sensitive_data) = &self.sensitive_data {
-            write_simple_tag(writer, SENSITIVE_DATA_TAG, sensitive_data)?;
-        }
-
-        if let Some(graphics) = &self.graphics {
-            graphics.write_xml_element(writer)?;
-        }
-
-        if let Some(description) = &self.description {
-            write_simple_tag(writer, DESCRIPTION_TAG, description)?;
-        }
-
-        if let Some(governance) = &self.governance {
-            governance.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, DATASET_TAG)?;
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct DataContents {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) attachment: Option<Attachment>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) properties: Option<Properties>,
-}
-
-impl From<models::modelcard::DataContents> for DataContents {
-    fn from(other: models::modelcard::DataContents) -> Self {
-        Self {
-            attachment: convert_optional(other.attachment),
-            url: other.url.map(|url| url.to_string()),
-            properties: convert_optional(other.properties),
-        }
-    }
-}
-
-impl From<DataContents> for models::modelcard::DataContents {
-    fn from(other: DataContents) -> Self {
-        Self {
-            attachment: convert_optional(other.attachment),
-            url: other.url.map(Uri),
-            properties: convert_optional(other.properties),
-        }
-    }
-}
-
-impl ToXml for DataContents {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, CONTENTS_TAG)?;
-
-        if let Some(attachment) = &self.attachment {
-            attachment.write_xml_element(writer)?;
-        }
-
-        if let Some(url) = &self.url {
-            write_simple_tag(writer, URL_TAG, url)?;
-        }
-
-        if let Some(properties) = &self.properties {
-            properties.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, CONTENTS_TAG)?;
-
-        Ok(())
-    }
-}
-
-const URL_TAG: &str = "url";
-const PROPERTIES_TAG: &str = "properties";
-
-impl FromXml for DataContents {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut url: Option<String> = None;
-        let mut attachment: Option<Attachment> = None;
-        let mut properties: Option<Properties> = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(&element_name.local_name))?;
-
-            match next_element {
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
-                    url = Some(read_simple_tag(event_reader, &name)?)
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == ATTACHMENT_TAG => {
-                    attachment = Some(Attachment::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == PROPERTIES_TAG => {
-                    properties = Some(Properties::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?)
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                _ => (),
-            }
-        }
-
-        Ok(Self {
-            attachment,
-            url,
-            properties,
-        })
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct Attachment {
-    pub(crate) content: String,
-    pub(crate) content_type: Option<String>,
-    pub(crate) encoding: Option<String>,
-}
-
-impl From<models::modelcard::Attachment> for Attachment {
-    fn from(other: models::modelcard::Attachment) -> Self {
-        Self {
-            content: other.content,
-            content_type: convert_optional(other.content_type),
-            encoding: convert_optional(other.encoding),
-        }
-    }
-}
-
-impl From<Attachment> for models::modelcard::Attachment {
-    fn from(other: Attachment) -> Self {
-        Self {
-            content: other.content,
-            content_type: convert_optional(other.content_type),
-            encoding: convert_optional(other.encoding),
-        }
-    }
-}
-
-const ENCODING_ATTR: &str = "encoding";
-const CONTENT_TYPE_ATTR: &str = "content-type";
-
-impl ToInnerXml for Attachment {
-    fn write_xml_named_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-        tag: &str,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let mut start_tag = writer::XmlEvent::start_element(tag);
-        if let Some(encoding) = &self.encoding {
-            start_tag = start_tag.attr(ENCODING_ATTR, encoding);
-        }
-        if let Some(content_type) = &self.content_type {
-            start_tag = start_tag.attr(ENCODING_ATTR, content_type);
-        }
-        writer.write(start_tag).map_err(to_xml_write_error(tag))?;
-
-        writer
-            .write(writer::XmlEvent::characters(&self.content))
-            .map_err(to_xml_write_error(tag))?;
-
-        write_close_tag(writer, tag)?;
-
-        Ok(())
-    }
-}
-
-impl ToXml for Attachment {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        self.write_xml_named_element(writer, IMAGE_TAG)
-    }
-}
-
-impl FromXml for Attachment {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let content_type: Option<String> = optional_attribute(attributes, CONTENT_TYPE_ATTR);
-        let encoding: Option<String> = optional_attribute(attributes, ENCODING_ATTR);
-        let mut content: Option<String> = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(&element_name.local_name))?;
-
-            match next_element {
-                reader::XmlEvent::Characters(image_content) => {
-                    content = Some(image_content);
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                _ => (),
-            }
-        }
-
-        let content = content.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: "inner characters".to_string(),
-            element: element_name.local_name.to_string(),
-        })?;
-
-        Ok(Self {
-            content,
-            content_type,
-            encoding,
-        })
+        // Reference is deprecated, so we don't attempt to read it (it's not even part of the
+        // json.schema specification)
+        Ok(Self::Component(ComponentData::read_xml_element(
+            event_reader,
+            element_name,
+            attributes,
+        )?))
     }
 }
 
@@ -1017,7 +585,7 @@ impl FromXml for Attachment {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct QuantitativeAnalysis {
     pub(crate) performance_metrics: Option<PerformanceMetrics>,
-    pub(crate) graphics: Option<Graphics>,
+    pub(crate) graphics: Option<GraphicsCollection>,
 }
 
 impl From<models::modelcard::QuantitativeAnalysis> for QuantitativeAnalysis {
@@ -1054,7 +622,7 @@ impl ToXml for QuantitativeAnalysis {
         }
 
         if let Some(graphics) = &self.graphics {
-            graphics.write_xml_element(writer)?;
+            graphics.write_xml_named_element(writer, GRAPHICS_TAG)?;
         }
 
         write_close_tag(writer, QUANTITATIVE_ANALYSIS_TAG)?;
@@ -1073,7 +641,7 @@ impl FromXml for QuantitativeAnalysis {
         Self: Sized,
     {
         let mut performance_metrics: Option<PerformanceMetrics> = None;
-        let mut graphics: Option<Graphics> = None;
+        let mut graphics: Option<GraphicsCollection> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -1095,7 +663,7 @@ impl FromXml for QuantitativeAnalysis {
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
                 } if name.local_name == GRAPHICS_TAG => {
-                    graphics = Some(Graphics::read_xml_element(
+                    graphics = Some(GraphicsCollection::read_xml_element(
                         event_reader,
                         &name,
                         &attributes,
@@ -1666,516 +1234,30 @@ impl FromXml for MLParameter {
     }
 }
 
-/// For more details see:
-/// https://cyclonedx.org/docs/1.5/json/#components_items_modelCard_modelParameters_datasets_items_oneOf_i0_graphics
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) struct Graphics {
-    pub(crate) description: Option<String>,
-    pub(crate) collection: Option<Collection>,
-}
-
-impl From<models::modelcard::Graphics> for Graphics {
-    fn from(other: models::modelcard::Graphics) -> Self {
-        Self {
-            description: convert_optional(other.description),
-            collection: convert_optional(other.collection),
-        }
-    }
-}
-
-impl From<Graphics> for models::modelcard::Graphics {
-    fn from(other: Graphics) -> Self {
-        Self {
-            description: convert_optional(other.description),
-            collection: convert_optional(other.collection),
-        }
-    }
-}
-
-const COLLECTION_TAG: &str = "collection";
-const DESCRIPTION_TAG: &str = "description";
-
-impl ToXml for Graphics {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, GRAPHICS_TAG)?;
-
-        if let Some(description) = &self.description {
-            write_simple_tag(writer, DESCRIPTION_TAG, description)?;
-        }
-
-        if let Some(collection) = &self.collection {
-            collection.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, GRAPHICS_TAG)?;
-
-        Ok(())
-    }
-}
-
-impl FromXml for Graphics {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut description: Option<String> = None;
-        let mut collection: Option<Collection> = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader.next().map_err(to_xml_read_error(OUTPUT_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement { name, .. }
-                    if name.local_name == DESCRIPTION_TAG =>
-                {
-                    description = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == COLLECTION_TAG => {
-                    collection = Some(Collection::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                _ => (),
-            }
-        }
-
-        Ok(Self {
-            description,
-            collection,
-        })
-    }
-}
-
-/// Helper struct to collect all [`Graphic`].
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) struct Collection(pub(crate) Vec<Graphic>);
-
-impl From<Vec<models::modelcard::Graphic>> for Collection {
-    fn from(other: Vec<models::modelcard::Graphic>) -> Self {
-        Self(convert_vec(other))
-    }
-}
-
-impl From<Collection> for Vec<models::modelcard::Graphic> {
-    fn from(other: Collection) -> Self {
-        convert_vec(other.0)
-    }
-}
-
-const GRAPHIC_TAG: &str = "graphic";
-
-impl ToXml for Collection {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, COLLECTION_TAG)?;
-
-        for graphic in &self.0 {
-            graphic.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, COLLECTION_TAG)?;
-
-        Ok(())
-    }
-}
-
-impl FromXml for Collection {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut collection: Vec<Graphic> = Vec::new();
-        let mut got_end_tag = false;
-
-        while !got_end_tag {
-            let next_element = event_reader.next().map_err(to_xml_read_error(OUTPUT_TAG))?;
-
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == GRAPHIC_TAG => {
-                    collection.push(Graphic::read_xml_element(event_reader, &name, &attributes)?);
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                _ => (),
-            }
-        }
-
-        Ok(Self(collection))
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) struct Graphic {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) image: Option<Attachment>,
-}
-
-impl From<models::modelcard::Graphic> for Graphic {
-    fn from(other: models::modelcard::Graphic) -> Self {
-        Self {
-            name: convert_optional(other.name),
-            image: convert_optional(other.image),
-        }
-    }
-}
-
-impl From<Graphic> for models::modelcard::Graphic {
-    fn from(other: Graphic) -> Self {
-        Self {
-            name: convert_optional(other.name),
-            image: convert_optional(other.image),
-        }
-    }
-}
-
-const IMAGE_TAG: &str = "image";
-
-impl ToXml for Graphic {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, GRAPHIC_TAG)?;
-
-        if let Some(name) = &self.name {
-            write_simple_tag(writer, NAME_TAG, name)?;
-        }
-
-        if let Some(image) = &self.image {
-            image.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, GRAPHIC_TAG)?;
-
-        Ok(())
-    }
-}
-
-impl FromXml for Graphic {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut graphic_name: Option<String> = None;
-        let mut image: Option<Attachment> = None;
-
-        let mut got_end_tag = false;
-
-        while !got_end_tag {
-            let next_element = event_reader.next().map_err(to_xml_read_error(OUTPUT_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == NAME_TAG => {
-                    graphic_name = Some(read_simple_tag(event_reader, &name)?);
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == IMAGE_TAG => {
-                    image = Some(Attachment::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                _ => (),
-            }
-        }
-
-        Ok(Self {
-            name: graphic_name,
-            image,
-        })
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct DataGovernance {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) custodians: Option<Vec<DataGovernanceResponsibleParty>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) stewards: Option<Vec<DataGovernanceResponsibleParty>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) owners: Option<Vec<DataGovernanceResponsibleParty>>,
-}
-
-impl From<models::modelcard::DataGovernance> for DataGovernance {
-    fn from(other: models::modelcard::DataGovernance) -> Self {
-        Self {
-            custodians: other.custodians.map(convert_vec),
-            stewards: other.stewards.map(convert_vec),
-            owners: other.owners.map(convert_vec),
-        }
-    }
-}
-
-impl From<DataGovernance> for models::modelcard::DataGovernance {
-    fn from(other: DataGovernance) -> Self {
-        Self {
-            custodians: other.custodians.map(convert_vec),
-            stewards: other.stewards.map(convert_vec),
-            owners: other.owners.map(convert_vec),
-        }
-    }
-}
-
-const CUSTODIANS_TAG: &str = "custodians";
-const CUSTODIAN_TAG: &str = "custodian";
-const STEWARDS_TAG: &str = "stewards";
-const STEWARD_TAG: &str = "steward";
-const OWNERS_TAG: &str = "owners";
-const OWNER_TAG: &str = "owner";
-
-impl ToXml for DataGovernance {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, GOVERNANCE_TAG)?;
-
-        if let Some(owners) = &self.owners {
-            write_start_tag(writer, OWNERS_TAG)?;
-            for owner in owners {
-                write_start_tag(writer, OWNER_TAG)?;
-                owner.write_xml_element(writer)?;
-                write_close_tag(writer, OWNER_TAG)?;
-            }
-            write_close_tag(writer, OWNERS_TAG)?;
-        }
-
-        if let Some(custodians) = &self.custodians {
-            write_start_tag(writer, CUSTODIANS_TAG)?;
-            for custodian in custodians {
-                write_start_tag(writer, CUSTODIAN_TAG)?;
-                custodian.write_xml_element(writer)?;
-                write_close_tag(writer, CUSTODIAN_TAG)?;
-            }
-            write_close_tag(writer, CUSTODIANS_TAG)?;
-        }
-
-        if let Some(stewards) = &self.stewards {
-            write_start_tag(writer, STEWARDS_TAG)?;
-            for steward in stewards {
-                write_start_tag(writer, STEWARD_TAG)?;
-                steward.write_xml_element(writer)?;
-                write_close_tag(writer, STEWARD_TAG)?;
-            }
-            write_close_tag(writer, STEWARDS_TAG)?;
-        }
-
-        write_close_tag(writer, GOVERNANCE_TAG)?;
-
-        Ok(())
-    }
-}
-
-impl FromXml for DataGovernance {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut custodians: Option<Vec<DataGovernanceResponsibleParty>> = None;
-        let mut stewards: Option<Vec<DataGovernanceResponsibleParty>> = None;
-        let mut owners: Option<Vec<DataGovernanceResponsibleParty>> = None;
-        let mut got_end_tag = false;
-
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(&element_name.local_name))?;
-
-            match next_element {
-                reader::XmlEvent::StartElement { name, .. }
-                    if name.local_name == CUSTODIANS_TAG =>
-                {
-                    custodians = Some(read_list_tag(event_reader, &name, CUSTODIAN_TAG)?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == STEWARDS_TAG => {
-                    stewards = Some(read_list_tag(event_reader, &name, STEWARD_TAG)?);
-                }
-
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == OWNERS_TAG => {
-                    owners = Some(read_list_tag(event_reader, &name, OWNER_TAG)?);
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                _ => (),
-            }
-        }
-
-        Ok(Self {
-            custodians,
-            stewards,
-            owners,
-        })
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub(crate) enum DataGovernanceResponsibleParty {
-    Organization(OrganizationalEntity),
-    Contact(OrganizationalContact),
-}
-
-impl From<models::modelcard::DataGovernanceResponsibleParty> for DataGovernanceResponsibleParty {
-    fn from(other: models::modelcard::DataGovernanceResponsibleParty) -> Self {
-        match other {
-            models::modelcard::DataGovernanceResponsibleParty::Organization(organization) => {
-                Self::Organization(organization.into())
-            }
-            models::modelcard::DataGovernanceResponsibleParty::Contact(contact) => {
-                Self::Contact(contact.into())
-            }
-        }
-    }
-}
-
-impl From<DataGovernanceResponsibleParty> for models::modelcard::DataGovernanceResponsibleParty {
-    fn from(other: DataGovernanceResponsibleParty) -> Self {
-        match other {
-            DataGovernanceResponsibleParty::Organization(organization) => {
-                Self::Organization(organization.into())
-            }
-            DataGovernanceResponsibleParty::Contact(contact) => Self::Contact(contact.into()),
-        }
-    }
-}
-
-const ORGANIZATION_TAG: &str = "organization";
-const CONTACT_TAG: &str = "contact";
-
-impl ToXml for DataGovernanceResponsibleParty {
-    fn write_xml_element<W: std::io::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        match self {
-            DataGovernanceResponsibleParty::Organization(organization) => {
-                organization.write_xml_named_element(writer, ORGANIZATION_TAG)?;
-            }
-            DataGovernanceResponsibleParty::Contact(contact) => {
-                contact.write_xml_named_element(writer, CONTACT_TAG)?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
-impl FromXml for DataGovernanceResponsibleParty {
-    fn read_xml_element<R: std::io::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut party: Option<DataGovernanceResponsibleParty> = None;
-        let mut got_end_tag = false;
-
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(&element_name.local_name))?;
-
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == ORGANIZATION_TAG => {
-                    let organization =
-                        OrganizationalEntity::read_xml_element(event_reader, &name, &attributes)?;
-                    party = Some(DataGovernanceResponsibleParty::Organization(organization));
-                }
-
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == CONTACT_TAG => {
-                    let contact =
-                        OrganizationalContact::read_xml_element(event_reader, &name, &attributes)?;
-                    party = Some(DataGovernanceResponsibleParty::Contact(contact));
-                }
-
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        let party = party.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: "organization or contact".to_string(),
-            element: element_name.local_name.to_string(),
-        })?;
-
-        Ok(party)
-    }
-}
-
 #[cfg(test)]
 pub(crate) mod test {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        models::{self, bom::BomReference},
+        models,
         prelude::{NormalizedString, Uri},
         specs::{
+            common::bom_reference::BomReference,
             common::organization::{OrganizationalContact, OrganizationalEntity},
-            v1_5::modelcard::{
-                Attachment, Collection, ComponentData, ConfidenceInterval, DataContents,
-                DataGovernance, DataGovernanceResponsibleParty, Dataset, Datasets, Graphic,
-                Graphics, Inputs, MLParameter, ModelCard, ModelParameters, ModelParametersApproach,
-                Outputs, PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
+            v1_5::{
+                attachment::Attachment,
+                component_data::{ComponentData, DataContents, Graphic, GraphicsCollection},
+                data_governance::{DataGovernance, DataGovernanceResponsibleParty},
+                modelcard::{
+                    ConfidenceInterval, Dataset, Datasets, Inputs, MLParameter, ModelCard,
+                    ModelParameters, ModelParametersApproach, Outputs, PerformanceMetric,
+                    PerformanceMetrics, QuantitativeAnalysis,
+                },
             },
         },
-        xml::test::{read_element_from_string, write_element_to_string},
+        xml::test::{
+            read_element_from_string, write_element_to_string, write_named_element_to_string,
+        },
     };
 
     pub(crate) fn example_modelcard() -> ModelCard {
@@ -2192,16 +1274,19 @@ pub(crate) mod test {
                         upper_bound: Some("high".to_string()),
                     }),
                 }])),
-                graphics: Some(Graphics {
+                graphics: Some(GraphicsCollection {
                     description: Some("Graphic Desc".to_string()),
-                    collection: Some(Collection(vec![Graphic {
-                        name: Some("Graphic A".to_string()),
-                        image: Some(Attachment {
-                            content: "1234".to_string(),
-                            content_type: None,
-                            encoding: None,
-                        }),
-                    }])),
+                    collection: Some(
+                        vec![Graphic {
+                            name: Some("Graphic A".to_string()),
+                            image: Some(Attachment {
+                                content: "1234".to_string(),
+                                content_type: None,
+                                encoding: None,
+                            }),
+                        }]
+                        .into(),
+                    ),
                 }),
             }),
             considerations: None,
@@ -2211,7 +1296,7 @@ pub(crate) mod test {
 
     pub(crate) fn corresponding_modelcard() -> models::modelcard::ModelCard {
         models::modelcard::ModelCard {
-            bom_ref: Some(BomReference::new("modelcard-1")),
+            bom_ref: Some(models::bom::BomReference::new("modelcard-1")),
             model_parameters: Some(corresponding_model_parameters()),
             quantitative_analysis: Some(models::modelcard::QuantitativeAnalysis {
                 performance_metrics: Some(models::modelcard::PerformanceMetrics(vec![
@@ -2225,11 +1310,11 @@ pub(crate) mod test {
                         }),
                     },
                 ])),
-                graphics: Some(models::modelcard::Graphics {
+                graphics: Some(models::component_data::GraphicsCollection {
                     description: Some("Graphic Desc".to_string()),
-                    collection: Some(vec![models::modelcard::Graphic {
+                    collection: Some(vec![models::component_data::Graphic {
                         name: Some("Graphic A".to_string()),
-                        image: Some(models::modelcard::Attachment {
+                        image: Some(models::attachment::Attachment {
                             content: "1234".to_string(),
                             content_type: None,
                             encoding: None,
@@ -2257,14 +1342,14 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn corresponding_governance() -> models::modelcard::DataGovernance {
-        models::modelcard::DataGovernance {
+    pub(crate) fn corresponding_governance() -> models::data_governance::DataGovernance {
+        models::data_governance::DataGovernance {
             custodians: None,
             stewards: None,
             owners: Some(vec![
-                models::modelcard::DataGovernanceResponsibleParty::Contact(
+                models::data_governance::DataGovernanceResponsibleParty::Contact(
                     models::organization::OrganizationalContact {
-                        bom_ref: Some(BomReference::new("contact-1")),
+                        bom_ref: Some(models::bom::BomReference::new("contact-1")),
                         name: Some(NormalizedString::new("Contact")),
                         email: Some(NormalizedString::new("contact@example.com")),
                         phone: None,
@@ -2283,7 +1368,7 @@ pub(crate) mod test {
             architecture_family: Some("Architecture".to_string()),
             model_architecture: Some("Model".to_string()),
             datasets: Some(Datasets(vec![Dataset::Component(ComponentData {
-                bom_ref: Some("dataset-1".to_string()),
+                bom_ref: Some(BomReference::new("dataset-1")),
                 data_type: "dataset".to_string(),
                 name: Some("Training Data".to_string()),
                 contents: Some(DataContents {
@@ -2311,11 +1396,11 @@ pub(crate) mod test {
             architecture_family: Some("Architecture".to_string()),
             model_architecture: Some("Model".to_string()),
             datasets: Some(models::modelcard::Datasets(vec![
-                models::modelcard::Dataset::Component(models::modelcard::ComponentData {
-                    bom_ref: Some(BomReference::new("dataset-1")),
-                    data_type: models::modelcard::ComponentDataType::Dataset,
+                models::modelcard::Dataset::Component(models::component_data::ComponentData {
+                    bom_ref: Some(models::bom::BomReference::new("dataset-1")),
+                    data_type: models::component_data::ComponentDataType::Dataset,
                     name: Some("Training Data".to_string()),
-                    contents: Some(models::modelcard::DataContents {
+                    contents: Some(models::component_data::DataContents {
                         attachment: None,
                         url: Some(Uri("https://example.com/path/to/dataset".to_string())),
                         properties: None,
@@ -2344,7 +1429,8 @@ pub(crate) mod test {
 
     #[test]
     fn it_should_write_xml_data_governance() {
-        let xml_output = write_element_to_string(example_governance());
+        const GOVERNANCE_TAG: &str = "governance";
+        let xml_output = write_named_element_to_string(example_governance(), GOVERNANCE_TAG);
         insta::assert_snapshot!(xml_output);
     }
 
@@ -2407,9 +1493,9 @@ pub(crate) mod test {
                     upper_bound: Some("The upper bound of the confidence interval".to_string())
                 })
             }])),
-            graphics: Some(Graphics {
+            graphics: Some(GraphicsCollection {
                 description: Some("Performance images".to_string()),
-                collection: Some(Collection(vec![Graphic {
+                collection: Some(vec![Graphic {
                     name: Some(
                         "FID vs CLIP Scores on 512x512 samples for different v1-versions"
                             .to_string(),
@@ -2419,7 +1505,7 @@ pub(crate) mod test {
                         content_type: Some("image/jpeg".to_string()),
                         encoding: Some("base64".to_string()),
                     }),
-                }])),
+                }].into()),
             }),
         };
         assert_eq!(expected, actual);
@@ -2474,19 +1560,23 @@ pub(crate) mod test {
   </collection>
 </graphics>
 "#;
-        let actual: Graphics = read_element_from_string(input);
-        let expected = Graphics {
+        let actual: GraphicsCollection = read_element_from_string(input);
+        let expected = GraphicsCollection {
             description: Some("Performance images".to_string()),
-            collection: Some(Collection(vec![Graphic {
-                name: Some(
-                    "FID vs CLIP Scores on 512x512 samples for different v1-versions".to_string(),
-                ),
-                image: Some(Attachment {
-                    content: "abcdefgh".to_string(),
-                    content_type: Some("image/jpeg".to_string()),
-                    encoding: Some("base64".to_string()),
-                }),
-            }])),
+            collection: Some(
+                vec![Graphic {
+                    name: Some(
+                        "FID vs CLIP Scores on 512x512 samples for different v1-versions"
+                            .to_string(),
+                    ),
+                    image: Some(Attachment {
+                        content: "abcdefgh".to_string(),
+                        content_type: Some("image/jpeg".to_string()),
+                        encoding: Some("base64".to_string()),
+                    }),
+                }]
+                .into(),
+            ),
         };
         assert_eq!(expected, actual);
     }
@@ -2583,7 +1673,7 @@ pub(crate) mod test {
 "#;
         let actual: Dataset = read_element_from_string(input);
         let expected = Dataset::Component(ComponentData {
-            bom_ref: Some("dataset-a".to_string()),
+            bom_ref: Some(BomReference::new("dataset-a")),
             data_type: "dataset".to_string(),
             name: Some("Training Data".to_string()),
             contents: Some(DataContents {

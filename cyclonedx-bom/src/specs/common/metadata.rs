@@ -893,6 +893,13 @@ pub(crate) mod base {
         </graphics>
       </quantitativeAnalysis>
     </modelCard>
+    <data>
+      <type>configuration</type>
+      <name>config</name>
+      <contents>
+        <attachment>foo: bar</attachment>
+      </contents>
+    </data>
   </component>
   <manufacture>
     <name>name</name>

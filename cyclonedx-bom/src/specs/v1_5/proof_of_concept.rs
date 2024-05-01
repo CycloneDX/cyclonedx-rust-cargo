@@ -38,7 +38,7 @@ pub(crate) struct ProofOfConcept {
     #[serde(skip_serializing_if = "Option::is_none")]
     environment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    supporting_material: Option<Vec<crate::specs::v1_5::modelcard::Attachment>>,
+    supporting_material: Option<Vec<crate::specs::v1_5::attachment::Attachment>>,
 }
 
 impl From<ProofOfConcept> for models::vulnerability::VulnerabilityProofOfConcept {
@@ -113,7 +113,7 @@ impl FromXml for ProofOfConcept {
     {
         let mut reproduction_steps: Option<String> = None;
         let mut environment: Option<String> = None;
-        let mut supporting_material: Option<Vec<crate::specs::v1_5::modelcard::Attachment>> = None;
+        let mut supporting_material: Option<Vec<crate::specs::v1_5::attachment::Attachment>> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -160,7 +160,7 @@ pub(crate) mod test {
 
     use crate::{
         models,
-        specs::v1_5::modelcard::Attachment,
+        specs::v1_5::attachment::Attachment,
         xml::test::{read_element_from_string, write_element_to_string},
     };
 
@@ -183,7 +183,7 @@ pub(crate) mod test {
         models::vulnerability::VulnerabilityProofOfConcept {
             reproduction_steps: Some("reproduction steps".to_string()),
             environment: Some("production".to_string()),
-            supporting_material: Some(vec![models::modelcard::Attachment {
+            supporting_material: Some(vec![models::attachment::Attachment {
                 content: "abcdefgh".to_string(),
                 content_type: Some("image/jpeg".to_string()),
                 encoding: Some("base64".to_string()),

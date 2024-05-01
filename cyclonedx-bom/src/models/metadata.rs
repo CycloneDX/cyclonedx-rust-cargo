@@ -158,6 +158,7 @@ mod test {
                 evidence: None,
                 signature: None,
                 model_card: None,
+                data: None,
             }),
             manufacture: Some(OrganizationalEntity {
                 bom_ref: Some(BomReference::new("Manufacturer")),
@@ -227,6 +228,7 @@ mod test {
                 evidence: None,
                 signature: None,
                 model_card: None,
+                data: None,
             }),
             manufacture: Some(OrganizationalEntity {
                 bom_ref: Some(BomReference::new("Manufacturer")),

@@ -723,6 +723,7 @@ mod test {
                 evidence: None,
                 signature: None,
                 model_card: None,
+                data: None,
             }])),
             services: Some(Services(vec![Service::new("invalid\tname", None)])),
             external_references: Some(ExternalReferences(vec![ExternalReference {

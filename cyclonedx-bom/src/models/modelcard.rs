@@ -17,14 +17,13 @@
  */
 
 use crate::{
-    external_models::uri::validate_uri,
-    prelude::{Uri, Validate, ValidationResult},
+    prelude::{Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
 
 use super::{
     bom::{BomReference, SpecVersion},
-    organization::{OrganizationalContact, OrganizationalEntity},
+    component_data::{ComponentData, GraphicsCollection},
     property::Properties,
 };
 
@@ -176,78 +175,6 @@ impl Validate for Dataset {
     }
 }
 
-/// Inline Component Data
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ComponentData {
-    pub bom_ref: Option<BomReference>,
-    /// 'type' field
-    pub data_type: ComponentDataType,
-    pub name: Option<String>,
-    pub contents: Option<DataContents>,
-    pub classification: Option<String>,
-    pub sensitive_data: Option<String>,
-    pub graphics: Option<Graphics>,
-    pub description: Option<String>,
-    pub governance: Option<DataGovernance>,
-}
-
-impl Validate for ComponentData {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_field("type", &self.data_type, validate_datatype)
-            .add_struct_option("contents", self.contents.as_ref(), version)
-            .add_struct_option("graphics", self.graphics.as_ref(), version)
-            .add_struct_option("governance", self.governance.as_ref(), version)
-            .into()
-    }
-}
-
-fn validate_datatype(datatype: &ComponentDataType) -> Result<(), ValidationError> {
-    if matches!(datatype, ComponentDataType::Unknown(_)) {
-        return Err("Unknown component data type found".into());
-    }
-    Ok(())
-}
-
-/// Type of data
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ComponentDataType {
-    SourceCode,
-    Configuration,
-    Dataset,
-    Definition,
-    Other,
-    #[doc(hidden)]
-    Unknown(String),
-}
-
-impl ComponentDataType {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
-        match value.as_ref() {
-            "source-code" => Self::SourceCode,
-            "configuration" => Self::Configuration,
-            "dataset" => Self::Dataset,
-            "definition" => Self::Definition,
-            "other" => Self::Other,
-            unknown => Self::Unknown(unknown.to_string()),
-        }
-    }
-}
-
-impl ToString for ComponentDataType {
-    fn to_string(&self) -> String {
-        match self {
-            Self::SourceCode => "source-code",
-            Self::Configuration => "configuration",
-            Self::Dataset => "dataset",
-            Self::Definition => "definition",
-            Self::Other => "other",
-            Self::Unknown(unknown) => unknown,
-        }
-        .to_string()
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Inputs(pub Vec<MLParameter>);
 
@@ -288,118 +215,9 @@ impl MLParameter {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DataContents {
-    pub attachment: Option<Attachment>,
-    pub url: Option<Uri>,
-    pub properties: Option<Properties>,
-}
-
-impl Validate for DataContents {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_struct_option("attachment", self.attachment.as_ref(), version)
-            .add_field_option("url", self.url.as_ref(), validate_uri)
-            .add_struct_option("properties", self.properties.as_ref(), version)
-            .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Attachment {
-    pub content: String,
-    pub content_type: Option<String>,
-    pub encoding: Option<String>,
-}
-
-impl Validate for Attachment {
-    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_field_option("encoding", self.encoding.as_ref(), validate_encoding)
-            .into()
-    }
-}
-
-fn validate_encoding(encoding: &String) -> Result<(), ValidationError> {
-    if encoding != "base64" {
-        return Err("Unsupported encoding found.".into());
-    }
-    Ok(())
-}
-
-/// See https://cyclonedx.org/docs/1.5/json/#components_items_modelCard_modelParameters_datasets_items_oneOf_i0_graphics
-/// for more details.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Graphics {
-    pub description: Option<String>,
-    pub collection: Option<Vec<Graphic>>,
-}
-
-impl Validate for Graphics {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_list_option("collection", self.collection.as_ref(), |graphic| {
-                graphic.validate_version(version)
-            })
-            .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Graphic {
-    pub name: Option<String>,
-    pub image: Option<Attachment>,
-}
-
-impl Validate for Graphic {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_struct_option("image", self.image.as_ref(), version)
-            .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DataGovernance {
-    pub custodians: Option<Vec<DataGovernanceResponsibleParty>>,
-    pub stewards: Option<Vec<DataGovernanceResponsibleParty>>,
-    pub owners: Option<Vec<DataGovernanceResponsibleParty>>,
-}
-
-impl Validate for DataGovernance {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_list_option("custodians", self.custodians.as_ref(), |c| {
-                c.validate_version(version)
-            })
-            .add_list_option("stewards", self.stewards.as_ref(), |c| {
-                c.validate_version(version)
-            })
-            .add_list_option("owners", self.owners.as_ref(), |c| {
-                c.validate_version(version)
-            })
-            .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum DataGovernanceResponsibleParty {
-    Organization(OrganizationalEntity),
-    Contact(OrganizationalContact),
-}
-
-impl Validate for DataGovernanceResponsibleParty {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        match self {
-            DataGovernanceResponsibleParty::Organization(org) => org.validate_version(version),
-            DataGovernanceResponsibleParty::Contact(contact) => contact.validate_version(version),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantitativeAnalysis {
     pub performance_metrics: Option<PerformanceMetrics>,
-    pub graphics: Option<Graphics>,
+    pub graphics: Option<GraphicsCollection>,
 }
 
 impl Validate for QuantitativeAnalysis {
@@ -460,13 +278,16 @@ impl Validate for Considerations {
 mod test {
     use crate::{
         models::{
+            attachment::Attachment,
             bom::BomReference,
+            component_data::{
+                ComponentData, ComponentDataType, DataContents, Graphic, GraphicsCollection,
+            },
+            data_governance::{DataGovernance, DataGovernanceResponsibleParty},
             modelcard::{
-                ApproachType, Attachment, ComponentData, ComponentDataType, ConfidenceInterval,
-                Considerations, DataContents, DataGovernance, DataGovernanceResponsibleParty,
-                Dataset, Datasets, Graphic, Graphics, Inputs, MLParameter, ModelCard,
-                ModelParameters, ModelParametersApproach, Outputs, PerformanceMetric,
-                PerformanceMetrics, QuantitativeAnalysis,
+                ApproachType, ConfidenceInterval, Considerations, Dataset, Datasets, Inputs,
+                MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
+                PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
             property::{Properties, Property},
@@ -500,7 +321,7 @@ mod test {
                     }),
                     classification: Some("data classification".to_string()),
                     sensitive_data: Some("sensitive".to_string()),
-                    graphics: Some(Graphics {
+                    graphics: Some(GraphicsCollection {
                         description: Some("All graphics".to_string()),
                         collection: Some(vec![Graphic {
                             name: Some("graphic-1".to_string()),
@@ -538,7 +359,7 @@ mod test {
                         upper_bound: Some("upper".to_string()),
                     }),
                 }])),
-                graphics: Some(Graphics {
+                graphics: Some(GraphicsCollection {
                     description: Some("graphics".to_string()),
                     collection: None,
                 }),
