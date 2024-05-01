@@ -6,7 +6,7 @@ use crate::{
     specs::v1_5::external_reference::ExternalReference,
     xml::{
         read_lax_validation_tag, read_simple_tag, to_xml_read_error, unexpected_element_error,
-        write_close_tag, write_simple_tag, write_start_tag, FromXml, ToXml,
+        write_close_tag, write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 
@@ -23,7 +23,7 @@ impl ToXml for ResourceReferences {
         write_start_tag(writer, RESOURCE_REFERENCES_TAG)?;
 
         for reference in &self.0 {
-            reference.write_xml_element(writer)?;
+            reference.write_xml_named_element(writer, RESOURCE_REFERENCE_TAG)?;
         }
 
         write_close_tag(writer, RESOURCE_REFERENCES_TAG)?;
@@ -75,7 +75,7 @@ impl FromXml for ResourceReferences {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged, rename_all = "camelCase")]
-enum ResourceReference {
+pub(crate) enum ResourceReference {
     Ref {
         r#ref: String,
     },
@@ -88,12 +88,13 @@ const RESOURCE_REFERENCE_TAG: &str = "resourceReference";
 const REF_TAG: &str = "ref";
 const EXTERNAL_REFERENCE_TAG: &str = "externalReference";
 
-impl ToXml for ResourceReference {
-    fn write_xml_element<W: std::io::prelude::Write>(
+impl ToInnerXml for ResourceReference {
+    fn write_xml_named_element<W: std::io::prelude::Write>(
         &self,
         writer: &mut xml::EventWriter<W>,
+        tag: &str,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, RESOURCE_REFERENCE_TAG)?;
+        write_start_tag(writer, tag)?;
 
         match self {
             Self::Ref { r#ref } => write_simple_tag(writer, REF_TAG, r#ref)?,
@@ -102,7 +103,7 @@ impl ToXml for ResourceReference {
             }
         }
 
-        write_close_tag(writer, RESOURCE_REFERENCE_TAG)?;
+        write_close_tag(writer, tag)?;
 
         Ok(())
     }
