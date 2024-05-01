@@ -1310,9 +1310,9 @@ pub(crate) mod test {
                         }),
                     },
                 ])),
-                graphics: Some(models::modelcard::GraphicsCollection {
+                graphics: Some(models::component_data::GraphicsCollection {
                     description: Some("Graphic Desc".to_string()),
-                    collection: Some(vec![models::modelcard::Graphic {
+                    collection: Some(vec![models::component_data::Graphic {
                         name: Some("Graphic A".to_string()),
                         image: Some(models::attachment::Attachment {
                             content: "1234".to_string(),
@@ -1396,11 +1396,11 @@ pub(crate) mod test {
             architecture_family: Some("Architecture".to_string()),
             model_architecture: Some("Model".to_string()),
             datasets: Some(models::modelcard::Datasets(vec![
-                models::modelcard::Dataset::Component(models::modelcard::ComponentData {
+                models::modelcard::Dataset::Component(models::component_data::ComponentData {
                     bom_ref: Some(models::bom::BomReference::new("dataset-1")),
-                    data_type: models::modelcard::ComponentDataType::Dataset,
+                    data_type: models::component_data::ComponentDataType::Dataset,
                     name: Some("Training Data".to_string()),
-                    contents: Some(models::modelcard::DataContents {
+                    contents: Some(models::component_data::DataContents {
                         attachment: None,
                         url: Some(Uri("https://example.com/path/to/dataset".to_string())),
                         properties: None,

@@ -17,14 +17,13 @@
  */
 
 use crate::{
-    external_models::uri::validate_uri,
-    models::{attachment::Attachment, data_governance::DataGovernance},
-    prelude::{Uri, Validate, ValidationResult},
+    prelude::{Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
 
 use super::{
     bom::{BomReference, SpecVersion},
+    component_data::{ComponentData, GraphicsCollection},
     property::Properties,
 };
 
@@ -176,78 +175,6 @@ impl Validate for Dataset {
     }
 }
 
-/// Inline Component Data
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ComponentData {
-    pub bom_ref: Option<BomReference>,
-    /// 'type' field
-    pub data_type: ComponentDataType,
-    pub name: Option<String>,
-    pub contents: Option<DataContents>,
-    pub classification: Option<String>,
-    pub sensitive_data: Option<String>,
-    pub graphics: Option<GraphicsCollection>,
-    pub description: Option<String>,
-    pub governance: Option<DataGovernance>,
-}
-
-impl Validate for ComponentData {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_field("type", &self.data_type, validate_datatype)
-            .add_struct_option("contents", self.contents.as_ref(), version)
-            .add_struct_option("graphics", self.graphics.as_ref(), version)
-            .add_struct_option("governance", self.governance.as_ref(), version)
-            .into()
-    }
-}
-
-fn validate_datatype(datatype: &ComponentDataType) -> Result<(), ValidationError> {
-    if matches!(datatype, ComponentDataType::Unknown(_)) {
-        return Err("Unknown component data type found".into());
-    }
-    Ok(())
-}
-
-/// Type of data
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ComponentDataType {
-    SourceCode,
-    Configuration,
-    Dataset,
-    Definition,
-    Other,
-    #[doc(hidden)]
-    Unknown(String),
-}
-
-impl ComponentDataType {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
-        match value.as_ref() {
-            "source-code" => Self::SourceCode,
-            "configuration" => Self::Configuration,
-            "dataset" => Self::Dataset,
-            "definition" => Self::Definition,
-            "other" => Self::Other,
-            unknown => Self::Unknown(unknown.to_string()),
-        }
-    }
-}
-
-impl ToString for ComponentDataType {
-    fn to_string(&self) -> String {
-        match self {
-            Self::SourceCode => "source-code",
-            Self::Configuration => "configuration",
-            Self::Dataset => "dataset",
-            Self::Definition => "definition",
-            Self::Other => "other",
-            Self::Unknown(unknown) => unknown,
-        }
-        .to_string()
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Inputs(pub Vec<MLParameter>);
 
@@ -284,55 +211,6 @@ impl MLParameter {
         Self {
             format: Some(format.to_string()),
         }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DataContents {
-    pub attachment: Option<Attachment>,
-    pub url: Option<Uri>,
-    pub properties: Option<Properties>,
-}
-
-impl Validate for DataContents {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_struct_option("attachment", self.attachment.as_ref(), version)
-            .add_field_option("url", self.url.as_ref(), validate_uri)
-            .add_struct_option("properties", self.properties.as_ref(), version)
-            .into()
-    }
-}
-
-/// bom-1.5.schema.json #definitions/graphicsCollection
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct GraphicsCollection {
-    pub description: Option<String>,
-    pub collection: Option<Vec<Graphic>>,
-}
-
-impl Validate for GraphicsCollection {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_list_option("collection", self.collection.as_ref(), |graphic| {
-                graphic.validate_version(version)
-            })
-            .into()
-    }
-}
-
-/// bom-1.5.schema.json #definitions/graphic
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Graphic {
-    pub name: Option<String>,
-    pub image: Option<Attachment>,
-}
-
-impl Validate for Graphic {
-    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
-        ValidationContext::new()
-            .add_struct_option("image", self.image.as_ref(), version)
-            .into()
     }
 }
 
@@ -400,12 +278,15 @@ impl Validate for Considerations {
 mod test {
     use crate::{
         models::{
+            attachment::Attachment,
             bom::BomReference,
+            component_data::{
+                ComponentData, ComponentDataType, DataContents, Graphic, GraphicsCollection,
+            },
             data_governance::{DataGovernance, DataGovernanceResponsibleParty},
             modelcard::{
-                ApproachType, Attachment, ComponentData, ComponentDataType, ConfidenceInterval,
-                Considerations, DataContents, Dataset, Datasets, Graphic, GraphicsCollection,
-                Inputs, MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
+                ApproachType, ConfidenceInterval, Considerations, Dataset, Datasets, Inputs,
+                MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
                 PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
             },
             organization::OrganizationalContact,

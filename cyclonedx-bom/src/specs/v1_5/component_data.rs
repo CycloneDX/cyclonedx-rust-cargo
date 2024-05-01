@@ -68,8 +68,8 @@ pub(crate) struct ComponentData {
     pub(crate) governance: Option<DataGovernance>,
 }
 
-impl From<models::modelcard::ComponentData> for ComponentData {
-    fn from(other: models::modelcard::ComponentData) -> Self {
+impl From<models::component_data::ComponentData> for ComponentData {
+    fn from(other: models::component_data::ComponentData) -> Self {
         Self {
             bom_ref: other.bom_ref.clone().map(Into::into),
             data_type: other.data_type.to_string(),
@@ -84,11 +84,11 @@ impl From<models::modelcard::ComponentData> for ComponentData {
     }
 }
 
-impl From<ComponentData> for models::modelcard::ComponentData {
+impl From<ComponentData> for models::component_data::ComponentData {
     fn from(other: ComponentData) -> Self {
         Self {
             bom_ref: other.bom_ref.map(models::bom::BomReference::from),
-            data_type: models::modelcard::ComponentDataType::new_unchecked(other.data_type),
+            data_type: other.data_type.into(),
             name: other.name,
             contents: convert_optional(other.contents),
             classification: convert_optional(other.classification),
@@ -276,8 +276,8 @@ pub(crate) struct DataContents {
     pub(crate) properties: Option<Properties>,
 }
 
-impl From<models::modelcard::DataContents> for DataContents {
-    fn from(other: models::modelcard::DataContents) -> Self {
+impl From<models::component_data::DataContents> for DataContents {
+    fn from(other: models::component_data::DataContents) -> Self {
         Self {
             attachment: convert_optional(other.attachment),
             url: other.url.map(|url| url.to_string()),
@@ -286,7 +286,7 @@ impl From<models::modelcard::DataContents> for DataContents {
     }
 }
 
-impl From<DataContents> for models::modelcard::DataContents {
+impl From<DataContents> for models::component_data::DataContents {
     fn from(other: DataContents) -> Self {
         Self {
             attachment: convert_optional(other.attachment),
@@ -394,8 +394,8 @@ pub(crate) struct GraphicsCollection {
     pub(crate) collection: Option<Collection>,
 }
 
-impl From<models::modelcard::GraphicsCollection> for GraphicsCollection {
-    fn from(other: models::modelcard::GraphicsCollection) -> Self {
+impl From<models::component_data::GraphicsCollection> for GraphicsCollection {
+    fn from(other: models::component_data::GraphicsCollection) -> Self {
         Self {
             description: convert_optional(other.description),
             collection: convert_optional(other.collection),
@@ -403,7 +403,7 @@ impl From<models::modelcard::GraphicsCollection> for GraphicsCollection {
     }
 }
 
-impl From<GraphicsCollection> for models::modelcard::GraphicsCollection {
+impl From<GraphicsCollection> for models::component_data::GraphicsCollection {
     fn from(other: GraphicsCollection) -> Self {
         Self {
             description: convert_optional(other.description),
@@ -496,13 +496,13 @@ impl From<Vec<Graphic>> for Collection {
     }
 }
 
-impl From<Vec<models::modelcard::Graphic>> for Collection {
-    fn from(other: Vec<models::modelcard::Graphic>) -> Self {
+impl From<Vec<models::component_data::Graphic>> for Collection {
+    fn from(other: Vec<models::component_data::Graphic>) -> Self {
         Self(convert_vec(other))
     }
 }
 
-impl From<Collection> for Vec<models::modelcard::Graphic> {
+impl From<Collection> for Vec<models::component_data::Graphic> {
     fn from(other: Collection) -> Self {
         convert_vec(other.0)
     }
@@ -569,8 +569,8 @@ pub(crate) struct Graphic {
     pub(crate) image: Option<Attachment>,
 }
 
-impl From<models::modelcard::Graphic> for Graphic {
-    fn from(other: models::modelcard::Graphic) -> Self {
+impl From<models::component_data::Graphic> for Graphic {
+    fn from(other: models::component_data::Graphic) -> Self {
         Self {
             name: convert_optional(other.name),
             image: convert_optional(other.image),
@@ -578,7 +578,7 @@ impl From<models::modelcard::Graphic> for Graphic {
     }
 }
 
-impl From<Graphic> for models::modelcard::Graphic {
+impl From<Graphic> for models::component_data::Graphic {
     fn from(other: Graphic) -> Self {
         Self {
             name: convert_optional(other.name),

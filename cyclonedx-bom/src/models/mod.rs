@@ -23,6 +23,7 @@ pub mod attachment;
 pub mod bom;
 pub mod code;
 pub mod component;
+pub mod component_data;
 pub mod composition;
 pub mod data_governance;
 pub mod dependency;
