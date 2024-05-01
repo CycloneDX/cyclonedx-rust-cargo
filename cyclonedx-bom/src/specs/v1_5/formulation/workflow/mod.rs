@@ -1,7 +1,6 @@
-mod workspace;
-mod resource_reference;
-mod output;
 mod input;
+mod output;
+mod resource_reference;
 mod steps;
 mod trigger;
-
+mod workspace;

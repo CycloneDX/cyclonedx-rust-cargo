@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
+assertion_line: 603
 expression: actual
 ---
 {
@@ -734,6 +735,18 @@ expression: actual
       "description": "description",
       "detail": "detail",
       "recommendation": "recommendation",
+      "workaround": "workaround",
+      "proofOfConcept": {
+        "reproductionSteps": "reproduction steps",
+        "environment": "production",
+        "supportingMaterial": [
+          {
+            "content": "abcdefgh",
+            "contentType": "image/jpeg",
+            "encoding": "base64"
+          }
+        ]
+      },
       "advisories": [
         {
           "title": "title",
@@ -743,6 +756,7 @@ expression: actual
       "created": "created",
       "published": "published",
       "updated": "updated",
+      "rejected": "rejected",
       "credits": {
         "organizations": [
           {
@@ -786,7 +800,9 @@ expression: actual
         "responses": [
           "update"
         ],
-        "detail": "detail"
+        "detail": "detail",
+        "firstIssued": "2024-01-02",
+        "lastUpdated": "2024-01-10"
       },
       "affects": [
         {

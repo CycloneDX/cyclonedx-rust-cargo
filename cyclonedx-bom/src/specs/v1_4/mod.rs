@@ -24,3 +24,4 @@ pub(crate) use crate::specs::common::metadata::v1_4 as metadata;
 pub(crate) use crate::specs::common::service::v1_4 as service;
 pub(crate) use crate::specs::common::tool::v1_4 as tool;
 pub(crate) use crate::specs::common::vulnerability::v1_4 as vulnerability;
+pub(crate) use crate::specs::common::vulnerability_analysis::v1_4 as vulnerability_analysis;

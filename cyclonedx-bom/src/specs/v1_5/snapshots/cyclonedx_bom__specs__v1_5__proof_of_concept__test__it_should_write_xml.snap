@@ -1,0 +1,13 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/proof_of_concept.rs
+assertion_line: 197
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<proofOfConcept>
+  <reproductionSteps>reproduction steps</reproductionSteps>
+  <environment>production</environment>
+  <supportingMaterial>
+    <attachment encoding="base64" encoding="image/jpeg">abcdefgh</attachment>
+  </supportingMaterial>
+</proofOfConcept>

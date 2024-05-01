@@ -24,6 +24,7 @@ pub(crate) mod evidence;
 pub(crate) mod formulation;
 pub(crate) mod lifecycles;
 pub(crate) mod modelcard;
+pub(crate) mod proof_of_concept;
 pub(crate) mod service_data;
 
 pub(crate) use crate::specs::common::bom::v1_5 as bom;
@@ -34,3 +35,4 @@ pub(crate) use crate::specs::common::metadata::v1_5 as metadata;
 pub(crate) use crate::specs::common::service::v1_5 as service;
 pub(crate) use crate::specs::common::tool::v1_5 as tool;
 pub(crate) use crate::specs::common::vulnerability::v1_5 as vulnerability;
+pub(crate) use crate::specs::common::vulnerability_analysis::v1_5 as vulnerability_analysis;
