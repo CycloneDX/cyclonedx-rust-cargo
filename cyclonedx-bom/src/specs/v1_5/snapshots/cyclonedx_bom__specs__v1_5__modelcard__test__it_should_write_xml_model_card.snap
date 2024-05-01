@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/v1_5/modelcard.rs
-assertion_line: 2340
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -14,6 +13,7 @@ expression: xml_output
     <modelArchitecture>Model</modelArchitecture>
     <datasets>
       <dataset bom-ref="dataset-1">
+        <type>dataset</type>
         <name>Training Data</name>
         <contents>
           <url>https://example.com/path/to/dataset</url>

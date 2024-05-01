@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 606
 expression: actual
 ---
 {
@@ -266,6 +265,17 @@ expression: actual
                 }
               }
             ]
+          }
+        }
+      },
+      "data": {
+        "type": "configuration",
+        "name": "config",
+        "contents": {
+          "attachment": {
+            "content": "foo: bar",
+            "contentType": null,
+            "encoding": null
           }
         }
       }
@@ -550,6 +560,17 @@ expression: actual
                 }
               }
             ]
+          }
+        }
+      },
+      "data": {
+        "type": "configuration",
+        "name": "config",
+        "contents": {
+          "attachment": {
+            "content": "foo: bar",
+            "contentType": null,
+            "encoding": null
           }
         }
       }

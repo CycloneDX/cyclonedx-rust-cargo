@@ -114,37 +114,51 @@ impl ToInnerXml for ComponentData {
         writer: &mut xml::EventWriter<W>,
         tag: &str,
     ) -> Result<(), crate::errors::XmlWriteError> {
+        let Self {
+            bom_ref,
+            data_type,
+            name,
+            contents,
+            classification,
+            sensitive_data,
+            graphics,
+            description,
+            governance,
+        } = self;
+
         let mut start_tag = writer::XmlEvent::start_element(tag);
-        if let Some(bom_ref) = &self.bom_ref {
+        if let Some(bom_ref) = bom_ref.as_ref() {
             start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref.as_ref());
         }
         writer.write(start_tag).map_err(to_xml_write_error(tag))?;
 
-        if let Some(name) = &self.name {
+        write_simple_tag(writer, TYPE_TAG, &data_type)?;
+
+        if let Some(name) = name.as_ref() {
             write_simple_tag(writer, NAME_TAG, name)?;
         }
 
-        if let Some(contents) = &self.contents {
+        if let Some(contents) = contents.as_ref() {
             contents.write_xml_element(writer)?;
         }
 
-        if let Some(classification) = &self.classification {
+        if let Some(classification) = classification.as_ref() {
             write_simple_tag(writer, CLASSIFICATION_TAG, classification)?;
         }
 
-        if let Some(sensitive_data) = &self.sensitive_data {
+        if let Some(sensitive_data) = sensitive_data.as_ref() {
             write_simple_tag(writer, SENSITIVE_DATA_TAG, sensitive_data)?;
         }
 
-        if let Some(graphics) = &self.graphics {
+        if let Some(graphics) = graphics.as_ref() {
             graphics.write_xml_named_element(writer, GRAPHICS_TAG)?;
         }
 
-        if let Some(description) = &self.description {
+        if let Some(description) = description.as_ref() {
             write_simple_tag(writer, DESCRIPTION_TAG, description)?;
         }
 
-        if let Some(governance) = &self.governance {
+        if let Some(governance) = governance.as_ref() {
             governance.write_xml_named_element(writer, GOVERNANCE_TAG)?;
         }
 
@@ -653,5 +667,54 @@ impl FromXml for Graphic {
             name: graphic_name,
             image,
         })
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    pub(crate) fn example_component_data() -> ComponentData {
+        ComponentData {
+            bom_ref: None,
+            data_type: "configuration".into(),
+            name: Some("config".into()),
+            contents: Some(DataContents {
+                attachment: Some(Attachment {
+                    content: "foo: bar".into(),
+                    content_type: None,
+                    encoding: None,
+                }),
+                url: None,
+                properties: None,
+            }),
+            classification: None,
+            sensitive_data: None,
+            graphics: None,
+            description: None,
+            governance: None,
+        }
+    }
+
+    pub(crate) fn corresponding_component_data() -> models::component_data::ComponentData {
+        models::component_data::ComponentData {
+            bom_ref: None,
+            data_type: models::component_data::ComponentDataType::Configuration,
+            name: Some("config".into()),
+            contents: Some(models::component_data::DataContents {
+                attachment: Some(models::attachment::Attachment {
+                    content: "foo: bar".into(),
+                    content_type: None,
+                    encoding: None,
+                }),
+                url: None,
+                properties: None,
+            }),
+            classification: None,
+            sensitive_data: None,
+            graphics: None,
+            description: None,
+            governance: None,
+        }
     }
 }

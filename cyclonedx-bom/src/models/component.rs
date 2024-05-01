@@ -40,6 +40,7 @@ use crate::{
 };
 
 use super::bom::{validate_bom_ref, SpecVersion};
+use super::component_data::ComponentData;
 use super::modelcard::ModelCard;
 use super::signature::Signature;
 
@@ -72,6 +73,8 @@ pub struct Component {
     pub signature: Option<Signature>,
     /// Added in version 1.5
     pub model_card: Option<ModelCard>,
+    /// Added in version 1.5
+    pub data: Option<ComponentData>,
 }
 
 impl Component {
@@ -107,6 +110,7 @@ impl Component {
             evidence: None,
             signature: None,
             model_card: None,
+            data: None,
         }
     }
 }
@@ -786,6 +790,25 @@ mod test {
                     value: NormalizedString("value".to_string()),
                 }])),
             }),
+            data: Some(ComponentData {
+                bom_ref: None,
+                data_type: ComponentDataType::SourceCode,
+                name: Some("github".into()),
+                contents: Some(DataContents {
+                    attachment: Some(Attachment {
+                        content: "some pic".into(),
+                        content_type: None,
+                        encoding: Some("base64".into()),
+                    }),
+                    url: None,
+                    properties: None,
+                }),
+                classification: None,
+                sensitive_data: None,
+                graphics: None,
+                description: None,
+                governance: None,
+            }),
         }];
         let validation_result = Components(vec).validate();
 
@@ -879,6 +902,7 @@ mod test {
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: None,
+            data: None,
         }])
         .validate();
 
@@ -1123,6 +1147,7 @@ mod test {
             evidence: None,
             signature: None,
             model_card: None,
+            data: None,
         }
     }
 
