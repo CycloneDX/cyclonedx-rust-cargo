@@ -596,7 +596,7 @@ mod test {
             license::LicenseChoice,
             modelcard::{
                 ApproachType, ComponentData, ComponentDataType, ConfidenceInterval, Considerations,
-                DataContents, Dataset, Datasets, Graphic, Graphics, Inputs, MLParameter,
+                DataContents, Dataset, Datasets, Graphic, GraphicsCollection, Inputs, MLParameter,
                 ModelParameters, ModelParametersApproach, Outputs, PerformanceMetric,
                 PerformanceMetrics, QuantitativeAnalysis,
             },
@@ -735,7 +735,7 @@ mod test {
                         }),
                         classification: Some("data classification".to_string()),
                         sensitive_data: Some("sensitive".to_string()),
-                        graphics: Some(Graphics {
+                        graphics: Some(GraphicsCollection {
                             description: Some("All graphics".to_string()),
                             collection: Some(vec![Graphic {
                                 name: Some("graphic-1".to_string()),
@@ -773,7 +773,7 @@ mod test {
                             upper_bound: Some("high".to_string()),
                         }),
                     }])),
-                    graphics: Some(Graphics {
+                    graphics: Some(GraphicsCollection {
                         description: Some("graphics".to_string()),
                         collection: None,
                     }),

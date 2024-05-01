@@ -1563,8 +1563,8 @@ pub(crate) struct Graphics {
     pub(crate) collection: Option<Collection>,
 }
 
-impl From<models::modelcard::Graphics> for Graphics {
-    fn from(other: models::modelcard::Graphics) -> Self {
+impl From<models::modelcard::GraphicsCollection> for Graphics {
+    fn from(other: models::modelcard::GraphicsCollection) -> Self {
         Self {
             description: convert_optional(other.description),
             collection: convert_optional(other.collection),
@@ -1572,7 +1572,7 @@ impl From<models::modelcard::Graphics> for Graphics {
     }
 }
 
-impl From<Graphics> for models::modelcard::Graphics {
+impl From<Graphics> for models::modelcard::GraphicsCollection {
     fn from(other: Graphics) -> Self {
         Self {
             description: convert_optional(other.description),
@@ -1888,7 +1888,7 @@ pub(crate) mod test {
                         }),
                     },
                 ])),
-                graphics: Some(models::modelcard::Graphics {
+                graphics: Some(models::modelcard::GraphicsCollection {
                     description: Some("Graphic Desc".to_string()),
                     collection: Some(vec![models::modelcard::Graphic {
                         name: Some("Graphic A".to_string()),

@@ -186,7 +186,7 @@ pub struct ComponentData {
     pub contents: Option<DataContents>,
     pub classification: Option<String>,
     pub sensitive_data: Option<String>,
-    pub graphics: Option<Graphics>,
+    pub graphics: Option<GraphicsCollection>,
     pub description: Option<String>,
     pub governance: Option<DataGovernance>,
 }
@@ -304,15 +304,14 @@ impl Validate for DataContents {
     }
 }
 
-/// See https://cyclonedx.org/docs/1.5/json/#components_items_modelCard_modelParameters_datasets_items_oneOf_i0_graphics
-/// for more details.
+/// bom-1.5.schema.json #definitions/graphicsCollection
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Graphics {
+pub struct GraphicsCollection {
     pub description: Option<String>,
     pub collection: Option<Vec<Graphic>>,
 }
 
-impl Validate for Graphics {
+impl Validate for GraphicsCollection {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_list_option("collection", self.collection.as_ref(), |graphic| {
@@ -322,6 +321,7 @@ impl Validate for Graphics {
     }
 }
 
+/// bom-1.5.schema.json #definitions/graphic
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Graphic {
     pub name: Option<String>,
@@ -339,7 +339,7 @@ impl Validate for Graphic {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantitativeAnalysis {
     pub performance_metrics: Option<PerformanceMetrics>,
-    pub graphics: Option<Graphics>,
+    pub graphics: Option<GraphicsCollection>,
 }
 
 impl Validate for QuantitativeAnalysis {
@@ -404,8 +404,8 @@ mod test {
             data_governance::{DataGovernance, DataGovernanceResponsibleParty},
             modelcard::{
                 ApproachType, Attachment, ComponentData, ComponentDataType, ConfidenceInterval,
-                Considerations, DataContents, Dataset, Datasets, Graphic, Graphics, Inputs,
-                MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
+                Considerations, DataContents, Dataset, Datasets, Graphic, GraphicsCollection,
+                Inputs, MLParameter, ModelCard, ModelParameters, ModelParametersApproach, Outputs,
                 PerformanceMetric, PerformanceMetrics, QuantitativeAnalysis,
             },
             organization::OrganizationalContact,
@@ -440,7 +440,7 @@ mod test {
                     }),
                     classification: Some("data classification".to_string()),
                     sensitive_data: Some("sensitive".to_string()),
-                    graphics: Some(Graphics {
+                    graphics: Some(GraphicsCollection {
                         description: Some("All graphics".to_string()),
                         collection: Some(vec![Graphic {
                             name: Some("graphic-1".to_string()),
@@ -478,7 +478,7 @@ mod test {
                         upper_bound: Some("upper".to_string()),
                     }),
                 }])),
-                graphics: Some(Graphics {
+                graphics: Some(GraphicsCollection {
                     description: Some("graphics".to_string()),
                     collection: None,
                 }),
