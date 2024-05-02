@@ -28,9 +28,15 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use xml::writer::XmlEvent;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Properties(pub(crate) Vec<Property>);
+
+impl Properties {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
 
 impl From<models::property::Properties> for Properties {
     fn from(other: models::property::Properties) -> Self {

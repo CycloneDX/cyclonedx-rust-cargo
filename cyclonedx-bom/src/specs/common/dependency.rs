@@ -28,8 +28,14 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
 pub(crate) struct Dependencies(Vec<Dependency>);
+
+impl Dependencies {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
 
 impl From<models::dependency::Dependencies> for Dependencies {
     fn from(other: models::dependency::Dependencies) -> Self {

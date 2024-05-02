@@ -9,8 +9,15 @@ use crate::{
     },
 };
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct RuntimeTopology(Vec<Dependency>);
+// FIXME: remove definition of Dependency
+#[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
+pub(crate) struct RuntimeTopology(Vec<Dependency>);
+
+impl RuntimeTopology {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
 
 const RUNTIME_TOPOLOGY_TAG: &str = "runtimeTopology";
 

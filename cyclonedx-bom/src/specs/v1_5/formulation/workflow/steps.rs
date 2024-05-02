@@ -10,8 +10,14 @@ use crate::{
     },
 };
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
 pub(crate) struct Steps(Vec<Step>);
+
+impl Steps {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
 
 const STEPS_TAG: &str = "steps";
 
