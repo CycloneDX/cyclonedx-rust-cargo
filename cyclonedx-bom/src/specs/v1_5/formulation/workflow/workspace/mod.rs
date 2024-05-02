@@ -1,4 +1,4 @@
-mod volume;
+pub(crate) mod volume;
 
 use serde::{Deserialize, Serialize};
 use xml::writer;
@@ -21,28 +21,28 @@ use volume::Volume;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Workspace {
     #[serde(rename = "kebab-case")]
-    bom_ref: String,
-    uid: String,
+    pub(crate) bom_ref: String,
+    pub(crate) uid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
+    pub(crate) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    aliases: Option<Vec<String>>,
+    pub(crate) aliases: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub(crate) description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resource_references: Option<ResourceReferences>,
+    pub(crate) resource_references: Option<ResourceReferences>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    access_mode: Option<String>,
+    pub(crate) access_mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    mount_path: Option<String>,
+    pub(crate) mount_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    managed_data_type: Option<String>,
+    pub(crate) managed_data_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    volume_request: Option<String>,
+    pub(crate) volume_request: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    volume: Option<Volume>,
+    pub(crate) volume: Option<Volume>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    properties: Option<Properties>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const WORKSPACE_TAG: &str = "workspace";

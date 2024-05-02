@@ -10,13 +10,7 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
-pub(crate) struct RuntimeTopology(Vec<Dependency>);
-
-impl RuntimeTopology {
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
+pub(crate) struct RuntimeTopology(pub(crate) Vec<Dependency>);
 
 const RUNTIME_TOPOLOGY_TAG: &str = "runtimeTopology";
 const DEPENDENCY_TAG: &str = "dependency";

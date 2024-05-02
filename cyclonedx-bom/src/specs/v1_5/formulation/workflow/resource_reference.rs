@@ -13,12 +13,6 @@ use crate::{
 #[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
 pub(crate) struct ResourceReferences(pub(crate) Vec<ResourceReference>);
 
-impl ResourceReferences {
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
 const RESOURCE_REFERENCES_TAG: &str = "resourceReferences";
 
 impl ToXml for ResourceReferences {
