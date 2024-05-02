@@ -138,6 +138,21 @@ pub(crate) fn write_list_tag<W: Write>(
     write_close_tag(writer, tag)
 }
 
+pub(crate) fn write_list_string_tag<W: Write>(
+    writer: &mut EventWriter<W>,
+    tag: &str,
+    child_tag: &str,
+    list: &[impl AsRef<str>],
+) -> Result<(), XmlWriteError> {
+    write_start_tag(writer, tag)?;
+
+    for item in list {
+        write_simple_tag(writer, child_tag, item.as_ref())?;
+    }
+
+    write_close_tag(writer, tag)
+}
+
 pub(crate) fn to_xml_write_error(
     element: impl AsRef<str>,
 ) -> impl FnOnce(xml::writer::Error) -> XmlWriteError {
@@ -164,7 +179,6 @@ pub(crate) trait FromXml {
 #[macro_export]
 macro_rules! get_elements_lax {
     ($event_reader:ident, $element_name: ident, $($tag:pat => $name:ident: $type:ty,)+) => {
-        {
             $(let mut $name: Option<$type> = None;)*
 
             let mut got_end_tag = false;
@@ -172,7 +186,7 @@ macro_rules! get_elements_lax {
             while !got_end_tag {
                 let next_element = $event_reader.next().map_err(crate::xml::to_xml_read_error(&$element_name.local_name))?;
                 match next_element {
-                    reader::XmlEvent::StartElement {
+                    xml::reader::XmlEvent::StartElement {
                         name: ref elem_name,
                         ref attributes,
                         ..
@@ -188,15 +202,12 @@ macro_rules! get_elements_lax {
                             _ => crate::xml::read_lax_validation_tag($event_reader, &elem_name)?,
                         }
                     }
-                    reader::XmlEvent::EndElement { name } if &name == $element_name => {
+                    xml::reader::XmlEvent::EndElement { name } if &name == $element_name => {
                         got_end_tag = true;
                     }
                     unexpected => return Err(crate::xml::unexpected_element_error($element_name, unexpected)),
                 }
             }
-
-            ($($name,)*)
-        }
     };
 }
 
@@ -211,7 +222,7 @@ macro_rules! get_elements {
             while !got_end_tag {
                 let next_element = event_reader.next().map_err(to_xml_read_error(element_name.local_name))?;
                 match next_element {
-                    reader::XmlEvent::StartElement {
+                    xml::reader::XmlEvent::StartElement {
                         name: ref elem_name,
                         ref attributes,
                         ..
@@ -227,7 +238,7 @@ macro_rules! get_elements {
                             unexpected => return Err(crate::xml::unexpected_element_error(unexpected.to_string(), next_element)),
                         }
                     }
-                    reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    xml::reader::XmlEvent::EndElement { name } if &name == element_name => {
                         got_end_tag = true;
                     }
                     unexpected => return Err(crate::xml::unexpected_element_error(element_name, unexpected)),
@@ -239,18 +250,17 @@ macro_rules! get_elements {
     };
 }
 
-
 /// Helper trait that represents the inner tag of a sequence of elements.
 pub(crate) trait VecElemTag {
     const VALUE: &'static str;
 }
 
 #[macro_export]
-macro_rules! elem_tag  {
+macro_rules! elem_tag {
     ($name:ident = $value:literal) => {
         struct $name {}
-        
-        impl crate::xml::VecElemTag for $value {
+
+        impl crate::xml::VecElemTag for $name {
             const VALUE: &'static str = $value;
         }
     };

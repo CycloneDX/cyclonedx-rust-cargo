@@ -1,0 +1,31 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/formulation/workflow/workspace/mod.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<workspace bom-ref="workspace-2">
+  <uid>workspace-1</uid>
+  <name>My workspace</name>
+  <aliases>
+    <alias>default-workspace</alias>
+  </aliases>
+  <description>Description here</description>
+  <resourceReferences>
+    <resourceReference>
+      <ref>component-t</ref>
+    </resourceReference>
+  </resourceReferences>
+  <accessMode>read-write</accessMode>
+  <mountPath>/tmp/workspace</mountPath>
+  <managedDataType>ConfigMap</managedDataType>
+  <volumeRequest>requestedVolumeClaim</volumeRequest>
+  <volume>
+    <uid>volume-1</uid>
+    <name>My volume</name>
+    <mode>filesystem</mode>
+    <path>/</path>
+    <sizeAllocated>10GB</sizeAllocated>
+    <persistent>true</persistent>
+    <remote>false</remote>
+  </volume>
+</workspace>

@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use xml::reader;
 
 use crate::{
     get_elements_lax,
@@ -9,14 +8,14 @@ use crate::{
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Volume {
-    uid: Option<String>,
-    name: Option<String>,
-    mode: Option<String>,
-    path: Option<String>,
-    size_allocated: Option<String>,
-    persistent: Option<bool>,
-    remote: Option<bool>,
-    properties: Option<Properties>,
+    pub(crate) uid: Option<String>,
+    pub(crate) name: Option<String>,
+    pub(crate) mode: Option<String>,
+    pub(crate) path: Option<String>,
+    pub(crate) size_allocated: Option<String>,
+    pub(crate) persistent: Option<bool>,
+    pub(crate) remote: Option<bool>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const VOLUME_TAG: &str = "volume";
@@ -83,18 +82,17 @@ impl FromXml for Volume {
     where
         Self: Sized,
     {
-        let (uid, name, mode, path, size_allocated, persistent, remote, properties) =
-            get_elements_lax! {
-                event_reader, element_name,
-                UID_TAG => uid: String,
-                NAME_TAG => name: String,
-                MODE_TAG => mode: String,
-                PATH_TAG => path: String,
-                SIZE_ALLOCATED_TAG => size_allocated: String,
-                PERSISTENT_TAG => persistent: bool,
-                REMOTE_TAG => remote: bool,
-                PROPERTIES_TAG => properties: Properties,
-            };
+        get_elements_lax! {
+            event_reader, element_name,
+            UID_TAG => uid: String,
+            NAME_TAG => name: String,
+            MODE_TAG => mode: String,
+            PATH_TAG => path: String,
+            SIZE_ALLOCATED_TAG => size_allocated: String,
+            PERSISTENT_TAG => persistent: bool,
+            REMOTE_TAG => remote: bool,
+            PROPERTIES_TAG => properties: Properties,
+        };
 
         Ok(Self {
             uid,
