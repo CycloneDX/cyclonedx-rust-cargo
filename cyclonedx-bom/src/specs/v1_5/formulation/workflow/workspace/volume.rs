@@ -1,25 +1,21 @@
 use serde::{Deserialize, Serialize};
-use xml::reader;
 
 use crate::{
+    get_elements_lax,
     specs::common::property::Properties,
-    xml::{
-        read_boolean_tag, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
-        unexpected_element_error, write_close_tag, write_simple_tag, write_start_tag, FromXml,
-        ToXml,
-    },
+    xml::{write_close_tag, write_simple_tag, write_start_tag, FromXml, ToXml},
 };
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct Volume {
-    uid: Option<String>,
-    name: Option<String>,
-    mode: Option<String>,
-    path: Option<String>,
-    size_allocated: Option<String>,
-    persistent: Option<bool>,
-    remote: Option<bool>,
-    properties: Option<Properties>,
+pub(crate) struct Volume {
+    pub(crate) uid: Option<String>,
+    pub(crate) name: Option<String>,
+    pub(crate) mode: Option<String>,
+    pub(crate) path: Option<String>,
+    pub(crate) size_allocated: Option<String>,
+    pub(crate) persistent: Option<bool>,
+    pub(crate) remote: Option<bool>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const VOLUME_TAG: &str = "volume";
@@ -86,53 +82,17 @@ impl FromXml for Volume {
     where
         Self: Sized,
     {
-        let mut uid: Option<String> = None;
-        let mut name: Option<String> = None;
-        let mut mode: Option<String> = None;
-        let mut path: Option<String> = None;
-        let mut size_allocated: Option<String> = None;
-        let mut persistent: Option<bool> = None;
-        let mut remote: Option<bool> = None;
-        let mut properties: Option<Properties> = None;
-
-        let mut got_end_tag = false;
-
-        while !got_end_tag {
-            let next_element = event_reader.next().map_err(to_xml_read_error(VOLUME_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name: elem_name,
-                    attributes,
-                    ..
-                } => {
-                    match elem_name.local_name.as_str() {
-                        UID_TAG => uid = Some(read_simple_tag(event_reader, &elem_name)?),
-                        NAME_TAG => name = Some(read_simple_tag(event_reader, &elem_name)?),
-                        MODE_TAG => mode = Some(read_simple_tag(event_reader, &elem_name)?),
-                        PATH_TAG => path = Some(read_simple_tag(event_reader, &elem_name)?),
-                        SIZE_ALLOCATED_TAG => {
-                            size_allocated = Some(read_simple_tag(event_reader, &elem_name)?)
-                        }
-                        PERSISTENT_TAG => {
-                            persistent = Some(read_boolean_tag(event_reader, &elem_name)?)
-                        }
-                        REMOTE_TAG => remote = Some(read_boolean_tag(event_reader, &elem_name)?),
-                        PROPERTIES_TAG => {
-                            properties = Some(Properties::read_xml_element(
-                                event_reader,
-                                &elem_name,
-                                &attributes,
-                            )?)
-                        }
-                        _ => read_lax_validation_tag(event_reader, &elem_name)?,
-                    };
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
+        get_elements_lax! {
+            event_reader, element_name,
+            UID_TAG => uid: String,
+            NAME_TAG => name: String,
+            MODE_TAG => mode: String,
+            PATH_TAG => path: String,
+            SIZE_ALLOCATED_TAG => size_allocated: String,
+            PERSISTENT_TAG => persistent: bool,
+            REMOTE_TAG => remote: bool,
+            PROPERTIES_TAG => properties: Properties,
+        };
 
         Ok(Self {
             uid,

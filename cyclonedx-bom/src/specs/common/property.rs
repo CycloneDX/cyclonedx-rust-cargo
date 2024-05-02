@@ -28,7 +28,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use xml::writer::XmlEvent;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Properties(pub(crate) Vec<Property>);
 

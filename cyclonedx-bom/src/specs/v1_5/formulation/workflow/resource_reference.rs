@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
 pub(crate) struct ResourceReferences(pub(crate) Vec<ResourceReference>);
 
 const RESOURCE_REFERENCES_TAG: &str = "resourceReferences";

@@ -28,7 +28,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer::XmlEvent};
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
 pub(crate) struct Dependencies(Vec<Dependency>);
 
 impl From<models::dependency::Dependencies> for Dependencies {
@@ -79,9 +79,9 @@ impl FromXml for Dependencies {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Dependency {
     #[serde(rename = "ref")]
-    dependency_ref: String,
+    pub(crate) dependency_ref: String,
     #[serde(default)]
-    depends_on: Vec<String>,
+    pub(crate) depends_on: Vec<String>,
 }
 
 impl From<Dependency> for models::dependency::Dependency {

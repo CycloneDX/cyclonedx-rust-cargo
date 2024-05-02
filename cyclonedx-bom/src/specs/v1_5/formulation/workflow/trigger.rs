@@ -22,18 +22,18 @@ use super::{
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Trigger {
     #[serde(rename = "kebab-case")]
-    bom_ref: String,
-    uid: String,
-    name: Option<String>,
-    description: Option<String>,
-    resource_references: Option<ResourceReferences>,
-    r#type: String,
-    event: Option<Event>,
-    conditions: Option<Conditions>,
-    time_activated: Option<String>,
-    inputs: Option<Inputs>,
-    outputs: Option<Outputs>,
-    properties: Option<Properties>,
+    pub(crate) bom_ref: String,
+    pub(crate) uid: String,
+    pub(crate) name: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) resource_references: Option<ResourceReferences>,
+    pub(crate) r#type: String,
+    pub(crate) event: Option<Event>,
+    pub(crate) conditions: Option<Conditions>,
+    pub(crate) time_activated: Option<String>,
+    pub(crate) inputs: Option<Inputs>,
+    pub(crate) outputs: Option<Outputs>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const TRIGGER_TAG: &str = "trigger";
@@ -188,14 +188,14 @@ impl FromXml for Trigger {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Event {
-    uid: Option<String>,
-    description: Option<String>,
-    time_received: Option<String>,
-    data: Option<Attachment>,
-    source: Option<ResourceReference>,
-    target: Option<ResourceReference>,
-    properties: Option<Properties>,
+pub(crate) struct Event {
+    pub(crate) uid: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) time_received: Option<String>,
+    pub(crate) data: Option<Attachment>,
+    pub(crate) source: Option<ResourceReference>,
+    pub(crate) target: Option<ResourceReference>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const EVENT_TAG: &str = "event";
@@ -310,7 +310,7 @@ impl FromXml for Event {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct Conditions(Vec<Condition>);
+pub(crate) struct Conditions(pub(crate) Vec<Condition>);
 
 const CONDITIONS_TAG: &str = "conditions";
 
@@ -337,10 +337,10 @@ impl FromXml for Conditions {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct Condition {
-    description: Option<String>,
-    expression: Option<String>,
-    properties: Option<Properties>,
+pub(crate) struct Condition {
+    pub(crate) description: Option<String>,
+    pub(crate) expression: Option<String>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const CONDITION_TAG: &str = "condition";

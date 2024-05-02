@@ -236,7 +236,7 @@ pub(crate) enum RequiredOutputField {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct EnvironmentVars(Vec<EnvironmentVar>);
+pub(crate) struct EnvironmentVars(pub(crate) Vec<EnvironmentVar>);
 
 const ENVIRONMENT_VARS_TAG: &str = "environmentVars";
 

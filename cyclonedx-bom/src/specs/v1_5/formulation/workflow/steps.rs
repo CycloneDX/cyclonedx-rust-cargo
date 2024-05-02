@@ -10,8 +10,8 @@ use crate::{
     },
 };
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
-pub(crate) struct Steps(Vec<Step>);
+#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
+pub(crate) struct Steps(pub(crate) Vec<Step>);
 
 const STEPS_TAG: &str = "steps";
 
@@ -40,13 +40,13 @@ impl FromXml for Steps {
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub(crate) struct Step {
     #[serde(skip_serializing_if = "Option::is_none")]
-    commands: Option<Commands>,
+    pub(crate) commands: Option<Commands>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub(crate) description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
+    pub(crate) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    properties: Option<Properties>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const STEP_TAG: &str = "step";
@@ -134,7 +134,7 @@ impl FromXml for Step {
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
-pub(crate) struct Commands(Vec<Command>);
+pub(crate) struct Commands(pub(crate) Vec<Command>);
 
 const COMMANDS_TAG: &str = "commands";
 
@@ -163,9 +163,9 @@ impl FromXml for Commands {
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub(crate) struct Command {
     #[serde(skip_serializing_if = "Option::is_none")]
-    executed: Option<String>,
+    pub(crate) executed: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    properties: Option<Properties>,
+    pub(crate) properties: Option<Properties>,
 }
 
 const COMMAND_TAG: &str = "command";

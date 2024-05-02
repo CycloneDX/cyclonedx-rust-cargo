@@ -12,23 +12,24 @@ use crate::{
 };
 
 use super::resource_reference::ResourceReference;
+
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Inputs(pub(crate) Vec<Input>);
 
-const OUTPUTS_TAG: &str = "inputs";
+const INPUTS_TAG: &str = "inputs";
 
 impl ToXml for Inputs {
     fn write_xml_element<W: std::io::prelude::Write>(
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, OUTPUTS_TAG)?;
+        write_start_tag(writer, INPUTS_TAG)?;
 
         for input in &self.0 {
             input.write_xml_element(writer)?;
         }
 
-        write_close_tag(writer, OUTPUTS_TAG)
+        write_close_tag(writer, INPUTS_TAG)
     }
 }
 
@@ -45,13 +46,11 @@ impl FromXml for Inputs {
 
         let mut got_end_tag = false;
         while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(OUTPUTS_TAG))?;
+            let next_element = event_reader.next().map_err(to_xml_read_error(INPUTS_TAG))?;
             match next_element {
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
-                } if name.local_name == OUTPUT_TAG => {
+                } if name.local_name == INPUT_TAG => {
                     inputs.push(Input::read_xml_element(event_reader, &name, &attributes)?);
                 }
                 // lax validation of any elements from a different schema
@@ -81,7 +80,7 @@ pub(crate) struct Input {
     pub(crate) properties: Option<Properties>,
 }
 
-const OUTPUT_TAG: &str = "input";
+const INPUT_TAG: &str = "input";
 const RESOURCE_TAG: &str = "resource";
 const DATA_TAG: &str = "data";
 const SOURCE_TAG: &str = "source";
@@ -93,7 +92,7 @@ impl ToXml for Input {
         &self,
         writer: &mut xml::EventWriter<W>,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, OUTPUT_TAG)?;
+        write_start_tag(writer, INPUT_TAG)?;
 
         match &self.required {
             RequiredInputField::Resource { resource } => {
@@ -122,7 +121,7 @@ impl ToXml for Input {
             properties.write_xml_element(writer)?;
         }
 
-        write_close_tag(writer, OUTPUT_TAG)
+        write_close_tag(writer, INPUT_TAG)
     }
 }
 
@@ -142,7 +141,7 @@ impl FromXml for Input {
 
         let mut got_end_tag = false;
         while !got_end_tag {
-            let next_element = event_reader.next().map_err(to_xml_read_error(OUTPUT_TAG))?;
+            let next_element = event_reader.next().map_err(to_xml_read_error(INPUT_TAG))?;
             match next_element {
                 reader::XmlEvent::StartElement {
                     ref name,
@@ -375,7 +374,7 @@ impl FromXml for Parameter {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct EnvironmentVars(Vec<EnvironmentVar>);
+pub(crate) struct EnvironmentVars(pub(crate) Vec<EnvironmentVar>);
 
 const ENVIRONMENT_VARS_TAG: &str = "environmentVars";
 
@@ -414,11 +413,13 @@ impl FromXml for EnvironmentVars {
                 reader::XmlEvent::StartElement {
                     name, attributes, ..
                 } if name.local_name == ENVIRONMENT_VAR_TAG => {
-                    environment_vars.push(EnvironmentVar::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
+                    let value = read_simple_tag(event_reader, &name)?;
+                    let name = attribute_or_error(&name, &attributes, NAME_ATTR)?;
+                    environment_vars.push(EnvironmentVar::Property { name, value });
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == VALUE_TAG => {
+                    let value = read_simple_tag(event_reader, &name)?;
+                    environment_vars.push(EnvironmentVar::Value(value));
                 }
                 // lax validation of any elements from a different schema
                 reader::XmlEvent::StartElement { name, .. } => {
@@ -468,59 +469,6 @@ impl ToXml for EnvironmentVar {
         }
 
         Ok(())
-    }
-}
-
-impl FromXml for EnvironmentVar {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut environment_var = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(ENVIRONMENT_VAR_TAG))?;
-
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name: ref elem_name,
-                    ref attributes,
-                    ..
-                } => match elem_name.local_name.as_str() {
-                    ENVIRONMENT_VAR_TAG => {
-                        let name = attribute_or_error(element_name, attributes, NAME_ATTR)?;
-                        let value = read_simple_tag(event_reader, elem_name)?;
-                        environment_var = Some(Self::Property { name, value });
-                    }
-                    VALUE_TAG => {
-                        let value = read_simple_tag(event_reader, elem_name)?;
-                        environment_var = Some(Self::Value(value));
-                    }
-                    _ => {
-                        return Err(unexpected_element_error(
-                            elem_name.to_string(),
-                            next_element,
-                        ))
-                    }
-                },
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        environment_var.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: ENVIRONMENT_VAR_TAG.into(),
-            element: element_name.local_name.to_string(),
-        })
     }
 }
 
