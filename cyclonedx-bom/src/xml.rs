@@ -239,6 +239,51 @@ macro_rules! get_elements {
     };
 }
 
+
+/// Helper trait that represents the inner tag of a sequence of elements.
+pub(crate) trait VecElemTag {
+    const VALUE: &'static str;
+}
+
+#[macro_export]
+macro_rules! elem_tag  {
+    ($name:ident = $value:literal) => {
+        struct $name {}
+        
+        impl crate::xml::VecElemTag for $value {
+            const VALUE: &'static str = $value;
+        }
+    };
+}
+
+/// Helper type to deserialize sequences of elements
+pub(crate) struct VecXmlReader<E: FromXml, T: VecElemTag> {
+    inner: Vec<E>,
+    _marker: std::marker::PhantomData<T>,
+}
+
+impl<E: FromXml, T: VecElemTag> From<VecXmlReader<E, T>> for Vec<E> {
+    fn from(reader: VecXmlReader<E, T>) -> Self {
+        reader.inner
+    }
+}
+
+impl<E: FromXml, T: VecElemTag> FromXml for VecXmlReader<E, T> {
+    fn read_xml_element<R: std::io::prelude::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_list_tag(event_reader, element_name, T::VALUE).map(|inner| Self {
+            inner,
+            _marker: Default::default(),
+        })
+    }
+}
+
 pub(crate) fn to_xml_read_error(
     element_name: impl AsRef<str>,
 ) -> impl FnOnce(xml::reader::Error) -> XmlReadError {
