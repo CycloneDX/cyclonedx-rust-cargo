@@ -213,39 +213,35 @@ macro_rules! get_elements_lax {
 
 #[macro_export]
 macro_rules! get_elements {
-    ($($tag:pat => $name:ident: $type:ty,)+) => {
-        |event_reader: &mut xml::EventReader<R>, element_name: &xml::name::OwnedName| {
-            $(let mut $name: Option<$type> = None;)*
+    ($event_reader:ident, $element_name: ident, $($tag:pat => $name:ident: $type:ty,)+) => {
+        $(let mut $name: Option<$type> = None;)*
 
-            let mut got_end_tag = false;
+        let mut got_end_tag = false;
 
-            while !got_end_tag {
-                let next_element = event_reader.next().map_err(to_xml_read_error(element_name.local_name))?;
-                match next_element {
-                    xml::reader::XmlEvent::StartElement {
-                        name: ref elem_name,
-                        ref attributes,
-                        ..
-                    } => {
-                        match elem_name.local_name.as_str() {
-                            $($tag => {
-                                $name = Some(<$type as crate::xml::FromXml>::read_xml_element(
-                                    event_reader,
-                                    &elem_name,
-                                    &attributes,
-                                )?);
-                            },)*
-                            unexpected => return Err(crate::xml::unexpected_element_error(unexpected.to_string(), next_element)),
-                        }
+        while !got_end_tag {
+            let next_element = $event_reader.next().map_err(crate::xml::to_xml_read_error(&$element_name.local_name))?;
+            match next_element {
+                xml::reader::XmlEvent::StartElement {
+                    name: ref elem_name,
+                    ref attributes,
+                    ..
+                } => {
+                    match elem_name.local_name.as_str() {
+                        $($tag => {
+                            $name = Some(<$type as crate::xml::FromXml>::read_xml_element(
+                                $event_reader,
+                                &elem_name,
+                                &attributes,
+                            )?);
+                        },)*
+                        unexpected => return Err(crate::xml::unexpected_element_error(unexpected.to_string(), next_element)),
                     }
-                    xml::reader::XmlEvent::EndElement { name } if &name == element_name => {
-                        got_end_tag = true;
-                    }
-                    unexpected => return Err(crate::xml::unexpected_element_error(element_name, unexpected)),
                 }
+                xml::reader::XmlEvent::EndElement { name } if &name == $element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(crate::xml::unexpected_element_error($element_name, unexpected)),
             }
-
-            Ok(($($name,)*))
         }
     };
 }
