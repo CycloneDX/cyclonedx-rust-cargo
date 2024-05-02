@@ -161,6 +161,84 @@ pub(crate) trait FromXml {
         Self: Sized;
 }
 
+#[macro_export]
+macro_rules! get_elements_lax {
+    ($event_reader:ident, $element_name: ident, $($tag:pat => $name:ident: $type:ty,)+) => {
+        {
+            $(let mut $name: Option<$type> = None;)*
+
+            let mut got_end_tag = false;
+
+            while !got_end_tag {
+                let next_element = $event_reader.next().map_err(crate::xml::to_xml_read_error(&$element_name.local_name))?;
+                match next_element {
+                    reader::XmlEvent::StartElement {
+                        name: ref elem_name,
+                        ref attributes,
+                        ..
+                    } => {
+                        match elem_name.local_name.as_str() {
+                            $($tag => {
+                                $name = Some(<$type as crate::xml::FromXml>::read_xml_element(
+                                    $event_reader,
+                                    &elem_name,
+                                    &attributes,
+                                )?);
+                            },)*
+                            _ => crate::xml::read_lax_validation_tag($event_reader, &elem_name)?,
+                        }
+                    }
+                    reader::XmlEvent::EndElement { name } if &name == $element_name => {
+                        got_end_tag = true;
+                    }
+                    unexpected => return Err(crate::xml::unexpected_element_error($element_name, unexpected)),
+                }
+            }
+
+            ($($name,)*)
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! get_elements {
+    ($($tag:pat => $name:ident: $type:ty,)+) => {
+        |event_reader: &mut xml::EventReader<R>, element_name: &xml::name::OwnedName| {
+            $(let mut $name: Option<$type> = None;)*
+
+            let mut got_end_tag = false;
+
+            while !got_end_tag {
+                let next_element = event_reader.next().map_err(to_xml_read_error(element_name.local_name))?;
+                match next_element {
+                    reader::XmlEvent::StartElement {
+                        name: ref elem_name,
+                        ref attributes,
+                        ..
+                    } => {
+                        match elem_name.local_name.as_str() {
+                            $($tag => {
+                                $name = Some(<$type as crate::xml::FromXml>::read_xml_element(
+                                    event_reader,
+                                    &elem_name,
+                                    &attributes,
+                                )?);
+                            },)*
+                            unexpected => return Err(crate::xml::unexpected_element_error(unexpected.to_string(), next_element)),
+                        }
+                    }
+                    reader::XmlEvent::EndElement { name } if &name == element_name => {
+                        got_end_tag = true;
+                    }
+                    unexpected => return Err(crate::xml::unexpected_element_error(element_name, unexpected)),
+                }
+            }
+
+            Ok(($($name,)*))
+        }
+    };
+}
+
 pub(crate) fn to_xml_read_error(
     element_name: impl AsRef<str>,
 ) -> impl FnOnce(xml::reader::Error) -> XmlReadError {
@@ -461,6 +539,19 @@ impl FromXml for f32 {
         Self: Sized,
     {
         read_f32_tag(event_reader, element_name)
+    }
+}
+
+impl FromXml for bool {
+    fn read_xml_element<R: Read>(
+        event_reader: &mut EventReader<R>,
+        element_name: &OwnedName,
+        _attributes: &[OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        read_boolean_tag(event_reader, element_name)
     }
 }
 
