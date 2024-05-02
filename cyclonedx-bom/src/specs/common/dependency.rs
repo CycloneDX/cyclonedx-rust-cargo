@@ -85,9 +85,9 @@ impl FromXml for Dependencies {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Dependency {
     #[serde(rename = "ref")]
-    dependency_ref: String,
+    pub(crate) dependency_ref: String,
     #[serde(default)]
-    depends_on: Vec<String>,
+    pub(crate) depends_on: Vec<String>,
 }
 
 impl From<Dependency> for models::dependency::Dependency {
