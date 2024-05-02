@@ -38,9 +38,13 @@ pub struct Workflow {
     trigger: Option<Trigger>,
     #[serde(skip_serializing_if = "Steps::is_empty", default)]
     steps: Steps,
-    inputs: Inputs,
-    outputs: Outputs,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    inputs: Option< Inputs >,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    outputs: Option< Outputs >,
+    #[serde(skip_serializing_if = "Option::is_none")]
     time_start: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     time_end: Option<String>,
     // FIXME: missing Workspaces definition
     workspaces: Option<u8>,

@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct Volume {
+pub(crate) struct Volume {
     uid: Option<String>,
     name: Option<String>,
     mode: Option<String>,
