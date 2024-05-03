@@ -481,7 +481,7 @@ mod test {
                             r#ref: "component-14".into(),
                         },
                     },
-                    r#type: Some(output::Type::Artifact),
+                    r#type: Some("artifact".into()),
                     source: Some(ResourceReference::Ref {
                         r#ref: "component-15".into(),
                     }),

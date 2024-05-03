@@ -507,7 +507,7 @@ mod tests {
                         r#ref: "component-14".into(),
                     },
                 },
-                r#type: Some(crate::specs::v1_5::formulation::workflow::output::Type::Artifact),
+                r#type: Some("artifact".into()),
                 source: Some(ResourceReference::Ref {
                     r#ref: "component-15".into(),
                 }),

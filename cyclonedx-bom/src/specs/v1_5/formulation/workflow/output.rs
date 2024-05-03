@@ -6,8 +6,8 @@ use crate::{
     specs::{common::property::Properties, v1_5::attachment::Attachment},
     xml::{
         attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
-        to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag,
-        write_start_tag, FromXml, ToInnerXml, ToXml,
+        to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_option_tag,
+        write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 
@@ -74,7 +74,7 @@ pub(crate) struct Output {
     #[serde(flatten)]
     pub(crate) required: RequiredOutputField,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) r#type: Option<Type>,
+    pub(crate) r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) source: Option<ResourceReference>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -86,6 +86,7 @@ pub(crate) struct Output {
 const OUTPUT_TAG: &str = "output";
 const RESOURCE_TAG: &str = "resource";
 const DATA_TAG: &str = "data";
+const TYPE_TAG: &str = "type";
 const SOURCE_TAG: &str = "source";
 const TARGET_TAG: &str = "target";
 const PROPERTIES_TAG: &str = "properties";
@@ -109,9 +110,7 @@ impl ToXml for Output {
             }
         }
 
-        if let Some(r#type) = &self.r#type {
-            r#type.write_xml_element(writer)?;
-        }
+        write_simple_option_tag(writer, TYPE_TAG, &self.r#type)?;
 
         if let Some(source) = &self.source {
             source.write_xml_named_element(writer, SOURCE_TAG)?;
@@ -176,9 +175,7 @@ impl FromXml for Output {
                             data: Attachment::read_xml_element(event_reader, &name, &attributes)?,
                         });
                     }
-                    TYPE_TAG => {
-                        r#type = Some(Type::read_xml_element(event_reader, &name, &attributes)?)
-                    }
+                    TYPE_TAG => r#type = Some(read_simple_tag(event_reader, &name)?),
                     SOURCE_TAG => {
                         source = Some(ResourceReference::read_xml_element(
                             event_reader,
@@ -386,61 +383,6 @@ impl FromXml for EnvironmentVar {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub(crate) enum Type {
-    Artifact,
-    Attestation,
-    Log,
-    Evidence,
-    Metrics,
-    Other,
-}
-
-const TYPE_TAG: &str = "type";
-
-impl ToXml for Type {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let content = match self {
-            Self::Artifact => "artifact",
-            Self::Attestation => "attestation",
-            Self::Log => "log",
-            Self::Evidence => "evidence",
-            Self::Metrics => "metrics",
-            Self::Other => "other",
-        };
-
-        write_simple_tag(writer, TYPE_TAG, content)
-    }
-}
-
-impl FromXml for Type {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, crate::errors::XmlReadError>
-    where
-        Self: Sized,
-    {
-        match read_simple_tag(event_reader, &element_name)?.as_str() {
-            "artifact" => Ok(Self::Artifact),
-            "attestation" => Ok(Self::Attestation),
-            "log" => Ok(Self::Log),
-            "evidence" => Ok(Self::Evidence),
-            "metrics" => Ok(Self::Metrics),
-            "other" => Ok(Self::Other),
-            unexpected => Err(XmlReadError::UnexpectedElementReadError {
-                error: format!("Got unexpected element {:?}", unexpected),
-                element: TYPE_TAG.to_string(),
-            }),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::xml::test::{read_element_from_string, write_element_to_string};
@@ -454,7 +396,7 @@ mod tests {
                     r#ref: "component-14".into(),
                 },
             },
-            r#type: Some(Type::Artifact),
+            r#type: Some("artifact".into()),
             source: Some(ResourceReference::Ref {
                 r#ref: "component-15".into(),
             }),
