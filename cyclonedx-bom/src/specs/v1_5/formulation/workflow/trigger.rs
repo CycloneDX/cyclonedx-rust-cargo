@@ -14,7 +14,7 @@ use crate::{
 
 use super::{
     input::Inputs,
-    output::Outputs,
+    output::Output,
     resource_reference::{ResourceReference, ResourceReferences},
 };
 
@@ -40,7 +40,7 @@ pub(crate) struct Trigger {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) inputs: Option<Inputs>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) outputs: Option<Outputs>,
+    pub(crate) outputs: Option<Vec<Output>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
 }
@@ -53,6 +53,7 @@ const TYPE_TAG: &str = "type";
 const TIME_ACTIVATED_TAG: &str = "timeActivated";
 const INPUTS_TAG: &str = "inputs";
 const OUTPUTS_TAG: &str = "outputs";
+const OUTPUT_TAG: &str = "output";
 
 impl ToXml for Trigger {
     fn write_xml_element<W: std::io::prelude::Write>(
@@ -72,7 +73,9 @@ impl ToXml for Trigger {
         self.conditions.write_xml_element(writer)?;
         write_simple_option_tag(writer, TIME_ACTIVATED_TAG, &self.time_activated)?;
         self.inputs.write_xml_element(writer)?;
-        self.outputs.write_xml_element(writer)?;
+        if let Some(outputs) = &self.outputs {
+            write_list_tag(writer, OUTPUTS_TAG, outputs)?;
+        }
         self.properties.write_xml_element(writer)?;
 
         write_close_tag(writer, TRIGGER_TAG)
@@ -152,11 +155,7 @@ impl FromXml for Trigger {
                         )?)
                     }
                     OUTPUTS_TAG => {
-                        outputs = Some(Outputs::read_xml_element(
-                            event_reader,
-                            &elem_name,
-                            &attributes,
-                        )?)
+                        outputs = Some(read_list_tag(event_reader, &elem_name, OUTPUT_TAG)?)
                     }
                     PROPERTIES_TAG => {
                         properties = Some(Properties::read_xml_element(
@@ -501,7 +500,7 @@ mod tests {
                 }),
                 properties: None,
             }])),
-            outputs: Some(Outputs(vec![Output {
+            outputs: Some(vec![Output {
                 required: RequiredOutputField::Resource {
                     resource: ResourceReference::Ref {
                         r#ref: "component-14".into(),
@@ -515,7 +514,7 @@ mod tests {
                     r#ref: "component-16".into(),
                 }),
                 properties: None,
-            }])),
+            }]),
             properties: Some(Properties(vec![Property {
                 name: "Foo".into(),
                 value: "Bar".into(),

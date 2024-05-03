@@ -10,7 +10,7 @@ use crate::{
 };
 
 use self::{
-    input::Inputs, output::Outputs, resource_reference::ResourceReferences, steps::Steps,
+    input::Inputs, output::Output, resource_reference::ResourceReferences, steps::Steps,
     trigger::Trigger, workspace::Workspace,
 };
 
@@ -49,7 +49,7 @@ pub(crate) struct Workflow {
     #[serde(skip_serializing_if = "Option::is_none")]
     inputs: Option<Inputs>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    outputs: Option<Outputs>,
+    outputs: Option<Vec<Output>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     time_start: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -84,6 +84,7 @@ const PROPERTIES_TAG: &str = "properties";
 elem_tag!(TaskTag = "task");
 elem_tag!(TaskTypeTag = "taskType");
 elem_tag!(TaskDependencyTag = "dependency");
+elem_tag!(OutputTag = "output");
 elem_tag!(WorkspaceTag = "workspace");
 
 impl ToXml for Workflow {
@@ -112,7 +113,9 @@ impl ToXml for Workflow {
         self.trigger.write_xml_element(writer)?;
         self.steps.write_xml_element(writer)?;
         self.inputs.write_xml_element(writer)?;
-        self.outputs.write_xml_element(writer)?;
+        if let Some(outputs) = &self.outputs {
+            write_list_tag(writer, OUTPUTS_TAG, outputs)?;
+        }
         write_simple_option_tag(writer, TIME_START_TAG, &self.time_start)?;
         write_simple_option_tag(writer, TIME_END_TAG, &self.time_end)?;
         if let Some(workspaces) = &self.workspaces {
@@ -148,7 +151,7 @@ impl FromXml for Workflow {
             TRIGGER_TAG => trigger: Trigger,
             STEPS_TAG => steps: Steps,
             INPUTS_TAG => inputs: Inputs,
-            OUTPUTS_TAG => outputs: Outputs,
+            OUTPUTS_TAG => outputs: VecXmlReader<Output, OutputTag>,
             TIME_START_TAG => time_start: String,
             TIME_END_TAG => time_end: String,
             WORKSPACES_TAG => workspaces: VecXmlReader<Workspace, WorkspaceTag>,
@@ -170,7 +173,7 @@ impl FromXml for Workflow {
             trigger,
             steps,
             inputs,
-            outputs,
+            outputs: outputs.map(Vec::from),
             time_start,
             time_end,
             workspaces: workspaces.map(Vec::from),
@@ -223,7 +226,7 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     inputs: Option<Inputs>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    outputs: Option<Outputs>,
+    outputs: Option<Vec<Output>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     time_start: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -255,7 +258,9 @@ impl ToXml for Task {
         self.trigger.write_xml_element(writer)?;
         self.steps.write_xml_element(writer)?;
         self.inputs.write_xml_element(writer)?;
-        self.outputs.write_xml_element(writer)?;
+        if let Some(outputs) = &self.outputs {
+            write_list_tag(writer, OUTPUTS_TAG, outputs)?;
+        }
         write_simple_option_tag(writer, TIME_START_TAG, &self.time_start)?;
         write_simple_option_tag(writer, TIME_END_TAG, &self.time_end)?;
         if let Some(workspaces) = &self.workspaces {
@@ -289,7 +294,7 @@ impl FromXml for Task {
             TRIGGER_TAG => trigger: Trigger,
             STEPS_TAG => steps: Steps,
             INPUTS_TAG => inputs: Inputs,
-            OUTPUTS_TAG => outputs: Outputs,
+            OUTPUTS_TAG => outputs: VecXmlReader<Output, OutputTag>,
             TIME_START_TAG => time_start: String,
             TIME_END_TAG => time_end: String,
             WORKSPACES_TAG => workspaces: VecXmlReader<Workspace, WorkspaceTag>,
@@ -309,7 +314,7 @@ impl FromXml for Task {
             trigger,
             steps,
             inputs,
-            outputs,
+            outputs: outputs.map(Vec::from),
             time_start,
             time_end,
             workspaces: workspaces.map(Vec::from),
@@ -385,7 +390,7 @@ mod test {
                     target: None,
                     properties: None,
                 }])),
-                outputs: Some(Outputs(vec![Output {
+                outputs: Some(vec![Output {
                     required: RequiredOutputField::Resource {
                         resource: ResourceReference::Ref {
                             r#ref: "component-b".into(),
@@ -395,7 +400,7 @@ mod test {
                     source: None,
                     target: None,
                     properties: None,
-                }])),
+                }]),
                 time_start: Some("2023-01-01T00:00:00+00:00".into()),
                 time_end: Some("2023-01-01T00:00:00+00:00".into()),
                 workspaces: Some(vec![Workspace {
@@ -475,7 +480,7 @@ mod test {
                     }),
                     properties: None,
                 }])),
-                outputs: Some(Outputs(vec![Output {
+                outputs: Some(vec![Output {
                     required: RequiredOutputField::Resource {
                         resource: ResourceReference::Ref {
                             r#ref: "component-14".into(),
@@ -489,7 +494,7 @@ mod test {
                         r#ref: "component-16".into(),
                     }),
                     properties: None,
-                }])),
+                }]),
                 properties: Some(Properties(vec![Property {
                     name: "Foo".into(),
                     value: "Bar".into(),
@@ -549,7 +554,7 @@ mod test {
                     properties: None,
                 },
             ])),
-            outputs: Some(Outputs(vec![
+            outputs: Some(vec![
                 Output {
                     required: RequiredOutputField::EnvironmentVars {
                         environment_vars: output::EnvironmentVars(vec![]),
@@ -577,7 +582,7 @@ mod test {
                     target: None,
                     properties: None,
                 },
-            ])),
+            ]),
             time_start: Some("2023-01-01T00:00:00+00:00".into()),
             time_end: Some("2023-01-01T00:00:00+00:00".into()),
             workspaces: Some(vec![Workspace {
