@@ -15,7 +15,11 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-use std::{collections::BTreeMap, fmt::Display};
+use std::{
+    collections::{BTreeMap, HashSet},
+    fmt::Display,
+    hash::Hash,
+};
 
 use indexmap::{
     map::{Entry::Vacant, IntoIter},
@@ -236,6 +240,37 @@ impl ValidationContext {
         }
         self
     }
+    pub fn add_unique_list<'a, T, I, Output>(
+        &mut self,
+        field_name: &str,
+        list: T,
+        validation: impl Fn(&'a I) -> Output,
+    ) -> &mut Self
+    where
+        I: 'a + Eq + Hash,
+        T: IntoIterator<Item = &'a I>,
+        Output: Into<ValidationResult>,
+    {
+        let mut set = HashSet::new();
+        let mut child_errors = BTreeMap::new();
+
+        for (index, item) in list.into_iter().enumerate() {
+            if !set.insert(item) {
+                child_errors.insert(index, Err(ValidationError::new("repeated element")).into());
+            } else {
+                let result = validation(item).into();
+                if result.has_errors() {
+                    child_errors.insert(index, result);
+                }
+            }
+        }
+
+        if !child_errors.is_empty() {
+            self.state
+                .add_nested(field_name, ValidationErrorsKind::List(child_errors));
+        }
+        self
+    }
 
     pub fn add_list_option<'a, T, I, Output>(
         &mut self,
@@ -250,6 +285,23 @@ impl ValidationContext {
     {
         if let Some(list) = list {
             self.add_list(list_name, list, validation);
+        }
+        self
+    }
+
+    pub fn add_unique_list_option<'a, T, I, Output>(
+        &mut self,
+        list_name: &str,
+        list: Option<T>,
+        validation: impl Fn(&'a I) -> Output,
+    ) -> &mut Self
+    where
+        I: 'a + Eq + Hash,
+        T: IntoIterator<Item = &'a I>,
+        Output: Into<ValidationResult>,
+    {
+        if let Some(list) = list {
+            self.add_unique_list(list_name, list, validation);
         }
         self
     }

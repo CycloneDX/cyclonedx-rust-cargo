@@ -24,7 +24,7 @@ pub struct Workspace {
 impl Validate for Workspace {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
-            .add_list_option(
+            .add_unique_list_option(
                 "resource_references",
                 self.resource_references.as_ref(),
                 |resource_reference| resource_reference.validate_version(version),
