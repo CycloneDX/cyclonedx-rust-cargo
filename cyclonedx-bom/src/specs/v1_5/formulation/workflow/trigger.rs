@@ -13,7 +13,7 @@ use crate::{
 };
 
 use super::{
-    input::Inputs,
+    input::Input,
     output::Output,
     resource_reference::{ResourceReference, ResourceReferences},
 };
@@ -38,7 +38,7 @@ pub(crate) struct Trigger {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) time_activated: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) inputs: Option<Inputs>,
+    pub(crate) inputs: Option<Vec<Input>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) outputs: Option<Vec<Output>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,6 +52,7 @@ const RESOURCE_REFERENCES_TAG: &str = "resourceReferences";
 const TYPE_TAG: &str = "type";
 const TIME_ACTIVATED_TAG: &str = "timeActivated";
 const INPUTS_TAG: &str = "inputs";
+const INPUT_TAG: &str = "input";
 const OUTPUTS_TAG: &str = "outputs";
 const OUTPUT_TAG: &str = "output";
 
@@ -72,7 +73,9 @@ impl ToXml for Trigger {
         self.event.write_xml_element(writer)?;
         self.conditions.write_xml_element(writer)?;
         write_simple_option_tag(writer, TIME_ACTIVATED_TAG, &self.time_activated)?;
-        self.inputs.write_xml_element(writer)?;
+        if let Some(inputs) = &self.inputs {
+            write_list_tag(writer, INPUTS_TAG, inputs)?;
+        }
         if let Some(outputs) = &self.outputs {
             write_list_tag(writer, OUTPUTS_TAG, outputs)?;
         }
@@ -148,11 +151,7 @@ impl FromXml for Trigger {
                         time_activated = Some(read_simple_tag(event_reader, &elem_name)?)
                     }
                     INPUTS_TAG => {
-                        inputs = Some(Inputs::read_xml_element(
-                            event_reader,
-                            &elem_name,
-                            &attributes,
-                        )?)
+                        inputs = Some(read_list_tag(event_reader, &element_name, INPUT_TAG)?);
                     }
                     OUTPUTS_TAG => {
                         outputs = Some(read_list_tag(event_reader, &elem_name, OUTPUT_TAG)?)
@@ -486,7 +485,7 @@ mod tests {
                 }])),
             }])),
             time_activated: Some("2023-01-01T00:00:00+00:00".into()),
-            inputs: Some(Inputs(vec![Input {
+            inputs: Some(vec![Input {
                 required: RequiredInputField::Resource {
                     resource: ResourceReference::Ref {
                         r#ref: "component-10".into(),
@@ -499,7 +498,7 @@ mod tests {
                     r#ref: "component-12".into(),
                 }),
                 properties: None,
-            }])),
+            }]),
             outputs: Some(vec![Output {
                 required: RequiredOutputField::Resource {
                     resource: ResourceReference::Ref {

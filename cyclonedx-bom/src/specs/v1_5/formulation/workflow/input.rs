@@ -14,61 +14,6 @@ use crate::{
 use super::resource_reference::ResourceReference;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Inputs(pub(crate) Vec<Input>);
-
-const INPUTS_TAG: &str = "inputs";
-
-impl ToXml for Inputs {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, INPUTS_TAG)?;
-
-        for input in &self.0 {
-            input.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, INPUTS_TAG)
-    }
-}
-
-impl FromXml for Inputs {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut inputs = vec![];
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader.next().map_err(to_xml_read_error(INPUTS_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == INPUT_TAG => {
-                    inputs.push(Input::read_xml_element(event_reader, &name, &attributes)?);
-                }
-                // lax validation of any elements from a different schema
-                reader::XmlEvent::StartElement { name, .. } => {
-                    read_lax_validation_tag(event_reader, &name)?
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        Ok(Self(inputs))
-    }
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Input {
     #[serde(flatten)]
     pub(crate) required: RequiredInputField,
@@ -478,8 +423,8 @@ mod tests {
 
     use super::*;
 
-    fn example_inputs() -> Inputs {
-        Inputs(vec![Input {
+    fn example_input() -> Input {
+        Input {
             required: RequiredInputField::Resource {
                 resource: ResourceReference::Ref {
                     r#ref: "component-10".into(),
@@ -492,34 +437,32 @@ mod tests {
                 r#ref: "component-12".into(),
             }),
             properties: None,
-        }])
+        }
     }
 
     #[test]
     fn it_should_write_xml_full() {
-        let xml_input = write_element_to_string(example_inputs());
+        let xml_input = write_element_to_string(example_input());
         insta::assert_snapshot!(xml_input);
     }
 
     #[test]
     fn it_should_read_xml_full() {
         let input = r#"
- <inputs>
-    <input>
-        <resource>
-            <ref>component-10</ref>
-        </resource>
-        <source>
-            <ref>component-11</ref>
-        </source>
-        <target>
-            <ref>component-12</ref>
-        </target>
-    </input>
-</inputs>
+<input>
+    <resource>
+        <ref>component-10</ref>
+    </resource>
+    <source>
+        <ref>component-11</ref>
+    </source>
+    <target>
+        <ref>component-12</ref>
+    </target>
+</input>
 "#;
-        let actual: Inputs = read_element_from_string(input);
-        let expected = example_inputs();
+        let actual: Input = read_element_from_string(input);
+        let expected = example_input();
         assert_eq!(actual, expected);
     }
 }
