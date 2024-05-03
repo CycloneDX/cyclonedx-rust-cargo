@@ -8,7 +8,7 @@ mod workspace;
 use crate::{
     elem_tag,
     errors::XmlReadError,
-    get_elements_lax,
+    get_elements_lax, models,
     specs::common::{bom_reference::BomReference, dependency::Dependency, property::Properties},
     xml::{
         attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
@@ -399,6 +399,26 @@ impl FromXml for EnvironmentVars {
 pub(crate) enum EnvironmentVar {
     Property { name: String, value: String },
     Value(String),
+}
+
+impl From<models::formulation::workflow::EnvironmentVar> for EnvironmentVar {
+    fn from(environment_var: models::formulation::workflow::EnvironmentVar) -> Self {
+        match environment_var {
+            models::formulation::workflow::EnvironmentVar::Property { name, value } => {
+                Self::Property { name, value }
+            }
+            models::formulation::workflow::EnvironmentVar::Value(value) => Self::Value(value),
+        }
+    }
+}
+
+impl From<EnvironmentVar> for models::formulation::workflow::EnvironmentVar {
+    fn from(environment_var: EnvironmentVar) -> Self {
+        match environment_var {
+            EnvironmentVar::Property { name, value } => Self::Property { name, value },
+            EnvironmentVar::Value(value) => Self::Value(value),
+        }
+    }
 }
 
 const ENVIRONMENT_VAR_TAG: &str = "environmentVar";
