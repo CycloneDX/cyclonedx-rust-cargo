@@ -24,15 +24,24 @@ pub(crate) struct Trigger {
     #[serde(rename = "kebab-case")]
     pub(crate) bom_ref: String,
     pub(crate) uid: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) resource_references: Option<ResourceReferences>,
     pub(crate) r#type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) event: Option<Event>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) conditions: Option<Conditions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) time_activated: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) inputs: Option<Inputs>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) outputs: Option<Outputs>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
 }
 
@@ -189,12 +198,19 @@ impl FromXml for Trigger {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Event {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) uid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) time_received: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) data: Option<Attachment>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) source: Option<ResourceReference>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) target: Option<ResourceReference>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
 }
 
@@ -338,8 +354,11 @@ impl FromXml for Conditions {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Condition {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) expression: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
 }
 

@@ -1,3 +1,6 @@
+mod runtime_topology;
+mod workflow;
+
 use serde::{Deserialize, Serialize};
 use xml::writer;
 
@@ -13,9 +16,6 @@ use crate::{
 use self::workflow::Workflow;
 
 use super::{component::Components, service::Services};
-
-mod runtime_topology;
-mod workflow;
 
 // #definitions/formula
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
