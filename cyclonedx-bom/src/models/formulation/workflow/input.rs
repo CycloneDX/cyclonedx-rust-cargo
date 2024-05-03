@@ -1,6 +1,6 @@
 use crate::models::{attachment::Attachment, property::Properties};
 
-use super::resource_reference::ResourceReference;
+use super::{resource_reference::ResourceReference, EnvironmentVar};
 
 pub(crate) struct Input {
     pub(crate) required: RequiredInputField,
@@ -29,7 +29,3 @@ pub(crate) struct Parameter {
     data_type: Option<String>,
 }
 
-pub(crate) enum EnvironmentVar {
-    Property { name: String, value: String },
-    Value(String),
-}

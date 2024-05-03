@@ -151,7 +151,7 @@ impl FromXml for Trigger {
                         time_activated = Some(read_simple_tag(event_reader, &elem_name)?)
                     }
                     INPUTS_TAG => {
-                        inputs = Some(read_list_tag(event_reader, &element_name, INPUT_TAG)?);
+                        inputs = Some(read_list_tag(event_reader, &elem_name, INPUT_TAG)?);
                     }
                     OUTPUTS_TAG => {
                         outputs = Some(read_list_tag(event_reader, &elem_name, OUTPUT_TAG)?)

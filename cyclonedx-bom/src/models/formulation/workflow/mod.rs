@@ -64,3 +64,8 @@ pub(crate) struct Task {
     runtime_topology: Option<Vec<Dependency>>,
     properties: Option<Properties>,
 }
+
+pub(crate) enum EnvironmentVar {
+    Property { name: String, value: String },
+    Value(String),
+}

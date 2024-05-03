@@ -1,6 +1,6 @@
 use crate::models::{attachment::Attachment, property::Properties};
 
-use super::resource_reference::ResourceReference;
+use super::{resource_reference::ResourceReference, EnvironmentVar};
 
 pub(crate) struct Output {
     pub(crate) required: RequiredOutputField,
@@ -11,9 +11,15 @@ pub(crate) struct Output {
 }
 
 pub(crate) enum RequiredOutputField {
-    Resource { resource: ResourceReference },
-    EnvironmentVars { environment_vars: Vec< EnvironmentVar > },
-    Data { data: Attachment },
+    Resource {
+        resource: ResourceReference,
+    },
+    EnvironmentVars {
+        environment_vars: Vec<EnvironmentVar>,
+    },
+    Data {
+        data: Attachment,
+    },
 }
 
 pub(crate) enum Type {
@@ -23,9 +29,4 @@ pub(crate) enum Type {
     Evidence,
     Metrics,
     Other,
-}
-
-pub(crate) enum EnvironmentVar {
-    Property { name: String, value: String },
-    Value(String),
 }
