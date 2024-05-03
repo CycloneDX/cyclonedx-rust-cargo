@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    get_elements_lax,
+    get_elements_lax, models,
     specs::common::property::Properties,
+    utilities::convert_optional,
     xml::{write_close_tag, write_simple_tag, write_start_tag, FromXml, ToXml},
 };
 
@@ -16,6 +17,39 @@ pub(crate) struct Volume {
     pub(crate) persistent: Option<bool>,
     pub(crate) remote: Option<bool>,
     pub(crate) properties: Option<Properties>,
+}
+
+impl From<models::formulation::workflow::workspace::Volume> for Volume {
+    fn from(volume: models::formulation::workflow::workspace::Volume) -> Self {
+        Self {
+            uid: volume.uid,
+            name: volume.name,
+            mode: Some(volume.mode.to_string()),
+            path: volume.path,
+            size_allocated: volume.size_allocated,
+            persistent: volume.persistent,
+            remote: volume.remote,
+            properties: convert_optional(volume.properties),
+        }
+    }
+}
+
+impl From<Volume> for models::formulation::workflow::workspace::Volume {
+    fn from(volume: Volume) -> Self {
+        Self {
+            uid: volume.uid,
+            name: volume.name,
+            mode: volume
+                .mode
+                .map(models::formulation::workflow::workspace::Mode::new_unchecked)
+                .unwrap_or_default(),
+            path: volume.path,
+            size_allocated: volume.size_allocated,
+            persistent: volume.persistent,
+            remote: volume.remote,
+            properties: convert_optional(volume.properties),
+        }
+    }
 }
 
 const VOLUME_TAG: &str = "volume";

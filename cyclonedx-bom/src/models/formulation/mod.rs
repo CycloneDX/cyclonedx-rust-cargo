@@ -1,4 +1,4 @@
-mod workflow;
+pub mod workflow;
 
 use self::workflow::Workflow;
 

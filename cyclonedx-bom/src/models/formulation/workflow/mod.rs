@@ -1,9 +1,9 @@
-mod input;
-mod output;
-mod resource_reference;
-mod step;
-mod trigger;
-mod workspace;
+pub mod input;
+pub mod output;
+pub mod resource_reference;
+pub mod step;
+pub mod trigger;
+pub mod workspace;
 
 use crate::{
     models::{bom::BomReference, dependency::Dependency, property::Properties},
