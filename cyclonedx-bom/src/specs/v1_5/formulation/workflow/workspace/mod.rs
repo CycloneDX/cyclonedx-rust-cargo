@@ -6,8 +6,9 @@ use xml::writer;
 use crate::{
     elem_tag,
     errors::XmlReadError,
-    get_elements_lax,
+    get_elements_lax, models,
     specs::common::property::Properties,
+    utilities::{convert_optional, convert_optional_vec},
     xml::{
         attribute_or_error, to_xml_write_error, write_close_tag, write_list_string_tag,
         write_simple_option_tag, write_simple_tag, FromXml, ToXml, VecElemTag, VecXmlReader,
@@ -43,6 +44,49 @@ pub(crate) struct Workspace {
     pub(crate) volume: Option<Volume>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
+}
+
+impl From<models::formulation::workflow::workspace::Workspace> for Workspace {
+    fn from(workspace: models::formulation::workflow::workspace::Workspace) -> Self {
+        Self {
+            bom_ref: workspace.bom_ref.0,
+            uid: workspace.uid,
+            name: workspace.name,
+            aliases: workspace.aliases,
+            description: workspace.description,
+            resource_references: convert_optional_vec(workspace.resource_references)
+                .map(ResourceReferences),
+            access_mode: workspace
+                .access_mode
+                .map(|access_mode| access_mode.to_string()),
+            mount_path: workspace.mount_path,
+            managed_data_type: workspace.managed_data_type,
+            volume_request: workspace.volume_request,
+            volume: convert_optional(workspace.volume),
+            properties: convert_optional(workspace.properties),
+        }
+    }
+}
+
+impl From<Workspace> for models::formulation::workflow::workspace::Workspace {
+    fn from(workspace: Workspace) -> Self {
+        Self {
+            bom_ref: models::bom::BomReference::new(workspace.bom_ref),
+            uid: workspace.uid,
+            name: workspace.name,
+            aliases: workspace.aliases,
+            description: workspace.description,
+            resource_references: convert_optional_vec(workspace.resource_references.map(|rs| rs.0)),
+            access_mode: workspace
+                .access_mode
+                .map(models::formulation::workflow::workspace::AccessMode::new_unchecked),
+            mount_path: workspace.mount_path,
+            managed_data_type: workspace.managed_data_type,
+            volume_request: workspace.volume_request,
+            volume: convert_optional(workspace.volume),
+            properties: convert_optional(workspace.properties),
+        }
+    }
 }
 
 const WORKSPACE_TAG: &str = "workspace";

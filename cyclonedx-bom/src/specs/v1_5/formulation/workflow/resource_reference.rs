@@ -3,7 +3,7 @@ use xml::reader;
 
 use crate::{
     errors::XmlReadError,
-    models::{self, formulation::workflow::resource_reference},
+    models,
     specs::v1_5::external_reference::ExternalReference,
     xml::{
         read_lax_validation_tag, read_simple_tag, to_xml_read_error, unexpected_element_error,
