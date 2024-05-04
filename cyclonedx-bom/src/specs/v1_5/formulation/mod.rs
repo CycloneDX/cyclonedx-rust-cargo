@@ -23,7 +23,7 @@ use super::{component::Components, service::Services};
 // #definitions/formula
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Formula {
+pub struct Formula {
     #[serde(rename = "kebab-case", skip_serializing_if = "Option::is_none")]
     bom_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -127,7 +127,7 @@ impl FromXml for Formula {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod test {
     use crate::{
         specs::common::component::v1_5::Component,
         xml::test::{read_element_from_string, write_element_to_string},
@@ -135,7 +135,7 @@ mod tests {
 
     use super::*;
 
-    fn example_formula() -> Formula {
+    pub(crate) fn example_formula() -> Formula {
         Formula {
             bom_ref: Some("formula-1".into()),
             components: Some(Components(vec![Component {
@@ -166,6 +166,45 @@ mod tests {
                 model_card: None,
                 data: None,
             }])),
+            services: None,
+            workflows: None,
+            properties: None,
+        }
+    }
+
+    pub(crate) fn corresponding_formula() -> models::Formula {
+        models::Formula {
+            bom_ref: Some(crate::models::bom::BomReference::new("formula-1")),
+            components: Some(crate::models::component::Components(vec![
+                crate::models::component::Component {
+                    component_type: crate::models::component::Classification::Platform,
+                    mime_type: None,
+                    bom_ref: Some("component-1".into()),
+                    supplier: None,
+                    author: None,
+                    publisher: None,
+                    group: None,
+                    name: "Pipeline controller image".into(),
+                    version: Some("v0.47.0".into()),
+                    description: None,
+                    scope: None,
+                    hashes: None,
+                    licenses: None,
+                    copyright: None,
+                    cpe: None,
+                    purl: None,
+                    swid: None,
+                    modified: None,
+                    pedigree: None,
+                    external_references: None,
+                    properties: None,
+                    components: None,
+                    evidence: None,
+                    signature: None,
+                    model_card: None,
+                    data: None,
+                },
+            ])),
             services: None,
             workflows: None,
             properties: None,

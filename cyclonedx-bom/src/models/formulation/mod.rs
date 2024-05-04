@@ -9,7 +9,8 @@ use self::workflow::Workflow;
 
 use super::{bom::BomReference, component::Components, property::Properties, service::Services};
 
-pub(crate) struct Formula {
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct Formula {
     pub(crate) bom_ref: Option<BomReference>,
     pub(crate) components: Option<Components>,
     pub(crate) services: Option<Services>,

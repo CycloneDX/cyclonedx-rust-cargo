@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 603
 expression: actual
 ---
 {
@@ -864,6 +863,19 @@ expression: actual
     {
       "name": "name",
       "value": "value"
+    }
+  ],
+  "formulation": [
+    {
+      "kebab-case": "formula-1",
+      "components": [
+        {
+          "type": "platform",
+          "bom-ref": "component-1",
+          "name": "Pipeline controller image",
+          "version": "v0.47.0"
+        }
+      ]
     }
   ]
 }

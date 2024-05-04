@@ -33,12 +33,12 @@ use crate::models::component::{Component, Components};
 use crate::models::composition::Compositions;
 use crate::models::dependency::Dependencies;
 use crate::models::external_reference::ExternalReferences;
+use crate::models::formulation::Formula;
 use crate::models::metadata::Metadata;
 use crate::models::property::Properties;
 use crate::models::service::{Service, Services};
 use crate::models::signature::Signature;
 use crate::models::vulnerability::Vulnerabilities;
-use crate::specs::v1_5::formulation::Formula;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 use crate::xml::{FromXmlDocument, ToXml};
 

@@ -1,0 +1,13 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/formulation/mod.rs
+expression: xml_input
+---
+<?xml version="1.0" encoding="utf-8"?>
+<formula bom-ref="formula-1">
+  <components>
+    <component type="platform" bom-ref="component-1">
+      <name>Pipeline controller image</name>
+      <version>v0.47.0</version>
+    </component>
+  </components>
+</formula>

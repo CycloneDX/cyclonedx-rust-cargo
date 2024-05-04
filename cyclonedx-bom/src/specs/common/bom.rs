@@ -519,6 +519,7 @@ pub(crate) mod base {
                 external_reference::test::{
                     corresponding_external_references, example_external_references,
                 },
+                formulation::test::{corresponding_formula, example_formula},
                 metadata::test::{corresponding_metadata, example_metadata},
                 service::test::{corresponding_services, example_services},
                 vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
@@ -592,7 +593,7 @@ pub(crate) mod base {
                 #[versioned("1.5")]
                 properties: Some(example_properties()),
                 #[versioned("1.5")]
-                formulation: None,
+                formulation: Some(vec![example_formula()]),
             }
         }
 
@@ -622,7 +623,10 @@ pub(crate) mod base {
                 properties: None,
                 #[versioned("1.5")]
                 properties: Some(corresponding_properties()),
+                #[versioned("1.3", "1.4")]
                 formulation: None,
+                #[versioned("1.5")]
+                formulation: Some(vec![corresponding_formula()]),
             }
         }
 
@@ -2144,6 +2148,16 @@ pub(crate) mod base {
   <example:laxValidation>
     <example:innerElement id="test" />
   </example:laxValidation>
+  <formulation>
+    <formula bom-ref="formula-1">
+      <components>
+        <component type="platform" bom-ref="component-1">
+          <name>Pipeline controller image</name>
+          <version>v0.47.0</version>
+        </component>
+      </components>
+    </formula>
+  </formulation>
 </bom>
 "#.trim_start();
             let actual: Bom = read_document_from_string(input);
