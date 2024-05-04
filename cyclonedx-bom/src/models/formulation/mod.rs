@@ -35,6 +35,12 @@ impl Validate for Formula {
                     self.services.as_ref().map(|wrapper| wrapper.0.iter()),
                     |component| component.validate_version(version),
                 )
+                .add_unique_list_option(
+                    "workflows", // workflows is uniqueItems: true
+                    self.workflows.as_ref(),
+                    |component| component.validate_version(version),
+                )
+                .add_struct_option("properties", self.properties.as_ref(), version)
                 .into(),
         }
     }
