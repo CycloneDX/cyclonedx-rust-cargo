@@ -6,6 +6,7 @@ use crate::{
 
 use super::{resource_reference::ResourceReference, EnvironmentVar};
 
+#[derive(PartialEq, Eq, Hash)]
 pub(crate) struct Input {
     pub(crate) required: RequiredInputField,
     pub(crate) source: Option<ResourceReference>,
@@ -37,6 +38,7 @@ impl Validate for Input {
     }
 }
 
+#[derive(PartialEq, Eq, Hash)]
 pub(crate) enum RequiredInputField {
     Resource(ResourceReference),
 
@@ -45,6 +47,7 @@ pub(crate) enum RequiredInputField {
     Data(Attachment),
 }
 
+#[derive(PartialEq, Eq, Hash)]
 pub(crate) struct Parameter {
     pub(crate) name: Option<String>,
     pub(crate) value: Option<String>,

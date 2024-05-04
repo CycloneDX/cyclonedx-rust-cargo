@@ -66,6 +66,7 @@ pub(crate) struct Task {
     properties: Option<Properties>,
 }
 
+#[derive(PartialEq, Eq, Hash)]
 pub(crate) enum EnvironmentVar {
     Property { name: String, value: String },
     Value(String),

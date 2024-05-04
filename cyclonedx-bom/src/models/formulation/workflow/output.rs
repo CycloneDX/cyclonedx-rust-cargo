@@ -6,6 +6,7 @@ use crate::{
 
 use super::{resource_reference::ResourceReference, EnvironmentVar};
 
+#[derive(PartialEq, Eq, Hash)]
 pub(crate) struct Output {
     pub(crate) required: RequiredOutputField,
     pub(crate) r#type: Option<Type>,
@@ -38,13 +39,14 @@ impl Validate for Output {
             .into()
     }
 }
+#[derive(PartialEq, Eq, Hash)]
 pub(crate) enum RequiredOutputField {
     Resource(ResourceReference),
     EnvironmentVars(Vec<EnvironmentVar>),
     Data(Attachment),
 }
 
-#[derive(strum::Display)]
+#[derive(strum::Display, PartialEq, Eq, Hash)]
 #[strum(serialize_all = "kebab-case")]
 pub(crate) enum Type {
     Artifact,

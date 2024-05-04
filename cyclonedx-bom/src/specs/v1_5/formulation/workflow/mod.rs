@@ -468,7 +468,7 @@ mod test {
         output::{self, Output, RequiredOutputField},
         resource_reference::ResourceReference,
         step::{Command, Step},
-        trigger::{Condition, Conditions, Event},
+        trigger::{Condition, Event},
         workspace::volume::Volume,
     };
 
