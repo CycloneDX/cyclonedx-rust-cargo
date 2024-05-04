@@ -6,7 +6,7 @@ use crate::{
 
 use super::resource_reference::ResourceReference;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Workspace {
     pub(crate) bom_ref: BomReference,
     pub(crate) uid: String,
@@ -39,7 +39,7 @@ impl Validate for Workspace {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, strum::Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, strum::Display)]
 #[strum(serialize_all = "kebab-case")]
 pub enum AccessMode {
     ReadOnly,
@@ -72,7 +72,7 @@ pub fn validate_access_mode(access_mode: &AccessMode) -> Result<(), ValidationEr
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Volume {
     pub(crate) uid: Option<String>,
     pub(crate) name: Option<String>,
@@ -92,7 +92,7 @@ impl Validate for Volume {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Default, strum::Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, strum::Display)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Mode {
     #[default]

@@ -11,7 +11,7 @@ use crate::{
 
 use super::{input::Input, output::Output, resource_reference::ResourceReference};
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Trigger {
     pub(crate) bom_ref: BomReference,
     pub(crate) uid: String,
@@ -62,7 +62,7 @@ impl Validate for Trigger {
     }
 }
 
-#[derive(strum::Display, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, strum::Display, PartialEq, Eq, Hash)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Type {
     Manual,
@@ -99,7 +99,7 @@ impl Validate for Type {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Event {
     pub(crate) uid: Option<String>,
     pub(crate) description: Option<String>,
@@ -129,7 +129,7 @@ impl Validate for Event {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Condition {
     pub(crate) description: Option<String>,
     pub(crate) expression: Option<String>,

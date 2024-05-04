@@ -17,7 +17,7 @@ use self::{
     trigger::Trigger, workspace::Workspace,
 };
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Workflow {
     pub(crate) bom_ref: BomReference,
     pub(crate) uid: String,
@@ -79,7 +79,8 @@ impl Validate for Workflow {
             .into()
     }
 }
-#[derive(PartialEq, Eq, Hash)]
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Task {
     pub(crate) bom_ref: BomReference,
     pub(crate) uid: String,
@@ -134,7 +135,7 @@ impl Validate for Task {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, strum::Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, strum::Display)]
 #[strum(serialize_all = "kebab-case")]
 pub(crate) enum TaskType {
     Copy,
@@ -186,7 +187,7 @@ impl Validate for TaskType {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum EnvironmentVar {
     Property { name: String, value: String },
     Value(String),

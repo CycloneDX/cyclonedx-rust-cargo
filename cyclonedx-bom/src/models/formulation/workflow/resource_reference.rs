@@ -2,7 +2,7 @@ use crate::{
     models::external_reference::ExternalReference, prelude::Validate, validation::ValidationContext,
 };
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum ResourceReference {
     Ref(String),
     ExternalReference(ExternalReference),
