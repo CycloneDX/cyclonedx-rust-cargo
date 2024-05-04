@@ -10,7 +10,8 @@ use crate::{
     errors::XmlReadError,
     get_elements_lax,
     models::formulation::workflow as models,
-    specs::common::{bom_reference::BomReference, dependency::Dependency, property::Properties},
+    specs::common::{dependency::Dependency, property::Properties},
+    utilities::{convert_optional, convert_optional_vec},
     xml::{
         attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
         to_xml_write_error, unexpected_element_error, write_close_tag, write_list_tag,
@@ -30,7 +31,7 @@ use xml::{reader, writer};
 /// bom-1.5.schema.json #definitions/workflow
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Workflow {
-    bom_ref: BomReference,
+    bom_ref: String,
     uid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
@@ -61,6 +62,63 @@ pub(crate) struct Workflow {
     runtime_topology: Option<Vec<Dependency>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
+}
+
+impl From<models::Workflow> for Workflow {
+    fn from(workflow: models::Workflow) -> Self {
+        Self {
+            bom_ref: workflow.bom_ref.0,
+            uid: workflow.uid,
+            name: workflow.name,
+            description: workflow.description,
+            resource_references: convert_optional_vec(workflow.resource_references)
+                .map(ResourceReferences),
+            tasks: convert_optional_vec(workflow.tasks),
+            task_dependencies: convert_optional_vec(workflow.task_dependencies),
+            task_types: workflow
+                .task_types
+                .into_iter()
+                .map(|tt| TaskType(tt.to_string()))
+                .collect(),
+            trigger: convert_optional(workflow.trigger),
+            steps: convert_optional_vec(workflow.steps),
+            inputs: convert_optional_vec(workflow.inputs),
+            outputs: convert_optional_vec(workflow.outputs),
+            time_start: workflow.time_start.map(|dt| dt.0),
+            time_end: workflow.time_end.map(|dt| dt.0),
+            workspaces: convert_optional_vec(workflow.workspaces),
+            runtime_topology: convert_optional_vec(workflow.runtime_topology),
+            properties: convert_optional(workflow.properties),
+        }
+    }
+}
+
+impl From<Workflow> for models::Workflow {
+    fn from(workflow: Workflow) -> Self {
+        Self {
+            bom_ref: crate::models::bom::BomReference(workflow.bom_ref),
+            uid: workflow.uid,
+            name: workflow.name,
+            description: workflow.description,
+            resource_references: convert_optional_vec(workflow.resource_references.map(|rs| rs.0)),
+            tasks: convert_optional_vec(workflow.tasks),
+            task_dependencies: convert_optional_vec(workflow.task_dependencies),
+            task_types: workflow
+                .task_types
+                .into_iter()
+                .map(|tt| models::TaskType::new_unchecked(tt.0))
+                .collect(),
+            trigger: convert_optional(workflow.trigger),
+            steps: convert_optional_vec(workflow.steps),
+            inputs: convert_optional_vec(workflow.inputs),
+            outputs: convert_optional_vec(workflow.outputs),
+            time_start: workflow.time_start.map(crate::prelude::DateTime),
+            time_end: workflow.time_end.map(crate::prelude::DateTime),
+            workspaces: convert_optional_vec(workflow.workspaces),
+            runtime_topology: convert_optional_vec(workflow.runtime_topology),
+            properties: convert_optional(workflow.properties),
+        }
+    }
 }
 
 const WORKFLOW_TAG: &str = "workflow";
@@ -170,7 +228,7 @@ impl FromXml for Workflow {
         };
 
         Ok(Self {
-            bom_ref: BomReference::new(bom_ref),
+            bom_ref,
             uid: uid.ok_or_else(|| XmlReadError::required_data_missing(UID_TAG, element_name))?,
             name,
             description,
@@ -220,7 +278,7 @@ impl FromXml for TaskType {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Task {
-    bom_ref: BomReference,
+    bom_ref: String,
     uid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
@@ -247,6 +305,59 @@ pub struct Task {
     runtime_topology: Option<Vec<Dependency>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
+}
+
+impl From<models::Task> for Task {
+    fn from(task: models::Task) -> Self {
+        Self {
+            bom_ref: task.bom_ref.0,
+            uid: task.uid,
+            name: task.name,
+            description: task.description,
+            resource_references: convert_optional_vec(task.resource_references)
+                .map(ResourceReferences),
+            task_types: task
+                .task_types
+                .into_iter()
+                .map(|tt| TaskType(tt.to_string()))
+                .collect(),
+            trigger: convert_optional(task.trigger),
+            steps: convert_optional_vec(task.steps),
+            inputs: convert_optional_vec(task.inputs),
+            outputs: convert_optional_vec(task.outputs),
+            time_start: task.time_start.map(|dt| dt.0),
+            time_end: task.time_end.map(|dt| dt.0),
+            workspaces: convert_optional_vec(task.workspaces),
+            runtime_topology: convert_optional_vec(task.runtime_topology),
+            properties: convert_optional(task.properties),
+        }
+    }
+}
+
+impl From<Task> for models::Task {
+    fn from(task: Task) -> Self {
+        Self {
+            bom_ref: crate::models::bom::BomReference(task.bom_ref),
+            uid: task.uid,
+            name: task.name,
+            description: task.description,
+            resource_references: convert_optional_vec(task.resource_references.map(|rs| rs.0)),
+            task_types: task
+                .task_types
+                .into_iter()
+                .map(|tt| models::TaskType::new_unchecked(tt.0))
+                .collect(),
+            trigger: convert_optional(task.trigger),
+            steps: convert_optional_vec(task.steps),
+            inputs: convert_optional_vec(task.inputs),
+            outputs: convert_optional_vec(task.outputs),
+            time_start: task.time_start.map(crate::prelude::DateTime),
+            time_end: task.time_end.map(crate::prelude::DateTime),
+            workspaces: convert_optional_vec(task.workspaces),
+            runtime_topology: convert_optional_vec(task.runtime_topology),
+            properties: convert_optional(task.properties),
+        }
+    }
 }
 
 impl ToXml for Task {
@@ -319,7 +430,7 @@ impl FromXml for Task {
         };
 
         Ok(Self {
-            bom_ref: BomReference::new(bom_ref),
+            bom_ref,
             uid: uid.ok_or_else(|| XmlReadError::required_data_missing(UID_TAG, element_name))?,
             name,
             description,
@@ -478,7 +589,7 @@ mod test {
 
     fn example_workflow() -> Workflow {
         Workflow {
-            bom_ref: BomReference::new("workflow-1"),
+            bom_ref: "workflow-1".into(),
             uid: "8edb2b08-e2c7-11ed-b5ea-0242ac120002".into(),
             name: Some("My workflow".into()),
             description: Some("Workflow description here".into()),
@@ -486,7 +597,7 @@ mod test {
                 r#ref: "component-a".into(),
             }])),
             tasks: Some(vec![Task {
-                bom_ref: BomReference::new("task-1"),
+                bom_ref: "task-1".into(),
                 uid: "task-uid-1".into(),
                 name: Some("fetch-repository".into()),
                 description: Some("Description here".into()),

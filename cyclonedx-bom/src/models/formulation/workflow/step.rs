@@ -1,5 +1,6 @@
 use crate::{models::property::Properties, prelude::Validate, validation::ValidationContext};
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct Step {
     pub(crate) commands: Option<Vec<Command>>,
     pub(crate) description: Option<String>,
@@ -21,6 +22,7 @@ impl Validate for Step {
     }
 }
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct Command {
     pub(crate) executed: Option<String>,
     pub(crate) properties: Option<Properties>,
