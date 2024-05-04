@@ -31,7 +31,7 @@ pub fn validate_purl(purl: &Purl) -> Result<(), ValidationError> {
     Ok(())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Purl(pub(crate) String);
 
 impl Purl {

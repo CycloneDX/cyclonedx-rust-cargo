@@ -73,7 +73,7 @@ impl Validate for ExternalReference {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ExternalReferences(pub Vec<ExternalReference>);
 
 impl Validate for ExternalReferences {

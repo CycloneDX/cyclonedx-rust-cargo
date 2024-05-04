@@ -89,7 +89,7 @@ pub(crate) fn validate_bom_ref(
 }
 
 /// A reference to a Bom element
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BomReference(pub(crate) String);
 
 impl BomReference {

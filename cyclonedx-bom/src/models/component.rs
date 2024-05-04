@@ -44,7 +44,7 @@ use super::component_data::ComponentData;
 use super::modelcard::ModelCard;
 use super::signature::Signature;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Component {
     pub component_type: Classification,
     pub mime_type: Option<MimeType>,
@@ -161,7 +161,7 @@ impl Validate for Component {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Components(pub Vec<Component>);
 
 impl Validate for Components {
@@ -191,7 +191,7 @@ pub fn validate_classification(
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display, Hash)]
 #[strum(serialize_all = "kebab-case")]
 #[repr(u16)]
 pub enum Classification {
@@ -243,7 +243,7 @@ pub fn validate_scope(scope: &Scope) -> Result<(), ValidationError> {
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Scope {
     Required,
@@ -279,10 +279,10 @@ pub fn validate_mime_type(mime_type: &MimeType) -> Result<(), ValidationError> {
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct MimeType(pub(crate) String);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Swid {
     pub tag_id: String,
     pub name: String,
@@ -318,10 +318,10 @@ pub fn validate_cpe(cpe: &Cpe) -> Result<(), ValidationError> {
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Cpe(pub(crate) String);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ComponentEvidence {
     pub licenses: Option<Licenses>,
     pub copyright: Option<CopyrightTexts>,
@@ -348,7 +348,7 @@ impl Validate for ComponentEvidence {
 /// For more details see
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_occurrences
 /// Added in version 1.5
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Occurrences(pub Vec<Occurrence>);
 
 impl Validate for Occurrences {
@@ -361,7 +361,7 @@ impl Validate for Occurrences {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Occurrence {
     pub bom_ref: Option<BomReference>,
     pub location: String,
@@ -386,7 +386,7 @@ impl Validate for Occurrence {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Callstack {
     pub frames: Frames,
 }
@@ -403,7 +403,7 @@ impl Validate for Callstack {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Frames(pub Vec<Frame>);
 
 impl Validate for Frames {
@@ -417,7 +417,7 @@ impl Validate for Frames {
 /// For more information see
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_callstack
 /// Added in version 1.5
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Frame {
     pub package: Option<NormalizedString>,
     pub module: NormalizedString,
@@ -459,7 +459,7 @@ pub fn validate_confidence(confidence: &ConfidenceScore) -> Result<(), Validatio
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConfidenceScore(pub OrderedFloat<f32>);
 
 impl ConfidenceScore {
@@ -479,7 +479,7 @@ pub fn validate_identity_field(field: &IdentityField) -> Result<(), ValidationEr
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display, Hash)]
 #[strum(serialize_all = "kebab-case")]
 #[repr(u16)]
 pub enum IdentityField {
@@ -511,7 +511,7 @@ impl IdentityField {
 /// For more information see
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_identity
 /// Added in version 1.5
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Identity {
     pub field: IdentityField,
     /// Level between 0.0-1.0 (where 1.0 is highest confidence)
@@ -531,20 +531,20 @@ impl Validate for Identity {
 
 /// For more information see
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_identity_methods
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Methods(pub Vec<Method>);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Method {
     pub technique: String,
     pub confidence: ConfidenceScore,
     pub value: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ToolsReferences(pub Vec<String>);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Pedigree {
     pub ancestors: Option<Components>,
     pub descendants: Option<Components>,
@@ -570,10 +570,10 @@ pub fn validate_copyright(_copyright: &Copyright) -> Result<(), ValidationError>
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Copyright(pub String);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
 
 impl Validate for CopyrightTexts {

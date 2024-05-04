@@ -36,7 +36,7 @@ use crate::validation::ValidationError;
 /// assert_eq!(spdx_identifier.to_string(), identifier);
 /// # Ok::<(), SpdxIdentifierError>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpdxIdentifier(pub(crate) String);
 
 impl SpdxIdentifier {
@@ -109,7 +109,7 @@ pub enum SpdxIdentifierError {
 /// assert_eq!(spdx_expression.to_string(), expression);
 /// # Ok::<(), SpdxExpressionError>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpdxExpression(pub(crate) String);
 
 impl SpdxExpression {

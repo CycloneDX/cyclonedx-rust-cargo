@@ -28,7 +28,7 @@ use crate::{
 
 use super::{attached_text::AttachedText, bom::SpecVersion};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Commit {
     pub uid: Option<NormalizedString>,
     pub url: Option<Uri>,
@@ -49,7 +49,7 @@ impl Validate for Commit {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Commits(pub Vec<Commit>);
 
 impl Validate for Commits {
@@ -60,7 +60,7 @@ impl Validate for Commits {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Diff {
     pub text: Option<AttachedText>,
     pub url: Option<Uri>,
@@ -75,7 +75,7 @@ impl Validate for Diff {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IdentifiableAction {
     pub timestamp: Option<DateTime>,
     pub name: Option<NormalizedString>,
@@ -92,7 +92,7 @@ impl Validate for IdentifiableAction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Issue {
     pub issue_type: IssueClassification,
     pub id: Option<NormalizedString>,
@@ -135,7 +135,7 @@ pub fn validate_issue_classification(
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
 #[strum(serialize_all = "snake_case")]
 pub enum IssueClassification {
     Defect,
@@ -157,7 +157,7 @@ impl IssueClassification {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Patch {
     pub patch_type: PatchClassification,
     pub diff: Option<Diff>,
@@ -180,7 +180,7 @@ impl Validate for Patch {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Patches(pub Vec<Patch>);
 
 impl Validate for Patches {
@@ -203,7 +203,7 @@ pub fn validate_patch_classification(
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
 #[strum(serialize_all = "kebab-case")]
 pub enum PatchClassification {
     Unofficial,
@@ -227,7 +227,7 @@ impl PatchClassification {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Source {
     pub name: Option<NormalizedString>,
     pub url: Option<Uri>,
