@@ -20,15 +20,20 @@ pub(crate) struct Formula {
 impl Validate for Formula {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         match version {
-            SpecVersion::V1_3 | SpecVersion::V1_4 => Err(ValidationError::new(
-                "Formula is not defined for versions 1.3 and 1.4",
-            ))
+            SpecVersion::V1_3 | SpecVersion::V1_4 => Err(ValidationError::new(format!(
+                "Formula is not defined for version {version}"
+            )))
             .into(),
-            version @ SpecVersion::V1_5 => ValidationContext::new()
+            SpecVersion::V1_5 => ValidationContext::new()
                 .add_unique_list_option(
-                    "components",
+                    "components", // components is uniqueItems: true
                     self.components.as_ref().map(|wrapper| wrapper.0.iter()),
-                    |component| component.validate(),
+                    |component| component.validate_version(version),
+                )
+                .add_unique_list_option(
+                    "services", // services is uniqueItems: true
+                    self.services.as_ref().map(|wrapper| wrapper.0.iter()),
+                    |component| component.validate_version(version),
                 )
                 .into(),
         }
