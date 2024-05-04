@@ -10,11 +10,11 @@ use self::workflow::Workflow;
 use super::{bom::BomReference, component::Components, property::Properties, service::Services};
 
 pub(crate) struct Formula {
-    bom_ref: Option<BomReference>,
-    components: Option<Components>,
-    services: Option<Services>,
-    workflows: Option<Vec<Workflow>>,
-    properties: Option<Properties>,
+    pub(crate) bom_ref: Option<BomReference>,
+    pub(crate) components: Option<Components>,
+    pub(crate) services: Option<Services>,
+    pub(crate) workflows: Option<Vec<Workflow>>,
+    pub(crate) properties: Option<Properties>,
 }
 
 impl Validate for Formula {
