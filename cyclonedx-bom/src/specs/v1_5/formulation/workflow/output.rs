@@ -3,7 +3,9 @@ use xml::reader;
 
 use crate::{
     errors::XmlReadError,
+    models,
     specs::{common::property::Properties, v1_5::attachment::Attachment},
+    utilities::{convert_optional, convert_vec},
     xml::{
         read_simple_tag, to_xml_read_error, unexpected_element_error, write_close_tag,
         write_simple_option_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
@@ -23,6 +25,60 @@ pub(crate) struct Output {
     pub(crate) target: Option<ResourceReference>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
+}
+
+impl From<models::formulation::workflow::output::Output> for Output {
+    fn from(output: models::formulation::workflow::output::Output) -> Self {
+        Self {
+            required: match output.required {
+                models::formulation::workflow::output::RequiredOutputField::Resource(resource) => {
+                    RequiredOutputField::Resource {
+                        resource: resource.into(),
+                    }
+                }
+                models::formulation::workflow::output::RequiredOutputField::EnvironmentVars(
+                    environment_vars,
+                ) => RequiredOutputField::EnvironmentVars {
+                    environment_vars: EnvironmentVars(convert_vec(environment_vars)),
+                },
+                models::formulation::workflow::output::RequiredOutputField::Data(data) => {
+                    RequiredOutputField::Data { data: data.into() }
+                }
+            },
+            r#type: output.r#type.map(|t| t.to_string()),
+            source: convert_optional(output.source),
+            target: convert_optional(output.target),
+            properties: convert_optional(output.properties),
+        }
+    }
+}
+
+impl From<Output> for models::formulation::workflow::output::Output {
+    fn from(output: Output) -> Self {
+        Self {
+            required: match output.required {
+                RequiredOutputField::Resource { resource } => {
+                    models::formulation::workflow::output::RequiredOutputField::Resource(
+                        resource.into(),
+                    )
+                }
+                RequiredOutputField::EnvironmentVars { environment_vars } => {
+                    models::formulation::workflow::output::RequiredOutputField::EnvironmentVars(
+                        convert_vec(environment_vars.0),
+                    )
+                }
+                RequiredOutputField::Data { data } => {
+                    models::formulation::workflow::output::RequiredOutputField::Data(data.into())
+                }
+            },
+            r#type: output
+                .r#type
+                .map(models::formulation::workflow::output::Type::new_unchecked),
+            source: convert_optional(output.source),
+            target: convert_optional(output.target),
+            properties: convert_optional(output.properties),
+        }
+    }
 }
 
 const OUTPUT_TAG: &str = "output";
