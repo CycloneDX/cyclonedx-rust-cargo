@@ -22,7 +22,7 @@ use crate::{
 };
 
 /// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Signature {
     /// Multiple signatures
     Signers(Vec<Signer>),
@@ -50,7 +50,7 @@ impl Validate for Signature {
 }
 
 /// For now the [`Signer`] struct only holds algorithm and value
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Signer {
     /// Signature algorithm.
     pub algorithm: Algorithm,
@@ -103,7 +103,7 @@ impl Signature {
 }
 
 /// Supported signature algorithms.
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
 pub enum Algorithm {
     RS256,
     RS384,

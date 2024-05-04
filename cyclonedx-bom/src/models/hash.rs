@@ -26,7 +26,7 @@ use super::bom::SpecVersion;
 /// Represents the hash of the component
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashType)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Hash {
     pub alg: HashAlgorithm,
     pub content: HashValue,
@@ -41,7 +41,7 @@ impl Validate for Hash {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Hashes(pub Vec<Hash>);
 
 impl Validate for Hashes {
@@ -63,7 +63,7 @@ pub fn validate_hash_algorithm(algorithm: &HashAlgorithm) -> Result<(), Validati
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashAlg)
 #[allow(non_camel_case_types)]
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, strum::Display)]
 #[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
 pub enum HashAlgorithm {
     MD5,
@@ -123,7 +123,7 @@ pub fn validate_hash_value(value: &HashValue) -> Result<(), ValidationError> {
 }
 
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashValue)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct HashValue(pub String);
 
 #[cfg(test)]

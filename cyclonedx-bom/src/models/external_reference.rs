@@ -28,7 +28,7 @@ use super::bom::SpecVersion;
 /// Represents a way to document systems, sites, and information that may be relevant but which are not included with the BOM.
 ///
 /// Please see the [CycloneDX use case](https://cyclonedx.org/use-cases/#external-references) for more information and examples.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ExternalReference {
     pub external_reference_type: ExternalReferenceType,
     pub url: Uri,
@@ -73,7 +73,7 @@ impl Validate for ExternalReference {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ExternalReferences(pub Vec<ExternalReference>);
 
 impl Validate for ExternalReferences {
@@ -99,7 +99,7 @@ pub fn validate_external_reference_type(
 }
 
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_externalReferenceType).
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, strum::Display)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ExternalReferenceType {
     Vcs,
@@ -193,7 +193,7 @@ impl ExternalReferenceType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Uri {
     Url(Url),
     BomLink(BomLink),
@@ -218,7 +218,7 @@ impl From<BomLink> for Uri {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BomLink(pub(crate) String);
 
 fn validate_bom_link(bom_link: &BomLink) -> Result<(), ValidationError> {

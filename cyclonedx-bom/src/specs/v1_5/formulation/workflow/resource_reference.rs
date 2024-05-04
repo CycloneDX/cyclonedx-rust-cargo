@@ -3,6 +3,7 @@ use xml::reader;
 
 use crate::{
     errors::XmlReadError,
+    models,
     specs::v1_5::external_reference::ExternalReference,
     xml::{
         read_lax_validation_tag, read_simple_tag, to_xml_read_error, unexpected_element_error,
@@ -82,6 +83,32 @@ pub(crate) enum ResourceReference {
     ExternalReference {
         external_reference: ExternalReference,
     },
+}
+
+impl From<models::formulation::workflow::resource_reference::ResourceReference>
+    for ResourceReference
+{
+    fn from(
+        resource_reference: models::formulation::workflow::resource_reference::ResourceReference,
+    ) -> Self {
+        match resource_reference {
+            models::formulation::workflow::resource_reference::ResourceReference::Ref(r#ref) => Self::Ref { r#ref },
+            models::formulation::workflow::resource_reference::ResourceReference::ExternalReference(external_reference) => Self::ExternalReference { external_reference: external_reference.into() },
+        }
+    }
+}
+
+impl From<ResourceReference>
+    for models::formulation::workflow::resource_reference::ResourceReference
+{
+    fn from(resource_reference: ResourceReference) -> Self {
+        match resource_reference {
+            ResourceReference::Ref { r#ref } => Self::Ref(r#ref),
+            ResourceReference::ExternalReference { external_reference } => {
+                Self::ExternalReference(external_reference.into())
+            }
+        }
+    }
 }
 
 const RESOURCE_REFERENCE_TAG: &str = "resourceReference";

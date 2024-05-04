@@ -1,9 +1,15 @@
+mod workflow;
+
 use serde::{Deserialize, Serialize};
 use xml::writer;
 
 use crate::{
-    elem_tag, get_elements,
-    specs::common::{bom_reference::BomReference, property::Properties},
+    elem_tag,
+    errors::BomError,
+    get_elements,
+    models::formulation as models,
+    specs::common::property::Properties,
+    utilities::{convert_optional, convert_optional_vec, try_convert_optional},
     xml::{
         attribute_or_error, to_xml_write_error, write_close_tag, write_list_tag, FromXml, ToXml,
         VecXmlReader,
@@ -14,15 +20,12 @@ use self::workflow::Workflow;
 
 use super::{component::Components, service::Services};
 
-mod runtime_topology;
-mod workflow;
-
 // #definitions/formula
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Formula {
+pub struct Formula {
     #[serde(rename = "kebab-case", skip_serializing_if = "Option::is_none")]
-    bom_ref: Option<BomReference>,
+    bom_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     components: Option<Components>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -31,6 +34,32 @@ pub(crate) struct Formula {
     workflows: Option<Vec<Workflow>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
+}
+
+impl TryFrom<models::Formula> for Formula {
+    type Error = BomError;
+
+    fn try_from(formula: models::Formula) -> Result<Self, Self::Error> {
+        Ok(Self {
+            bom_ref: formula.bom_ref.map(|br| br.0),
+            components: try_convert_optional(formula.components)?,
+            services: convert_optional(formula.services),
+            workflows: convert_optional_vec(formula.workflows),
+            properties: convert_optional(formula.properties),
+        })
+    }
+}
+
+impl From<Formula> for models::Formula {
+    fn from(formula: Formula) -> Self {
+        Self {
+            bom_ref: formula.bom_ref.map(crate::models::bom::BomReference),
+            components: convert_optional(formula.components),
+            services: convert_optional(formula.services),
+            workflows: convert_optional_vec(formula.workflows),
+            properties: convert_optional(formula.properties),
+        }
+    }
 }
 
 const FORMULA_TAG: &str = "formula";
@@ -77,9 +106,7 @@ impl FromXml for Formula {
     where
         Self: Sized,
     {
-        let bom_ref = attribute_or_error(element_name, attributes, BOM_REF_ATTR)
-            .ok()
-            .map(BomReference::new);
+        let bom_ref = attribute_or_error(element_name, attributes, BOM_REF_ATTR).ok();
 
         get_elements! {
             event_reader, element_name,
@@ -100,7 +127,7 @@ impl FromXml for Formula {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod test {
     use crate::{
         specs::common::component::v1_5::Component,
         xml::test::{read_element_from_string, write_element_to_string},
@@ -108,9 +135,9 @@ mod tests {
 
     use super::*;
 
-    fn example_formula() -> Formula {
+    pub(crate) fn example_formula() -> Formula {
         Formula {
-            bom_ref: Some(BomReference::new("formula-1")),
+            bom_ref: Some("formula-1".into()),
             components: Some(Components(vec![Component {
                 component_type: "platform".into(),
                 mime_type: None,
@@ -139,6 +166,45 @@ mod tests {
                 model_card: None,
                 data: None,
             }])),
+            services: None,
+            workflows: None,
+            properties: None,
+        }
+    }
+
+    pub(crate) fn corresponding_formula() -> models::Formula {
+        models::Formula {
+            bom_ref: Some(crate::models::bom::BomReference::new("formula-1")),
+            components: Some(crate::models::component::Components(vec![
+                crate::models::component::Component {
+                    component_type: crate::models::component::Classification::Platform,
+                    mime_type: None,
+                    bom_ref: Some("component-1".into()),
+                    supplier: None,
+                    author: None,
+                    publisher: None,
+                    group: None,
+                    name: "Pipeline controller image".into(),
+                    version: Some("v0.47.0".into()),
+                    description: None,
+                    scope: None,
+                    hashes: None,
+                    licenses: None,
+                    copyright: None,
+                    cpe: None,
+                    purl: None,
+                    swid: None,
+                    modified: None,
+                    pedigree: None,
+                    external_references: None,
+                    properties: None,
+                    components: None,
+                    evidence: None,
+                    signature: None,
+                    model_card: None,
+                    data: None,
+                },
+            ])),
             services: None,
             workflows: None,
             properties: None,

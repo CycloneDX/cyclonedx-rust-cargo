@@ -24,16 +24,6 @@ pub(crate) mod base {
         component::Components, composition::Compositions, external_reference::ExternalReferences,
         metadata::Metadata, service::Services,
     };
-    #[versioned("1.5")]
-    use crate::specs::{
-        common::property::Properties,
-        common::signature::Signature,
-        v1_5::{
-            annotation::Annotations, component::Components, composition::Compositions,
-            external_reference::ExternalReferences, metadata::Metadata, service::Services,
-            vulnerability::Vulnerabilities,
-        },
-    };
     #[versioned("1.4")]
     use crate::specs::{
         common::signature::Signature,
@@ -52,6 +42,19 @@ pub(crate) mod base {
             to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml,
             FromXmlDocument, FromXmlType,
         },
+    };
+    #[versioned("1.5")]
+    use crate::{
+        specs::{
+            common::property::Properties,
+            common::signature::Signature,
+            v1_5::{
+                annotation::Annotations, component::Components, composition::Compositions,
+                external_reference::ExternalReferences, formulation::Formula, metadata::Metadata,
+                service::Services, vulnerability::Vulnerabilities,
+            },
+        },
+        utilities::convert_optional_vec,
     };
 
     use crate::{specs::common::dependency::Dependencies, xml::ToXml};
@@ -103,6 +106,9 @@ pub(crate) mod base {
         #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         properties: Option<Properties>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        formulation: Option<Vec<Formula>>,
     }
 
     impl TryFrom<models::bom::Bom> for Bom {
@@ -128,6 +134,16 @@ pub(crate) mod base {
                 annotations: try_convert_optional(other.annotations)?,
                 #[versioned("1.5")]
                 properties: convert_optional(other.properties),
+                #[versioned("1.5")]
+                formulation: other
+                    .formulation
+                    .map(|formulation| {
+                        formulation
+                            .into_iter()
+                            .map(|formula| formula.try_into())
+                            .collect::<Result<Vec<_>, _>>()
+                    })
+                    .transpose()?,
             })
         }
     }
@@ -159,6 +175,10 @@ pub(crate) mod base {
                 properties: None,
                 #[versioned("1.5")]
                 properties: convert_optional(other.properties),
+                #[versioned("1.3", "1.4")]
+                formulation: None,
+                #[versioned("1.5")]
+                formulation: convert_optional_vec(other.formulation),
             }
         }
     }
@@ -241,6 +261,10 @@ pub(crate) mod base {
     const ANNOTATIONS_TAG: &str = "annotations";
     #[versioned("1.5")]
     const PROPERTIES_TAG: &str = "properties";
+    #[versioned("1.5")]
+    const FORMULATION_TAG: &str = "formulation";
+    #[versioned("1.5")]
+    const FORMULA_TAG: &str = "formula";
 
     impl FromXmlDocument for Bom {
         fn read_xml_document<R: std::io::Read>(
@@ -299,6 +323,8 @@ pub(crate) mod base {
             let mut annotations: Option<Annotations> = None;
             #[versioned("1.5")]
             let mut properties: Option<Properties> = None;
+            #[versioned("1.5")]
+            let mut formulation: Option<Vec<Formula>> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -398,6 +424,13 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == FORMULATION_TAG =>
+                    {
+                        formulation =
+                            Some(crate::xml::read_list_tag(event_reader, &name, FORMULA_TAG)?)
+                    }
 
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
@@ -417,6 +450,7 @@ pub(crate) mod base {
                     reader::XmlEvent::EndDocument => Ok(()),
                     unexpected => Err(unexpected_element_error(BOM_TAG, unexpected)),
                 })?;
+
             Ok(Self {
                 bom_format: BomFormat::CycloneDX,
                 spec_version: SPEC_VERSION,
@@ -436,6 +470,8 @@ pub(crate) mod base {
                 annotations,
                 #[versioned("1.5")]
                 properties,
+                #[versioned("1.5")]
+                formulation,
             })
         }
     }
@@ -483,6 +519,7 @@ pub(crate) mod base {
                 external_reference::test::{
                     corresponding_external_references, example_external_references,
                 },
+                formulation::test::{corresponding_formula, example_formula},
                 metadata::test::{corresponding_metadata, example_metadata},
                 service::test::{corresponding_services, example_services},
                 vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
@@ -530,6 +567,8 @@ pub(crate) mod base {
                 annotations: None,
                 #[versioned("1.5")]
                 properties: None,
+                #[versioned("1.5")]
+                formulation: None,
             }
         }
 
@@ -553,6 +592,8 @@ pub(crate) mod base {
                 annotations: Some(example_annotations()),
                 #[versioned("1.5")]
                 properties: Some(example_properties()),
+                #[versioned("1.5")]
+                formulation: Some(vec![example_formula()]),
             }
         }
 
@@ -582,6 +623,10 @@ pub(crate) mod base {
                 properties: None,
                 #[versioned("1.5")]
                 properties: Some(corresponding_properties()),
+                #[versioned("1.3", "1.4")]
+                formulation: None,
+                #[versioned("1.5")]
+                formulation: Some(vec![corresponding_formula()]),
             }
         }
 
@@ -2103,6 +2148,16 @@ pub(crate) mod base {
   <example:laxValidation>
     <example:innerElement id="test" />
   </example:laxValidation>
+  <formulation>
+    <formula bom-ref="formula-1">
+      <components>
+        <component type="platform" bom-ref="component-1">
+          <name>Pipeline controller image</name>
+          <version>v0.47.0</version>
+        </component>
+      </components>
+    </formula>
+  </formulation>
 </bom>
 "#.trim_start();
             let actual: Bom = read_document_from_string(input);

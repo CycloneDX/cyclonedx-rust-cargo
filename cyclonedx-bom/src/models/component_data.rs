@@ -29,7 +29,7 @@ use super::{
 };
 
 /// Inline Component Data
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ComponentData {
     pub bom_ref: Option<BomReference>,
     /// 'type' field
@@ -62,7 +62,7 @@ fn validate_datatype(datatype: &ComponentDataType) -> Result<(), ValidationError
 }
 
 /// Type of data
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display, strum::EnumString)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, strum::EnumString, Hash)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ComponentDataType {
     SourceCode,
@@ -81,7 +81,7 @@ impl From<String> for ComponentDataType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DataContents {
     pub attachment: Option<Attachment>,
     pub url: Option<Uri>,
@@ -99,7 +99,7 @@ impl Validate for DataContents {
 }
 
 /// bom-1.5.schema.json #definitions/graphicsCollection
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GraphicsCollection {
     pub description: Option<String>,
     pub collection: Option<Vec<Graphic>>,
@@ -116,7 +116,7 @@ impl Validate for GraphicsCollection {
 }
 
 /// bom-1.5.schema.json #definitions/graphic
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Graphic {
     pub name: Option<String>,
     pub image: Option<Attachment>,

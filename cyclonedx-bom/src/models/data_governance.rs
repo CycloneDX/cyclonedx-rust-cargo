@@ -26,7 +26,7 @@ use super::{
     organization::{OrganizationalContact, OrganizationalEntity},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DataGovernance {
     pub custodians: Option<Vec<DataGovernanceResponsibleParty>>,
     pub stewards: Option<Vec<DataGovernanceResponsibleParty>>,
@@ -49,7 +49,7 @@ impl Validate for DataGovernance {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum DataGovernanceResponsibleParty {
     Organization(OrganizationalEntity),
     Contact(OrganizationalContact),

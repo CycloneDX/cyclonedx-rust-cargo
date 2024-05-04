@@ -3,7 +3,9 @@ use xml::{reader, writer};
 
 use crate::{
     errors::XmlReadError,
+    models::formulation::workflow::trigger as models,
     specs::{common::property::Properties, v1_5::attachment::Attachment},
+    utilities::{convert_optional, convert_optional_vec},
     xml::{
         optional_attribute, read_lax_validation_tag, read_list_tag, read_simple_tag,
         to_xml_read_error, to_xml_write_error, unexpected_element_error, write_close_tag,
@@ -13,8 +15,8 @@ use crate::{
 };
 
 use super::{
-    input::Inputs,
-    output::Outputs,
+    input::Input,
+    output::Output,
     resource_reference::{ResourceReference, ResourceReferences},
 };
 
@@ -24,16 +26,64 @@ pub(crate) struct Trigger {
     #[serde(rename = "kebab-case")]
     pub(crate) bom_ref: String,
     pub(crate) uid: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) resource_references: Option<ResourceReferences>,
     pub(crate) r#type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) event: Option<Event>,
-    pub(crate) conditions: Option<Conditions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) conditions: Option<Vec<Condition>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) time_activated: Option<String>,
-    pub(crate) inputs: Option<Inputs>,
-    pub(crate) outputs: Option<Outputs>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) inputs: Option<Vec<Input>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) outputs: Option<Vec<Output>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
+}
+
+impl From<models::Trigger> for Trigger {
+    fn from(trigger: models::Trigger) -> Self {
+        Self {
+            bom_ref: trigger.bom_ref.0,
+            uid: trigger.uid,
+            name: trigger.name,
+            description: trigger.description,
+            resource_references: convert_optional_vec(trigger.resource_references)
+                .map(ResourceReferences),
+            r#type: trigger.r#type.to_string(),
+            event: convert_optional(trigger.event),
+            conditions: convert_optional_vec(trigger.conditions),
+            time_activated: trigger.time_activated.map(|dt| dt.0),
+            inputs: convert_optional_vec(trigger.inputs),
+            outputs: convert_optional_vec(trigger.outputs),
+            properties: convert_optional(trigger.properties),
+        }
+    }
+}
+
+impl From<Trigger> for models::Trigger {
+    fn from(trigger: Trigger) -> Self {
+        Self {
+            bom_ref: crate::models::bom::BomReference::new(trigger.bom_ref),
+            uid: trigger.uid,
+            name: trigger.name,
+            description: trigger.description,
+            resource_references: convert_optional_vec(trigger.resource_references.map(|rs| rs.0)),
+            r#type: models::Type::new_unchecked(trigger.r#type),
+            event: convert_optional(trigger.event),
+            conditions: convert_optional_vec(trigger.conditions),
+            time_activated: trigger.time_activated.map(crate::prelude::DateTime),
+            inputs: convert_optional_vec(trigger.inputs),
+            outputs: convert_optional_vec(trigger.outputs),
+            properties: convert_optional(trigger.properties),
+        }
+    }
 }
 
 const TRIGGER_TAG: &str = "trigger";
@@ -42,8 +92,11 @@ const NAME_TAG: &str = "name";
 const RESOURCE_REFERENCES_TAG: &str = "resourceReferences";
 const TYPE_TAG: &str = "type";
 const TIME_ACTIVATED_TAG: &str = "timeActivated";
+const CONDITIONS_TAG: &str = "conditions";
 const INPUTS_TAG: &str = "inputs";
+const INPUT_TAG: &str = "input";
 const OUTPUTS_TAG: &str = "outputs";
+const OUTPUT_TAG: &str = "output";
 
 impl ToXml for Trigger {
     fn write_xml_element<W: std::io::prelude::Write>(
@@ -60,10 +113,16 @@ impl ToXml for Trigger {
         self.resource_references.write_xml_element(writer)?;
         write_simple_tag(writer, TYPE_TAG, &self.r#type)?;
         self.event.write_xml_element(writer)?;
-        self.conditions.write_xml_element(writer)?;
+        if let Some(conditions) = &self.conditions {
+            write_list_tag(writer, CONDITIONS_TAG, conditions)?;
+        }
         write_simple_option_tag(writer, TIME_ACTIVATED_TAG, &self.time_activated)?;
-        self.inputs.write_xml_element(writer)?;
-        self.outputs.write_xml_element(writer)?;
+        if let Some(inputs) = &self.inputs {
+            write_list_tag(writer, INPUTS_TAG, inputs)?;
+        }
+        if let Some(outputs) = &self.outputs {
+            write_list_tag(writer, OUTPUTS_TAG, outputs)?;
+        }
         self.properties.write_xml_element(writer)?;
 
         write_close_tag(writer, TRIGGER_TAG)
@@ -126,28 +185,16 @@ impl FromXml for Trigger {
                         )?)
                     }
                     CONDITIONS_TAG => {
-                        conditions = Some(Conditions::read_xml_element(
-                            event_reader,
-                            &elem_name,
-                            &attributes,
-                        )?)
+                        conditions = Some(read_list_tag(event_reader, &elem_name, CONDITION_TAG)?)
                     }
                     TIME_ACTIVATED_TAG => {
                         time_activated = Some(read_simple_tag(event_reader, &elem_name)?)
                     }
                     INPUTS_TAG => {
-                        inputs = Some(Inputs::read_xml_element(
-                            event_reader,
-                            &elem_name,
-                            &attributes,
-                        )?)
+                        inputs = Some(read_list_tag(event_reader, &elem_name, INPUT_TAG)?);
                     }
                     OUTPUTS_TAG => {
-                        outputs = Some(Outputs::read_xml_element(
-                            event_reader,
-                            &elem_name,
-                            &attributes,
-                        )?)
+                        outputs = Some(read_list_tag(event_reader, &elem_name, OUTPUT_TAG)?)
                     }
                     PROPERTIES_TAG => {
                         properties = Some(Properties::read_xml_element(
@@ -189,13 +236,48 @@ impl FromXml for Trigger {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Event {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) uid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) time_received: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) data: Option<Attachment>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) source: Option<ResourceReference>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) target: Option<ResourceReference>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
+}
+
+impl From<models::Event> for Event {
+    fn from(event: models::Event) -> Self {
+        Self {
+            uid: event.uid,
+            description: event.description,
+            time_received: event.time_received.map(|dt| dt.0),
+            data: convert_optional(event.data),
+            source: convert_optional(event.source),
+            target: convert_optional(event.target),
+            properties: convert_optional(event.properties),
+        }
+    }
+}
+
+impl From<Event> for models::Event {
+    fn from(event: Event) -> Self {
+        Self {
+            uid: event.uid,
+            description: event.description,
+            time_received: event.time_received.map(crate::prelude::DateTime),
+            data: convert_optional(event.data),
+            source: convert_optional(event.source),
+            target: convert_optional(event.target),
+            properties: convert_optional(event.properties),
+        }
+    }
 }
 
 const EVENT_TAG: &str = "event";
@@ -310,37 +392,33 @@ impl FromXml for Event {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Conditions(pub(crate) Vec<Condition>);
-
-const CONDITIONS_TAG: &str = "conditions";
-
-impl ToXml for Conditions {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_list_tag(writer, CONDITIONS_TAG, &self.0)
-    }
-}
-
-impl FromXml for Conditions {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, crate::errors::XmlReadError>
-    where
-        Self: Sized,
-    {
-        read_list_tag(event_reader, element_name, CONDITION_TAG).map(Self)
-    }
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Condition {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) expression: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
+}
+
+impl From<models::Condition> for Condition {
+    fn from(condition: models::Condition) -> Self {
+        Self {
+            description: condition.description,
+            expression: condition.expression,
+            properties: convert_optional(condition.properties),
+        }
+    }
+}
+
+impl From<Condition> for models::Condition {
+    fn from(condition: Condition) -> Self {
+        Self {
+            description: condition.description,
+            expression: condition.expression,
+            properties: convert_optional(condition.properties),
+        }
+    }
 }
 
 const CONDITION_TAG: &str = "condition";
@@ -459,16 +537,16 @@ mod tests {
                     value: "Bar".into(),
                 }])),
             }),
-            conditions: Some(Conditions(vec![Condition {
+            conditions: Some(vec![Condition {
                 description: Some("Description here".into()),
                 expression: Some("1 == 1".into()),
                 properties: Some(Properties(vec![Property {
                     name: "Foo".into(),
                     value: "Bar".into(),
                 }])),
-            }])),
+            }]),
             time_activated: Some("2023-01-01T00:00:00+00:00".into()),
-            inputs: Some(Inputs(vec![Input {
+            inputs: Some(vec![Input {
                 required: RequiredInputField::Resource {
                     resource: ResourceReference::Ref {
                         r#ref: "component-10".into(),
@@ -481,14 +559,14 @@ mod tests {
                     r#ref: "component-12".into(),
                 }),
                 properties: None,
-            }])),
-            outputs: Some(Outputs(vec![Output {
+            }]),
+            outputs: Some(vec![Output {
                 required: RequiredOutputField::Resource {
                     resource: ResourceReference::Ref {
                         r#ref: "component-14".into(),
                     },
                 },
-                r#type: Some(crate::specs::v1_5::formulation::workflow::output::Type::Artifact),
+                r#type: Some("artifact".into()),
                 source: Some(ResourceReference::Ref {
                     r#ref: "component-15".into(),
                 }),
@@ -496,7 +574,7 @@ mod tests {
                     r#ref: "component-16".into(),
                 }),
                 properties: None,
-            }])),
+            }]),
             properties: Some(Properties(vec![Property {
                 name: "Foo".into(),
                 value: "Bar".into(),

@@ -19,7 +19,7 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Dependencies(pub Vec<Dependency>);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Dependency {
     pub dependency_ref: String,
     pub dependencies: Vec<String>,

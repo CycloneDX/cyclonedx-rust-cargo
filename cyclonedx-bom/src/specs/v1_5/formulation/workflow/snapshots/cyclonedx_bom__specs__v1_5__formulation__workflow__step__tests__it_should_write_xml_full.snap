@@ -1,0 +1,20 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/formulation/workflow/step.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<step>
+  <commands>
+    <command>
+      <executed>ls -las</executed>
+      <properties>
+        <property name="Foo">Bar</property>
+      </properties>
+    </command>
+  </commands>
+  <description>Description here</description>
+  <name>My step</name>
+  <properties>
+    <property name="Foo">Bar</property>
+  </properties>
+</step>

@@ -30,7 +30,7 @@ use super::{
 /// This model was added in spec version 1.5
 ///
 /// For more details see: https://cyclonedx.org/docs/1.5/json/#metadata_component_modelCard
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ModelCard {
     pub bom_ref: Option<BomReference>,
     pub model_parameters: Option<ModelParameters>,
@@ -57,7 +57,7 @@ impl Validate for ModelCard {
 /// This model was added in spec version 1.5.
 ///
 /// For more details see: https://cyclonedx.org/docs/1.5/json/#metadata_component_modelCard_modelParameters
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ModelParameters {
     pub approach: Option<ModelParametersApproach>,
     pub task: Option<String>,
@@ -79,7 +79,7 @@ impl Validate for ModelParameters {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ModelParametersApproach {
     pub approach_type: Option<ApproachType>,
 }
@@ -108,7 +108,7 @@ pub fn validate_approach_type(approach_type: &ApproachType) -> Result<(), Valida
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ApproachType {
     Supervised,
     Unsupervised,
@@ -146,7 +146,7 @@ impl ToString for ApproachType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Datasets(pub Vec<Dataset>);
 
 impl Validate for Datasets {
@@ -160,7 +160,7 @@ impl Validate for Datasets {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Dataset {
     Component(ComponentData),
     Reference(String),
@@ -175,7 +175,7 @@ impl Validate for Dataset {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Inputs(pub Vec<MLParameter>);
 
 impl Validate for Inputs {
@@ -186,7 +186,7 @@ impl Validate for Inputs {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Outputs(pub Vec<MLParameter>);
 
 impl Validate for Outputs {
@@ -201,7 +201,7 @@ pub fn validate_mlparameter(_parameter: &MLParameter) -> Result<(), ValidationEr
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct MLParameter {
     pub format: Option<String>,
 }
@@ -214,7 +214,7 @@ impl MLParameter {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct QuantitativeAnalysis {
     pub performance_metrics: Option<PerformanceMetrics>,
     pub graphics: Option<GraphicsCollection>,
@@ -233,7 +233,7 @@ impl Validate for QuantitativeAnalysis {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PerformanceMetrics(pub Vec<PerformanceMetric>);
 
 impl Validate for PerformanceMetrics {
@@ -244,7 +244,7 @@ impl Validate for PerformanceMetrics {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PerformanceMetric {
     pub metric_type: Option<String>,
     pub value: Option<String>,
@@ -258,14 +258,14 @@ impl Validate for PerformanceMetric {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConfidenceInterval {
     pub lower_bound: Option<String>,
     pub upper_bound: Option<String>,
 }
 
 /// TODO: implement struct
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Considerations {}
 
 impl Validate for Considerations {

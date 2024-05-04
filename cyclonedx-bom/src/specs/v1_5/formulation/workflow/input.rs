@@ -1,72 +1,18 @@
 use serde::{Deserialize, Serialize};
-use xml::{reader, writer};
+use xml::reader;
 
 use crate::{
     errors::XmlReadError,
+    models,
     specs::{common::property::Properties, v1_5::attachment::Attachment},
+    utilities::{convert_optional, convert_vec},
     xml::{
-        attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
-        to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag,
-        write_start_tag, FromXml, ToInnerXml, ToXml,
+        read_simple_tag, to_xml_read_error, unexpected_element_error, write_close_tag,
+        write_list_tag, write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 
-use super::resource_reference::ResourceReference;
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Inputs(pub(crate) Vec<Input>);
-
-const INPUTS_TAG: &str = "inputs";
-
-impl ToXml for Inputs {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, INPUTS_TAG)?;
-
-        for input in &self.0 {
-            input.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, INPUTS_TAG)
-    }
-}
-
-impl FromXml for Inputs {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut inputs = vec![];
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader.next().map_err(to_xml_read_error(INPUTS_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == INPUT_TAG => {
-                    inputs.push(Input::read_xml_element(event_reader, &name, &attributes)?);
-                }
-                // lax validation of any elements from a different schema
-                reader::XmlEvent::StartElement { name, .. } => {
-                    read_lax_validation_tag(event_reader, &name)?
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        Ok(Self(inputs))
-    }
-}
+use super::{resource_reference::ResourceReference, EnvironmentVars, ENVIRONMENT_VARS_TAG};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Input {
@@ -80,9 +26,70 @@ pub(crate) struct Input {
     pub(crate) properties: Option<Properties>,
 }
 
+impl From<models::formulation::workflow::input::Input> for Input {
+    fn from(input: models::formulation::workflow::input::Input) -> Self {
+        Self {
+            required: match input.required {
+                models::formulation::workflow::input::RequiredInputField::Resource(resource) => {
+                    RequiredInputField::Resource {
+                        resource: resource.into(),
+                    }
+                }
+                models::formulation::workflow::input::RequiredInputField::Parameters(
+                    parameters,
+                ) => RequiredInputField::Parameters {
+                    parameters: convert_vec(parameters),
+                },
+                models::formulation::workflow::input::RequiredInputField::EnvironmentVars(
+                    environment_vars,
+                ) => RequiredInputField::EnvironmentVars {
+                    environment_vars: EnvironmentVars(convert_vec(environment_vars)),
+                },
+                models::formulation::workflow::input::RequiredInputField::Data(data) => {
+                    RequiredInputField::Data { data: data.into() }
+                }
+            },
+            source: convert_optional(input.source),
+            target: convert_optional(input.target),
+            properties: convert_optional(input.properties),
+        }
+    }
+}
+
+impl From<Input> for models::formulation::workflow::input::Input {
+    fn from(input: Input) -> Self {
+        Self {
+            required: match input.required {
+                RequiredInputField::Resource { resource } => {
+                    models::formulation::workflow::input::RequiredInputField::Resource(
+                        resource.into(),
+                    )
+                }
+                RequiredInputField::Parameters { parameters } => {
+                    models::formulation::workflow::input::RequiredInputField::Parameters(
+                        convert_vec(parameters),
+                    )
+                }
+                RequiredInputField::EnvironmentVars { environment_vars } => {
+                    models::formulation::workflow::input::RequiredInputField::EnvironmentVars(
+                        convert_vec(environment_vars.0),
+                    )
+                }
+                RequiredInputField::Data { data } => {
+                    models::formulation::workflow::input::RequiredInputField::Data(data.into())
+                }
+            },
+            source: convert_optional(input.source),
+            target: convert_optional(input.target),
+            properties: convert_optional(input.properties),
+        }
+    }
+}
+
 const INPUT_TAG: &str = "input";
 const RESOURCE_TAG: &str = "resource";
 const DATA_TAG: &str = "data";
+const PARAMETERS_TAG: &str = "parameters";
 const SOURCE_TAG: &str = "source";
 const TARGET_TAG: &str = "target";
 const PROPERTIES_TAG: &str = "properties";
@@ -99,7 +106,7 @@ impl ToXml for Input {
                 resource.write_xml_named_element(writer, RESOURCE_TAG)?
             }
             RequiredInputField::Parameters { parameters } => {
-                parameters.write_xml_element(writer)?
+                write_list_tag(writer, PARAMETERS_TAG, parameters)?
             }
             RequiredInputField::EnvironmentVars { environment_vars } => {
                 environment_vars.write_xml_element(writer)?;
@@ -222,70 +229,9 @@ impl FromXml for Input {
 #[serde(untagged, rename_all = "camelCase")]
 pub(crate) enum RequiredInputField {
     Resource { resource: ResourceReference },
-    Parameters { parameters: Parameters },
+    Parameters { parameters: Vec<Parameter> },
     EnvironmentVars { environment_vars: EnvironmentVars },
     Data { data: Attachment },
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Parameters(Vec<Parameter>);
-
-const PARAMETERS_TAG: &str = "parameters";
-
-impl ToXml for Parameters {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, PARAMETERS_TAG)?;
-
-        for parameter in &self.0 {
-            parameter.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, PARAMETERS_TAG)
-    }
-}
-
-impl FromXml for Parameters {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut parameters = vec![];
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(PARAMETERS_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == PARAMETER_TAG => {
-                    parameters.push(Parameter::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-                // lax validation of any elements from a different schema
-                reader::XmlEvent::StartElement { name, .. } => {
-                    read_lax_validation_tag(event_reader, &name)?
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        Ok(Self(parameters))
-    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -294,6 +240,26 @@ pub(crate) struct Parameter {
     name: Option<String>,
     value: Option<String>,
     data_type: Option<String>,
+}
+
+impl From<models::formulation::workflow::input::Parameter> for Parameter {
+    fn from(parameter: models::formulation::workflow::input::Parameter) -> Self {
+        Self {
+            name: parameter.name,
+            value: parameter.value,
+            data_type: parameter.data_type,
+        }
+    }
+}
+
+impl From<Parameter> for models::formulation::workflow::input::Parameter {
+    fn from(parameter: Parameter) -> Self {
+        Self {
+            name: parameter.name,
+            value: parameter.value,
+            data_type: parameter.data_type,
+        }
+    }
 }
 
 const PARAMETER_TAG: &str = "parameter";
@@ -373,113 +339,14 @@ impl FromXml for Parameter {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct EnvironmentVars(pub(crate) Vec<EnvironmentVar>);
-
-const ENVIRONMENT_VARS_TAG: &str = "environmentVars";
-
-impl ToXml for EnvironmentVars {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, ENVIRONMENT_VARS_TAG)?;
-
-        for environment_var in &self.0 {
-            environment_var.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, ENVIRONMENT_VARS_TAG)
-    }
-}
-
-impl FromXml for EnvironmentVars {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut environment_vars = vec![];
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(ENVIRONMENT_VARS_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == ENVIRONMENT_VAR_TAG => {
-                    let value = read_simple_tag(event_reader, &name)?;
-                    let name = attribute_or_error(&name, &attributes, NAME_ATTR)?;
-                    environment_vars.push(EnvironmentVar::Property { name, value });
-                }
-                reader::XmlEvent::StartElement { name, .. } if name.local_name == VALUE_TAG => {
-                    let value = read_simple_tag(event_reader, &name)?;
-                    environment_vars.push(EnvironmentVar::Value(value));
-                }
-                // lax validation of any elements from a different schema
-                reader::XmlEvent::StartElement { name, .. } => {
-                    read_lax_validation_tag(event_reader, &name)?
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        Ok(Self(environment_vars))
-    }
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged, rename_all = "camelCase")]
-pub(crate) enum EnvironmentVar {
-    Property { name: String, value: String },
-    Value(String),
-}
-
-const ENVIRONMENT_VAR_TAG: &str = "environmentVar";
-const NAME_ATTR: &str = "name";
-
-impl ToXml for EnvironmentVar {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        match self {
-            Self::Property { name, value } => {
-                writer
-                    .write(writer::XmlEvent::start_element(ENVIRONMENT_VAR_TAG).attr("name", name))
-                    .map_err(to_xml_write_error(ENVIRONMENT_VAR_TAG))?;
-
-                writer
-                    .write(writer::XmlEvent::characters(value))
-                    .map_err(to_xml_write_error(ENVIRONMENT_VAR_TAG))?;
-
-                write_close_tag(writer, ENVIRONMENT_VAR_TAG)?;
-            }
-            Self::Value(value) => {
-                write_simple_tag(writer, VALUE_TAG, value)?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::xml::test::{read_element_from_string, write_element_to_string};
 
     use super::*;
 
-    fn example_inputs() -> Inputs {
-        Inputs(vec![Input {
+    fn example_input() -> Input {
+        Input {
             required: RequiredInputField::Resource {
                 resource: ResourceReference::Ref {
                     r#ref: "component-10".into(),
@@ -492,34 +359,32 @@ mod tests {
                 r#ref: "component-12".into(),
             }),
             properties: None,
-        }])
+        }
     }
 
     #[test]
     fn it_should_write_xml_full() {
-        let xml_input = write_element_to_string(example_inputs());
+        let xml_input = write_element_to_string(example_input());
         insta::assert_snapshot!(xml_input);
     }
 
     #[test]
     fn it_should_read_xml_full() {
         let input = r#"
- <inputs>
-    <input>
-        <resource>
-            <ref>component-10</ref>
-        </resource>
-        <source>
-            <ref>component-11</ref>
-        </source>
-        <target>
-            <ref>component-12</ref>
-        </target>
-    </input>
-</inputs>
+<input>
+    <resource>
+        <ref>component-10</ref>
+    </resource>
+    <source>
+        <ref>component-11</ref>
+    </source>
+    <target>
+        <ref>component-12</ref>
+    </target>
+</input>
 "#;
-        let actual: Inputs = read_element_from_string(input);
-        let expected = example_inputs();
+        let actual: Input = read_element_from_string(input);
+        let expected = example_input();
         assert_eq!(actual, expected);
     }
 }

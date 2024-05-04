@@ -32,7 +32,7 @@ use super::signature::Signature;
 /// Represents a service as described in the [CycloneDX use cases](https://cyclonedx.org/use-cases/#service-definition)
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_service)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Service {
     pub bom_ref: Option<String>,
     pub provider: Option<OrganizationalEntity>,
@@ -114,7 +114,7 @@ impl Validate for Service {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Services(pub Vec<Service>);
 
 impl Validate for Services {
@@ -127,7 +127,7 @@ impl Validate for Services {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Data {
     ServiceData(Vec<ServiceData>),
     Classification(Vec<DataClassification>),
@@ -146,7 +146,7 @@ impl Validate for Data {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ServiceData {
     pub name: Option<NormalizedString>,
     pub description: Option<NormalizedString>,
@@ -183,7 +183,7 @@ pub fn validate_data_flow_type(data_flow_type: &DataFlowType) -> Result<(), Vali
 /// Represents the data classification and data flow
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_dataClassificationType)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DataClassification {
     pub flow: DataFlowType,
     pub classification: NormalizedString,
@@ -205,7 +205,7 @@ impl Validate for DataClassification {
 /// Represents the flow direction of the data
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_dataFlowType)
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
 #[strum(serialize_all = "kebab-case")]
 pub enum DataFlowType {
     Inbound,

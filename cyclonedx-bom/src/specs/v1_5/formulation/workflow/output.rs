@@ -1,80 +1,24 @@
 use serde::{Deserialize, Serialize};
-use xml::{reader, writer};
+use xml::reader;
 
 use crate::{
     errors::XmlReadError,
+    models,
     specs::{common::property::Properties, v1_5::attachment::Attachment},
+    utilities::{convert_optional, convert_vec},
     xml::{
-        attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
-        to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag,
-        write_start_tag, FromXml, ToInnerXml, ToXml,
+        read_simple_tag, to_xml_read_error, unexpected_element_error, write_close_tag,
+        write_simple_option_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
     },
 };
 
-use super::resource_reference::ResourceReference;
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Outputs(pub(crate) Vec<Output>);
-
-const OUTPUTS_TAG: &str = "outputs";
-
-impl ToXml for Outputs {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, OUTPUTS_TAG)?;
-
-        for output in &self.0 {
-            output.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, OUTPUTS_TAG)
-    }
-}
-
-impl FromXml for Outputs {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut outputs = vec![];
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(OUTPUTS_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == OUTPUT_TAG => {
-                    outputs.push(Output::read_xml_element(event_reader, &name, &attributes)?);
-                }
-                // lax validation of any elements from a different schema
-                reader::XmlEvent::StartElement { name, .. } => {
-                    read_lax_validation_tag(event_reader, &name)?
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        Ok(Self(outputs))
-    }
-}
-
+use super::{resource_reference::ResourceReference, EnvironmentVars, ENVIRONMENT_VARS_TAG};
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Output {
     #[serde(flatten)]
     pub(crate) required: RequiredOutputField,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) r#type: Option<Type>,
+    pub(crate) r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) source: Option<ResourceReference>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -83,9 +27,64 @@ pub(crate) struct Output {
     pub(crate) properties: Option<Properties>,
 }
 
+impl From<models::formulation::workflow::output::Output> for Output {
+    fn from(output: models::formulation::workflow::output::Output) -> Self {
+        Self {
+            required: match output.required {
+                models::formulation::workflow::output::RequiredOutputField::Resource(resource) => {
+                    RequiredOutputField::Resource {
+                        resource: resource.into(),
+                    }
+                }
+                models::formulation::workflow::output::RequiredOutputField::EnvironmentVars(
+                    environment_vars,
+                ) => RequiredOutputField::EnvironmentVars {
+                    environment_vars: EnvironmentVars(convert_vec(environment_vars)),
+                },
+                models::formulation::workflow::output::RequiredOutputField::Data(data) => {
+                    RequiredOutputField::Data { data: data.into() }
+                }
+            },
+            r#type: output.r#type.map(|t| t.to_string()),
+            source: convert_optional(output.source),
+            target: convert_optional(output.target),
+            properties: convert_optional(output.properties),
+        }
+    }
+}
+
+impl From<Output> for models::formulation::workflow::output::Output {
+    fn from(output: Output) -> Self {
+        Self {
+            required: match output.required {
+                RequiredOutputField::Resource { resource } => {
+                    models::formulation::workflow::output::RequiredOutputField::Resource(
+                        resource.into(),
+                    )
+                }
+                RequiredOutputField::EnvironmentVars { environment_vars } => {
+                    models::formulation::workflow::output::RequiredOutputField::EnvironmentVars(
+                        convert_vec(environment_vars.0),
+                    )
+                }
+                RequiredOutputField::Data { data } => {
+                    models::formulation::workflow::output::RequiredOutputField::Data(data.into())
+                }
+            },
+            r#type: output
+                .r#type
+                .map(models::formulation::workflow::output::Type::new_unchecked),
+            source: convert_optional(output.source),
+            target: convert_optional(output.target),
+            properties: convert_optional(output.properties),
+        }
+    }
+}
+
 const OUTPUT_TAG: &str = "output";
 const RESOURCE_TAG: &str = "resource";
 const DATA_TAG: &str = "data";
+const TYPE_TAG: &str = "type";
 const SOURCE_TAG: &str = "source";
 const TARGET_TAG: &str = "target";
 const PROPERTIES_TAG: &str = "properties";
@@ -109,9 +108,7 @@ impl ToXml for Output {
             }
         }
 
-        if let Some(r#type) = &self.r#type {
-            r#type.write_xml_element(writer)?;
-        }
+        write_simple_option_tag(writer, TYPE_TAG, &self.r#type)?;
 
         if let Some(source) = &self.source {
             source.write_xml_named_element(writer, SOURCE_TAG)?;
@@ -176,9 +173,7 @@ impl FromXml for Output {
                             data: Attachment::read_xml_element(event_reader, &name, &attributes)?,
                         });
                     }
-                    TYPE_TAG => {
-                        r#type = Some(Type::read_xml_element(event_reader, &name, &attributes)?)
-                    }
+                    TYPE_TAG => r#type = Some(read_simple_tag(event_reader, &name)?),
                     SOURCE_TAG => {
                         source = Some(ResourceReference::read_xml_element(
                             event_reader,
@@ -235,226 +230,20 @@ pub(crate) enum RequiredOutputField {
     Data { data: Attachment },
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub(crate) struct EnvironmentVars(pub(crate) Vec<EnvironmentVar>);
-
-const ENVIRONMENT_VARS_TAG: &str = "environmentVars";
-
-impl ToXml for EnvironmentVars {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, ENVIRONMENT_VARS_TAG)?;
-
-        for environment_var in &self.0 {
-            environment_var.write_xml_element(writer)?;
-        }
-
-        write_close_tag(writer, ENVIRONMENT_VARS_TAG)
-    }
-}
-
-impl FromXml for EnvironmentVars {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut environment_vars = vec![];
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(ENVIRONMENT_VARS_TAG))?;
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name, attributes, ..
-                } if name.local_name == ENVIRONMENT_VARS_TAG => {
-                    environment_vars.push(EnvironmentVar::read_xml_element(
-                        event_reader,
-                        &name,
-                        &attributes,
-                    )?);
-                }
-                // lax validation of any elements from a different schema
-                reader::XmlEvent::StartElement { name, .. } => {
-                    read_lax_validation_tag(event_reader, &name)?
-                }
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        Ok(Self(environment_vars))
-    }
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged, rename_all = "camelCase")]
-pub(crate) enum EnvironmentVar {
-    Property { name: String, value: String },
-    Value(String),
-}
-
-const ENVIRONMENT_VAR_TAG: &str = "environmentVar";
-const VALUE_TAG: &str = "value";
-const NAME_ATTR: &str = "name";
-
-impl ToXml for EnvironmentVar {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        match self {
-            Self::Property { name, value } => {
-                writer
-                    .write(writer::XmlEvent::start_element(ENVIRONMENT_VAR_TAG).attr("name", name))
-                    .map_err(to_xml_write_error(ENVIRONMENT_VAR_TAG))?;
-
-                writer
-                    .write(writer::XmlEvent::characters(value))
-                    .map_err(to_xml_write_error(ENVIRONMENT_VAR_TAG))?;
-
-                write_close_tag(writer, ENVIRONMENT_VAR_TAG)?;
-            }
-            Self::Value(value) => {
-                write_simple_tag(writer, VALUE_TAG, value)?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
-impl FromXml for EnvironmentVar {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, XmlReadError>
-    where
-        Self: Sized,
-    {
-        let mut environment_var = None;
-
-        let mut got_end_tag = false;
-        while !got_end_tag {
-            let next_element = event_reader
-                .next()
-                .map_err(to_xml_read_error(ENVIRONMENT_VAR_TAG))?;
-
-            match next_element {
-                reader::XmlEvent::StartElement {
-                    name: ref elem_name,
-                    ref attributes,
-                    ..
-                } => match elem_name.local_name.as_str() {
-                    ENVIRONMENT_VAR_TAG => {
-                        let name = attribute_or_error(element_name, attributes, NAME_ATTR)?;
-                        let value = read_simple_tag(event_reader, elem_name)?;
-                        environment_var = Some(Self::Property { name, value });
-                    }
-                    VALUE_TAG => {
-                        let value = read_simple_tag(event_reader, elem_name)?;
-                        environment_var = Some(Self::Value(value));
-                    }
-                    _ => {
-                        return Err(unexpected_element_error(
-                            elem_name.to_string(),
-                            next_element,
-                        ))
-                    }
-                },
-                reader::XmlEvent::EndElement { name } if &name == element_name => {
-                    got_end_tag = true;
-                }
-                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
-            }
-        }
-
-        environment_var.ok_or_else(|| XmlReadError::RequiredDataMissing {
-            required_field: ENVIRONMENT_VAR_TAG.into(),
-            element: element_name.local_name.to_string(),
-        })
-    }
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub(crate) enum Type {
-    Artifact,
-    Attestation,
-    Log,
-    Evidence,
-    Metrics,
-    Other,
-}
-
-const TYPE_TAG: &str = "type";
-
-impl ToXml for Type {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let content = match self {
-            Self::Artifact => "artifact",
-            Self::Attestation => "attestation",
-            Self::Log => "log",
-            Self::Evidence => "evidence",
-            Self::Metrics => "metrics",
-            Self::Other => "other",
-        };
-
-        write_simple_tag(writer, TYPE_TAG, content)
-    }
-}
-
-impl FromXml for Type {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, crate::errors::XmlReadError>
-    where
-        Self: Sized,
-    {
-        match read_simple_tag(event_reader, &element_name)?.as_str() {
-            "artifact" => Ok(Self::Artifact),
-            "attestation" => Ok(Self::Attestation),
-            "log" => Ok(Self::Log),
-            "evidence" => Ok(Self::Evidence),
-            "metrics" => Ok(Self::Metrics),
-            "other" => Ok(Self::Other),
-            unexpected => Err(XmlReadError::UnexpectedElementReadError {
-                error: format!("Got unexpected element {:?}", unexpected),
-                element: TYPE_TAG.to_string(),
-            }),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::xml::test::{read_element_from_string, write_element_to_string};
 
     use super::*;
 
-    fn example_outputs() -> Outputs {
-        Outputs(vec![Output {
+    fn example_output() -> Output {
+        Output {
             required: RequiredOutputField::Resource {
                 resource: ResourceReference::Ref {
                     r#ref: "component-14".into(),
                 },
             },
-            r#type: Some(Type::Artifact),
+            r#type: Some("artifact".into()),
             source: Some(ResourceReference::Ref {
                 r#ref: "component-15".into(),
             }),
@@ -462,35 +251,33 @@ mod tests {
                 r#ref: "component-16".into(),
             }),
             properties: None,
-        }])
+        }
     }
 
     #[test]
     fn it_should_write_xml_full() {
-        let xml_output = write_element_to_string(example_outputs());
+        let xml_output = write_element_to_string(example_output());
         insta::assert_snapshot!(xml_output);
     }
 
     #[test]
     fn it_should_read_xml_full() {
         let input = r#"
-<outputs>
-    <output>
-        <resource>
-            <ref>component-14</ref>
-        </resource>
-        <type>artifact</type>
-        <source>
-            <ref>component-15</ref>
-        </source>
-        <target>
-            <ref>component-16</ref>
-        </target>
-    </output>
-</outputs>
+<output>
+    <resource>
+        <ref>component-14</ref>
+    </resource>
+    <type>artifact</type>
+    <source>
+        <ref>component-15</ref>
+    </source>
+    <target>
+        <ref>component-16</ref>
+    </target>
+</output>
 "#;
-        let actual: Outputs = read_element_from_string(input);
-        let expected = example_outputs();
+        let actual: Output = read_element_from_string(input);
+        let expected = example_output();
         assert_eq!(actual, expected);
     }
 }

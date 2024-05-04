@@ -25,7 +25,7 @@ use crate::{
 
 use super::bom::SpecVersion;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AttachedText {
     pub(crate) content_type: Option<NormalizedString>,
     pub(crate) encoding: Option<Encoding>,
@@ -81,7 +81,7 @@ pub(crate) fn validate_encoding(encoding: &Encoding) -> Result<(), ValidationErr
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, strum::Display)]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
 #[strum(serialize_all = "kebab-case")]
 pub(crate) enum Encoding {
     Base64,

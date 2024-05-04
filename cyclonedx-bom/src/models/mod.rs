@@ -28,6 +28,7 @@ pub mod composition;
 pub mod data_governance;
 pub mod dependency;
 pub mod external_reference;
+pub mod formulation;
 pub mod hash;
 pub mod license;
 pub mod lifecycle;

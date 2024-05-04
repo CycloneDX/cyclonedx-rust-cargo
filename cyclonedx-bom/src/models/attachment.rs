@@ -23,7 +23,7 @@ use crate::{
 
 use super::bom::SpecVersion;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Attachment {
     pub content: String,
     pub content_type: Option<String>,

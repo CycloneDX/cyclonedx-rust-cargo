@@ -29,7 +29,7 @@ use super::bom::{validate_bom_ref, BomReference, SpecVersion};
 /// Represents the contact information for an organization
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalContact)
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct OrganizationalContact {
     pub bom_ref: Option<BomReference>,
     pub name: Option<NormalizedString>,
@@ -70,7 +70,7 @@ impl Validate for OrganizationalContact {
 /// Represents an organization with name, url, and contact information
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalEntity)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct OrganizationalEntity {
     pub bom_ref: Option<BomReference>,
     pub name: Option<NormalizedString>,

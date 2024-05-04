@@ -1,35 +1,37 @@
+mod input;
+mod output;
+mod resource_reference;
+mod step;
+mod trigger;
+mod workspace;
+
 use crate::{
     elem_tag,
     errors::XmlReadError,
     get_elements_lax,
-    specs::common::{bom_reference::BomReference, dependency::Dependency, property::Properties},
+    models::formulation::workflow as models,
+    specs::common::{dependency::Dependency, property::Properties},
+    utilities::{convert_optional, convert_optional_vec},
     xml::{
-        attribute_or_error, read_simple_tag, to_xml_write_error, write_close_tag, write_list_tag,
-        write_simple_option_tag, write_simple_tag, FromXml, ToXml, VecElemTag, VecXmlReader,
+        attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
+        to_xml_write_error, unexpected_element_error, write_close_tag, write_list_tag,
+        write_simple_option_tag, write_simple_tag, write_start_tag, FromXml, ToXml, VecElemTag,
+        VecXmlReader,
     },
 };
 
 use self::{
-    input::Inputs, output::Outputs, resource_reference::ResourceReferences, steps::Steps,
+    input::Input, output::Output, resource_reference::ResourceReferences, step::Step,
     trigger::Trigger, workspace::Workspace,
 };
 
-mod input;
-mod output;
-mod resource_reference;
-mod steps;
-mod trigger;
-mod workspace;
-
 use serde::{Deserialize, Serialize};
-use xml::writer;
-
-use super::runtime_topology::RuntimeTopology;
+use xml::{reader, writer};
 
 /// bom-1.5.schema.json #definitions/workflow
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Workflow {
-    bom_ref: BomReference,
+    bom_ref: String,
     uid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
@@ -45,11 +47,11 @@ pub(crate) struct Workflow {
     #[serde(skip_serializing_if = "Option::is_none")]
     trigger: Option<Trigger>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    steps: Option<Steps>,
+    steps: Option<Vec<Step>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    inputs: Option<Inputs>,
+    inputs: Option<Vec<Input>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    outputs: Option<Outputs>,
+    outputs: Option<Vec<Output>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     time_start: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,9 +59,66 @@ pub(crate) struct Workflow {
     #[serde(skip_serializing_if = "Option::is_none")]
     workspaces: Option<Vec<Workspace>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    runtime_topology: Option<RuntimeTopology>,
+    runtime_topology: Option<Vec<Dependency>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
+}
+
+impl From<models::Workflow> for Workflow {
+    fn from(workflow: models::Workflow) -> Self {
+        Self {
+            bom_ref: workflow.bom_ref.0,
+            uid: workflow.uid,
+            name: workflow.name,
+            description: workflow.description,
+            resource_references: convert_optional_vec(workflow.resource_references)
+                .map(ResourceReferences),
+            tasks: convert_optional_vec(workflow.tasks),
+            task_dependencies: convert_optional_vec(workflow.task_dependencies),
+            task_types: workflow
+                .task_types
+                .into_iter()
+                .map(|tt| TaskType(tt.to_string()))
+                .collect(),
+            trigger: convert_optional(workflow.trigger),
+            steps: convert_optional_vec(workflow.steps),
+            inputs: convert_optional_vec(workflow.inputs),
+            outputs: convert_optional_vec(workflow.outputs),
+            time_start: workflow.time_start.map(|dt| dt.0),
+            time_end: workflow.time_end.map(|dt| dt.0),
+            workspaces: convert_optional_vec(workflow.workspaces),
+            runtime_topology: convert_optional_vec(workflow.runtime_topology),
+            properties: convert_optional(workflow.properties),
+        }
+    }
+}
+
+impl From<Workflow> for models::Workflow {
+    fn from(workflow: Workflow) -> Self {
+        Self {
+            bom_ref: crate::models::bom::BomReference(workflow.bom_ref),
+            uid: workflow.uid,
+            name: workflow.name,
+            description: workflow.description,
+            resource_references: convert_optional_vec(workflow.resource_references.map(|rs| rs.0)),
+            tasks: convert_optional_vec(workflow.tasks),
+            task_dependencies: convert_optional_vec(workflow.task_dependencies),
+            task_types: workflow
+                .task_types
+                .into_iter()
+                .map(|tt| models::TaskType::new_unchecked(tt.0))
+                .collect(),
+            trigger: convert_optional(workflow.trigger),
+            steps: convert_optional_vec(workflow.steps),
+            inputs: convert_optional_vec(workflow.inputs),
+            outputs: convert_optional_vec(workflow.outputs),
+            time_start: workflow.time_start.map(crate::prelude::DateTime),
+            time_end: workflow.time_end.map(crate::prelude::DateTime),
+            workspaces: convert_optional_vec(workflow.workspaces),
+            runtime_topology: convert_optional_vec(workflow.runtime_topology),
+            properties: convert_optional(workflow.properties),
+        }
+    }
 }
 
 const WORKFLOW_TAG: &str = "workflow";
@@ -84,7 +143,11 @@ const PROPERTIES_TAG: &str = "properties";
 elem_tag!(TaskTag = "task");
 elem_tag!(TaskTypeTag = "taskType");
 elem_tag!(TaskDependencyTag = "dependency");
+elem_tag!(StepTag = "step");
+elem_tag!(InputTag = "input");
+elem_tag!(OutputTag = "output");
 elem_tag!(WorkspaceTag = "workspace");
+elem_tag!(DependencyTag = "dependency");
 
 impl ToXml for Workflow {
     fn write_xml_element<W: std::io::prelude::Write>(
@@ -110,15 +173,23 @@ impl ToXml for Workflow {
         }
         write_list_tag(writer, TASK_TYPES_TAG, &self.task_types)?;
         self.trigger.write_xml_element(writer)?;
-        self.steps.write_xml_element(writer)?;
-        self.inputs.write_xml_element(writer)?;
-        self.outputs.write_xml_element(writer)?;
+        if let Some(steps) = &self.steps {
+            write_list_tag(writer, STEPS_TAG, steps)?;
+        }
+        if let Some(inputs) = &self.inputs {
+            write_list_tag(writer, INPUTS_TAG, inputs)?;
+        }
+        if let Some(outputs) = &self.outputs {
+            write_list_tag(writer, OUTPUTS_TAG, outputs)?;
+        }
         write_simple_option_tag(writer, TIME_START_TAG, &self.time_start)?;
         write_simple_option_tag(writer, TIME_END_TAG, &self.time_end)?;
         if let Some(workspaces) = &self.workspaces {
             write_list_tag(writer, WORKSPACES_TAG, workspaces)?;
         }
-        self.runtime_topology.write_xml_element(writer)?;
+        if let Some(runtime_topology) = &self.runtime_topology {
+            write_list_tag(writer, RUNTIME_TOPOLOGY_TAG, runtime_topology)?;
+        }
         self.properties.write_xml_element(writer)?;
 
         write_close_tag(writer, WORKFLOW_TAG)
@@ -146,18 +217,18 @@ impl FromXml for Workflow {
             TASK_DEPENDENCIES_TAG => task_dependencies: VecXmlReader<Dependency, TaskDependencyTag>,
             TASK_TYPES_TAG => task_types: VecXmlReader<TaskType, TaskTypeTag>,
             TRIGGER_TAG => trigger: Trigger,
-            STEPS_TAG => steps: Steps,
-            INPUTS_TAG => inputs: Inputs,
-            OUTPUTS_TAG => outputs: Outputs,
+            STEPS_TAG => steps: VecXmlReader<Step, StepTag>,
+            INPUTS_TAG => inputs: VecXmlReader<Input, InputTag>,
+            OUTPUTS_TAG => outputs: VecXmlReader<Output, OutputTag>,
             TIME_START_TAG => time_start: String,
             TIME_END_TAG => time_end: String,
             WORKSPACES_TAG => workspaces: VecXmlReader<Workspace, WorkspaceTag>,
-            RUNTIME_TOPOLOGY_TAG => runtime_topology: RuntimeTopology,
+            RUNTIME_TOPOLOGY_TAG => runtime_topology: VecXmlReader<Dependency, DependencyTag>,
             PROPERTIES_TAG => properties: Properties,
         };
 
         Ok(Self {
-            bom_ref: BomReference::new(bom_ref),
+            bom_ref,
             uid: uid.ok_or_else(|| XmlReadError::required_data_missing(UID_TAG, element_name))?,
             name,
             description,
@@ -168,13 +239,13 @@ impl FromXml for Workflow {
                 .map(Vec::from)
                 .ok_or_else(|| XmlReadError::required_data_missing(TASK_TYPES_TAG, element_name))?,
             trigger,
-            steps,
-            inputs,
-            outputs,
+            steps: steps.map(Vec::from),
+            inputs: inputs.map(Vec::from),
+            outputs: outputs.map(Vec::from),
             time_start,
             time_end,
             workspaces: workspaces.map(Vec::from),
-            runtime_topology,
+            runtime_topology: runtime_topology.map(Vec::from),
             properties,
         })
     }
@@ -207,7 +278,7 @@ impl FromXml for TaskType {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Task {
-    bom_ref: BomReference,
+    bom_ref: String,
     uid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
@@ -219,11 +290,11 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     trigger: Option<Trigger>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    steps: Option<Steps>,
+    steps: Option<Vec<Step>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    inputs: Option<Inputs>,
+    inputs: Option<Vec<Input>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    outputs: Option<Outputs>,
+    outputs: Option<Vec<Output>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     time_start: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -231,9 +302,62 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     workspaces: Option<Vec<Workspace>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    runtime_topology: Option<RuntimeTopology>,
+    runtime_topology: Option<Vec<Dependency>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
+}
+
+impl From<models::Task> for Task {
+    fn from(task: models::Task) -> Self {
+        Self {
+            bom_ref: task.bom_ref.0,
+            uid: task.uid,
+            name: task.name,
+            description: task.description,
+            resource_references: convert_optional_vec(task.resource_references)
+                .map(ResourceReferences),
+            task_types: task
+                .task_types
+                .into_iter()
+                .map(|tt| TaskType(tt.to_string()))
+                .collect(),
+            trigger: convert_optional(task.trigger),
+            steps: convert_optional_vec(task.steps),
+            inputs: convert_optional_vec(task.inputs),
+            outputs: convert_optional_vec(task.outputs),
+            time_start: task.time_start.map(|dt| dt.0),
+            time_end: task.time_end.map(|dt| dt.0),
+            workspaces: convert_optional_vec(task.workspaces),
+            runtime_topology: convert_optional_vec(task.runtime_topology),
+            properties: convert_optional(task.properties),
+        }
+    }
+}
+
+impl From<Task> for models::Task {
+    fn from(task: Task) -> Self {
+        Self {
+            bom_ref: crate::models::bom::BomReference(task.bom_ref),
+            uid: task.uid,
+            name: task.name,
+            description: task.description,
+            resource_references: convert_optional_vec(task.resource_references.map(|rs| rs.0)),
+            task_types: task
+                .task_types
+                .into_iter()
+                .map(|tt| models::TaskType::new_unchecked(tt.0))
+                .collect(),
+            trigger: convert_optional(task.trigger),
+            steps: convert_optional_vec(task.steps),
+            inputs: convert_optional_vec(task.inputs),
+            outputs: convert_optional_vec(task.outputs),
+            time_start: task.time_start.map(crate::prelude::DateTime),
+            time_end: task.time_end.map(crate::prelude::DateTime),
+            workspaces: convert_optional_vec(task.workspaces),
+            runtime_topology: convert_optional_vec(task.runtime_topology),
+            properties: convert_optional(task.properties),
+        }
+    }
 }
 
 impl ToXml for Task {
@@ -253,15 +377,23 @@ impl ToXml for Task {
         write_simple_option_tag(writer, DESCRIPTION_TAG, &self.description)?;
         self.resource_references.write_xml_element(writer)?;
         self.trigger.write_xml_element(writer)?;
-        self.steps.write_xml_element(writer)?;
-        self.inputs.write_xml_element(writer)?;
-        self.outputs.write_xml_element(writer)?;
+        if let Some(steps) = &self.steps {
+            write_list_tag(writer, STEPS_TAG, steps)?;
+        }
+        if let Some(inputs) = &self.inputs {
+            write_list_tag(writer, INPUTS_TAG, inputs)?;
+        }
+        if let Some(outputs) = &self.outputs {
+            write_list_tag(writer, OUTPUTS_TAG, outputs)?;
+        }
         write_simple_option_tag(writer, TIME_START_TAG, &self.time_start)?;
         write_simple_option_tag(writer, TIME_END_TAG, &self.time_end)?;
         if let Some(workspaces) = &self.workspaces {
             write_list_tag(writer, WORKSPACES_TAG, workspaces)?;
         }
-        self.runtime_topology.write_xml_element(writer)?;
+        if let Some(runtime_topology) = &self.runtime_topology {
+            write_list_tag(writer, RUNTIME_TOPOLOGY_TAG, runtime_topology)?;
+        }
         self.properties.write_xml_element(writer)?;
 
         write_close_tag(writer, WORKFLOW_TAG)
@@ -287,18 +419,18 @@ impl FromXml for Task {
             RESOURCE_REFERENCES_TAG => resource_references: ResourceReferences,
             TASK_TYPES_TAG => task_types: VecXmlReader<TaskType, TaskTypeTag>,
             TRIGGER_TAG => trigger: Trigger,
-            STEPS_TAG => steps: Steps,
-            INPUTS_TAG => inputs: Inputs,
-            OUTPUTS_TAG => outputs: Outputs,
+            STEPS_TAG => steps: VecXmlReader<Step, StepTag>,
+            INPUTS_TAG => inputs: VecXmlReader<Input, InputTag>,
+            OUTPUTS_TAG => outputs: VecXmlReader<Output, OutputTag>,
             TIME_START_TAG => time_start: String,
             TIME_END_TAG => time_end: String,
             WORKSPACES_TAG => workspaces: VecXmlReader<Workspace, WorkspaceTag>,
-            RUNTIME_TOPOLOGY_TAG => runtime_topology: RuntimeTopology,
+            RUNTIME_TOPOLOGY_TAG => runtime_topology: VecXmlReader<Dependency, DependencyTag>,
             PROPERTIES_TAG => properties: Properties,
         };
 
         Ok(Self {
-            bom_ref: BomReference::new(bom_ref),
+            bom_ref,
             uid: uid.ok_or_else(|| XmlReadError::required_data_missing(UID_TAG, element_name))?,
             name,
             description,
@@ -307,15 +439,133 @@ impl FromXml for Task {
                 .map(Vec::from)
                 .ok_or_else(|| XmlReadError::required_data_missing(TASK_TYPES_TAG, element_name))?,
             trigger,
-            steps,
-            inputs,
-            outputs,
+            steps: steps.map(Vec::from),
+            inputs: inputs.map(Vec::from),
+            outputs: outputs.map(Vec::from),
             time_start,
             time_end,
             workspaces: workspaces.map(Vec::from),
-            runtime_topology,
+            runtime_topology: runtime_topology.map(Vec::from),
             properties,
         })
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub(crate) struct EnvironmentVars(pub(crate) Vec<EnvironmentVar>);
+
+const ENVIRONMENT_VARS_TAG: &str = "environmentVars";
+
+impl ToXml for EnvironmentVars {
+    fn write_xml_element<W: std::io::prelude::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        write_start_tag(writer, ENVIRONMENT_VARS_TAG)?;
+
+        for environment_var in &self.0 {
+            environment_var.write_xml_element(writer)?;
+        }
+
+        write_close_tag(writer, ENVIRONMENT_VARS_TAG)
+    }
+}
+
+impl FromXml for EnvironmentVars {
+    fn read_xml_element<R: std::io::prelude::Read>(
+        event_reader: &mut xml::EventReader<R>,
+        element_name: &xml::name::OwnedName,
+        _attributes: &[xml::attribute::OwnedAttribute],
+    ) -> Result<Self, XmlReadError>
+    where
+        Self: Sized,
+    {
+        let mut environment_vars = vec![];
+
+        let mut got_end_tag = false;
+        while !got_end_tag {
+            let next_element = event_reader
+                .next()
+                .map_err(to_xml_read_error(ENVIRONMENT_VARS_TAG))?;
+            match next_element {
+                reader::XmlEvent::StartElement {
+                    name, attributes, ..
+                } if name.local_name == ENVIRONMENT_VAR_TAG => {
+                    let value = read_simple_tag(event_reader, &name)?;
+                    let name = attribute_or_error(&name, &attributes, NAME_ATTR)?;
+                    environment_vars.push(EnvironmentVar::Property { name, value });
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == VALUE_TAG => {
+                    let value = read_simple_tag(event_reader, &name)?;
+                    environment_vars.push(EnvironmentVar::Value(value));
+                }
+                // lax validation of any elements from a different schema
+                reader::XmlEvent::StartElement { name, .. } => {
+                    read_lax_validation_tag(event_reader, &name)?
+                }
+                reader::XmlEvent::EndElement { name } if &name == element_name => {
+                    got_end_tag = true;
+                }
+                unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+            }
+        }
+
+        Ok(Self(environment_vars))
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged, rename_all = "camelCase")]
+pub(crate) enum EnvironmentVar {
+    Property { name: String, value: String },
+    Value(String),
+}
+
+impl From<models::EnvironmentVar> for EnvironmentVar {
+    fn from(environment_var: models::EnvironmentVar) -> Self {
+        match environment_var {
+            models::EnvironmentVar::Property { name, value } => Self::Property { name, value },
+            models::EnvironmentVar::Value(value) => Self::Value(value),
+        }
+    }
+}
+
+impl From<EnvironmentVar> for models::EnvironmentVar {
+    fn from(environment_var: EnvironmentVar) -> Self {
+        match environment_var {
+            EnvironmentVar::Property { name, value } => Self::Property { name, value },
+            EnvironmentVar::Value(value) => Self::Value(value),
+        }
+    }
+}
+
+const ENVIRONMENT_VAR_TAG: &str = "environmentVar";
+const VALUE_TAG: &str = "value";
+const NAME_ATTR: &str = "name";
+
+impl ToXml for EnvironmentVar {
+    fn write_xml_element<W: std::io::prelude::Write>(
+        &self,
+        writer: &mut xml::EventWriter<W>,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        match self {
+            Self::Property { name, value } => {
+                writer
+                    .write(writer::XmlEvent::start_element(ENVIRONMENT_VAR_TAG).attr("name", name))
+                    .map_err(to_xml_write_error(ENVIRONMENT_VAR_TAG))?;
+
+                writer
+                    .write(writer::XmlEvent::characters(value))
+                    .map_err(to_xml_write_error(ENVIRONMENT_VAR_TAG))?;
+
+                write_close_tag(writer, ENVIRONMENT_VAR_TAG)?;
+            }
+            Self::Value(value) => {
+                write_simple_tag(writer, VALUE_TAG, value)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -330,8 +580,8 @@ mod test {
         input::{self, Input, RequiredInputField},
         output::{self, Output, RequiredOutputField},
         resource_reference::ResourceReference,
-        steps::{Command, Commands, Step},
-        trigger::{Condition, Conditions, Event},
+        step::{Command, Step},
+        trigger::{Condition, Event},
         workspace::volume::Volume,
     };
 
@@ -339,7 +589,7 @@ mod test {
 
     fn example_workflow() -> Workflow {
         Workflow {
-            bom_ref: BomReference::new("workflow-1"),
+            bom_ref: "workflow-1".into(),
             uid: "8edb2b08-e2c7-11ed-b5ea-0242ac120002".into(),
             name: Some("My workflow".into()),
             description: Some("Workflow description here".into()),
@@ -347,7 +597,7 @@ mod test {
                 r#ref: "component-a".into(),
             }])),
             tasks: Some(vec![Task {
-                bom_ref: BomReference::new("task-1"),
+                bom_ref: "task-1".into(),
                 uid: "task-uid-1".into(),
                 name: Some("fetch-repository".into()),
                 description: Some("Description here".into()),
@@ -369,13 +619,13 @@ mod test {
                     outputs: None,
                     properties: None,
                 }),
-                steps: Some(Steps(vec![Step {
+                steps: Some(vec![Step {
                     commands: None,
                     description: None,
                     name: Some("My step".into()),
                     properties: None,
-                }])),
-                inputs: Some(Inputs(vec![Input {
+                }]),
+                inputs: Some(vec![Input {
                     required: RequiredInputField::Resource {
                         resource: ResourceReference::Ref {
                             r#ref: "component-a".into(),
@@ -384,8 +634,8 @@ mod test {
                     source: None,
                     target: None,
                     properties: None,
-                }])),
-                outputs: Some(Outputs(vec![Output {
+                }]),
+                outputs: Some(vec![Output {
                     required: RequiredOutputField::Resource {
                         resource: ResourceReference::Ref {
                             r#ref: "component-b".into(),
@@ -395,7 +645,7 @@ mod test {
                     source: None,
                     target: None,
                     properties: None,
-                }])),
+                }]),
                 time_start: Some("2023-01-01T00:00:00+00:00".into()),
                 time_end: Some("2023-01-01T00:00:00+00:00".into()),
                 workspaces: Some(vec![Workspace {
@@ -412,10 +662,10 @@ mod test {
                     volume: None,
                     properties: None,
                 }]),
-                runtime_topology: Some(RuntimeTopology(vec![Dependency {
+                runtime_topology: Some(vec![Dependency {
                     dependency_ref: "component-1".into(),
                     depends_on: vec![],
-                }])),
+                }]),
                 properties: None,
             }]),
             task_dependencies: Some(vec![Dependency {
@@ -452,16 +702,16 @@ mod test {
                         value: "Bar".into(),
                     }])),
                 }),
-                conditions: Some(Conditions(vec![Condition {
+                conditions: Some(vec![Condition {
                     description: Some("Description here".into()),
                     expression: Some("1 == 1".into()),
                     properties: Some(Properties(vec![Property {
                         name: "Foo".into(),
                         value: "Bar".into(),
                     }])),
-                }])),
+                }]),
                 time_activated: Some("2023-01-01T00:00:00+00:00".into()),
-                inputs: Some(Inputs(vec![Input {
+                inputs: Some(vec![Input {
                     required: RequiredInputField::Resource {
                         resource: ResourceReference::Ref {
                             r#ref: "component-10".into(),
@@ -474,14 +724,14 @@ mod test {
                         r#ref: "component-12".into(),
                     }),
                     properties: None,
-                }])),
-                outputs: Some(Outputs(vec![Output {
+                }]),
+                outputs: Some(vec![Output {
                     required: RequiredOutputField::Resource {
                         resource: ResourceReference::Ref {
                             r#ref: "component-14".into(),
                         },
                     },
-                    r#type: Some(output::Type::Artifact),
+                    r#type: Some("artifact".into()),
                     source: Some(ResourceReference::Ref {
                         r#ref: "component-15".into(),
                     }),
@@ -489,95 +739,104 @@ mod test {
                         r#ref: "component-16".into(),
                     }),
                     properties: None,
-                }])),
+                }]),
                 properties: Some(Properties(vec![Property {
                     name: "Foo".into(),
                     value: "Bar".into(),
                 }])),
             }),
-            steps: Some(Steps(vec![Step {
-                commands: Some(Commands(vec![Command {
+            steps: Some(vec![Step {
+                commands: Some(vec![Command {
                     executed: Some("ls -las".into()),
                     properties: Some(Properties(vec![Property {
                         name: "Foo".into(),
                         value: "Bar".into(),
                     }])),
-                }])),
+                }]),
                 description: Some("Description here".into()),
                 name: Some("My step".into()),
                 properties: Some(Properties(vec![Property {
                     name: "Foo".into(),
                     value: "Bar".into(),
                 }])),
-            }])),
-            inputs: Some(Inputs(vec![
+            }]),
+            inputs: Some(vec![
                 Input {
                     required: RequiredInputField::EnvironmentVars {
-                        environment_vars: input::EnvironmentVars(vec![
-                            input::EnvironmentVar::Property {
+                        environment_vars: EnvironmentVars(vec![EnvironmentVar::Property {
+                            name: "Foo".into(),
+                            value: "Bar".into(),
+                        }]),
+                    },
+                    source: None,
+                    target: None,
+                    properties: None,
+                },
+                Input {
+                    required: RequiredInputField::EnvironmentVars {
+                        environment_vars: EnvironmentVars(vec![EnvironmentVar::Value(
+                            "FooBar".into(),
+                        )]),
+                    },
+                    source: None,
+                    target: None,
+                    properties: None,
+                },
+                Input {
+                    required: RequiredInputField::EnvironmentVars {
+                        environment_vars: EnvironmentVars(vec![
+                            EnvironmentVar::Property {
                                 name: "Foo".into(),
                                 value: "Bar".into(),
                             },
+                            EnvironmentVar::Value("FooBar".into()),
                         ]),
                     },
                     source: None,
                     target: None,
                     properties: None,
                 },
-                Input {
-                    required: RequiredInputField::EnvironmentVars {
-                        environment_vars: input::EnvironmentVars(vec![
-                            input::EnvironmentVar::Value("FooBar".into()),
-                        ]),
+            ]),
+            outputs: Some(vec![
+                Output {
+                    required: RequiredOutputField::EnvironmentVars {
+                        environment_vars: EnvironmentVars(vec![EnvironmentVar::Property {
+                            name: "Foo".into(),
+                            value: "Bar".into(),
+                        }]),
                     },
+                    r#type: None,
                     source: None,
                     target: None,
                     properties: None,
                 },
-                Input {
-                    required: RequiredInputField::EnvironmentVars {
-                        environment_vars: input::EnvironmentVars(vec![
-                            input::EnvironmentVar::Property {
+                Output {
+                    required: RequiredOutputField::EnvironmentVars {
+                        environment_vars: EnvironmentVars(vec![EnvironmentVar::Value(
+                            "FooBar".into(),
+                        )]),
+                    },
+                    r#type: None,
+                    source: None,
+                    target: None,
+                    properties: None,
+                },
+                Output {
+                    required: RequiredOutputField::EnvironmentVars {
+                        environment_vars: EnvironmentVars(vec![
+                            EnvironmentVar::Property {
                                 name: "Foo".into(),
                                 value: "Bar".into(),
                             },
-                            input::EnvironmentVar::Value("FooBar".into()),
+                            EnvironmentVar::Value("FooBar".into()),
                         ]),
                     },
-                    source: None,
-                    target: None,
-                    properties: None,
-                },
-            ])),
-            outputs: Some(Outputs(vec![
-                Output {
-                    required: RequiredOutputField::EnvironmentVars {
-                        environment_vars: output::EnvironmentVars(vec![]),
-                    },
                     r#type: None,
                     source: None,
                     target: None,
                     properties: None,
                 },
-                Output {
-                    required: RequiredOutputField::EnvironmentVars {
-                        environment_vars: output::EnvironmentVars(vec![]),
-                    },
-                    r#type: None,
-                    source: None,
-                    target: None,
-                    properties: None,
-                },
-                Output {
-                    required: RequiredOutputField::EnvironmentVars {
-                        environment_vars: output::EnvironmentVars(vec![]),
-                    },
-                    r#type: None,
-                    source: None,
-                    target: None,
-                    properties: None,
-                },
-            ])),
+            ]),
             time_start: Some("2023-01-01T00:00:00+00:00".into()),
             time_end: Some("2023-01-01T00:00:00+00:00".into()),
             workspaces: Some(vec![Workspace {
@@ -605,10 +864,10 @@ mod test {
                 }),
                 properties: None,
             }]),
-            runtime_topology: Some(RuntimeTopology(vec![Dependency {
+            runtime_topology: Some(vec![Dependency {
                 dependency_ref: "component-r".into(),
                 depends_on: vec![],
-            }])),
+            }]),
             properties: Some(Properties(vec![Property {
                 name: "Foo".into(),
                 value: "Bar".into(),
@@ -850,6 +1109,6 @@ mod test {
 "#;
         let actual: Workflow = read_element_from_string(input);
         let expected = example_workflow();
-        assert_eq!(actual, expected);
+        pretty_assertions::assert_eq!(actual, expected);
     }
 }

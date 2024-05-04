@@ -38,7 +38,7 @@ use crate::validation::ValidationError;
 ///
 /// assert_eq!(date_time.to_string(), timestamp);
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DateTime(pub(crate) String);
 
 pub fn validate_date_time(date_time: &DateTime) -> Result<(), ValidationError> {

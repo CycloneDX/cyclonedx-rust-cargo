@@ -28,7 +28,7 @@ use super::bom::SpecVersion;
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_propertyType). Please see the
 /// [CycloneDX use case](https://cyclonedx.org/use-cases/#properties--name-value-store) for more information and examples.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Properties(pub Vec<Property>);
 
 impl Validate for Properties {
@@ -44,7 +44,7 @@ impl Validate for Properties {
 /// Represents an individual property with a name and value
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_propertyType)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Property {
     pub name: String,
     pub value: NormalizedString,

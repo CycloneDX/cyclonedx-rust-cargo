@@ -33,6 +33,7 @@ use crate::models::component::{Component, Components};
 use crate::models::composition::Compositions;
 use crate::models::dependency::Dependencies;
 use crate::models::external_reference::ExternalReferences;
+use crate::models::formulation::Formula;
 use crate::models::metadata::Metadata;
 use crate::models::property::Properties;
 use crate::models::service::{Service, Services};
@@ -89,7 +90,7 @@ pub(crate) fn validate_bom_ref(
 }
 
 /// A reference to a Bom element
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BomReference(pub(crate) String);
 
 impl BomReference {
@@ -118,6 +119,8 @@ pub struct Bom {
     pub signature: Option<Signature>,
     /// Added in version 1.5
     pub annotations: Option<Annotations>,
+    /// Added in version 1.5
+    pub formulation: Option<Vec<Formula>>,
 }
 
 impl Bom {
@@ -286,6 +289,7 @@ impl Default for Bom {
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            formulation: None,
         }
     }
 }
@@ -598,6 +602,7 @@ mod test {
             signature: None,
             annotations: None,
             properties: None,
+            formulation: None,
         };
 
         let actual = bom.validate();
@@ -623,6 +628,7 @@ mod test {
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            formulation: None,
         };
 
         let actual = bom.validate();
@@ -665,6 +671,7 @@ mod test {
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            formulation: None,
         };
 
         let actual = bom.validate_version(SpecVersion::V1_3);
@@ -775,6 +782,7 @@ mod test {
             }])),
             signature: None,
             annotations: None,
+            formulation: None,
         };
 
         let actual = bom.validate();
@@ -905,6 +913,7 @@ mod test {
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            formulation: None,
         }
         .validate();
 

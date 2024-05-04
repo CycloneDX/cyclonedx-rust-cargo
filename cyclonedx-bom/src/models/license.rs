@@ -36,7 +36,7 @@ use super::bom::SpecVersion;
 /// Represents whether a license is a named license or an SPDX license expression
 ///
 /// As defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseChoiceType)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LicenseChoice {
     License(License),
     Expression(SpdxExpression),
@@ -68,7 +68,7 @@ impl Validate for LicenseChoice {
 /// Represents a license with identifier, text, and url
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseType)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct License {
     pub license_identifier: LicenseIdentifier,
     pub text: Option<AttachedText>,
@@ -117,7 +117,7 @@ impl Validate for License {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Licenses(pub Vec<LicenseChoice>);
 
 impl Validate for Licenses {
@@ -156,7 +156,7 @@ pub fn validate_license_identifier(identifier: &LicenseIdentifier) -> Result<(),
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LicenseIdentifier {
     /// An SPDX license identifier from the list on the [SPDX website](https://spdx.org/licenses/).
     SpdxId(SpdxIdentifier),
