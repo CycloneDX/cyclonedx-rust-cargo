@@ -8,7 +8,8 @@ mod workspace;
 use crate::{
     elem_tag,
     errors::XmlReadError,
-    get_elements_lax, models,
+    get_elements_lax,
+    models::formulation::workflow as models,
     specs::common::{bom_reference::BomReference, dependency::Dependency, property::Properties},
     xml::{
         attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
@@ -25,8 +26,6 @@ use self::{
 
 use serde::{Deserialize, Serialize};
 use xml::{reader, writer};
-
-use super::runtime_topology::RuntimeTopology;
 
 /// bom-1.5.schema.json #definitions/workflow
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -59,7 +58,7 @@ pub(crate) struct Workflow {
     #[serde(skip_serializing_if = "Option::is_none")]
     workspaces: Option<Vec<Workspace>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    runtime_topology: Option<RuntimeTopology>,
+    runtime_topology: Option<Vec<Dependency>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
 }
@@ -90,6 +89,7 @@ elem_tag!(StepTag = "step");
 elem_tag!(InputTag = "input");
 elem_tag!(OutputTag = "output");
 elem_tag!(WorkspaceTag = "workspace");
+elem_tag!(DependencyTag = "dependency");
 
 impl ToXml for Workflow {
     fn write_xml_element<W: std::io::prelude::Write>(
@@ -129,7 +129,9 @@ impl ToXml for Workflow {
         if let Some(workspaces) = &self.workspaces {
             write_list_tag(writer, WORKSPACES_TAG, workspaces)?;
         }
-        self.runtime_topology.write_xml_element(writer)?;
+        if let Some(runtime_topology) = &self.runtime_topology {
+            write_list_tag(writer, RUNTIME_TOPOLOGY_TAG, runtime_topology)?;
+        }
         self.properties.write_xml_element(writer)?;
 
         write_close_tag(writer, WORKFLOW_TAG)
@@ -163,7 +165,7 @@ impl FromXml for Workflow {
             TIME_START_TAG => time_start: String,
             TIME_END_TAG => time_end: String,
             WORKSPACES_TAG => workspaces: VecXmlReader<Workspace, WorkspaceTag>,
-            RUNTIME_TOPOLOGY_TAG => runtime_topology: RuntimeTopology,
+            RUNTIME_TOPOLOGY_TAG => runtime_topology: VecXmlReader<Dependency, DependencyTag>,
             PROPERTIES_TAG => properties: Properties,
         };
 
@@ -185,7 +187,7 @@ impl FromXml for Workflow {
             time_start,
             time_end,
             workspaces: workspaces.map(Vec::from),
-            runtime_topology,
+            runtime_topology: runtime_topology.map(Vec::from),
             properties,
         })
     }
@@ -242,7 +244,7 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     workspaces: Option<Vec<Workspace>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    runtime_topology: Option<RuntimeTopology>,
+    runtime_topology: Option<Vec<Dependency>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     properties: Option<Properties>,
 }
@@ -278,7 +280,9 @@ impl ToXml for Task {
         if let Some(workspaces) = &self.workspaces {
             write_list_tag(writer, WORKSPACES_TAG, workspaces)?;
         }
-        self.runtime_topology.write_xml_element(writer)?;
+        if let Some(runtime_topology) = &self.runtime_topology {
+            write_list_tag(writer, RUNTIME_TOPOLOGY_TAG, runtime_topology)?;
+        }
         self.properties.write_xml_element(writer)?;
 
         write_close_tag(writer, WORKFLOW_TAG)
@@ -310,7 +314,7 @@ impl FromXml for Task {
             TIME_START_TAG => time_start: String,
             TIME_END_TAG => time_end: String,
             WORKSPACES_TAG => workspaces: VecXmlReader<Workspace, WorkspaceTag>,
-            RUNTIME_TOPOLOGY_TAG => runtime_topology: RuntimeTopology,
+            RUNTIME_TOPOLOGY_TAG => runtime_topology: VecXmlReader<Dependency, DependencyTag>,
             PROPERTIES_TAG => properties: Properties,
         };
 
@@ -330,7 +334,7 @@ impl FromXml for Task {
             time_start,
             time_end,
             workspaces: workspaces.map(Vec::from),
-            runtime_topology,
+            runtime_topology: runtime_topology.map(Vec::from),
             properties,
         })
     }
@@ -406,18 +410,16 @@ pub(crate) enum EnvironmentVar {
     Value(String),
 }
 
-impl From<models::formulation::workflow::EnvironmentVar> for EnvironmentVar {
-    fn from(environment_var: models::formulation::workflow::EnvironmentVar) -> Self {
+impl From<models::EnvironmentVar> for EnvironmentVar {
+    fn from(environment_var: models::EnvironmentVar) -> Self {
         match environment_var {
-            models::formulation::workflow::EnvironmentVar::Property { name, value } => {
-                Self::Property { name, value }
-            }
-            models::formulation::workflow::EnvironmentVar::Value(value) => Self::Value(value),
+            models::EnvironmentVar::Property { name, value } => Self::Property { name, value },
+            models::EnvironmentVar::Value(value) => Self::Value(value),
         }
     }
 }
 
-impl From<EnvironmentVar> for models::formulation::workflow::EnvironmentVar {
+impl From<EnvironmentVar> for models::EnvironmentVar {
     fn from(environment_var: EnvironmentVar) -> Self {
         match environment_var {
             EnvironmentVar::Property { name, value } => Self::Property { name, value },
@@ -549,10 +551,10 @@ mod test {
                     volume: None,
                     properties: None,
                 }]),
-                runtime_topology: Some(RuntimeTopology(vec![Dependency {
+                runtime_topology: Some(vec![Dependency {
                     dependency_ref: "component-1".into(),
                     depends_on: vec![],
-                }])),
+                }]),
                 properties: None,
             }]),
             task_dependencies: Some(vec![Dependency {
@@ -589,14 +591,14 @@ mod test {
                         value: "Bar".into(),
                     }])),
                 }),
-                conditions: Some(Conditions(vec![Condition {
+                conditions: Some(vec![Condition {
                     description: Some("Description here".into()),
                     expression: Some("1 == 1".into()),
                     properties: Some(Properties(vec![Property {
                         name: "Foo".into(),
                         value: "Bar".into(),
                     }])),
-                }])),
+                }]),
                 time_activated: Some("2023-01-01T00:00:00+00:00".into()),
                 inputs: Some(vec![Input {
                     required: RequiredInputField::Resource {
@@ -751,10 +753,10 @@ mod test {
                 }),
                 properties: None,
             }]),
-            runtime_topology: Some(RuntimeTopology(vec![Dependency {
+            runtime_topology: Some(vec![Dependency {
                 dependency_ref: "component-r".into(),
                 depends_on: vec![],
-            }])),
+            }]),
             properties: Some(Properties(vec![Property {
                 name: "Foo".into(),
                 value: "Bar".into(),
