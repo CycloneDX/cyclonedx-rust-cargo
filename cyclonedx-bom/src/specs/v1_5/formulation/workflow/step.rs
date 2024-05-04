@@ -2,45 +2,20 @@ use serde::{Deserialize, Serialize};
 use xml::reader;
 
 use crate::{
+    models::formulation::workflow::step as models,
     specs::common::property::Properties,
+    utilities::{convert_optional, convert_optional_vec},
     xml::{
-        read_lax_validation_list_tag, read_lax_validation_tag, read_list_tag, read_simple_tag,
-        to_xml_read_error, unexpected_element_error, write_close_tag, write_list_tag,
-        write_simple_option_tag, write_start_tag, FromXml, ToXml,
+        read_lax_validation_tag, read_list_tag, read_simple_tag, to_xml_read_error,
+        unexpected_element_error, write_close_tag, write_list_tag, write_simple_option_tag,
+        write_start_tag, FromXml, ToXml,
     },
 };
-
-#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
-pub(crate) struct Steps(pub(crate) Vec<Step>);
-
-const STEPS_TAG: &str = "steps";
-
-impl ToXml for Steps {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_list_tag(writer, STEPS_TAG, &self.0)
-    }
-}
-
-impl FromXml for Steps {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, crate::errors::XmlReadError>
-    where
-        Self: Sized,
-    {
-        read_lax_validation_list_tag(event_reader, element_name, STEP_TAG).map(Self)
-    }
-}
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub(crate) struct Step {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) commands: Option<Commands>,
+    pub(crate) commands: Option<Vec<Command>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -49,6 +24,29 @@ pub(crate) struct Step {
     pub(crate) properties: Option<Properties>,
 }
 
+impl From<models::Step> for Step {
+    fn from(step: models::Step) -> Self {
+        Self {
+            commands: convert_optional_vec(step.commands),
+            description: step.description,
+            name: step.name,
+            properties: convert_optional(step.properties),
+        }
+    }
+}
+
+impl From<Step> for models::Step {
+    fn from(step: Step) -> Self {
+        Self {
+            commands: convert_optional_vec(step.commands),
+            description: step.description,
+            name: step.name,
+            properties: convert_optional(step.properties),
+        }
+    }
+}
+
+const COMMANDS_TAG: &str = "commands";
 const STEP_TAG: &str = "step";
 const DESCRIPTION_TAG: &str = "description";
 const NAME_TAG: &str = "name";
@@ -60,7 +58,9 @@ impl ToXml for Step {
     ) -> Result<(), crate::errors::XmlWriteError> {
         write_start_tag(writer, STEP_TAG)?;
 
-        self.commands.write_xml_element(writer)?;
+        if let Some(commands) = &self.commands {
+            write_list_tag(writer, COMMANDS_TAG, commands)?;
+        }
 
         write_simple_option_tag(writer, DESCRIPTION_TAG, &self.description)?;
 
@@ -98,11 +98,7 @@ impl FromXml for Step {
                     ..
                 } => match elem_name.local_name.as_str() {
                     COMMANDS_TAG => {
-                        commands = Some(Commands::read_xml_element(
-                            event_reader,
-                            &elem_name,
-                            &attributes,
-                        )?)
+                        commands = Some(read_list_tag(event_reader, &elem_name, COMMAND_TAG)?)
                     }
                     DESCRIPTION_TAG => {
                         description = Some(read_simple_tag(event_reader, &elem_name)?)
@@ -134,38 +130,29 @@ impl FromXml for Step {
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
-pub(crate) struct Commands(pub(crate) Vec<Command>);
-
-const COMMANDS_TAG: &str = "commands";
-
-impl ToXml for Commands {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_list_tag(writer, COMMANDS_TAG, &self.0)
-    }
-}
-
-impl FromXml for Commands {
-    fn read_xml_element<R: std::io::prelude::Read>(
-        event_reader: &mut xml::EventReader<R>,
-        element_name: &xml::name::OwnedName,
-        _attributes: &[xml::attribute::OwnedAttribute],
-    ) -> Result<Self, crate::errors::XmlReadError>
-    where
-        Self: Sized,
-    {
-        read_list_tag(event_reader, element_name, COMMAND_TAG).map(Self)
-    }
-}
-
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub(crate) struct Command {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) executed: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
+}
+
+impl From<models::Command> for Command {
+    fn from(command: models::Command) -> Self {
+        Self {
+            executed: command.executed,
+            properties: convert_optional(command.properties),
+        }
+    }
+}
+
+impl From<Command> for models::Command {
+    fn from(command: Command) -> Self {
+        Self {
+            executed: command.executed,
+            properties: convert_optional(command.properties),
+        }
+    }
 }
 
 const COMMAND_TAG: &str = "command";
@@ -243,53 +230,51 @@ mod tests {
 
     use super::*;
 
-    fn example_steps() -> Steps {
-        Steps(vec![Step {
-            commands: Some(Commands(vec![Command {
+    fn example_step() -> Step {
+        Step {
+            commands: Some(vec![Command {
                 executed: Some("ls -las".into()),
                 properties: Some(Properties(vec![Property {
                     name: "Foo".into(),
                     value: "Bar".into(),
                 }])),
-            }])),
+            }]),
             description: Some("Description here".into()),
             name: Some("My step".into()),
             properties: Some(Properties(vec![Property {
                 name: "Foo".into(),
                 value: "Bar".into(),
             }])),
-        }])
+        }
     }
 
     #[test]
     fn it_should_write_xml_full() {
-        let xml_output = write_element_to_string(example_steps());
+        let xml_output = write_element_to_string(example_step());
         insta::assert_snapshot!(xml_output);
     }
 
     #[test]
     fn it_should_read_xml_full() {
         let input = r#"
-<steps>
-    <step>
-        <name>My step</name>
-        <description>Description here</description>
-        <commands>
-            <command>
-                <executed>ls -las</executed>
-                <properties>
-                    <property name="Foo">Bar</property>
-                </properties>
-            </command>
-        </commands>
-        <properties>
-            <property name="Foo">Bar</property>
-        </properties>
-    </step>
-</steps>
+<step>
+    <name>My step</name>
+    <description>Description here</description>
+    <commands>
+        <command>
+            <executed>ls -las</executed>
+            <properties>
+                <property name="Foo">Bar</property>
+            </properties>
+        </command>
+    </commands>
+    <properties>
+        <property name="Foo">Bar</property>
+    </properties>
+</step>
 "#;
-        let actual: Steps = read_element_from_string(input);
-        let expected = example_steps();
+        let actual: Step = read_element_from_string(input);
+        let expected = example_step();
         assert_eq!(actual, expected);
     }
 }

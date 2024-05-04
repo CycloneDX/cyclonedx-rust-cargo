@@ -11,8 +11,8 @@ use crate::{
 };
 
 use self::{
-    input::Input, output::Output, resource_reference::ResourceReference, trigger::Trigger,
-    workspace::Workspace,
+    input::Input, output::Output, resource_reference::ResourceReference, step::Step,
+    trigger::Trigger, workspace::Workspace,
 };
 
 pub(crate) struct Workflow {
@@ -56,6 +56,7 @@ pub(crate) struct Task {
     resource_references: Option<Vec<ResourceReference>>,
     task_types: Vec<TaskType>,
     trigger: Option<Trigger>,
+    steps: Option<Vec<Step>>,
     inputs: Option<Vec<Input>>,
     outputs: Option<Vec<Output>>,
     time_start: Option<DateTime>,

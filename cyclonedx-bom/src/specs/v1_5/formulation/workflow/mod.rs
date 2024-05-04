@@ -1,7 +1,7 @@
 mod input;
 mod output;
 mod resource_reference;
-mod steps;
+mod step;
 mod trigger;
 mod workspace;
 
@@ -19,7 +19,7 @@ use crate::{
 };
 
 use self::{
-    input::Input, output::Output, resource_reference::ResourceReferences, steps::Steps,
+    input::Input, output::Output, resource_reference::ResourceReferences, step::Step,
     trigger::Trigger, workspace::Workspace,
 };
 
@@ -47,7 +47,7 @@ pub(crate) struct Workflow {
     #[serde(skip_serializing_if = "Option::is_none")]
     trigger: Option<Trigger>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    steps: Option<Steps>,
+    steps: Option<Vec<Step>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     inputs: Option<Vec<Input>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -86,6 +86,7 @@ const PROPERTIES_TAG: &str = "properties";
 elem_tag!(TaskTag = "task");
 elem_tag!(TaskTypeTag = "taskType");
 elem_tag!(TaskDependencyTag = "dependency");
+elem_tag!(StepTag = "step");
 elem_tag!(InputTag = "input");
 elem_tag!(OutputTag = "output");
 elem_tag!(WorkspaceTag = "workspace");
@@ -114,7 +115,9 @@ impl ToXml for Workflow {
         }
         write_list_tag(writer, TASK_TYPES_TAG, &self.task_types)?;
         self.trigger.write_xml_element(writer)?;
-        self.steps.write_xml_element(writer)?;
+        if let Some(steps) = &self.steps {
+            write_list_tag(writer, STEPS_TAG, steps)?;
+        }
         if let Some(inputs) = &self.inputs {
             write_list_tag(writer, INPUTS_TAG, inputs)?;
         }
@@ -154,7 +157,7 @@ impl FromXml for Workflow {
             TASK_DEPENDENCIES_TAG => task_dependencies: VecXmlReader<Dependency, TaskDependencyTag>,
             TASK_TYPES_TAG => task_types: VecXmlReader<TaskType, TaskTypeTag>,
             TRIGGER_TAG => trigger: Trigger,
-            STEPS_TAG => steps: Steps,
+            STEPS_TAG => steps: VecXmlReader<Step, StepTag>,
             INPUTS_TAG => inputs: VecXmlReader<Input, InputTag>,
             OUTPUTS_TAG => outputs: VecXmlReader<Output, OutputTag>,
             TIME_START_TAG => time_start: String,
@@ -176,7 +179,7 @@ impl FromXml for Workflow {
                 .map(Vec::from)
                 .ok_or_else(|| XmlReadError::required_data_missing(TASK_TYPES_TAG, element_name))?,
             trigger,
-            steps,
+            steps: steps.map(Vec::from),
             inputs: inputs.map(Vec::from),
             outputs: outputs.map(Vec::from),
             time_start,
@@ -227,7 +230,7 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     trigger: Option<Trigger>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    steps: Option<Steps>,
+    steps: Option<Vec<Step>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     inputs: Option<Vec<Input>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -261,7 +264,9 @@ impl ToXml for Task {
         write_simple_option_tag(writer, DESCRIPTION_TAG, &self.description)?;
         self.resource_references.write_xml_element(writer)?;
         self.trigger.write_xml_element(writer)?;
-        self.steps.write_xml_element(writer)?;
+        if let Some(steps) = &self.steps {
+            write_list_tag(writer, STEPS_TAG, steps)?;
+        }
         if let Some(inputs) = &self.inputs {
             write_list_tag(writer, INPUTS_TAG, inputs)?;
         }
@@ -299,7 +304,7 @@ impl FromXml for Task {
             RESOURCE_REFERENCES_TAG => resource_references: ResourceReferences,
             TASK_TYPES_TAG => task_types: VecXmlReader<TaskType, TaskTypeTag>,
             TRIGGER_TAG => trigger: Trigger,
-            STEPS_TAG => steps: Steps,
+            STEPS_TAG => steps: VecXmlReader<Step, StepTag>,
             INPUTS_TAG => inputs: VecXmlReader<Input, InputTag>,
             OUTPUTS_TAG => outputs: VecXmlReader<Output, OutputTag>,
             TIME_START_TAG => time_start: String,
@@ -319,7 +324,7 @@ impl FromXml for Task {
                 .map(Vec::from)
                 .ok_or_else(|| XmlReadError::required_data_missing(TASK_TYPES_TAG, element_name))?,
             trigger,
-            steps,
+            steps: steps.map(Vec::from),
             inputs: inputs.map(Vec::from),
             outputs: outputs.map(Vec::from),
             time_start,
@@ -462,7 +467,7 @@ mod test {
         input::{self, Input, RequiredInputField},
         output::{self, Output, RequiredOutputField},
         resource_reference::ResourceReference,
-        steps::{Command, Commands, Step},
+        step::{Command, Step},
         trigger::{Condition, Conditions, Event},
         workspace::volume::Volume,
     };
@@ -501,12 +506,12 @@ mod test {
                     outputs: None,
                     properties: None,
                 }),
-                steps: Some(Steps(vec![Step {
+                steps: Some(vec![Step {
                     commands: None,
                     description: None,
                     name: Some("My step".into()),
                     properties: None,
-                }])),
+                }]),
                 inputs: Some(vec![Input {
                     required: RequiredInputField::Resource {
                         resource: ResourceReference::Ref {
@@ -627,21 +632,21 @@ mod test {
                     value: "Bar".into(),
                 }])),
             }),
-            steps: Some(Steps(vec![Step {
-                commands: Some(Commands(vec![Command {
+            steps: Some(vec![Step {
+                commands: Some(vec![Command {
                     executed: Some("ls -las".into()),
                     properties: Some(Properties(vec![Property {
                         name: "Foo".into(),
                         value: "Bar".into(),
                     }])),
-                }])),
+                }]),
                 description: Some("Description here".into()),
                 name: Some("My step".into()),
                 properties: Some(Properties(vec![Property {
                     name: "Foo".into(),
                     value: "Bar".into(),
                 }])),
-            }])),
+            }]),
             inputs: Some(vec![
                 Input {
                     required: RequiredInputField::EnvironmentVars {
