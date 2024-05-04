@@ -38,6 +38,7 @@ use crate::models::property::Properties;
 use crate::models::service::{Service, Services};
 use crate::models::signature::Signature;
 use crate::models::vulnerability::Vulnerabilities;
+use crate::specs::v1_5::formulation::Formula;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 use crate::xml::{FromXmlDocument, ToXml};
 
@@ -118,6 +119,8 @@ pub struct Bom {
     pub signature: Option<Signature>,
     /// Added in version 1.5
     pub annotations: Option<Annotations>,
+    /// Added in version 1.5
+    pub formulation: Option<Vec<Formula>>,
 }
 
 impl Bom {
@@ -286,6 +289,7 @@ impl Default for Bom {
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            formulation: None,
         }
     }
 }
@@ -598,6 +602,7 @@ mod test {
             signature: None,
             annotations: None,
             properties: None,
+            formulation: None,
         };
 
         let actual = bom.validate();
@@ -623,6 +628,7 @@ mod test {
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            formulation: None,
         };
 
         let actual = bom.validate();
@@ -665,6 +671,7 @@ mod test {
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            formulation: None,
         };
 
         let actual = bom.validate_version(SpecVersion::V1_3);
@@ -775,6 +782,7 @@ mod test {
             }])),
             signature: None,
             annotations: None,
+            formulation: None,
         };
 
         let actual = bom.validate();
@@ -905,6 +913,7 @@ mod test {
             vulnerabilities: None,
             signature: None,
             annotations: None,
+            formulation: None,
         }
         .validate();
 
