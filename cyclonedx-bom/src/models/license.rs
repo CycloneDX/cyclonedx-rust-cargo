@@ -203,6 +203,7 @@ pub struct Licensing {
     pub purchase_order: Option<String>,
     pub license_types: Option<Vec<LicenseType>>,
     pub last_renewal: Option<DateTime>,
+    pub expiration: Option<DateTime>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

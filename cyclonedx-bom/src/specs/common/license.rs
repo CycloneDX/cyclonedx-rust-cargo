@@ -763,12 +763,62 @@ pub(crate) mod base {
         <id>spdx id</id>
         <text content-type="content type" encoding="encoding">content</text>
         <url>url</url>
+        <licensing>
+          <altIds>
+            <altId>alt-id</altId>
+          </altIds>
+          <licensor>
+            <individual bom-ref="licensor-1">
+              <name>licensor name</name>
+            </individual>
+          </licensor>
+          <licensee>
+            <organization bom-ref="licensee-1">
+              <name>licensee name</name>
+            </organization>
+          </licensee>
+          <purchaser>
+            <organization bom-ref="purchaser-1">
+              <name>purchaser name</name>
+            </organization>
+          </purchaser>
+          <purchaseOrder>Subscription</purchaseOrder>
+          <licenseTypes>
+            <licenseType>User</licenseType>
+          </licenseTypes>
+          <lastRenewal>2024-01-10T10:10:12</lastRenewal>
+          <expiration>2024-05-10T10:10:12</expiration>
+        </licensing>
       </license>
       <license bom-ref="license-1">
         <name>name</name>
         <text content-type="content type" encoding="encoding">content</text>
         <url>url</url>
         <licensing>
+          <altIds>
+            <altId>alt-id</altId>
+          </altIds>
+          <licensor>
+            <individual bom-ref="licensor-1">
+              <name>licensor name</name>
+            </individual>
+          </licensor>
+          <licensee>
+            <organization bom-ref="licensee-1">
+              <name>licensee name</name>
+            </organization>
+          </licensee>
+          <purchaser>
+            <organization bom-ref="purchaser-1">
+              <name>purchaser name</name>
+            </organization>
+          </purchaser>
+          <purchaseOrder>Subscription</purchaseOrder>
+          <licenseTypes>
+            <licenseType>User</licenseType>
+          </licenseTypes>
+          <lastRenewal>2024-01-10T10:10:12</lastRenewal>
+          <expiration>2024-05-10T10:10:12</expiration>
         </licensing>
       </license>
     </licenses>

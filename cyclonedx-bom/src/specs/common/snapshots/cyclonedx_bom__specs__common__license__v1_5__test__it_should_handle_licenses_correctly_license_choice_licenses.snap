@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/license.rs
-assertion_line: 689
+assertion_line: 704
 expression: actual
 ---
 [
@@ -40,7 +40,8 @@ expression: actual
         "licenseTypes": [
           "User"
         ],
-        "lastRenewal": "2024-01-10T10:10:12"
+        "lastRenewal": "2024-01-10T10:10:12",
+        "expiration": "2024-05-10T10:10:12"
       }
     }
   },
@@ -80,7 +81,8 @@ expression: actual
         "licenseTypes": [
           "User"
         ],
-        "lastRenewal": "2024-01-10T10:10:12"
+        "lastRenewal": "2024-01-10T10:10:12",
+        "expiration": "2024-05-10T10:10:12"
       }
     }
   }
