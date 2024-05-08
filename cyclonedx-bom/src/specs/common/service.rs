@@ -40,16 +40,17 @@ pub(crate) mod base {
     use serde::{Deserialize, Serialize};
     use xml::{reader, writer::XmlEvent};
 
-    use crate::specs::common::license::Licenses;
     #[versioned("1.4", "1.5")]
     use crate::specs::common::signature::Signature;
     use crate::specs::common::{organization::OrganizationalEntity, property::Properties};
     #[versioned("1.3")]
-    use crate::specs::v1_3::external_reference::ExternalReferences;
+    use crate::specs::v1_3::{external_reference::ExternalReferences, license::Licenses};
     #[versioned("1.4")]
-    use crate::specs::v1_4::external_reference::ExternalReferences;
+    use crate::specs::v1_4::{external_reference::ExternalReferences, license::Licenses};
     #[versioned("1.5")]
-    use crate::specs::v1_5::{external_reference::ExternalReferences, service_data::ServiceData};
+    use crate::specs::v1_5::{
+        external_reference::ExternalReferences, license::Licenses, service_data::ServiceData,
+    };
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(transparent)]
@@ -778,16 +779,21 @@ pub(crate) mod base {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        use crate::specs::common::license::test::{corresponding_licenses, example_licenses};
         #[versioned("1.4", "1.5")]
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
         #[versioned("1.3")]
-        use crate::specs::v1_3::external_reference::test::{
-            corresponding_external_references, example_external_references,
+        use crate::specs::v1_3::{
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            license::test::{corresponding_licenses, example_licenses},
         };
         #[versioned("1.4")]
-        use crate::specs::v1_4::external_reference::test::{
-            corresponding_external_references, example_external_references,
+        use crate::specs::v1_4::{
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            license::test::{corresponding_licenses, example_licenses},
         };
         #[versioned("1.5")]
         use crate::specs::v1_5::{
@@ -795,6 +801,7 @@ pub(crate) mod base {
             external_reference::test::{
                 corresponding_external_references, example_external_references,
             },
+            license::test::{corresponding_licenses, example_licenses},
         };
         use crate::{
             specs::common::{

@@ -1,0 +1,13 @@
+---
+source: cyclonedx-bom/src/specs/common/license.rs
+assertion_line: 667
+expression: actual
+---
+[
+  {
+    "expression": "expression"
+  },
+  {
+    "expression": "expression"
+  }
+]

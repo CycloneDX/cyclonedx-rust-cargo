@@ -24,15 +24,19 @@ pub(crate) mod base {
     use crate::specs::common::signature::Signature;
 
     #[versioned("1.4")]
-    use crate::specs::v1_4::external_reference::ExternalReferences;
+    use crate::specs::v1_4::{external_reference::ExternalReferences, license::Licenses};
     #[versioned("1.5")]
     use crate::specs::v1_5::{
         evidence::{Callstack, Identity, Occurrences},
         external_reference::ExternalReferences,
+        license::Licenses,
         modelcard::ModelCard,
     };
     #[versioned("1.3")]
-    use crate::{models::bom::SpecVersion, specs::v1_3::external_reference::ExternalReferences};
+    use crate::{
+        models::bom::SpecVersion,
+        specs::v1_3::{external_reference::ExternalReferences, license::Licenses},
+    };
 
     use crate::{
         errors::{BomError, XmlReadError},
@@ -45,7 +49,6 @@ pub(crate) mod base {
             attached_text::AttachedText,
             code::{Commits, Patches},
             hash::Hashes,
-            license::Licenses,
             organization::OrganizationalEntity,
             property::Properties,
         },
@@ -1374,8 +1377,11 @@ pub(crate) mod base {
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
 
         #[versioned("1.4")]
-        use crate::specs::v1_4::external_reference::test::{
-            corresponding_external_references, example_external_references,
+        use crate::specs::v1_4::{
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            license::test::{corresponding_licenses, example_licenses},
         };
 
         #[versioned("1.5")]
@@ -1388,14 +1394,18 @@ pub(crate) mod base {
             external_reference::test::{
                 corresponding_external_references, example_external_references,
             },
+            license::test::{corresponding_licenses, example_licenses},
             modelcard::test::{corresponding_modelcard, example_modelcard},
         };
 
         #[versioned("1.3")]
         use crate::{
             models::bom::SpecVersion,
-            specs::v1_3::external_reference::test::{
-                corresponding_external_references, example_external_references,
+            specs::v1_3::{
+                external_reference::test::{
+                    corresponding_external_references, example_external_references,
+                },
+                license::test::{corresponding_licenses, example_licenses},
             },
         };
         use crate::{
@@ -1405,7 +1415,6 @@ pub(crate) mod base {
                     corresponding_commits, corresponding_patches, example_commits, example_patches,
                 },
                 hash::test::{corresponding_hashes, example_hashes},
-                license::test::{corresponding_licenses, example_licenses},
                 organization::test::{corresponding_entity, example_entity},
                 property::test::{corresponding_properties, example_properties},
             },

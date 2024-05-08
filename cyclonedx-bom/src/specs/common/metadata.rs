@@ -21,11 +21,13 @@ use cyclonedx_bom_macros::versioned;
 #[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
     #[versioned("1.3")]
-    use crate::specs::v1_3::{component::Component, tool::Tools};
+    use crate::specs::v1_3::{component::Component, license::Licenses, tool::Tools};
     #[versioned("1.4")]
-    use crate::specs::v1_4::{component::Component, tool::Tools};
+    use crate::specs::v1_4::{component::Component, license::Licenses, tool::Tools};
     #[versioned("1.5")]
-    use crate::specs::v1_5::{component::Component, lifecycles::Lifecycles, tool::Tools};
+    use crate::specs::v1_5::{
+        component::Component, license::Licenses, lifecycles::Lifecycles, tool::Tools,
+    };
 
     use crate::errors::BomError;
     use crate::xml::{write_close_tag, write_start_tag};
@@ -33,8 +35,8 @@ pub(crate) mod base {
         external_models::date_time::DateTime,
         models,
         specs::common::{
-            license::Licenses, organization::OrganizationalContact,
-            organization::OrganizationalEntity, property::Properties,
+            organization::OrganizationalContact, organization::OrganizationalEntity,
+            property::Properties,
         },
         utilities::{convert_optional, convert_optional_vec, try_convert_optional},
         xml::{
@@ -321,22 +323,24 @@ pub(crate) mod base {
         #[versioned("1.3")]
         use crate::specs::v1_3::{
             component::test::{corresponding_component, example_component},
+            license::test::{corresponding_licenses, example_licenses},
             tool::test::{corresponding_tools, example_tools},
         };
         #[versioned("1.4")]
         use crate::specs::v1_4::{
             component::test::{corresponding_component, example_component},
+            license::test::{corresponding_licenses, example_licenses},
             tool::test::{corresponding_tools, example_tools},
         };
         #[versioned("1.5")]
         use crate::specs::v1_5::{
             component::test::{corresponding_component, example_component},
+            license::test::{corresponding_licenses, example_licenses},
             lifecycles::test::{corresponding_lifecycles, example_lifecycles},
             tool::test::{corresponding_tools, example_tools},
         };
         use crate::{
             specs::common::{
-                license::test::{corresponding_licenses, example_licenses},
                 organization::test::{
                     corresponding_contact, corresponding_entity, example_contact, example_entity,
                 },

@@ -1,0 +1,15 @@
+---
+source: cyclonedx-bom/src/specs/v1_5/licensing.rs
+assertion_line: 503
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<licensor>
+  <organization>
+    <name>Acme Inc</name>
+    <contact>
+      <name>Acme Licensing Fulfillment</name>
+      <email>licensing@example.com</email>
+    </contact>
+  </organization>
+</licensor>

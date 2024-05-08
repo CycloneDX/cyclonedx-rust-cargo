@@ -1,0 +1,89 @@
+---
+source: cyclonedx-bom/src/specs/common/license.rs
+assertion_line: 704
+expression: actual
+---
+[
+  {
+    "license": {
+      "bomRef": "license-id",
+      "id": "spdx id",
+      "text": {
+        "contentType": "content type",
+        "encoding": "encoding",
+        "content": "content"
+      },
+      "url": "url",
+      "licensing": {
+        "altIds": [
+          "alt-id"
+        ],
+        "licensor": {
+          "individual": {
+            "bomRef": "licensor-1",
+            "name": "licensor name"
+          }
+        },
+        "licensee": {
+          "organization": {
+            "bomRef": "licensee-1",
+            "name": "licensee name"
+          }
+        },
+        "purchaser": {
+          "organization": {
+            "bomRef": "purchaser-1",
+            "name": "purchaser name"
+          }
+        },
+        "purchaseOrder": "Subscription",
+        "licenseTypes": [
+          "User"
+        ],
+        "lastRenewal": "2024-01-10T10:10:12",
+        "expiration": "2024-05-10T10:10:12"
+      }
+    }
+  },
+  {
+    "license": {
+      "bomRef": "license-1",
+      "name": "name",
+      "text": {
+        "contentType": "content type",
+        "encoding": "encoding",
+        "content": "content"
+      },
+      "url": "url",
+      "licensing": {
+        "altIds": [
+          "alt-id"
+        ],
+        "licensor": {
+          "individual": {
+            "bomRef": "licensor-1",
+            "name": "licensor name"
+          }
+        },
+        "licensee": {
+          "organization": {
+            "bomRef": "licensee-1",
+            "name": "licensee name"
+          }
+        },
+        "purchaser": {
+          "organization": {
+            "bomRef": "purchaser-1",
+            "name": "purchaser name"
+          }
+        },
+        "purchaseOrder": "Subscription",
+        "licenseTypes": [
+          "User"
+        ],
+        "lastRenewal": "2024-01-10T10:10:12",
+        "expiration": "2024-05-10T10:10:12"
+      }
+    }
+  }
+]
