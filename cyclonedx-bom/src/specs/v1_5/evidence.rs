@@ -171,7 +171,7 @@ impl FromXml for Occurrence {
         }
 
         let location = location
-            .ok_or_else(|| XmlReadError::required_data_missing(LOCATION_TAG, &element_name))?;
+            .ok_or_else(|| XmlReadError::required_data_missing(LOCATION_TAG, element_name))?;
 
         Ok(Self { bom_ref, location })
     }
@@ -460,7 +460,7 @@ impl FromXml for Frame {
         }
 
         let module =
-            module.ok_or_else(|| XmlReadError::required_data_missing(MODULE_TAG, &element_name))?;
+            module.ok_or_else(|| XmlReadError::required_data_missing(MODULE_TAG, element_name))?;
 
         Ok(Self {
             package,
@@ -604,7 +604,7 @@ impl FromXml for Identity {
         }
 
         let field =
-            field.ok_or_else(|| XmlReadError::required_data_missing(FIELD_TAG, &element_name))?;
+            field.ok_or_else(|| XmlReadError::required_data_missing(FIELD_TAG, element_name))?;
 
         Ok(Self {
             field,
@@ -785,9 +785,9 @@ impl FromXml for Method {
         }
 
         let technique = technique
-            .ok_or_else(|| XmlReadError::required_data_missing(TECHNIQUE_TAG, &element_name))?;
+            .ok_or_else(|| XmlReadError::required_data_missing(TECHNIQUE_TAG, element_name))?;
         let confidence = confidence
-            .ok_or_else(|| XmlReadError::required_data_missing(CONFIDENCE_TAG, &element_name))?;
+            .ok_or_else(|| XmlReadError::required_data_missing(CONFIDENCE_TAG, element_name))?;
 
         Ok(Self {
             technique,
@@ -861,7 +861,7 @@ impl FromXml for ToolsReferences {
                     let attribute = attribute_or_error(&name, &attributes, REF_ATTR)?;
                     tools.push(attribute);
                 }
-                reader::XmlEvent::EndElement { name, .. } if &name.local_name == TOOL_TAG => {
+                reader::XmlEvent::EndElement { name, .. } if name.local_name == TOOL_TAG => {
                     // ignore
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {

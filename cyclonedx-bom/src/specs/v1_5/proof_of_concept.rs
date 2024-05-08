@@ -46,9 +46,7 @@ impl From<ProofOfConcept> for models::vulnerability::VulnerabilityProofOfConcept
         Self {
             reproduction_steps: convert_optional(other.reproduction_steps),
             environment: convert_optional(other.environment),
-            supporting_material: other
-                .supporting_material
-                .map(|material| convert_vec(material)),
+            supporting_material: other.supporting_material.map(convert_vec),
         }
     }
 }
@@ -58,9 +56,7 @@ impl From<models::vulnerability::VulnerabilityProofOfConcept> for ProofOfConcept
         Self {
             reproduction_steps: convert_optional(other.reproduction_steps),
             environment: convert_optional(other.environment),
-            supporting_material: other
-                .supporting_material
-                .map(|material| convert_vec(material)),
+            supporting_material: other.supporting_material.map(convert_vec),
         }
     }
 }
@@ -79,11 +75,11 @@ impl ToXml for ProofOfConcept {
         write_start_tag(writer, PROOF_OF_CONCEPT_TAG)?;
 
         if let Some(steps) = &self.reproduction_steps {
-            write_simple_tag(writer, REPRODUCTION_STEPS_TAG, &steps)?;
+            write_simple_tag(writer, REPRODUCTION_STEPS_TAG, steps)?;
         }
 
         if let Some(environment) = &self.environment {
-            write_simple_tag(writer, ENVIRONMENT_TAG, &environment)?;
+            write_simple_tag(writer, ENVIRONMENT_TAG, environment)?;
         }
 
         if let Some(attachments) = &self.supporting_material {

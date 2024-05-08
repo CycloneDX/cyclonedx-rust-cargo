@@ -161,15 +161,15 @@ impl FromXml for ResourceReference {
                 } => match elem_name.local_name.as_str() {
                     REF_TAG => {
                         resource_reference = Some(Self::Ref {
-                            r#ref: read_simple_tag(event_reader, &elem_name)?,
+                            r#ref: read_simple_tag(event_reader, elem_name)?,
                         })
                     }
                     EXTERNAL_REFERENCE_TAG => {
                         resource_reference = Some(Self::ExternalReference {
                             external_reference: ExternalReference::read_xml_element(
                                 event_reader,
-                                &elem_name,
-                                &attributes,
+                                elem_name,
+                                attributes,
                             )?,
                         })
                     }

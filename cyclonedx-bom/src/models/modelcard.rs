@@ -132,17 +132,17 @@ impl ApproachType {
     }
 }
 
-impl ToString for ApproachType {
-    fn to_string(&self) -> String {
-        match self {
+impl std::fmt::Display for ApproachType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
             ApproachType::Supervised => "supervised",
             ApproachType::Unsupervised => "unsupervised",
             ApproachType::ReinforcementLearning => "reinforcement-learning",
             ApproachType::SemiSupervised => "semi-supervised",
             ApproachType::SelfSupervised => "self-supervised",
             ApproachType::Unknown(unknown) => unknown,
-        }
-        .to_string()
+        };
+        write!(f, "{}", s)
     }
 }
 

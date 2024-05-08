@@ -98,20 +98,20 @@ impl FromXml for Step {
                     ..
                 } => match elem_name.local_name.as_str() {
                     COMMANDS_TAG => {
-                        commands = Some(read_list_tag(event_reader, &elem_name, COMMAND_TAG)?)
+                        commands = Some(read_list_tag(event_reader, elem_name, COMMAND_TAG)?)
                     }
                     DESCRIPTION_TAG => {
-                        description = Some(read_simple_tag(event_reader, &elem_name)?)
+                        description = Some(read_simple_tag(event_reader, elem_name)?)
                     }
-                    NAME_TAG => name = Some(read_simple_tag(event_reader, &elem_name)?),
+                    NAME_TAG => name = Some(read_simple_tag(event_reader, elem_name)?),
                     PROPERTIES_TAG => {
                         properties = Some(Properties::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
-                    _ => read_lax_validation_tag(event_reader, &elem_name)?,
+                    _ => read_lax_validation_tag(event_reader, elem_name)?,
                 },
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
@@ -197,12 +197,12 @@ impl FromXml for Command {
                     ref attributes,
                     ..
                 } => match name.local_name.as_str() {
-                    EXECUTED_TAG => executed = Some(read_simple_tag(event_reader, &name)?),
+                    EXECUTED_TAG => executed = Some(read_simple_tag(event_reader, name)?),
                     PROPERTIES_TAG => {
                         properties = Some(Properties::read_xml_element(
                             event_reader,
-                            &name,
-                            &attributes,
+                            name,
+                            attributes,
                         )?)
                     }
                     _ => return Err(unexpected_element_error(element_name, next_element)),

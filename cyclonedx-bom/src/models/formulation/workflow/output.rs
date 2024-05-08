@@ -58,7 +58,7 @@ pub(crate) enum Type {
     Other,
     #[strum(default)]
     #[doc(hidden)]
-    UnknownType(String),
+    Unknown(String),
 }
 
 impl Type {
@@ -70,7 +70,7 @@ impl Type {
             "evidence" => Self::Evidence,
             "metrics" => Self::Metrics,
             "other" => Self::Other,
-            unknown => Self::UnknownType(unknown.to_owned()),
+            unknown => Self::Unknown(unknown.to_owned()),
         }
     }
 }
@@ -81,7 +81,7 @@ impl Validate for Type {
         _version: crate::prelude::SpecVersion,
     ) -> crate::prelude::ValidationResult {
         match self {
-            Self::UnknownType(_) => Err(ValidationError::new("unknown output type")),
+            Self::Unknown(_) => Err(ValidationError::new("unknown output type")),
             _ => Ok(()),
         }
         .into()

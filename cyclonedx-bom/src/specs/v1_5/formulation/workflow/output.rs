@@ -154,8 +154,8 @@ impl FromXml for Output {
                         required = Some(RequiredOutputField::Resource {
                             resource: ResourceReference::read_xml_element(
                                 event_reader,
-                                &name,
-                                &attributes,
+                                name,
+                                attributes,
                             )?,
                         })
                     }
@@ -163,36 +163,36 @@ impl FromXml for Output {
                         required = Some(RequiredOutputField::EnvironmentVars {
                             environment_vars: EnvironmentVars::read_xml_element(
                                 event_reader,
-                                &name,
-                                &attributes,
+                                name,
+                                attributes,
                             )?,
                         });
                     }
                     DATA_TAG => {
                         required = Some(RequiredOutputField::Data {
-                            data: Attachment::read_xml_element(event_reader, &name, &attributes)?,
+                            data: Attachment::read_xml_element(event_reader, name, attributes)?,
                         });
                     }
-                    TYPE_TAG => r#type = Some(read_simple_tag(event_reader, &name)?),
+                    TYPE_TAG => r#type = Some(read_simple_tag(event_reader, name)?),
                     SOURCE_TAG => {
                         source = Some(ResourceReference::read_xml_element(
                             event_reader,
-                            &name,
-                            &attributes,
+                            name,
+                            attributes,
                         )?);
                     }
                     TARGET_TAG => {
                         target = Some(ResourceReference::read_xml_element(
                             event_reader,
-                            &name,
-                            &attributes,
+                            name,
+                            attributes,
                         )?);
                     }
                     PROPERTIES_TAG => {
                         properties = Some(Properties::read_xml_element(
                             event_reader,
-                            &name,
-                            &attributes,
+                            name,
+                            attributes,
                         )?)
                     }
                     _ => {
@@ -210,7 +210,7 @@ impl FromXml for Output {
         }
 
         let required = required
-            .ok_or_else(|| XmlReadError::required_data_missing(RESOURCE_TAG, &element_name))?;
+            .ok_or_else(|| XmlReadError::required_data_missing(RESOURCE_TAG, element_name))?;
 
         Ok(Self {
             required,

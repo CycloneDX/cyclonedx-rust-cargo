@@ -229,7 +229,7 @@ pub(crate) mod base {
             Self: Sized,
         {
             #[versioned("1.5")]
-            let bom_ref: Option<String> = crate::xml::optional_attribute(&attributes, BOM_REF_ATTR);
+            let bom_ref: Option<String> = crate::xml::optional_attribute(attributes, BOM_REF_ATTR);
             let mut aggregate: Option<String> = None;
             let mut assemblies: Option<Vec<BomReference>> = None;
             let mut dependencies: Option<Vec<BomReference>> = None;
