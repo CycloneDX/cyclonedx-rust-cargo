@@ -132,7 +132,7 @@ impl ToInnerXml for ComponentData {
         }
         writer.write(start_tag).map_err(to_xml_write_error(tag))?;
 
-        write_simple_tag(writer, TYPE_TAG, &data_type)?;
+        write_simple_tag(writer, TYPE_TAG, data_type)?;
 
         if let Some(name) = name.as_ref() {
             write_simple_tag(writer, NAME_TAG, name)?;

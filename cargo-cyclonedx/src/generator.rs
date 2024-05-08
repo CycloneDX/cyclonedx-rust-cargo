@@ -790,7 +790,7 @@ impl GeneratedSbom {
                 let toplevel_component = metadata.component.as_mut().unwrap();
                 toplevel_component.name = component.name.clone();
                 toplevel_component.component_type = component.component_type.clone();
-                toplevel_component.purl = component.purl.clone();
+                toplevel_component.purl.clone_from(&component.purl);
 
                 (new_bom, target_kind.clone())
             })

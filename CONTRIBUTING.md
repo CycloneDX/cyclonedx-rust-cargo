@@ -52,7 +52,7 @@ Check for deviations from coding standards:
 
 ```shell
 cargo fmt -- --check
-cargo clippy --all-targets
+cargo clippy --all-targets --workspace --tests
 ```
 
 Apply coding standards via:

@@ -151,7 +151,7 @@ pub(crate) enum TaskType {
     Clean,
     Other,
     #[strum(default)]
-    UnknownTaskType(String),
+    Unknown(String),
 }
 
 impl TaskType {
@@ -169,7 +169,7 @@ impl TaskType {
             "release" => Self::Release,
             "clean" => Self::Clean,
             "other" => Self::Other,
-            unknown => Self::UnknownTaskType(unknown.to_owned()),
+            unknown => Self::Unknown(unknown.to_owned()),
         }
     }
 }
@@ -180,7 +180,7 @@ impl Validate for TaskType {
         _version: crate::prelude::SpecVersion,
     ) -> crate::prelude::ValidationResult {
         match self {
-            Self::UnknownTaskType(_) => Err(ValidationError::new("unknown task type")),
+            Self::Unknown(_) => Err(ValidationError::new("unknown task type")),
             _ => Ok(()),
         }
         .into()

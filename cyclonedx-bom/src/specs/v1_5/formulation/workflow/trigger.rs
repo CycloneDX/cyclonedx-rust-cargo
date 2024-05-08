@@ -164,46 +164,46 @@ impl FromXml for Trigger {
                     ref attributes,
                     ..
                 } => match elem_name.local_name.as_str() {
-                    UID_TAG => uid = Some(read_simple_tag(event_reader, &elem_name)?),
-                    NAME_TAG => name = Some(read_simple_tag(event_reader, &elem_name)?),
+                    UID_TAG => uid = Some(read_simple_tag(event_reader, elem_name)?),
+                    NAME_TAG => name = Some(read_simple_tag(event_reader, elem_name)?),
                     DESCRIPTION_TAG => {
-                        description = Some(read_simple_tag(event_reader, &elem_name)?)
+                        description = Some(read_simple_tag(event_reader, elem_name)?)
                     }
                     RESOURCE_REFERENCES_TAG => {
                         resource_references = Some(ResourceReferences::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
-                    TYPE_TAG => r#type = Some(read_simple_tag(event_reader, &elem_name)?),
+                    TYPE_TAG => r#type = Some(read_simple_tag(event_reader, elem_name)?),
                     EVENT_TAG => {
                         event = Some(Event::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
                     CONDITIONS_TAG => {
-                        conditions = Some(read_list_tag(event_reader, &elem_name, CONDITION_TAG)?)
+                        conditions = Some(read_list_tag(event_reader, elem_name, CONDITION_TAG)?)
                     }
                     TIME_ACTIVATED_TAG => {
-                        time_activated = Some(read_simple_tag(event_reader, &elem_name)?)
+                        time_activated = Some(read_simple_tag(event_reader, elem_name)?)
                     }
                     INPUTS_TAG => {
-                        inputs = Some(read_list_tag(event_reader, &elem_name, INPUT_TAG)?);
+                        inputs = Some(read_list_tag(event_reader, elem_name, INPUT_TAG)?);
                     }
                     OUTPUTS_TAG => {
-                        outputs = Some(read_list_tag(event_reader, &elem_name, OUTPUT_TAG)?)
+                        outputs = Some(read_list_tag(event_reader, elem_name, OUTPUT_TAG)?)
                     }
                     PROPERTIES_TAG => {
                         properties = Some(Properties::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
-                    _ => read_lax_validation_tag(event_reader, &elem_name)?,
+                    _ => read_lax_validation_tag(event_reader, elem_name)?,
                 },
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
@@ -335,42 +335,42 @@ impl FromXml for Event {
                     ref attributes,
                     ..
                 } => match elem_name.local_name.as_str() {
-                    UID_TAG => uid = Some(read_simple_tag(event_reader, &elem_name)?),
+                    UID_TAG => uid = Some(read_simple_tag(event_reader, elem_name)?),
                     DESCRIPTION_TAG => {
-                        description = Some(read_simple_tag(event_reader, &elem_name)?)
+                        description = Some(read_simple_tag(event_reader, elem_name)?)
                     }
                     TIME_RECEIVED_TAG => {
-                        time_received = Some(read_simple_tag(event_reader, &elem_name)?)
+                        time_received = Some(read_simple_tag(event_reader, elem_name)?)
                     }
                     DATA_TAG => {
                         data = Some(Attachment::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
                     SOURCE_TAG => {
                         source = Some(ResourceReference::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
                     TARGET_TAG => {
                         target = Some(ResourceReference::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
                     PROPERTIES_TAG => {
                         properties = Some(Properties::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
-                    _ => read_lax_validation_tag(event_reader, &elem_name)?,
+                    _ => read_lax_validation_tag(event_reader, elem_name)?,
                 },
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
@@ -465,14 +465,14 @@ impl FromXml for Condition {
                     ..
                 } => match elem_name.local_name.as_str() {
                     DESCRIPTION_TAG => {
-                        description = Some(read_simple_tag(event_reader, &elem_name)?)
+                        description = Some(read_simple_tag(event_reader, elem_name)?)
                     }
-                    EXPRESSION_TAG => expression = Some(read_simple_tag(event_reader, &elem_name)?),
+                    EXPRESSION_TAG => expression = Some(read_simple_tag(event_reader, elem_name)?),
                     PROPERTIES_TAG => {
                         properties = Some(Properties::read_xml_element(
                             event_reader,
-                            &elem_name,
-                            &attributes,
+                            elem_name,
+                            attributes,
                         )?)
                     }
                     _ => return Err(unexpected_element_error(element_name, next_element)),

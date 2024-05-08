@@ -23,7 +23,7 @@ jobs:
       - name: Lint
         run: |
           cargo fmt -- --check
-          cargo clippy --all-targets
+          cargo clippy --all-targets --workspace --tests
 
   dependencies:
     name: Check Dependencies
