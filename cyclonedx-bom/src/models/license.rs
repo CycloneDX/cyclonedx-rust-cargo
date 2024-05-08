@@ -19,6 +19,7 @@
 use crate::external_models::normalized_string::validate_normalized_string;
 use crate::external_models::spdx::{validate_spdx_expression, validate_spdx_identifier};
 use crate::external_models::uri::validate_uri;
+use crate::external_models::validate_date_time;
 use crate::external_models::{
     date_time::DateTime,
     normalized_string::NormalizedString,
@@ -127,6 +128,7 @@ impl Validate for License {
             .add_struct("license_identifier", &self.license_identifier, version)
             .add_struct_option("text", self.text.as_ref(), version)
             .add_field_option("url", self.url.as_ref(), validate_uri)
+            .add_struct_option("licensing", self.licensing.as_ref(), version)
             .into()
     }
 }
@@ -196,7 +198,7 @@ impl Validate for LicenseIdentifier {
 /// For more details see: https://cyclonedx.org/docs/1.5/json/#metadata_licenses_oneOf_i0_items_license_licensing
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Licensing {
-    pub alt_ids: Option<Vec<String>>,
+    pub alt_ids: Option<Vec<NormalizedString>>,
     pub licensor: Option<LicenseContact>,
     pub licensee: Option<LicenseContact>,
     pub purchaser: Option<LicenseContact>,
@@ -206,10 +208,49 @@ pub struct Licensing {
     pub expiration: Option<DateTime>,
 }
 
+impl Validate for Licensing {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_list_option("alt_ids", self.alt_ids.as_ref(), validate_normalized_string)
+            .add_struct_option("licensor", self.licensor.as_ref(), version)
+            .add_struct_option("licensee", self.licensee.as_ref(), version)
+            .add_struct_option("purchaser", self.purchaser.as_ref(), version)
+            .add_list_option(
+                "license_types",
+                self.license_types.as_ref(),
+                validate_license_type,
+            )
+            .add_field_option(
+                "last_renewal",
+                self.last_renewal.as_ref(),
+                validate_date_time,
+            )
+            .add_field_option("expiration", self.expiration.as_ref(), validate_date_time)
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LicenseContact {
     Organization(OrganizationalEntity),
     Contact(OrganizationalContact),
+}
+
+impl Validate for LicenseContact {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        match self {
+            LicenseContact::Organization(org) => org.validate_version(version),
+            LicenseContact::Contact(contact) => contact.validate_version(version),
+        }
+    }
+}
+
+fn validate_license_type(license_type: &LicenseType) -> Result<(), ValidationError> {
+    if let LicenseType::Unknown(unknown) = license_type {
+        return Err(format!("Unknown license type '{}'", unknown).into());
+    }
+
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display, Hash)]

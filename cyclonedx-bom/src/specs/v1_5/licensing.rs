@@ -23,8 +23,9 @@ use crate::{
     errors::XmlReadError,
     external_models::date_time::DateTime,
     models,
+    prelude::NormalizedString,
     specs::common::organization::{OrganizationalContact, OrganizationalEntity},
-    utilities::{convert_optional, convert_vec},
+    utilities::convert_optional,
     xml::{
         read_list_tag, read_simple_tag, to_xml_read_error, unexpected_element_error,
         write_close_tag, write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
@@ -48,7 +49,11 @@ pub(crate) struct Licensing {
 impl From<Licensing> for models::license::Licensing {
     fn from(other: Licensing) -> Self {
         Self {
-            alt_ids: other.alt_ids.map(convert_vec),
+            alt_ids: other.alt_ids.map(|ids| {
+                ids.into_iter()
+                    .map(NormalizedString::new_unchecked)
+                    .collect()
+            }),
             licensor: other.licensor.map(From::from),
             licensee: other.licensee.map(From::from),
             purchaser: other.purchaser.map(From::from),
@@ -68,7 +73,9 @@ impl From<Licensing> for models::license::Licensing {
 impl From<models::license::Licensing> for Licensing {
     fn from(other: models::license::Licensing) -> Self {
         Self {
-            alt_ids: other.alt_ids.map(convert_vec),
+            alt_ids: other
+                .alt_ids
+                .map(|ids| ids.into_iter().map(|id| id.0).collect()),
             licensor: other.licensor.map(From::from),
             licensee: other.licensee.map(From::from),
             purchaser: other.purchaser.map(From::from),
@@ -391,7 +398,7 @@ pub(crate) mod test {
 
     pub(crate) fn corresponding_licensing() -> models::license::Licensing {
         models::license::Licensing {
-            alt_ids: Some(vec!["alt-id".to_string()]),
+            alt_ids: Some(vec![NormalizedString::new_unchecked("alt-id".to_string())]),
             licensor: Some(corresponding_licensor()),
             licensee: Some(corresponding_licensee()),
             purchaser: Some(corresponding_purchaser()),
