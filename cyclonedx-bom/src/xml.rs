@@ -9,13 +9,6 @@ use xml::{
     EventReader,
 };
 
-pub(crate) trait ToXmlDocument {
-    fn write_xml_document<W: Write>(
-        &self,
-        writer: &mut EventWriter<W>,
-    ) -> Result<(), XmlWriteError>;
-}
-
 pub(crate) trait ToXml {
     fn write_xml_element<W: Write>(&self, writer: &mut EventWriter<W>)
         -> Result<(), XmlWriteError>;
