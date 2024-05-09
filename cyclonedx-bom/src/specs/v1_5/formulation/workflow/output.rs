@@ -223,7 +223,7 @@ impl FromXml for Output {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged, rename_all = "camelCase")]
+#[serde(untagged, rename_all_fields = "camelCase")]
 pub(crate) enum RequiredOutputField {
     Resource { resource: ResourceReference },
     EnvironmentVars { environment_vars: EnvironmentVars },

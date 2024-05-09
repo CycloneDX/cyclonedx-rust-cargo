@@ -226,7 +226,7 @@ impl FromXml for Input {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged, rename_all = "camelCase")]
+#[serde(untagged, rename_all_fields = "camelCase")]
 pub(crate) enum RequiredInputField {
     Resource { resource: ResourceReference },
     Parameters { parameters: Vec<Parameter> },
@@ -237,8 +237,11 @@ pub(crate) enum RequiredInputField {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Parameter {
+    #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     data_type: Option<String>,
 }
 

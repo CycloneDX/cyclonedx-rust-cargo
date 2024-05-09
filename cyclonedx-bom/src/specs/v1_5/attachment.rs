@@ -38,7 +38,9 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Attachment {
     pub(crate) content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) content_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) encoding: Option<String>,
 }
 
