@@ -55,6 +55,7 @@ pub(crate) mod base {
             },
         },
         utilities::convert_optional_vec,
+        xml::write_list_tag,
     };
 
     use crate::{specs::common::dependency::Dependencies, xml::ToXml};
@@ -237,6 +238,11 @@ pub(crate) mod base {
             #[versioned("1.4", "1.5")]
             if let Some(vulnerabilities) = &self.vulnerabilities {
                 vulnerabilities.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.5")]
+            if let Some(formulation) = &self.formulation {
+                write_list_tag(writer, FORMULATION_TAG, formulation)?;
             }
 
             writer

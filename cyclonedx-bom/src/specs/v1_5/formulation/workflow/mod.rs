@@ -30,7 +30,9 @@ use xml::{reader, writer};
 
 /// bom-1.5.schema.json #definitions/workflow
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct Workflow {
+    #[serde(rename = "bom-ref")]
     bom_ref: String,
     uid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -277,7 +279,9 @@ impl FromXml for TaskType {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Task {
+    #[serde(rename = "bom-ref")]
     bom_ref: String,
     uid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -515,7 +519,7 @@ impl FromXml for EnvironmentVars {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged, rename_all = "camelCase")]
+#[serde(untagged, rename_all_fields = "camelCase")]
 pub(crate) enum EnvironmentVar {
     Property { name: String, value: String },
     Value(String),

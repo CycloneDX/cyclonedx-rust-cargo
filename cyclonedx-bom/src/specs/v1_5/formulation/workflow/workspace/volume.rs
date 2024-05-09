@@ -9,13 +9,21 @@ use crate::{
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Volume {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) uid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) size_allocated: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) persistent: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) remote: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) properties: Option<Properties>,
 }
 

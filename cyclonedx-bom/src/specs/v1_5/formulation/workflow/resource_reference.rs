@@ -75,7 +75,7 @@ impl FromXml for ResourceReferences {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged, rename_all = "camelCase")]
+#[serde(untagged, rename_all_fields = "camelCase")]
 pub(crate) enum ResourceReference {
     Ref {
         r#ref: String,

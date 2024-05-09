@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 609
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -602,4 +601,14 @@ expression: xml_output
       <workaround>workaround</workaround>
     </vulnerability>
   </vulnerabilities>
+  <formulation>
+    <formula bom-ref="formula-1">
+      <components>
+        <component type="platform" bom-ref="component-1">
+          <name>Pipeline controller image</name>
+          <version>v0.47.0</version>
+        </component>
+      </components>
+    </formula>
+  </formulation>
 </bom>
