@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 54
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
 ---
@@ -19,7 +18,6 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
   ],
   "annotations": [
     {
-      "bomRef": null,
       "subjects": [
         "component-a"
       ],
@@ -38,11 +36,9 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
         }
       },
       "timestamp": "2022-01-01T00:00:00Z",
-      "text": "This is a sample annotation made by an organization",
-      "signature": null
+      "text": "This is a sample annotation made by an organization"
     },
     {
-      "bomRef": null,
       "subjects": [
         "component-a"
       ],
@@ -54,11 +50,9 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
         }
       },
       "timestamp": "2022-01-01T00:00:00Z",
-      "text": "This is a sample annotation made by a person",
-      "signature": null
+      "text": "This is a sample annotation made by a person"
     },
     {
-      "bomRef": null,
       "subjects": [
         "component-a"
       ],
@@ -70,11 +64,9 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
         }
       },
       "timestamp": "2022-01-01T00:00:00Z",
-      "text": "This is a sample annotation made by a component",
-      "signature": null
+      "text": "This is a sample annotation made by a component"
     },
     {
-      "bomRef": null,
       "subjects": [
         "component-a"
       ],
@@ -105,8 +97,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
         }
       },
       "timestamp": "2022-01-01T00:00:00Z",
-      "text": "This is a sample annotation made by a service",
-      "signature": null
+      "text": "This is a sample annotation made by a service"
     }
   ]
 }
