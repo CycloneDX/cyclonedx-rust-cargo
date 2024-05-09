@@ -867,7 +867,7 @@ expression: actual
   ],
   "formulation": [
     {
-      "kebab-case": "formula-1",
+      "bom-ref": "formula-1",
       "components": [
         {
           "type": "platform",
