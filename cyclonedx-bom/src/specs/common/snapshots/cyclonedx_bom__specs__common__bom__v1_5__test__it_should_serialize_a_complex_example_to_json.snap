@@ -259,9 +259,7 @@ expression: actual
               {
                 "name": "Graphic A",
                 "image": {
-                  "content": "1234",
-                  "contentType": null,
-                  "encoding": null
+                  "content": "1234"
                 }
               }
             ]
@@ -273,9 +271,7 @@ expression: actual
         "name": "config",
         "contents": {
           "attachment": {
-            "content": "foo: bar",
-            "contentType": null,
-            "encoding": null
+            "content": "foo: bar"
           }
         }
       }
@@ -554,9 +550,7 @@ expression: actual
               {
                 "name": "Graphic A",
                 "image": {
-                  "content": "1234",
-                  "contentType": null,
-                  "encoding": null
+                  "content": "1234"
                 }
               }
             ]
@@ -568,9 +562,7 @@ expression: actual
         "name": "config",
         "contents": {
           "attachment": {
-            "content": "foo: bar",
-            "contentType": null,
-            "encoding": null
+            "content": "foo: bar"
           }
         }
       }
