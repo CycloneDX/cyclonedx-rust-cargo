@@ -24,7 +24,7 @@ use super::{component::Components, service::Services};
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Formula {
-    #[serde(rename = "kebab-case", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
     bom_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     components: Option<Components>,

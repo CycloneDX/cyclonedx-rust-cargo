@@ -23,7 +23,7 @@ use super::{
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Trigger {
-    #[serde(rename = "kebab-case")]
+    #[serde(rename = "bom-ref")]
     pub(crate) bom_ref: String,
     pub(crate) uid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
