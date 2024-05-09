@@ -38,7 +38,9 @@ pub(crate) mod base {
         models::{self, bom::SpecVersion},
         utilities::{convert_optional, try_convert_optional},
         xml::{
-            expected_namespace_or_error, optional_attribute, read_lax_validation_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, FromXmlDocument, FromXmlType
+            expected_namespace_or_error, optional_attribute, read_lax_validation_tag,
+            to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml,
+            FromXmlDocument, FromXmlType,
         },
     };
     #[versioned("1.5")]
