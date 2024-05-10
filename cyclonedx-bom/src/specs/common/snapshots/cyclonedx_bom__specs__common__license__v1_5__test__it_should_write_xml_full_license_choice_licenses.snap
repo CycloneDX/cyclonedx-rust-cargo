@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/license.rs
-assertion_line: 684
+assertion_line: 762
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -9,10 +9,16 @@ expression: xml_output
     <id>spdx id</id>
     <text content-type="content type" encoding="encoding">content</text>
     <url>url</url>
+    <properties>
+      <property name="name">value</property>
+    </properties>
   </license>
   <license bom-ref="license-1">
     <name>name</name>
     <text content-type="content type" encoding="encoding">content</text>
     <url>url</url>
+    <properties>
+      <property name="name">value</property>
+    </properties>
   </license>
 </licenses>

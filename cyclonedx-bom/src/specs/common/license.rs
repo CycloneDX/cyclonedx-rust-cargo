@@ -23,7 +23,7 @@ pub(crate) mod base {
     use crate::models;
     use crate::models::bom::BomReference;
     #[versioned("1.5")]
-    use crate::specs::v1_5::licensing::Licensing;
+    use crate::specs::{common::property::Properties, v1_5::licensing::Licensing};
     use crate::xml::{optional_attribute, write_close_tag, write_simple_tag};
     use crate::{
         errors::XmlReadError,
@@ -118,6 +118,7 @@ pub(crate) mod base {
         }
     }
 
+    #[allow(clippy::large_enum_variant)]
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub(crate) enum LicenseChoice {
@@ -208,6 +209,9 @@ pub(crate) mod base {
         #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         licensing: Option<Licensing>,
+        #[versioned("1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        properties: Option<Properties>,
     }
 
     impl From<models::license::License> for License {
@@ -220,6 +224,8 @@ pub(crate) mod base {
                 url: other.url.map(|u| u.to_string()),
                 #[versioned("1.5")]
                 licensing: convert_optional(other.licensing),
+                #[versioned("1.5")]
+                properties: convert_optional(other.properties),
             }
         }
     }
@@ -238,6 +244,10 @@ pub(crate) mod base {
                 licensing: None,
                 #[versioned("1.5")]
                 licensing: convert_optional(other.licensing),
+                #[versioned("1.3", "1.4")]
+                properties: None,
+                #[versioned("1.5")]
+                properties: convert_optional(other.properties),
             }
         }
     }
@@ -247,6 +257,8 @@ pub(crate) mod base {
     const URL_TAG: &str = "url";
     #[versioned("1.5")]
     const LICENSING_TAG: &str = "licensing";
+    #[versioned("1.5")]
+    const PROPERTIES_TAG: &str = "properties";
 
     impl ToXml for License {
         fn write_xml_element<W: std::io::Write>(
@@ -277,6 +289,11 @@ pub(crate) mod base {
                 write_simple_tag(writer, URL_TAG, url)?;
             }
 
+            #[versioned("1.5")]
+            if let Some(properties) = &self.properties {
+                properties.write_xml_element(writer)?;
+            }
+
             writer
                 .write(writer::XmlEvent::end_element())
                 .map_err(to_xml_write_error(LICENSE_TAG))?;
@@ -301,6 +318,8 @@ pub(crate) mod base {
             let mut url: Option<String> = None;
             #[versioned("1.5")]
             let mut licensing: Option<Licensing> = None;
+            #[versioned("1.5")]
+            let mut properties: Option<Properties> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -350,6 +369,16 @@ pub(crate) mod base {
                             &attributes,
                         )?);
                     }
+                    #[versioned("1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == PROPERTIES_TAG => {
+                        properties = Some(Properties::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?);
+                    }
 
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
@@ -375,6 +404,8 @@ pub(crate) mod base {
                 url,
                 #[versioned("1.5")]
                 licensing,
+                #[versioned("1.5")]
+                properties,
             })
         }
     }
@@ -556,7 +587,10 @@ pub(crate) mod base {
         use pretty_assertions::assert_eq;
 
         #[versioned("1.5")]
-        use crate::specs::v1_5::licensing::test::{corresponding_licensing, example_licensing};
+        use crate::specs::{
+            common::property::test::{corresponding_properties, example_properties},
+            v1_5::licensing::test::{corresponding_licensing, example_licensing},
+        };
 
         use crate::{
             external_models::spdx::SpdxExpression,
@@ -591,6 +625,7 @@ pub(crate) mod base {
                 text: Some(example_attached_text()),
                 url: Some("url".to_string()),
                 licensing: Some(example_licensing()),
+                properties: Some(example_properties()),
             })
         }
 
@@ -605,6 +640,7 @@ pub(crate) mod base {
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
                 licensing: None,
+                properties: None,
             })
         }
 
@@ -619,6 +655,7 @@ pub(crate) mod base {
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
                 licensing: Some(corresponding_licensing()),
+                properties: Some(corresponding_properties()),
             })
         }
 
@@ -639,6 +676,7 @@ pub(crate) mod base {
                 text: Some(example_attached_text()),
                 url: Some("url".to_string()),
                 licensing: Some(example_licensing()),
+                properties: Some(example_properties()),
             })
         }
 
@@ -653,6 +691,7 @@ pub(crate) mod base {
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
                 licensing: None,
+                properties: None,
             })
         }
 
@@ -667,6 +706,7 @@ pub(crate) mod base {
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
                 licensing: Some(corresponding_licensing()),
+                properties: Some(corresponding_properties()),
             })
         }
 
@@ -789,6 +829,9 @@ pub(crate) mod base {
           <lastRenewal>2024-01-10T10:10:12</lastRenewal>
           <expiration>2024-05-10T10:10:12</expiration>
         </licensing>
+        <properties>
+          <property name="name">value</property>
+        </properties>
       </license>
       <license bom-ref="license-1">
         <name>name</name>
@@ -820,6 +863,9 @@ pub(crate) mod base {
           <lastRenewal>2024-01-10T10:10:12</lastRenewal>
           <expiration>2024-05-10T10:10:12</expiration>
         </licensing>
+        <properties>
+          <property name="name">value</property>
+        </properties>
       </license>
     </licenses>
     "#;
