@@ -34,7 +34,7 @@ jobs:
       - name: Build one time, for sanity
         run: cargo build
       - name: Publish
-        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --allow-dirty
+        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose
       - name: Configure git and add files
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
