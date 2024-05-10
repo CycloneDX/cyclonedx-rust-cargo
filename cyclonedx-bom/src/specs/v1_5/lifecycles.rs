@@ -89,6 +89,7 @@ impl FromXml for Lifecycles {
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Lifecycle {
     Phase(Phase),
+    #[serde(untagged)]
     Description(Description),
 }
 
@@ -256,6 +257,35 @@ pub(crate) mod test {
         models::lifecycle::Lifecycles(vec![models::lifecycle::Lifecycle::Phase(
             models::lifecycle::Phase::Design,
         )])
+    }
+
+    #[test]
+    fn it_should_read_json_with_multiple_lifecycles() {
+        let input = r#"[
+              {
+                "phase": "build"
+              },
+              {
+                "phase": "post-build"
+              },
+              {
+                "name": "platform-integration-testing",
+                "description": "Integration testing specific to the runtime platform"
+              }
+            ]"#;
+        let actual: Lifecycles = serde_json::from_str(input).expect("Failed to parse JSON");
+        let expected = Lifecycles(vec![
+            Lifecycle::Phase(Phase::new("build")),
+            Lifecycle::Phase(Phase::new("post-build")),
+            Lifecycle::Description(Description {
+                name: "platform-integration-testing".to_string(),
+                description: Some(
+                    "Integration testing specific to the runtime platform".to_string(),
+                ),
+            }),
+        ]);
+
+        assert_eq!(actual, expected);
     }
 
     #[test]

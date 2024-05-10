@@ -33,9 +33,12 @@ use crate::models::{
 };
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
+use super::property::Properties;
+
 /// Represents whether a license is a named license or an SPDX license expression
 ///
 /// As defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseChoiceType)
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LicenseChoice {
     License(License),
@@ -85,6 +88,7 @@ pub struct License {
     pub text: Option<AttachedText>,
     pub url: Option<Uri>,
     pub licensing: Option<Licensing>,
+    pub properties: Option<Properties>,
 }
 
 impl License {
@@ -101,6 +105,7 @@ impl License {
             text: None,
             url: None,
             licensing: None,
+            properties: None,
         }
     }
 
@@ -118,6 +123,7 @@ impl License {
             text: None,
             url: None,
             licensing: None,
+            properties: None,
         }
     }
 }
@@ -129,6 +135,7 @@ impl Validate for License {
             .add_struct_option("text", self.text.as_ref(), version)
             .add_field_option("url", self.url.as_ref(), validate_uri)
             .add_struct_option("licensing", self.licensing.as_ref(), version)
+            .add_struct_option("properties", self.properties.as_ref(), version)
             .into()
     }
 }
@@ -329,6 +336,7 @@ mod test {
             text: None,
             url: None,
             licensing: None,
+            properties: None,
         })])
         .validate();
 
@@ -406,6 +414,7 @@ mod test {
                 text: None,
                 url: None,
                 licensing: None,
+                properties: None,
             }),
             LicenseChoice::License(License {
                 bom_ref: None,
@@ -415,6 +424,7 @@ mod test {
                 text: None,
                 url: None,
                 licensing: None,
+                properties: None,
             }),
             LicenseChoice::License(License {
                 bom_ref: None,
@@ -424,6 +434,7 @@ mod test {
                 text: None,
                 url: None,
                 licensing: None,
+                properties: None,
             }),
         ])
         .validate();

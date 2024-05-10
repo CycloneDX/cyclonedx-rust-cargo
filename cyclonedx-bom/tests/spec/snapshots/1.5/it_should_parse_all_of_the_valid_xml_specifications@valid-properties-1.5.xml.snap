@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 27
+assertion_line: 29
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-properties-1.5.xml
 ---
@@ -18,6 +18,17 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-properties-1.5.xml
     <component type="library">
       <name>acme-library</name>
       <version>1.0.0</version>
+      <licenses>
+        <license>
+          <id>Apache-2.0</id>
+          <properties>
+            <property name="Foo">Bar</property>
+            <property name="Foo">You</property>
+            <property name="Foo">Two</property>
+            <property name="Bar">Foo</property>
+          </properties>
+        </license>
+      </licenses>
       <properties>
         <property name="Foo">Bar</property>
         <property name="Bar">Foo</property>

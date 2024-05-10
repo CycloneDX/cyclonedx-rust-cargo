@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/license.rs
-assertion_line: 704
+assertion_line: 743
 expression: actual
 ---
 [
@@ -42,7 +42,13 @@ expression: actual
         ],
         "lastRenewal": "2024-01-10T10:10:12",
         "expiration": "2024-05-10T10:10:12"
-      }
+      },
+      "properties": [
+        {
+          "name": "name",
+          "value": "value"
+        }
+      ]
     }
   },
   {
@@ -83,7 +89,13 @@ expression: actual
         ],
         "lastRenewal": "2024-01-10T10:10:12",
         "expiration": "2024-05-10T10:10:12"
-      }
+      },
+      "properties": [
+        {
+          "name": "name",
+          "value": "value"
+        }
+      ]
     }
   }
 ]
