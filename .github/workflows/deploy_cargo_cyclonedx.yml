@@ -39,7 +39,7 @@ jobs:
         run: cargo build
 
       - name: Publish
-        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cargo-cyclonedx --verbose --allow-dirty
+        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cargo-cyclonedx --verbose
 
       - name: Configure git and add files
         run: |
