@@ -128,8 +128,12 @@ impl Bom {
     pub fn parse_from_json<R: std::io::Read>(
         mut reader: R,
     ) -> Result<Self, crate::errors::JsonReadError> {
-        let json: serde_json::Value = serde_json::from_reader(&mut reader)?;
+        Self::parse_json_value(serde_json::from_reader(&mut reader)?)
+    }
 
+    /// General function to parse a pre-parsed JSON file, fetches the `specVersion` field first,
+    /// then applies the right conversion.
+    pub fn parse_json_value(json: Value) -> Result<Self, crate::errors::JsonReadError> {
         if let Some(version) = json.get("specVersion") {
             let version = version
                 .as_str()
@@ -197,6 +201,13 @@ impl Bom {
         mut reader: R,
     ) -> Result<Self, crate::errors::JsonReadError> {
         let bom: crate::specs::v1_4::bom::Bom = serde_json::from_reader(&mut reader)?;
+        Ok(bom.into())
+    }
+
+    /// Parse the input as a JSON document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/json/)
+    /// from an existing [`Value`].
+    pub fn parse_from_json_value_v1_4(value: Value) -> Result<Self, crate::errors::JsonReadError> {
+        let bom: crate::specs::v1_4::bom::Bom = serde_json::from_value(value)?;
         Ok(bom.into())
     }
 
