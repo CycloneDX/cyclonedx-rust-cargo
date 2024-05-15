@@ -20,11 +20,9 @@ use cyclonedx_bom_macros::versioned;
 
 #[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
-    #[versioned("1.3", "1.4")]
-    use crate::{errors::BomError, utilities::try_convert_vec};
     use crate::{
         errors::XmlReadError,
-        external_models, models,
+        models,
         specs::common::hash::Hashes,
         utilities::{convert_optional, convert_vec},
         xml::{
@@ -40,20 +38,8 @@ pub(crate) mod base {
     #[serde(transparent)]
     pub(crate) struct ExternalReferences(Vec<ExternalReference>);
 
-    #[versioned("1.3", "1.4")]
-    impl TryFrom<models::external_reference::ExternalReferences> for ExternalReferences {
-        type Error = BomError;
-
-        fn try_from(
-            other: models::external_reference::ExternalReferences,
-        ) -> Result<Self, Self::Error> {
-            try_convert_vec(other.0).map(ExternalReferences)
-        }
-    }
-
-    #[versioned("1.5")]
-    impl From<models::external_reference::ExternalReferences> for ExternalReferences {
-        fn from(other: models::external_reference::ExternalReferences) -> Self {
+    impl From<crate::models::external_reference::ExternalReferences> for ExternalReferences {
+        fn from(other: crate::models::external_reference::ExternalReferences) -> Self {
             ExternalReferences(convert_vec(other.0))
         }
     }
@@ -101,35 +87,18 @@ pub(crate) mod base {
     pub(crate) struct ExternalReference {
         #[serde(rename = "type")]
         external_reference_type: String,
-        url: Uri,
+        url: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         comment: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         hashes: Option<Hashes>,
     }
 
-    #[versioned("1.3", "1.4")]
-    impl TryFrom<models::external_reference::ExternalReference> for ExternalReference {
-        type Error = BomError;
-
-        fn try_from(
-            other: models::external_reference::ExternalReference,
-        ) -> Result<Self, Self::Error> {
-            Ok(Self {
-                external_reference_type: other.external_reference_type.to_string(),
-                url: other.url.try_into()?,
-                comment: other.comment,
-                hashes: convert_optional(other.hashes),
-            })
-        }
-    }
-
-    #[versioned("1.5")]
     impl From<models::external_reference::ExternalReference> for ExternalReference {
         fn from(other: models::external_reference::ExternalReference) -> Self {
             Self {
                 external_reference_type: other.external_reference_type.to_string(),
-                url: other.url.into(),
+                url: other.url.to_string(),
                 comment: other.comment,
                 hashes: convert_optional(other.hashes),
             }
@@ -143,7 +112,7 @@ pub(crate) mod base {
                     models::external_reference::ExternalReferenceType::new_unchecked(
                         other.external_reference_type,
                     ),
-                url: other.url.into(),
+                url: crate::prelude::Uri(other.url).into(),
                 comment: other.comment,
                 hashes: convert_optional(other.hashes),
             }
@@ -167,7 +136,7 @@ pub(crate) mod base {
                 )
                 .map_err(to_xml_write_error(REFERENCE_TAG))?;
 
-            self.url.write_xml_element(writer)?;
+            write_simple_tag(writer, URL_TAG, &self.url)?;
 
             if let Some(comment) = &self.comment {
                 write_simple_tag(writer, COMMENT_TAG, comment)?;
@@ -197,7 +166,7 @@ pub(crate) mod base {
             Self: Sized,
         {
             let reference_type = attribute_or_error(element_name, attributes, TYPE_ATTR)?;
-            let mut url: Option<Uri> = None;
+            let mut url: Option<String> = None;
             let mut comment: Option<String> = None;
             let mut hashes: Option<Hashes> = None;
 
@@ -207,15 +176,13 @@ pub(crate) mod base {
                     .next()
                     .map_err(to_xml_read_error(REFERENCE_TAG))?;
                 match next_element {
-                    reader::XmlEvent::StartElement {
-                        name, attributes, ..
-                    } if name.local_name == URL_TAG => {
-                        url = Some(Uri::read_xml_element(event_reader, &name, &attributes)?)
+                    reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                        url = Some(read_simple_tag(event_reader, &name)?);
                     }
                     reader::XmlEvent::StartElement { name, .. }
                         if name.local_name == COMMENT_TAG =>
                     {
-                        comment = Some(read_simple_tag(event_reader, &name)?)
+                        comment = Some(read_simple_tag(event_reader, &name)?);
                     }
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
@@ -243,95 +210,11 @@ pub(crate) mod base {
         }
     }
 
-    #[derive(Debug, Deserialize, Serialize, PartialEq)]
-    #[serde(rename_all = "camelCase", untagged)]
-    pub(crate) enum Uri {
-        Url(String),
-        #[versioned("1.5")]
-        BomLink(String),
-    }
-
-    #[versioned("1.3", "1.4")]
-    impl TryFrom<models::external_reference::Uri> for Uri {
-        type Error = BomError;
-
-        fn try_from(value: models::external_reference::Uri) -> Result<Self, Self::Error> {
-            match value {
-                models::external_reference::Uri::Url(url) => Ok(Self::Url(url.0)),
-                models::external_reference::Uri::BomLink(_) => {
-                    use models::bom::SpecVersion;
-
-                    #[versioned("1.3")]
-                    let version = SpecVersion::V1_3;
-                    #[versioned("1.4")]
-                    let version = SpecVersion::V1_4;
-
-                    Err(BomError::BomSerializationError(
-                        version,
-                        "Bom-Links as external reference's URLs are only avaiable on v1.5".into(),
-                    ))
-                }
-            }
-        }
-    }
-
-    #[versioned("1.5")]
-    impl From<models::external_reference::Uri> for Uri {
-        fn from(value: models::external_reference::Uri) -> Self {
-            match value {
-                models::external_reference::Uri::Url(url) => Self::Url(url.0),
-                models::external_reference::Uri::BomLink(bom_link) => Self::BomLink(bom_link.0),
-            }
-        }
-    }
-
-    impl From<Uri> for models::external_reference::Uri {
-        fn from(value: Uri) -> Self {
-            match value {
-                Uri::Url(url) => Self::Url(external_models::uri::Uri(url)),
-                #[versioned("1.5")]
-                Uri::BomLink(bom_link) => Self::Url(external_models::uri::Uri(bom_link)),
-            }
-        }
-    }
-
-    impl ToXml for Uri {
-        fn write_xml_element<W: std::io::prelude::Write>(
-            &self,
-            writer: &mut xml::EventWriter<W>,
-        ) -> Result<(), crate::errors::XmlWriteError> {
-            match self {
-                Self::Url(url) => write_simple_tag(writer, URL_TAG, url),
-                #[versioned("1.5")]
-                Self::BomLink(bom_link) => write_simple_tag(writer, URL_TAG, bom_link),
-            }
-        }
-    }
-
-    impl FromXml for Uri {
-        fn read_xml_element<R: std::io::prelude::Read>(
-            event_reader: &mut xml::EventReader<R>,
-            element_name: &xml::name::OwnedName,
-            _attributes: &[xml::attribute::OwnedAttribute],
-        ) -> Result<Self, XmlReadError>
-        where
-            Self: Sized,
-        {
-            read_simple_tag(event_reader, element_name).map(|uri| {
-                #[versioned("1.5")]
-                if uri.starts_with("urn:cdx:") {
-                    return Self::BomLink(uri);
-                }
-
-                Self::Url(uri)
-            })
-        }
-    }
-
     #[cfg(test)]
     pub(crate) mod test {
         use super::*;
         use crate::{
+            external_models,
             specs::common::hash::test::{corresponding_hashes, example_hashes},
             xml::test::{read_element_from_string, write_element_to_string},
         };
@@ -345,14 +228,10 @@ pub(crate) mod base {
             models::external_reference::ExternalReferences(vec![corresponding_external_reference()])
         }
 
-        pub(crate) fn example_uri() -> Uri {
-            Uri::Url("url".to_string())
-        }
-
         pub(crate) fn example_external_reference() -> ExternalReference {
             ExternalReference {
                 external_reference_type: "external reference type".to_string(),
-                url: example_uri(),
+                url: "url".to_string(),
                 comment: Some("comment".to_string()),
                 hashes: Some(example_hashes()),
             }

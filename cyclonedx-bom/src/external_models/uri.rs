@@ -66,6 +66,16 @@ pub fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Uri(pub(crate) String);
 
+impl Uri {
+    pub fn new(uri: &str) -> Self {
+        Self(uri.to_string())
+    }
+
+    pub fn is_bomlink(&self) -> bool {
+        self.0.starts_with("urn:cdx")
+    }
+}
+
 impl TryFrom<String> for Uri {
     type Error = UriError;
 
