@@ -40,12 +40,10 @@ impl ExternalReference {
     /// Constructs a new `ExternalReference` with the reference type and url
     /// ```
     /// use cyclonedx_bom::models::external_reference::{ExternalReference, ExternalReferenceType};
-    /// use cyclonedx_bom::external_models::uri::{Uri, UriError};
-    /// use std::convert::TryFrom;
+    /// use cyclonedx_bom::external_models::uri::Uri;
     ///
-    /// let url = Uri::try_from("https://example.org/support/sbom/portal-server/1.0.0".to_string())?;
+    /// let url = Uri::new("https://example.org/support/sbom/portal-server/1.0.0");
     /// let external_reference = ExternalReference::new(ExternalReferenceType::Bom, url);
-    /// # Ok::<(), UriError>(())
     /// ```
     pub fn new(external_reference_type: ExternalReferenceType, url: impl Into<Uri>) -> Self {
         Self {
@@ -65,7 +63,7 @@ impl Validate for ExternalReference {
                 &self.external_reference_type,
                 validate_external_reference_type,
             )
-            .add_field("url", &self.url, validate_uri)
+            .add_field("url", &self.url, |uri| validate_reference_uri(uri, version))
             .add_list("hashes", &self.hashes, |hash| {
                 hash.validate_version(version)
             })
@@ -199,29 +197,42 @@ pub enum Uri {
     BomLink(BomLink),
 }
 
-fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
+/// Validates an [`Uri`], the [`Uri::BomLink`] variant was added in 1.5 only.
+fn validate_reference_uri(uri: &Uri, version: SpecVersion) -> Result<(), ValidationError> {
     match uri {
         Uri::Url(url) => validate_url(url),
-        Uri::BomLink(bom_link) => validate_bom_link(bom_link),
+        Uri::BomLink(bom_link) => validate_bom_link(bom_link, version),
     }
 }
 
 impl From<Url> for Uri {
     fn from(url: Url) -> Self {
-        Self::Url(url)
+        if url.is_bomlink() {
+            Self::BomLink(BomLink(url.to_string()))
+        } else {
+            Self::Url(url)
+        }
     }
 }
 
-impl From<BomLink> for Uri {
-    fn from(bom_link: BomLink) -> Self {
-        Self::BomLink(bom_link)
+impl std::fmt::Display for Uri {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Uri::Url(uri) => uri.to_string(),
+            Uri::BomLink(link) => link.0.to_string(),
+        };
+        write!(f, "{s}")
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BomLink(pub(crate) String);
 
-fn validate_bom_link(bom_link: &BomLink) -> Result<(), ValidationError> {
+fn validate_bom_link(bom_link: &BomLink, version: SpecVersion) -> Result<(), ValidationError> {
+    if version < SpecVersion::V1_5 {
+        return Err("BOM-Link not supported before version 1.5".into());
+    }
+
     static BOM_LINK_REGEX: Lazy<Regex> = Lazy::new(|| {
         Regex::new(r"^urn:cdx:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[1-9][0-9]*(#.+)?$").unwrap()
     });
@@ -242,6 +253,47 @@ mod test {
 
     use super::*;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn it_should_convert_url_into_uri() {
+        let url = Url("https://example.com".to_string());
+        assert_eq!(Uri::Url(Url("https://example.com".to_string())), url.into());
+    }
+
+    #[test]
+    fn it_should_convert_url_into_bomlink() {
+        let url = Url("urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1".to_string());
+        assert_eq!(
+            Uri::BomLink(BomLink(
+                "urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1".to_string()
+            )),
+            url.into()
+        );
+    }
+
+    #[test]
+    fn it_should_validate_external_reference_with_bomlink_correctly() {
+        let url = Uri::BomLink(BomLink(
+            "urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1".to_string(),
+        ));
+
+        let external_reference = ExternalReference {
+            external_reference_type: ExternalReferenceType::Bom,
+            url,
+            comment: Some("Comment".to_string()),
+            hashes: Some(Hashes(vec![])),
+        };
+
+        assert!(external_reference
+            .validate_version(SpecVersion::V1_5)
+            .passed());
+        assert!(external_reference
+            .validate_version(SpecVersion::V1_4)
+            .has_errors());
+        assert!(external_reference
+            .validate_version(SpecVersion::V1_3)
+            .has_errors());
+    }
 
     #[test]
     fn it_should_pass_validation() {
@@ -269,7 +321,7 @@ mod test {
                 hashes: Some(Hashes(vec![])),
             },
         ])
-        .validate();
+        .validate_version(SpecVersion::V1_5);
 
         assert!(validation_result.passed());
     }
@@ -300,7 +352,7 @@ mod test {
                 }])),
             },
         ])
-        .validate();
+        .validate_version(SpecVersion::V1_5);
 
         assert_eq!(
             validation_result,
