@@ -19,6 +19,7 @@
 use once_cell::sync::Lazy;
 use ordered_float::OrderedFloat;
 use regex::Regex;
+use std::fmt::Formatter;
 
 use crate::external_models::normalized_string::validate_normalized_string;
 use crate::external_models::uri::{validate_purl, validate_uri as validate_url};
@@ -324,6 +325,18 @@ pub struct Cpe(pub(crate) String);
 impl AsRef<str> for Cpe {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl From<Cpe> for String {
+    fn from(value: Cpe) -> Self {
+        value.0
+    }
+}
+
+impl std::fmt::Display for Cpe {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 
