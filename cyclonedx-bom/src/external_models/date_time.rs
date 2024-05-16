@@ -77,6 +77,12 @@ impl std::fmt::Display for DateTime {
     }
 }
 
+impl AsRef<str> for DateTime {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum DateTimeError {
     #[error("Invalid DateTime: {}", .0)]
