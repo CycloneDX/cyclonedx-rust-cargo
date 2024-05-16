@@ -22,6 +22,7 @@ use crate::validation::{Validate, ValidationContext, ValidationResult};
 
 use super::bom::SpecVersion;
 use super::component::Components;
+use super::external_reference::ExternalReferences;
 use super::service::Services;
 
 /// Defines the creation tool(s)
@@ -80,6 +81,8 @@ pub struct Tool {
     pub name: Option<NormalizedString>,
     pub version: Option<NormalizedString>,
     pub hashes: Option<Hashes>,
+    /// Added in spec version 1.4
+    pub external_references: Option<ExternalReferences>,
 }
 
 impl Tool {
@@ -95,6 +98,7 @@ impl Tool {
             name: Some(NormalizedString::new(name)),
             version: Some(NormalizedString::new(version)),
             hashes: None,
+            external_references: None,
         }
     }
 }
@@ -108,6 +112,11 @@ impl Validate for Tool {
             .add_list("hashes", &self.hashes, |hashes| {
                 hashes.validate_version(version)
             })
+            .add_struct_option(
+                "external_references",
+                self.external_references.as_ref(),
+                version,
+            )
             .into()
     }
 }
@@ -134,6 +143,7 @@ mod test {
             name: None,
             version: None,
             hashes: None,
+            external_references: None,
         }])
         .validate();
 
@@ -147,6 +157,7 @@ mod test {
             name: None,
             version: None,
             hashes: None,
+            external_references: None,
         }])
         .validate();
 
@@ -173,18 +184,21 @@ mod test {
                 name: None,
                 version: None,
                 hashes: None,
+                external_references: None,
             },
             Tool {
                 vendor: Some(NormalizedString("spaces and\ttabs".to_string())),
                 name: None,
                 version: None,
                 hashes: None,
+                external_references: None,
             },
             Tool {
                 vendor: None,
                 name: Some(NormalizedString("spaces and\ttabs".to_string())),
                 version: None,
                 hashes: None,
+                external_references: None,
             },
         ])
         .validate();

@@ -125,6 +125,7 @@ mod test {
                 name: None,
                 version: None,
                 hashes: None,
+                external_references: None,
             }])),
             authors: Some(vec![OrganizationalContact {
                 bom_ref: None,
@@ -195,6 +196,7 @@ mod test {
                 name: None,
                 version: None,
                 hashes: None,
+                external_references: None,
             }])),
             authors: Some(vec![OrganizationalContact {
                 bom_ref: None,

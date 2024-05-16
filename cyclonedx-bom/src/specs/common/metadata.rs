@@ -546,6 +546,15 @@ pub(crate) mod base {
       <hashes>
         <hash alg="algorithm">hash value</hash>
       </hashes>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
     </tool>
   </tools>
   <authors>
@@ -695,6 +704,15 @@ pub(crate) mod base {
       <hashes>
         <hash alg="algorithm">hash value</hash>
       </hashes>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
     </tool>
   </tools>
   <authors>
