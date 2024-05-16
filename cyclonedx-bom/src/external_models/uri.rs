@@ -18,6 +18,7 @@
 
 use std::{convert::TryFrom, str::FromStr};
 
+use crate::prelude::DateTime;
 use fluent_uri::Uri as Url;
 use packageurl::PackageUrl;
 use thiserror::Error;
@@ -56,6 +57,12 @@ impl FromStr for Purl {
     }
 }
 
+impl AsRef<str> for Purl {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 pub fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
     if Url::parse(uri.0.as_str()).is_err() {
         return Err(ValidationError::new("Uri does not conform to RFC 3986"));
@@ -86,6 +93,12 @@ impl TryFrom<String> for Uri {
                 "Uri does not conform to RFC 3986".to_string(),
             )),
         }
+    }
+}
+
+impl AsRef<str> for Uri {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }
 

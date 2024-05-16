@@ -321,6 +321,12 @@ pub fn validate_cpe(cpe: &Cpe) -> Result<(), ValidationError> {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Cpe(pub(crate) String);
 
+impl AsRef<str> for Cpe {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ComponentEvidence {
     pub licenses: Option<Licenses>,
