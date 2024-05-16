@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
+assertion_line: 660
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -14,6 +15,15 @@ expression: xml_output
         <hashes>
           <hash alg="algorithm">hash value</hash>
         </hashes>
+        <externalReferences>
+          <reference type="external reference type">
+            <url>url</url>
+            <comment>comment</comment>
+            <hashes>
+              <hash alg="algorithm">hash value</hash>
+            </hashes>
+          </reference>
+        </externalReferences>
       </tool>
     </tools>
     <authors>
@@ -568,6 +578,15 @@ expression: xml_output
           <hashes>
             <hash alg="algorithm">hash value</hash>
           </hashes>
+          <externalReferences>
+            <reference type="external reference type">
+              <url>url</url>
+              <comment>comment</comment>
+              <hashes>
+                <hash alg="algorithm">hash value</hash>
+              </hashes>
+            </reference>
+          </externalReferences>
         </tool>
       </tools>
       <analysis>

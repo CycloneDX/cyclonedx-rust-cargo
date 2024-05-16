@@ -20,8 +20,12 @@ use cyclonedx_bom_macros::versioned;
 
 #[versioned("1.3", "1.4", "1.5")]
 pub(crate) mod base {
+    #[versioned("1.4")]
+    use crate::specs::v1_4::external_reference::ExternalReferences;
     #[versioned("1.5")]
-    use crate::specs::v1_5::{component::Components, service::Services};
+    use crate::specs::v1_5::{
+        component::Components, external_reference::ExternalReferences, service::Services,
+    };
 
     use crate::{
         errors::{BomError, XmlReadError},
@@ -225,6 +229,9 @@ pub(crate) mod base {
         version: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         hashes: Option<Hashes>,
+        #[versioned("1.4", "1.5")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        external_references: Option<ExternalReferences>,
     }
 
     impl From<models::tool::Tool> for Tool {
@@ -234,6 +241,8 @@ pub(crate) mod base {
                 name: other.name.map(|n| n.to_string()),
                 version: other.version.map(|v| v.to_string()),
                 hashes: convert_optional(other.hashes),
+                #[versioned("1.4", "1.5")]
+                external_references: convert_optional(other.external_references),
             }
         }
     }
@@ -245,6 +254,10 @@ pub(crate) mod base {
                 name: other.name.map(NormalizedString::new_unchecked),
                 version: other.version.map(NormalizedString::new_unchecked),
                 hashes: convert_optional(other.hashes),
+                #[versioned("1.3")]
+                external_references: None,
+                #[versioned("1.4", "1.5")]
+                external_references: convert_optional(other.external_references),
             }
         }
     }
@@ -281,6 +294,11 @@ pub(crate) mod base {
                 }
             }
 
+            #[versioned("1.4", "1.5")]
+            if let Some(external_references) = &self.external_references {
+                external_references.write_xml_element(writer)?;
+            }
+
             writer
                 .write(writer::XmlEvent::end_element())
                 .map_err(to_xml_write_error(TOOL_TAG))?;
@@ -297,6 +315,8 @@ pub(crate) mod base {
     }
 
     const HASHES_TAG: &str = "hashes";
+    #[versioned("1.4", "1.5")]
+    const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
 
     impl FromXml for Tool {
         fn read_xml_element<R: std::io::Read>(
@@ -311,6 +331,8 @@ pub(crate) mod base {
             let mut tool_name: Option<String> = None;
             let mut version: Option<String> = None;
             let mut hashes: Option<Hashes> = None;
+            #[versioned("1.4", "1.5")]
+            let mut external_references: Option<ExternalReferences> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -334,6 +356,16 @@ pub(crate) mod base {
                     } if name.local_name == HASHES_TAG => {
                         hashes = Some(Hashes::read_xml_element(event_reader, &name, &attributes)?)
                     }
+                    #[versioned("1.4", "1.5")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == EXTERNAL_REFERENCES_TAG => {
+                        external_references = Some(ExternalReferences::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -350,15 +382,24 @@ pub(crate) mod base {
                 name: tool_name,
                 version,
                 hashes,
+                #[versioned("1.4", "1.5")]
+                external_references,
             })
         }
     }
 
     #[cfg(test)]
     pub(crate) mod test {
+        #[versioned("1.4")]
+        use crate::specs::common::external_reference::v1_4::test::{
+            corresponding_external_references, example_external_references,
+        };
         #[versioned("1.5")]
         use crate::specs::{
             common::{
+                external_reference::v1_5::test::{
+                    corresponding_external_references, example_external_references,
+                },
                 hash::{Hash, HashValue},
                 organization::OrganizationalEntity,
             },
@@ -384,6 +425,7 @@ pub(crate) mod base {
             models::tool::Tools::List(vec![corresponding_tool()])
         }
 
+        #[versioned("1.3")]
         pub(crate) fn example_tool() -> Tool {
             Tool {
                 vendor: Some("vendor".to_string()),
@@ -393,12 +435,36 @@ pub(crate) mod base {
             }
         }
 
+        #[versioned("1.3")]
         pub(crate) fn corresponding_tool() -> models::tool::Tool {
             models::tool::Tool {
                 vendor: Some(NormalizedString::new_unchecked("vendor".to_string())),
                 name: Some(NormalizedString::new_unchecked("name".to_string())),
                 version: Some(NormalizedString::new_unchecked("version".to_string())),
                 hashes: Some(corresponding_hashes()),
+                external_references: None,
+            }
+        }
+
+        #[versioned("1.4", "1.5")]
+        pub(crate) fn example_tool() -> Tool {
+            Tool {
+                vendor: Some("vendor".to_string()),
+                name: Some("name".to_string()),
+                version: Some("version".to_string()),
+                hashes: Some(example_hashes()),
+                external_references: Some(example_external_references()),
+            }
+        }
+
+        #[versioned("1.4", "1.5")]
+        pub(crate) fn corresponding_tool() -> models::tool::Tool {
+            models::tool::Tool {
+                vendor: Some(NormalizedString::new_unchecked("vendor".to_string())),
+                name: Some(NormalizedString::new_unchecked("name".to_string())),
+                version: Some(NormalizedString::new_unchecked("version".to_string())),
+                hashes: Some(corresponding_hashes()),
+                external_references: Some(corresponding_external_references()),
             }
         }
 
@@ -419,6 +485,15 @@ pub(crate) mod base {
     <hashes>
       <hash alg="algorithm">hash value</hash>
     </hashes>
+    <externalReferences>
+      <reference type="external reference type">
+        <url>url</url>
+        <comment>comment</comment>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </reference>
+    </externalReferences>
   </tool>
 </tools>
 "#;

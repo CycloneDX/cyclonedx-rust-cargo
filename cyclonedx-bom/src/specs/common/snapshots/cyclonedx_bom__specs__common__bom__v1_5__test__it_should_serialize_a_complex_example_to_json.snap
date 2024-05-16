@@ -1,5 +1,6 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
+assertion_line: 654
 expression: actual
 ---
 {
@@ -18,6 +19,19 @@ expression: actual
           {
             "alg": "algorithm",
             "content": "hash value"
+          }
+        ],
+        "externalReferences": [
+          {
+            "type": "external reference type",
+            "url": "url",
+            "comment": "comment",
+            "hashes": [
+              {
+                "alg": "algorithm",
+                "content": "hash value"
+              }
+            ]
           }
         ]
       }
@@ -781,6 +795,19 @@ expression: actual
             {
               "alg": "algorithm",
               "content": "hash value"
+            }
+          ],
+          "externalReferences": [
+            {
+              "type": "external reference type",
+              "url": "url",
+              "comment": "comment",
+              "hashes": [
+                {
+                  "alg": "algorithm",
+                  "content": "hash value"
+                }
+              ]
             }
           ]
         }
