@@ -1,6 +1,7 @@
 [package]
 name = "cyclonedx-bom-macros"
 version = "0.1.0"
+description = "Procedural macros used internally by the `cyclonedx-bom` crate"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
