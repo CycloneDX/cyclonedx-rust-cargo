@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.6.0 - UNRELEASED
+
+### Added
+
+ - Added support for CycloneDX version 1.5, necessitating a number of breaking changes to the API.
+ - Added the ability to turn a `NormalizedString` into a `String` without cloning ([#707])
+ - Added the ability to view a number of types as a `&str` to reduce the necessary cloning ([#708])
+ - Added an ability to parse a `serde_json::Value` into a CycloneDX document ([#705])
+ - Added automatic validation of generated JSON against the official CycloneDX schemas ([#653])
+
+### Fixed
+
+ - Added support for `external_references` field on `Tool` introduced in CycloneDX 1.4 but accidentally omitted from the parser ([#709])
+
+### Changed
+
+ - Introduced the `cyclonedx-bom-macros` crate with a proc macro to eliminate copy-pasted code between various spec versions
+ - Multiple refactors to make the code simpler and easier to maintain
+
 ## 0.5.0 - 2024-02-21
 
 ### Changed
@@ -44,3 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#609]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/609
 [#616]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/616
 [#618]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/618
+[#653]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/653
+[#705]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/705
+[#707]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/707
+[#708]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/708
+[#709]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/709
