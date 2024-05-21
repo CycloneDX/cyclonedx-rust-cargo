@@ -1,6 +1,6 @@
 [package]
 name = "cargo-cyclonedx"
-version = "0.5.0"
+version = "0.5.1"
 categories = ["command-line-utilities", "development-tools", "development-tools::cargo-plugins"]
 description = "CycloneDX Software Bill of Materials (SBOM) for Rust Crates"
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
@@ -25,7 +25,7 @@ anyhow = "1.0.75"
 cargo-lock = "9.0.0"
 cargo_metadata = "0.18.1"
 clap = { version = "4.4.11", features = ["derive"] }
-cyclonedx-bom = { version = "0.5.0", path = "../cyclonedx-bom" }
+cyclonedx-bom = { version = "0.6.0", path = "../cyclonedx-bom" }
 env_logger = "0.10.0"
 log = "0.4.20"
 once_cell = "1.18.0"
