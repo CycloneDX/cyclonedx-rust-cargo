@@ -5,11 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.5.1 - UNRELEASED
+## 0.5.1 - 2024-05-22
 
 ### Added
 
  - Emitting CycloneDX 1.5 is now supported. The data emitted is unchanged.
+ - Adopted `cargo dist` for publishing binaries to Github releases. This adds another installation option: `cargo binstall cargo-cyclonedx`. ([#559])
 
 ## 0.5.0 - 2024-03-01
 
@@ -93,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#542]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/542
 [#553]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/553
 [#554]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/554
+[#559]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/559
 [#561]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/561
 [#602]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/602
 [#619]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/619
