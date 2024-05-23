@@ -10,7 +10,7 @@
 
 The [CycloneDX](https://cyclonedx.org/) library provides JSON and XML serialization and derserialization of Software Bill-of-Materials (SBOM) files.
 
-CycloneDX is a lightweight SBOM specification that is easily created, human and machine-readable, and simple to parse.
+CycloneDX is a full-stack SBOM/xBOM standard designed for use in application security contexts and supply chain component analysis.
 
 The library is intended to enable developers to:
 
@@ -20,7 +20,7 @@ The library is intended to enable developers to:
          
 ## Supported CycloneDX versions
 
-This library currently supports CycloneDX 1.3 and 1.4.
+This library currently supports CycloneDX 1.3, 1.4 and 1.5.
 
 ## Usage
 
@@ -31,11 +31,11 @@ use cyclonedx_bom::prelude::*;
 
 let bom_json = r#"{
   "bomFormat": "CycloneDX",
-  "specVersion": "1.3",
+  "specVersion": "1.5",
   "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
   "version": 1
 }"#;
-let bom = Bom::parse_from_json_v1_3(bom_json.as_bytes()).expect("Failed to parse BOM");
+let bom = Bom::parse_from_json_v1_5(bom_json.as_bytes()).expect("Failed to parse BOM");
 
 let validation_result = bom.validate().expect("Failed to validate BOM");
 assert_eq!(validation_result, ValidationResult::Passed);
@@ -66,14 +66,14 @@ let bom = Bom {
 
 let mut output = Vec::<u8>::new();
 
-bom.output_as_json_v1_3(&mut output)
+bom.output_as_json_v1_5(&mut output)
     .expect("Failed to write BOM");
 let output = String::from_utf8(output).expect("Failed to read output as a string");
 assert_eq!(
     output,
     r#"{
   "bomFormat": "CycloneDX",
-  "specVersion": "1.3",
+  "specVersion": "1.5",
   "version": 1,
   "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
   "metadata": {
