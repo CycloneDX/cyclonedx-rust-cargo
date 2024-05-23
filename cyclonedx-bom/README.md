@@ -20,7 +20,7 @@ The library is intended to enable developers to:
          
 ## Supported CycloneDX versions
 
-This library currently supports CycloneDX 1.3 and 1.4.
+This library currently supports CycloneDX 1.3, 1.4, and 1.5.
 
 ## Usage
 
