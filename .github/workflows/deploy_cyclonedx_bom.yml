@@ -40,6 +40,6 @@ jobs:
           git commit -am "New development bump of cyclonedx-bom to ${{steps.version.outputs.CARGO_VERSION}}"
           git tag -a "cyclonedx-bom-${{steps.version.outputs.CARGO_VERSION}}" -m "cyclonedx-bom ${{steps.version.outputs.CARGO_VERSION}} release"
           git push --follow-tags
-      - name: Publish crate (which unconditionally recreates the package)
-        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose
+      - name: Publish crate (which unconditionally recreates the package, but build testing again is omitted)
+        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --no-verify
 
