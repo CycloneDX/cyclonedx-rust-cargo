@@ -37,6 +37,6 @@ jobs:
           git commit -am "New development bump of cargo-cylonedx to ${{steps.version.outputs.CARGO_VERSION}}"
           git tag -a "cargo-cyclonedx-${{steps.version.outputs.CARGO_VERSION}}" -m "cargo-cyclonedx ${{steps.version.outputs.CARGO_VERSION}} release"
           git push --follow-tags
-      - name: Publish crate (which unconditionally recreates the package, but build testing again is omitted--no-verify)
+      - name: Publish crate (which unconditionally recreates the package, but build testing again is omitted)
         run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cargo-cyclonedx --verbose --no-verify
 
