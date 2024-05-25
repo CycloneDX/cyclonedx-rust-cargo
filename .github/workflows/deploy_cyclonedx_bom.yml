@@ -12,7 +12,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: JQ
+      - name: Install JQ
         run: |
           sudo apt-get install -y jq
       - uses: actions/checkout@v4
@@ -23,18 +23,16 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Cargo bump
+      - name: Cargo set-version --bump
         run: |
           cargo install cargo-edit
           cargo set-version --package cyclonedx-bom --bump ${{ github.event.inputs.releaseType }}
-      - name: Retrieve new version
+      - name: Retrieve new version number
         run: |
           echo "::set-output name=CARGO_VERSION::$(cargo metadata | jq -r '.packages[] | select(.name == "cyclonedx-bom") | .version')"
         id: version
-      - name: Build one time, for sanity
-        run: cargo build
-      - name: Publish
-        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --allow-dirty
+      - name: Package once (for failing this CI job if packaging fails and for rewiting the TOML file etc.)
+        run: cargo package --package cyclonedx-bom --verbose --allow-dirty
       - name: Configure git and add files
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -42,3 +40,6 @@ jobs:
           git commit -am "New development bump of cyclonedx-bom to ${{steps.version.outputs.CARGO_VERSION}}"
           git tag -a "cyclonedx-bom-${{steps.version.outputs.CARGO_VERSION}}" -m "cyclonedx-bom ${{steps.version.outputs.CARGO_VERSION}} release"
           git push --follow-tags
+      - name: Publish crate (which unconditionally recreates the package, but build testing again is omitted)
+        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --no-verify
+
