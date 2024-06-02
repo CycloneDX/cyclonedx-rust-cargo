@@ -732,6 +732,7 @@ impl GeneratedSbom {
                 match spec_version {
                     V1_3 => bom.output_as_json_v1_3(&mut writer),
                     V1_4 => bom.output_as_json_v1_4(&mut writer),
+                    V1_5 => bom.output_as_json_v1_5(&mut writer),
                     _ => unimplemented!(),
                 }
                 .map_err(SbomWriterError::JsonWriteError)?;
@@ -740,6 +741,7 @@ impl GeneratedSbom {
                 match spec_version {
                     V1_3 => bom.output_as_xml_v1_3(&mut writer),
                     V1_4 => bom.output_as_xml_v1_4(&mut writer),
+                    V1_5 => bom.output_as_xml_v1_5(&mut writer),
                     _ => unimplemented!(),
                 }
                 .map_err(SbomWriterError::XmlWriteError)?;
