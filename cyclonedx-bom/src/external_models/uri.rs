@@ -18,7 +18,6 @@
 
 use std::{convert::TryFrom, str::FromStr};
 
-use crate::prelude::DateTime;
 use fluent_uri::Uri as Url;
 use packageurl::PackageUrl;
 use thiserror::Error;
