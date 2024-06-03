@@ -197,7 +197,7 @@ impl Bom {
         }
     }
 
-    /// Output as a JSON document conforming to the specification version that you provide.
+    /// Output as an XML document conforming to the specification version that you provide.
     pub fn output_as_xml<W: std::io::Write>(
         self,
         writer: &mut W,
