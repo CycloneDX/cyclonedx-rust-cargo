@@ -149,6 +149,69 @@ impl Bom {
         }
     }
 
+    /// Parse the input as a JSON document conforming to the version of the specification that you provide.
+    /// Use [`parse_from_json`] if you want to support multiple versions instead.
+    pub fn parse_from_json_with_version<R: std::io::Read>(
+        reader: R,
+        version: SpecVersion,
+    ) -> Result<Self, crate::errors::JsonReadError> {
+        // While the SpecVersion enum is non-exhaustive in the public API
+        // (and it probably shouldn't be!), we can match exhaustively here
+        // which avoids issues which crop up when the API user has to match:
+        // https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/722
+        // https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/723
+        match version {
+            SpecVersion::V1_3 => Self::parse_from_json_v1_3(reader),
+            SpecVersion::V1_4 => Self::parse_from_json_v1_4(reader),
+            SpecVersion::V1_5 => Self::parse_from_json_v1_5(reader),
+        }
+    }
+
+    /// Output as a JSON document conforming to the specification version that you provide.
+    pub fn output_as_json<W: std::io::Write>(
+        self,
+        writer: &mut W,
+        version: SpecVersion,
+    ) -> Result<(), crate::errors::JsonWriteError> {
+        // See `parse_from_json_with_version` for an explanation
+        // why we do this match here and why API users shouldn't do it
+        match version {
+            SpecVersion::V1_3 => self.output_as_json_v1_3(writer),
+            SpecVersion::V1_4 => self.output_as_json_v1_4(writer),
+            SpecVersion::V1_5 => self.output_as_json_v1_5(writer),
+        }
+    }
+
+    /// Parse the input as an XML document conforming to the version of the specification that you provide.
+    /// Use [`parse_from_xml`] if you want to support multiple versions instead.
+    pub fn parse_from_xml_with_version<R: std::io::Read>(
+        reader: R,
+        version: SpecVersion,
+    ) -> Result<Self, crate::errors::XmlReadError> {
+        // See `parse_from_json_with_version` for an explanation
+        // why we do this match here and why API users shouldn't do it
+        match version {
+            SpecVersion::V1_3 => Self::parse_from_xml_v1_3(reader),
+            SpecVersion::V1_4 => Self::parse_from_xml_v1_4(reader),
+            SpecVersion::V1_5 => Self::parse_from_xml_v1_5(reader),
+        }
+    }
+
+    /// Output as a JSON document conforming to the specification version that you provide.
+    pub fn output_as_xml<W: std::io::Write>(
+        self,
+        writer: &mut W,
+        version: SpecVersion,
+    ) -> Result<(), crate::errors::XmlWriteError> {
+        // See `parse_from_json_with_version` for an explanation
+        // why we do this match here and why API users shouldn't do it
+        match version {
+            SpecVersion::V1_3 => self.output_as_xml_v1_3(writer),
+            SpecVersion::V1_4 => self.output_as_xml_v1_4(writer),
+            SpecVersion::V1_5 => self.output_as_xml_v1_5(writer),
+        }
+    }
+
     /// Parse the input as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
     pub fn parse_from_json_v1_3<R: std::io::Read>(
         mut reader: R,
