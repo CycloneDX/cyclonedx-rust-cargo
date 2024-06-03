@@ -150,7 +150,7 @@ impl Bom {
     }
 
     /// Parse the input as a JSON document conforming to the version of the specification that you provide.
-    /// Use [`parse_from_json`] if you want to support multiple versions instead.
+    /// Use [`parse_from_json`](Self::parse_from_json) if you want to support multiple versions instead.
     pub fn parse_from_json_with_version<R: std::io::Read>(
         reader: R,
         version: SpecVersion,
@@ -183,7 +183,6 @@ impl Bom {
     }
 
     /// Parse the input as an XML document conforming to the version of the specification that you provide.
-    /// Use [`parse_from_xml`] if you want to support multiple versions instead.
     pub fn parse_from_xml_with_version<R: std::io::Read>(
         reader: R,
         version: SpecVersion,
