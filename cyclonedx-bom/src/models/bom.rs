@@ -142,7 +142,7 @@ impl Bom {
             match SpecVersion::from_str(version)? {
                 SpecVersion::V1_3 => Ok(crate::specs::v1_3::bom::Bom::deserialize(json)?.into()),
                 SpecVersion::V1_4 => Ok(crate::specs::v1_4::bom::Bom::deserialize(json)?.into()),
-                _ => Err(BomError::UnsupportedSpecVersion(version.to_string()).into()),
+                SpecVersion::V1_5 => Ok(crate::specs::v1_5::bom::Bom::deserialize(json)?.into()),
             }
         } else {
             Err(BomError::UnsupportedSpecVersion("No field 'specVersion' found".to_string()).into())
