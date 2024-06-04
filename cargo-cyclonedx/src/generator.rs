@@ -729,22 +729,12 @@ impl GeneratedSbom {
         let mut writer = BufWriter::new(file);
         match config.format() {
             Format::Json => {
-                match spec_version {
-                    V1_3 => bom.output_as_json_v1_3(&mut writer),
-                    V1_4 => bom.output_as_json_v1_4(&mut writer),
-                    V1_5 => bom.output_as_json_v1_5(&mut writer),
-                    _ => unimplemented!(),
-                }
-                .map_err(SbomWriterError::JsonWriteError)?;
+                bom.output_as_json(&mut writer, spec_version)
+                    .map_err(SbomWriterError::JsonWriteError)?;
             }
             Format::Xml => {
-                match spec_version {
-                    V1_3 => bom.output_as_xml_v1_3(&mut writer),
-                    V1_4 => bom.output_as_xml_v1_4(&mut writer),
-                    V1_5 => bom.output_as_xml_v1_5(&mut writer),
-                    _ => unimplemented!(),
-                }
-                .map_err(SbomWriterError::XmlWriteError)?;
+                bom.output_as_xml(&mut writer, spec_version)
+                    .map_err(SbomWriterError::XmlWriteError)?;
             }
         }
 
