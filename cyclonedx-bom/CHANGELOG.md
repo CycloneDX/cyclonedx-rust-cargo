@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.6.1 - 2024-06-04
+
+### Added
+
+ - A series of APIs that serialize and deserialize in the format specified with the `SpecVersion` enum ([#725])
+
+### Fixed
+
+ - Fixed a panic when parsing CycloneDX v1.5 from a `serde_json::Value` ([#723])
+
+### Changed
+
+ - Removed `--allow-dirty` flag from the publishing workflow so that the provenance of the package uploaded to crates.io can be established ([#724])
+
 ## 0.6.0 - 2024-05-22
 
 ### Added
@@ -68,3 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#707]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/707
 [#708]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/708
 [#709]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/709
+[#723]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/723
+[#724]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/724
+[#725]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/725
