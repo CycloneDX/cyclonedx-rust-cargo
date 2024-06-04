@@ -1,44 +1,15 @@
 name: Deploy cyclonedx-bom to Crates.io
 
 on:
-  workflow_dispatch:
-    inputs:
-      releaseType:
-        description: "cyclonedx-bom release type (major, minor, patch)"
-        required: true
-        default: "patch"
+  push:
+    tags:
+      - 'cyclonedx-bom-[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: JQ
-        run: |
-          sudo apt-get install -y jq
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Cargo bump
-        run: |
-          cargo install cargo-edit
-          cargo set-version --package cyclonedx-bom --bump ${{ github.event.inputs.releaseType }}
-      - name: Retrieve new version
-        run: |
-          echo "::set-output name=CARGO_VERSION::$(cargo metadata | jq -r '.packages[] | select(.name == "cyclonedx-bom") | .version')"
-        id: version
-      - name: Build one time, for sanity
-        run: cargo build
+      - uses: dtolnay/rust-toolchain@stable
       - name: Publish
-        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose --allow-dirty
-      - name: Configure git and add files
-        run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git commit -am "New development bump of cyclonedx-bom to ${{steps.version.outputs.CARGO_VERSION}}"
-          git tag -a "cyclonedx-bom-${{steps.version.outputs.CARGO_VERSION}}" -m "cyclonedx-bom ${{steps.version.outputs.CARGO_VERSION}} release"
-          git push --follow-tags
+        run: cargo publish --token ${{ secrets.CARGO_API_KEY }} --package cyclonedx-bom --verbose
