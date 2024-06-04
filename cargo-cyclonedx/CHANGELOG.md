@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.2 - 2024-06-04
+
+### Fixed
+
+ - Fixed a panic when outputting CycloneDX v1.5 ([#722])
+
+### Changed
+
+ - Removed `--allow-dirty` flag from the publishing workflow so that the provenance of the package uploaded to crates.io can be established ([#724])
+
 ## 0.5.1 - 2024-05-22
 
 ### Added
@@ -101,3 +111,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#620]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/620
 [#630]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/630
 [#634]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/634
+[#722]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/722
+[#724]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/724
