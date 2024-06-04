@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.3 - 2024-06-04
+
+### Added
+
+ - Add metadata to let `cargo binstall` locate our release binaries ([#727])
+
+### Fixed
+
+ - Committed an up-to-date lockfile to ease packaging for downstreams
+
 ## 0.5.2 - 2024-06-04
 
 ### Fixed
@@ -113,3 +123,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#634]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/634
 [#722]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/722
 [#724]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/724
+[#727]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/727
