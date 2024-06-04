@@ -2,7 +2,7 @@
 name = "cyclonedx-bom"
 version = "0.6.1"
 description = "CycloneDX Software Bill of Materials Library"
-categories = []
+categories = ["encoding", "parser-implementations"]
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
 readme = "README.md"
 
