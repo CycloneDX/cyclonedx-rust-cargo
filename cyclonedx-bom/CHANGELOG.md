@@ -82,3 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#707]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/707
 [#708]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/708
 [#709]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/709
+[#723]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/723
+[#724]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/724
+[#725]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/725
