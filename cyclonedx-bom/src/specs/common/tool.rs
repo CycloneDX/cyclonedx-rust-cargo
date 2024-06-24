@@ -27,17 +27,17 @@ pub(crate) mod base {
         component::Components, external_reference::ExternalReferences, service::Services,
     };
 
+    use crate::models;
     use crate::{
         errors::{BomError, XmlReadError},
         external_models::normalized_string::NormalizedString,
         specs::common::hash::Hashes,
-        utilities::convert_vec,
+        utilities::{convert_optional, convert_vec},
         xml::{
             read_lax_validation_tag, read_simple_tag, to_xml_read_error, to_xml_write_error,
             unexpected_element_error, write_simple_tag, FromXml, ToXml,
         },
     };
-    use crate::{models, utilities::convert_optional};
     use serde::{Deserialize, Serialize};
     use xml::{reader, writer};
 
@@ -49,8 +49,10 @@ pub(crate) mod base {
         /// Added in 1.5, see https://cyclonedx.org/docs/1.5/json/#metadata_tools
         #[versioned("1.5")]
         Object {
-            services: Services,
-            components: Components,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            services: Option<Services>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            components: Option<Components>,
         },
     }
 
@@ -67,8 +69,8 @@ pub(crate) mod base {
                     services,
                     components,
                 } => Ok(Self::Object {
-                    services: services.into(),
-                    components: components.try_into()?,
+                    services: convert_optional(services),
+                    components: crate::utilities::try_convert_optional(components)?,
                 }),
             }
         }
@@ -83,8 +85,8 @@ pub(crate) mod base {
                     services,
                     components,
                 } => Self::Object {
-                    services: services.into(),
-                    components: components.into(),
+                    services: convert_optional(services),
+                    components: convert_optional(components),
                 },
             }
         }
@@ -205,15 +207,10 @@ pub(crate) mod base {
                 #[versioned("1.3", "1.4")]
                 None => Ok(Self::List(vec![])),
                 #[versioned("1.5")]
-                None => {
-                    let components = components.unwrap_or_else(|| Components(vec![]));
-                    let services = services.unwrap_or_else(|| Services(vec![]));
-
-                    Ok(Self::Object {
-                        services,
-                        components,
-                    })
-                }
+                None => Ok(Self::Object {
+                    services,
+                    components,
+                }),
             }
         }
     }
@@ -586,8 +583,8 @@ pub(crate) mod base {
                 data: None,
             };
             let expected = Tools::Object {
-                services: Services(vec![service]),
-                components: Components(vec![component]),
+                services: Some(Services(vec![service])),
+                components: Some(Components(vec![component])),
             };
             assert_eq!(actual, expected);
         }

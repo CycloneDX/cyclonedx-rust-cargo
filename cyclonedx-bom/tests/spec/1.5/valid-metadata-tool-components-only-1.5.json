@@ -1,0 +1,20 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "metadata": {
+    "timestamp": "2024-03-20T09:57:38Z",
+    "tools": {
+      "components": [
+        {
+          "author": "anchore",
+          "name": "syft",
+          "type": "application",
+          "version": "0.101.1"
+        }
+      ]
+    }
+  },
+  "serialNumber": "urn:uuid:41f45e5d-dfd6-4ecb-93b5-9c1bfb734cb3",
+  "specVersion": "1.5",
+  "version": 1
+}
