@@ -36,8 +36,8 @@ pub enum Tools {
 
     /// Added in 1.5
     Object {
-        services: Services,
-        components: Components,
+        services: Option<Services>,
+        components: Option<Components>,
     },
 }
 
@@ -59,12 +59,8 @@ impl Validate for Tools {
                 services,
                 components,
             } => {
-                context.add_list("components", &components.0, |component| {
-                    component.validate_version(version)
-                });
-                context.add_list("services", &services.0, |service| {
-                    service.validate_version(version)
-                });
+                context.add_struct_option("components", components.as_ref(), version);
+                context.add_struct_option("services", services.as_ref(), version);
             }
         }
 
@@ -244,14 +240,14 @@ mod test {
             .passed());
 
         assert!(Tools::Object {
-            services: Services(vec![service.clone()]),
-            components: Components(vec![component.clone()])
+            services: Some(Services(vec![service.clone()])),
+            components: Some(Components(vec![component.clone()]))
         }
         .validate_version(SpecVersion::V1_4)
         .has_errors());
         assert!(Tools::Object {
-            services: Services(vec![service.clone()]),
-            components: Components(vec![component.clone()])
+            services: Some(Services(vec![service.clone()])),
+            components: Some(Components(vec![component.clone()]))
         }
         .validate_version(SpecVersion::V1_5)
         .passed());
