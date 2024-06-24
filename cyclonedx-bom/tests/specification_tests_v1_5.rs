@@ -42,6 +42,9 @@ mod v1_5 {
                 let bom = Bom::parse_from_json_v1_5(file).unwrap_or_else(|e| panic!("Failed to parse the document as an BOM: {path:?} {:#?}", e));
 
                 let validation_result = bom.validate_version(SpecVersion::V1_5);
+                if !validation_result.passed() {
+                    dbg!(&validation_result);
+                }
                 assert!(
                     validation_result.passed(),
                     "{path:?} unexpectedly failed validation"

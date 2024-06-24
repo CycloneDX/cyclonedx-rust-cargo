@@ -190,9 +190,7 @@ pub enum LicenseIdentifier {
 impl Validate for LicenseIdentifier {
     fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
         match self {
-            LicenseIdentifier::Name(name) => ValidationContext::new()
-                .add_enum("Name", name, validate_normalized_string)
-                .into(),
+            LicenseIdentifier::Name(_name) => ValidationContext::new().into(),
             LicenseIdentifier::SpdxId(id) => ValidationContext::new()
                 .add_enum("SpdxId", id, validate_spdx_identifier)
                 .into(),
@@ -327,41 +325,6 @@ mod test {
     }
 
     #[test]
-    fn it_should_fail_validation_for_license_name() {
-        let validation_result = Licenses(vec![LicenseChoice::License(License {
-            bom_ref: None,
-            license_identifier: LicenseIdentifier::Name(NormalizedString(
-                "spaces and \ttabs".to_string(),
-            )),
-            text: None,
-            url: None,
-            licensing: None,
-            properties: None,
-        })])
-        .validate();
-
-        assert_eq!(
-            validation_result,
-            validation::list(
-                "inner",
-                [(
-                    0,
-                    validation::r#struct(
-                        "license",
-                        validation::r#struct(
-                            "license_identifier",
-                            validation::r#enum(
-                                "Name",
-                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                            )
-                        )
-                    )
-                )]
-            )
-        );
-    }
-
-    #[test]
     fn it_should_fail_validation_for_license_id() {
         let validation_result = Licenses(vec![LicenseChoice::License(License::license_id(
             "Apache=2.0",
@@ -444,18 +407,6 @@ mod test {
             validation::list(
                 "inner",
                 [(
-                    1,
-                    validation::r#struct(
-                        "license",
-                        validation::r#struct(
-                            "license_identifier",
-                            validation::r#enum(
-                                "Name",
-                                "NormalizedString contains invalid characters \\r \\n \\t or \\r\\n"
-                            )
-                        )
-                    )
-                ), (
                     2,
                     validation::r#struct(
                         "license",

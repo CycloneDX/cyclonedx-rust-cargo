@@ -1,6 +1,6 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 54
+assertion_line: 58
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-license-name-1.5.json
 ---
@@ -20,6 +20,12 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-license-name-1.5.json
         {
           "license": {
             "name": "Apache License 2.0"
+          }
+        },
+        {
+          "license": {
+            "name": "\n                CDDL License\n            ",
+            "url": "http://www.opensource.org/licenses/cddl1.php"
           }
         }
       ]

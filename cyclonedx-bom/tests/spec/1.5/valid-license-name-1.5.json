@@ -16,6 +16,12 @@
             "name": "Apache License 2.0",
             "bom-ref": "my-license"
           }
+        },
+        {
+          "license": {
+            "name": "\n                CDDL License\n            ",
+            "url": "http://www.opensource.org/licenses/cddl1.php"
+          }
         }
       ]
     }
