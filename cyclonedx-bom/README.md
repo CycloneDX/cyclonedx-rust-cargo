@@ -37,8 +37,8 @@ let bom_json = r#"{
 }"#;
 let bom = Bom::parse_from_json_v1_5(bom_json.as_bytes()).expect("Failed to parse BOM");
 
-let validation_result = bom.validate().expect("Failed to validate BOM");
-assert_eq!(validation_result, ValidationResult::Passed);
+let validation_result = bom.validate();
+assert!(validation_result.passed());
 ```
 
 ### Create and output an SBOM
@@ -55,7 +55,7 @@ let bom = Bom {
             .expect("Failed to create UrnUuid"),
     ),
     metadata: Some(Metadata {
-        tools: Some(Tools(vec![Tool {
+        tools: Some(Tools::List(vec![Tool {
             name: Some(NormalizedString::new("my_tool")),
             ..Tool::default()
         }])),
@@ -94,6 +94,10 @@ See [README](./tests/README.md) for details.
 ## Contributing
 
 See [CONTRIBUTING](../CONTRIBUTING.md) for details.
+
+### Bug Bounty
+
+We are running a [Bug Bounty](https://yeswehack.com/programs/cyclonedx-rust-cargo-bounty-program) program financed by the [Bug Resilience Program](https://www.sovereigntechfund.de/programs/bug-resilience/faq) of the [Sovereign Tech Fund](https://www.sovereigntechfund.de/). Thank you very much!
 
 ## Copyright & License
 
