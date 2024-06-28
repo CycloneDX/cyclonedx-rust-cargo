@@ -588,7 +588,7 @@ fn top_level_dependencies(
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let root_node = strip_dev_dependencies(&resolve[root]);
+    let root_node = strip_build_dev_dependencies(&resolve[root]);
 
     let mut pkg_result = PackageMap::new();
     // Record the root package, then its direct non-dev dependencies
@@ -635,9 +635,10 @@ fn all_dependencies(
             // If we haven't processed this node yet...
             if !out_resolve.contains_key(&node.id) {
                 // Add the node to the output
-                out_resolve.insert(node.id.to_owned(), strip_dev_dependencies(node));
+                out_resolve.insert(node.id.to_owned(), strip_build_dev_dependencies(node));
                 // Queue its dependencies for the next BFS loop iteration
-                next_queue.extend(non_dev_dependencies(&node.deps).map(|dep| &resolve[&dep.pkg]));
+                next_queue
+                    .extend(non_build_dev_dependencies(&node.deps).map(|dep| &resolve[&dep.pkg]));
             }
         }
         std::mem::swap(&mut current_queue, &mut next_queue);
@@ -653,20 +654,22 @@ fn all_dependencies(
     (out_packages, out_resolve)
 }
 
-fn strip_dev_dependencies(node: &Node) -> Node {
+fn strip_build_dev_dependencies(node: &Node) -> Node {
     let mut node = node.clone();
-    node.deps = non_dev_dependencies(&node.deps).cloned().collect();
+    node.deps = non_build_dev_dependencies(&node.deps).cloned().collect();
     node.dependencies = node.deps.iter().map(|d| d.pkg.to_owned()).collect();
     node
 }
 
 /// Filters out dependencies only used for development, and not affecting the final binary.
 /// These are specified under `[dev-dependencies]` in Cargo.toml.
-fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
+/// Also filters out build dependencies, which are not shipped int the final binary.
+/// These are specified under `[build-dependencies]` in Cargo.toml.
+fn non_build_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
     input.iter().filter(|p| {
         p.dep_kinds
             .iter()
-            .any(|dep| dep.kind != DependencyKind::Development)
+            .any(|dep| dep.kind != DependencyKind::Development && dep.kind != DependencyKind::Build)
     })
 }
 
