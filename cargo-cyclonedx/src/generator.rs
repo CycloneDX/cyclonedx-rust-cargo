@@ -100,9 +100,9 @@ impl SbomGenerator {
 
             let (dependencies, pruned_resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(member, &packages, &resolve)
+                    all_dependencies(member, &packages, &resolve, config)
                 } else {
-                    top_level_dependencies(member, &packages, &resolve)
+                    top_level_dependencies(member, &packages, &resolve, config)
                 };
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
@@ -584,11 +584,12 @@ fn top_level_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
+    config: &SbomConfig,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let root_node = strip_dev_dependencies(&resolve[root]);
+    let root_node = add_filtered_dependencies(&resolve[root], config);
 
     let mut pkg_result = PackageMap::new();
     // Record the root package, then its direct non-dev dependencies
@@ -615,6 +616,7 @@ fn all_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
+    config: &SbomConfig,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
@@ -635,9 +637,11 @@ fn all_dependencies(
             // If we haven't processed this node yet...
             if !out_resolve.contains_key(&node.id) {
                 // Add the node to the output
-                out_resolve.insert(node.id.to_owned(), strip_dev_dependencies(node));
+                out_resolve.insert(node.id.to_owned(), add_filtered_dependencies(node, config));
                 // Queue its dependencies for the next BFS loop iteration
-                next_queue.extend(non_dev_dependencies(&node.deps).map(|dep| &resolve[&dep.pkg]));
+                next_queue.extend(
+                    filtered_dependencies(&node.deps, config).map(|dep| &resolve[&dep.pkg]),
+                );
             }
         }
         std::mem::swap(&mut current_queue, &mut next_queue);
@@ -653,20 +657,27 @@ fn all_dependencies(
     (out_packages, out_resolve)
 }
 
-fn strip_dev_dependencies(node: &Node) -> Node {
+fn add_filtered_dependencies(node: &Node, config: &SbomConfig) -> Node {
     let mut node = node.clone();
-    node.deps = non_dev_dependencies(&node.deps).cloned().collect();
+    node.deps = filtered_dependencies(&node.deps, config).cloned().collect();
     node.dependencies = node.deps.iter().map(|d| d.pkg.to_owned()).collect();
     node
 }
 
 /// Filters out dependencies only used for development, and not affecting the final binary.
 /// These are specified under `[dev-dependencies]` in Cargo.toml.
-fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
+fn filtered_dependencies<'a>(
+    input: &'a [NodeDep],
+    config: &'a SbomConfig,
+) -> impl Iterator<Item = &'a NodeDep> {
     input.iter().filter(|p| {
-        p.dep_kinds
-            .iter()
-            .any(|dep| dep.kind != DependencyKind::Development)
+        p.dep_kinds.iter().any(|dep| {
+            if let Some(true) = config.only_normal_deps {
+                dep.kind == DependencyKind::Normal
+            } else {
+                dep.kind != DependencyKind::Development
+            }
+        })
     })
 }
 

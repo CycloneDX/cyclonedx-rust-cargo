@@ -100,6 +100,10 @@ Defaults to the host target, as printed by 'rustc -vV'"
     /// The CycloneDX specification version to output: `1.3`, `1.4` or `1.5`. Defaults to 1.3
     #[clap(long = "spec-version")]
     pub spec_version: Option<SpecVersion>,
+
+    /// List only dependencies of kind normal (no build deps, no dev deps)
+    #[clap(name = "only-normal-deps", long = "only-normal-deps")]
+    pub only_normal_deps: bool,
 }
 
 impl Args {
@@ -170,6 +174,7 @@ impl Args {
 
         let describe = self.describe;
         let spec_version = self.spec_version;
+        let only_normal_deps = Some(self.only_normal_deps);
 
         Ok(SbomConfig {
             format: self.format,
@@ -180,6 +185,7 @@ impl Args {
             license_parser,
             describe,
             spec_version,
+            only_normal_deps,
         })
     }
 }
