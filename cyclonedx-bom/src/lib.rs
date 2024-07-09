@@ -126,8 +126,10 @@ pub mod errors;
 pub mod external_models;
 pub mod models;
 pub mod prelude;
-pub mod schema;
 pub mod validation;
+
+#[cfg(any(feature = "jsonschema", test))]
+pub mod schema;
 
 mod specs;
 mod utilities;
