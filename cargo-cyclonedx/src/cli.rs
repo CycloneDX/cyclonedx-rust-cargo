@@ -197,6 +197,11 @@ pub enum ArgsError {
 }
 
 #[cfg(test)]
+pub fn parse_to_config(args: &[&str]) -> SbomConfig {
+    Args::parse_from(args.iter()).as_config().unwrap()
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -226,10 +231,6 @@ mod tests {
         assert!(contains_feature(&config, "foo"));
         assert!(contains_feature(&config, "bar"));
         assert!(!contains_feature(&config, ""));
-    }
-
-    fn parse_to_config(args: &[&str]) -> SbomConfig {
-        Args::parse_from(args.iter()).as_config().unwrap()
     }
 
     fn contains_feature(config: &SbomConfig, feature: &str) -> bool {
