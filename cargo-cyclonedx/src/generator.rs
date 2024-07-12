@@ -779,6 +779,7 @@ fn filtered_dependencies<'a>(
 /// * `package_name` - Package from which this SBOM was generated
 /// * `sbom_config` - Configuration options used during generation
 /// * `target_kinds` - Detailed information on the kinds of targets in `sbom`
+#[derive(Debug)]
 pub struct GeneratedSbom {
     pub bom: Bom,
     pub manifest_path: PathBuf,
