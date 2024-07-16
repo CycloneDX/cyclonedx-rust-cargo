@@ -1008,7 +1008,7 @@ mod test {
                         ),
                         validation::field(
                             "purl",
-                            "Purl does not conform to Package URL spec"
+                            "Purl does not conform to Package URL spec: URL scheme must be pkg"
                         ),
                         validation::r#struct(
                             "swid",

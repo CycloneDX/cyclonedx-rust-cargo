@@ -25,10 +25,10 @@ use thiserror::Error;
 use crate::validation::ValidationError;
 
 pub fn validate_purl(purl: &Purl) -> Result<(), ValidationError> {
-    if GenericPurl::<String>::from_str(&purl.0).is_err() {
-        return Err("Purl does not conform to Package URL spec".into());
+    match GenericPurl::<String>::from_str(&purl.0) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Purl does not conform to Package URL spec: {e}").into()),
     }
-    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -151,7 +151,7 @@ mod test {
         let validation_result = validate_purl(&Purl("invalid purl".to_string()));
         assert_eq!(
             validation_result,
-            Err("Purl does not conform to Package URL spec".into()),
+            Err("Purl does not conform to Package URL spec: URL scheme must be pkg".into()),
         );
     }
 
