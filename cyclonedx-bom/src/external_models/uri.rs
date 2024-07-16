@@ -37,18 +37,8 @@ pub struct Purl(pub(crate) String);
 impl Purl {
     /// Note that some package types, e.g. Maven, *require* the namespace to be specified,
     /// While other package types do not support namespaces at all, e.g. crates.io.
-    pub fn new(
-        package_type: &str,
-        namespace: Option<&str>,
-        name: &str,
-        version: &str,
-    ) -> Result<Purl, UriError> {
-        let mut builder =
-            GenericPurlBuilder::new(package_type.to_string(), name).with_version(version);
-
-        if let Some(space) = namespace {
-            builder = builder.with_namespace(space);
-        }
+    pub fn new(package_type: &str, name: &str, version: &str) -> Result<Purl, UriError> {
+        let builder = GenericPurlBuilder::new(package_type.to_string(), name).with_version(version);
 
         match builder.build() {
             Ok(purl) => Ok(Self(purl.to_string())),
