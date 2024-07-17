@@ -1,0 +1,10 @@
+[package]
+name = "test-utils"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+jsonschema = { version = "0.17.1", default-features = false }
+cyclonedx-bom = { path = ".." }
+serde_json = "1.0.108"
