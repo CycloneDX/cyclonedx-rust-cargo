@@ -52,7 +52,6 @@
           pname = "cyclonedx-rust-cargo";
           version = "0.1.0";
 
-          buildInputs = with pkgs; [ openssl ];
           nativeBuildInputs = with pkgs; [ pkg-config ];
         };
 
