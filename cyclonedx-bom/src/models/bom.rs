@@ -46,8 +46,6 @@ use super::vulnerability::Vulnerability;
 
 /// Represents the spec version of a BOM.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy, PartialOrd, strum::Display)]
-#[repr(u16)]
-#[non_exhaustive]
 pub enum SpecVersion {
     #[strum(to_string = "1.3")]
     #[serde(rename = "1.3")]
