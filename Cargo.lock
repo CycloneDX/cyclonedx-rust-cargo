@@ -324,8 +324,8 @@ dependencies = [
  "insta",
  "once_cell",
  "ordered-float",
- "packageurl",
  "pretty_assertions",
+ "purl",
  "regex",
  "serde",
  "serde_json",
@@ -852,16 +852,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "packageurl"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c53362339d1c48910f1b0c35e2ae96e2d32e442c7dc3ac5f622908ec87221f08"
-dependencies = [
- "percent-encoding",
- "thiserror",
-]
-
-[[package]]
 name = "parking_lot"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1001,9 +991,9 @@ dependencies = [
 
 [[package]]
 name = "purl"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d153044e55fb5c0a6f0f0f974c3335d15a842263ba4b208d2656120fe530a5ab"
+checksum = "c14fe28c8495f7eaf77a6e6106966f95211c0a2404b9da50d248fc32af3a3f14"
 dependencies = [
  "hex",
  "percent-encoding",

@@ -19,16 +19,16 @@
 use std::{convert::TryFrom, str::FromStr};
 
 use fluent_uri::Uri as Url;
-use packageurl::PackageUrl;
+use purl::{GenericPurl, GenericPurlBuilder};
 use thiserror::Error;
 
 use crate::validation::ValidationError;
 
 pub fn validate_purl(purl: &Purl) -> Result<(), ValidationError> {
-    if PackageUrl::from_str(&purl.0).is_err() {
-        return Err("Purl does not conform to Package URL spec".into());
+    match GenericPurl::<String>::from_str(&purl.0) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Purl does not conform to Package URL spec: {e}").into()),
     }
-    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -36,8 +36,10 @@ pub struct Purl(pub(crate) String);
 
 impl Purl {
     pub fn new(package_type: &str, name: &str, version: &str) -> Result<Purl, UriError> {
-        match packageurl::PackageUrl::new(package_type, name) {
-            Ok(mut purl) => Ok(Self(purl.with_version(version.trim()).to_string())),
+        let builder = GenericPurlBuilder::new(package_type.to_string(), name).with_version(version);
+
+        match builder.build() {
+            Ok(purl) => Ok(Self(purl.to_string())),
             Err(e) => Err(UriError::InvalidPurl(e.to_string())),
         }
     }
@@ -137,7 +139,7 @@ mod test {
         let validation_result = validate_purl(&Purl("invalid purl".to_string()));
         assert_eq!(
             validation_result,
-            Err("Purl does not conform to Package URL spec".into()),
+            Err("Purl does not conform to Package URL spec: URL scheme must be pkg".into()),
         );
     }
 
