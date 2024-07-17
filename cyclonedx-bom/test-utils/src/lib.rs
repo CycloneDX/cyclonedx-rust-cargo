@@ -51,7 +51,7 @@
  ///
  /// ```rust
  /// use cyclonedx_bom::prelude::*;
- /// use cyclonedx_bom::schema::validate_json_with_schema;
+ /// use test_utils::validate_json_with_schema;
  ///
  /// let bom_json = r#"{
  ///   "bomFormat": "CycloneDX",
