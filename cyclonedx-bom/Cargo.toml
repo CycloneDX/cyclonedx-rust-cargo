@@ -5,6 +5,7 @@ description = "CycloneDX Software Bill of Materials Library"
 categories = ["encoding", "parser-implementations"]
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
 readme = "README.md"
+exclude = ["tests/", "test-utils/"]
 
 authors.workspace = true
 edition.workspace = true
