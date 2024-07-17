@@ -21,6 +21,5 @@ pub mod format;
 pub mod generator;
 pub mod platform;
 pub mod purl;
-pub mod urlencode;
 
 pub use crate::generator::*;

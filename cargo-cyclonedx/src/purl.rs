@@ -5,8 +5,6 @@ use cyclonedx_bom::{external_models::uri::validate_purl, prelude::Purl as CdxPur
 use pathdiff::diff_utf8_paths;
 use purl::{PackageError, PackageType, PurlBuilder};
 
-use crate::urlencode::urlencode;
-
 pub fn get_purl(
     package: &Package,
     root_package: &Package,
@@ -25,7 +23,7 @@ pub fn get_purl(
                     builder = builder.with_qualifier("vcs_url", source_to_vcs_url(source))?
                 }
                 Some(("registry", registry_url)) => {
-                    builder = builder.with_qualifier("repository_url", urlencode(registry_url))?
+                    builder = builder.with_qualifier("repository_url", registry_url)?
                 }
                 Some((source, _path)) => log::warn!("Unknown source kind {}", source),
                 None => {
@@ -49,9 +47,9 @@ pub fn get_purl(
             }
         }
         // url-encode the path to the package manifest to make it a valid URL
-        let manifest_url = format!("file://{}", urlencode(package_dir.as_str()));
+        let manifest_url = format!("file://{}", package_dir.as_str());
         // url-encode the whole URL *again* because we are embedding this URL inside another URL (PURL)
-        builder = builder.with_qualifier("download_url", urlencode(&manifest_url))?
+        builder = builder.with_qualifier("download_url", &manifest_url)?
     }
 
     if let Some(subpath) = subpath {
@@ -70,13 +68,13 @@ pub fn get_purl(
 /// Assumes that the source kind is `git`, panics if it isn't.
 fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
     assert!(source.repr.starts_with("git+"));
-    urlencode(&source.repr.replace('#', "@"))
+    source.repr.replace('#', "@")
 }
 
 /// Converts a relative path to PURL subpath
 fn to_purl_subpath(path: &Utf8Path) -> String {
     assert!(path.is_relative());
-    let parts: Vec<String> = path.components().map(|c| urlencode(c.as_str())).collect();
+    let parts: Vec<&str> = path.components().map(|c| c.as_str()).collect();
     parts.join("/")
 }
 
