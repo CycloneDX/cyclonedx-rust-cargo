@@ -33,7 +33,7 @@ pub struct SbomConfig {
     pub license_parser: Option<LicenseParserOptions>,
     pub describe: Option<Describe>,
     pub spec_version: Option<SpecVersion>,
-    pub only_normal_deps: Option<bool>,
+    pub no_build_deps: Option<bool>,
 }
 
 impl SbomConfig {
@@ -58,7 +58,7 @@ impl SbomConfig {
                 .or_else(|| self.license_parser.clone()),
             describe: other.describe.or(self.describe),
             spec_version: other.spec_version.or(self.spec_version),
-            only_normal_deps: other.only_normal_deps.or(self.only_normal_deps),
+            no_build_deps: other.no_build_deps.or(self.no_build_deps),
         }
     }
 

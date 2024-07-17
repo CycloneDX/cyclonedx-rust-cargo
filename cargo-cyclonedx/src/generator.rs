@@ -767,7 +767,7 @@ fn filtered_dependencies<'a>(
 ) -> impl Iterator<Item = &'a NodeDep> {
     input.iter().filter(|p| {
         p.dep_kinds.iter().any(|dep| {
-            if let Some(true) = config.only_normal_deps {
+            if let Some(true) = config.no_build_deps {
                 dep.kind == DependencyKind::Normal
             } else {
                 dep.kind != DependencyKind::Development
