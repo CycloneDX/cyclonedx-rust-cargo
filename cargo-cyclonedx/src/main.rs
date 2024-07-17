@@ -48,6 +48,7 @@
 use cargo_cyclonedx::{
     config::{SbomConfig, Target},
     generator::SbomGenerator,
+    GeneratedSbom,
 };
 
 use std::{
@@ -65,21 +66,27 @@ use log::LevelFilter;
 mod cli;
 use cli::{Args, Opts};
 
-fn main() -> anyhow::Result<()> {
-    let Opts::Bom(args) = Opts::parse();
-    setup_logging(&args)?;
-
+fn generate_sboms(args: &Args) -> Result<Vec<GeneratedSbom>> {
     let cli_config = args.as_config()?;
-    let manifest_path = locate_manifest(&args)?;
+    let manifest_path = locate_manifest(args)?;
     log::debug!("Found the Cargo.toml file at {}", manifest_path.display());
 
     log::trace!("Running `cargo metadata` started");
-    let metadata = get_metadata(&args, &manifest_path, &cli_config)?;
+    let metadata = get_metadata(args, &manifest_path, &cli_config)?;
     log::trace!("Running `cargo metadata` finished");
 
     log::trace!("SBOM generation started");
     let boms = SbomGenerator::create_sboms(metadata, &cli_config)?;
     log::trace!("SBOM generation finished");
+
+    Ok(boms)
+}
+
+fn main() -> anyhow::Result<()> {
+    let Opts::Bom(args) = Opts::parse();
+    setup_logging(&args)?;
+
+    let boms = generate_sboms(&args)?;
 
     log::trace!("SBOM output started");
     for bom in boms {
@@ -162,4 +169,63 @@ fn get_metadata(
     }
 
     Ok(cmd.exec()?)
+}
+
+#[cfg(test)]
+mod tests {
+    use cyclonedx_bom::prelude::NormalizedString;
+
+    #[test]
+    fn parse_toml_only_normal() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use cyclonedx_bom::models::component::Scope;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/build_then_runtime_dep/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg, "--only-normal-deps"];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+
+        let components = sboms[0].bom.components.as_ref().unwrap();
+        assert!(components
+            .0
+            .iter()
+            .all(|f| f.scope == Some(Scope::Required)));
+    }
+
+    #[test]
+    fn parse_toml_with_excluded() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use cyclonedx_bom::models::component::Scope;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/build_then_runtime_dep/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+
+        // build_dep is a build dependency -> excluded
+        // runtime_dep_of_build_dep is a dependency of a build dependency -> excluded
+        let components = sboms[0].bom.components.as_ref().unwrap();
+        assert!(components
+            .0
+            .iter()
+            .all(|c| c.name != NormalizedString::new("build_dep")
+                || c.scope == Some(Scope::Excluded)));
+        assert!(components.0.iter().all(|c| c.name
+            != NormalizedString::new("runtime_dep_of_build_dep")
+            || c.scope == Some(Scope::Excluded)));
+    }
 }

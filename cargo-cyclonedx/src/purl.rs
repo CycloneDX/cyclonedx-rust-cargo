@@ -107,7 +107,7 @@ mod tests {
         )
         .unwrap();
         // Validate that data roundtripped correctly
-        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        let parsed_purl = Purl::from_str(purl.as_ref()).unwrap();
         assert_eq!(parsed_purl.name(), "aho-corasick");
         assert_eq!(parsed_purl.version(), Some("1.1.2"));
         assert!(parsed_purl.qualifiers().is_empty());
@@ -120,7 +120,7 @@ mod tests {
         let git_package: Package = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
         let purl = get_purl(&git_package, &git_package, Utf8Path::new("/foo/bar"), None).unwrap();
         // Validate that data roundtripped correctly
-        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        let parsed_purl = Purl::from_str(purl.as_ref()).unwrap();
         assert_eq!(parsed_purl.name(), "auditable-extract");
         assert_eq!(parsed_purl.version(), Some("0.3.2"));
         assert_eq!(parsed_purl.qualifiers().len(), 1);
@@ -142,7 +142,7 @@ mod tests {
         )
         .unwrap();
         // Validate that data roundtripped correctly
-        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        let parsed_purl = Purl::from_str(purl.as_ref()).unwrap();
         assert_eq!(parsed_purl.name(), "cargo-cyclonedx");
         assert_eq!(parsed_purl.version(), Some("0.3.8"));
         assert_eq!(parsed_purl.qualifiers().len(), 1);
@@ -165,7 +165,7 @@ mod tests {
         )
         .unwrap();
         // Validate that data roundtripped correctly
-        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        let parsed_purl = Purl::from_str(purl.as_ref()).unwrap();
         assert_eq!(parsed_purl.name(), "cargo-cyclonedx");
         assert_eq!(parsed_purl.version(), Some("0.3.8"));
         assert_eq!(parsed_purl.qualifiers().len(), 1);
@@ -189,7 +189,7 @@ mod tests {
         )
         .unwrap();
         // Validate that data roundtripped correctly
-        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        let parsed_purl = Purl::from_str(purl.as_ref()).unwrap();
         assert_eq!(parsed_purl.name(), "cyclonedx-bom");
         assert_eq!(parsed_purl.version(), Some("0.4.1"));
         assert_eq!(parsed_purl.qualifiers().len(), 1);
@@ -213,7 +213,7 @@ mod tests {
         )
         .unwrap();
         // Validate that data roundtripped correctly
-        let parsed_purl = Purl::from_str(&purl.to_string()).unwrap();
+        let parsed_purl = Purl::from_str(purl.as_ref()).unwrap();
         assert_eq!(parsed_purl.name(), "cyclonedx-bom");
         assert_eq!(parsed_purl.version(), Some("0.4.1"));
         assert_eq!(parsed_purl.qualifiers().len(), 1);

@@ -1,4 +1,5 @@
 use crate::config::Describe;
+use std::cmp::min;
 /*
  * This file is part of CycloneDX Rust Cargo.
  *
@@ -54,8 +55,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use log::Level;
-use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::collections::{BTreeMap, LinkedList};
 use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufWriter;
@@ -68,6 +69,42 @@ use validator::validate_email;
 // Maps from PackageId to Package for efficiency - faster lookups than in a Vec
 type PackageMap = BTreeMap<PackageId, Package>;
 type ResolveMap = BTreeMap<PackageId, Node>;
+type DependencyKindMap = BTreeMap<PackageId, DependencyKind>;
+
+/// The values are ordered from weakest to strongest so that casting to integer would make sense
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+enum PrivateDepKind {
+    Development,
+    Build,
+    Runtime,
+}
+impl From<PrivateDepKind> for DependencyKind {
+    fn from(priv_kind: PrivateDepKind) -> Self {
+        match priv_kind {
+            PrivateDepKind::Development => DependencyKind::Development,
+            PrivateDepKind::Build => DependencyKind::Build,
+            PrivateDepKind::Runtime => DependencyKind::Normal,
+        }
+    }
+}
+
+impl From<&DependencyKind> for PrivateDepKind {
+    fn from(kind: &DependencyKind) -> Self {
+        match kind {
+            DependencyKind::Normal => PrivateDepKind::Runtime,
+            DependencyKind::Development => PrivateDepKind::Development,
+            DependencyKind::Build => PrivateDepKind::Build,
+            _ => panic!("Unknown dependency kind"),
+        }
+    }
+}
+
+fn strongest_dep_kind(deps: &[cargo_metadata::DepKindInfo]) -> PrivateDepKind {
+    deps.iter()
+        .map(|d| PrivateDepKind::from(&d.kind))
+        .max()
+        .unwrap_or(PrivateDepKind::Runtime) // for compatibility with Rust earlier than 1.41
+}
 
 pub struct SbomGenerator {
     config: SbomConfig,
@@ -98,11 +135,13 @@ impl SbomGenerator {
         for member in members.iter() {
             log::trace!("Processing the package {}", member);
 
+            let dep_kinds = index_dep_kinds(member, &resolve);
+
             let (dependencies, pruned_resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(member, &packages, &resolve)
+                    all_dependencies(member, &packages, &resolve, config)
                 } else {
-                    top_level_dependencies(member, &packages, &resolve)
+                    top_level_dependencies(member, &packages, &resolve, config)
                 };
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
@@ -128,7 +167,7 @@ impl SbomGenerator {
                 crate_hashes,
             };
             let (bom, target_kinds) =
-                generator.create_bom(member, &dependencies, &pruned_resolve)?;
+                generator.create_bom(member, &dependencies, &pruned_resolve, &dep_kinds)?;
 
             let generated = GeneratedSbom {
                 bom,
@@ -149,6 +188,7 @@ impl SbomGenerator {
         package: &PackageId,
         packages: &PackageMap,
         resolve: &ResolveMap,
+        dep_kinds: &DependencyKindMap,
     ) -> Result<(Bom, TargetKinds), GeneratorError> {
         let mut bom = Bom::default();
         let root_package = &packages[package];
@@ -156,7 +196,7 @@ impl SbomGenerator {
         let components: Vec<_> = packages
             .values()
             .filter(|p| &p.id != package)
-            .map(|component| self.create_component(component, root_package))
+            .map(|component| self.create_component(component, root_package, dep_kinds))
             .collect();
 
         bom.components = Some(Components(components));
@@ -170,7 +210,12 @@ impl SbomGenerator {
         Ok((bom, target_kinds))
     }
 
-    fn create_component(&self, package: &Package, root_package: &Package) -> Component {
+    fn create_component(
+        &self,
+        package: &Package,
+        root_package: &Package,
+        dep_kinds: &DependencyKindMap,
+    ) -> Component {
         let name = package.name.to_owned().trim().to_string();
         let version = package.version.to_string();
 
@@ -190,7 +235,13 @@ impl SbomGenerator {
         );
 
         component.purl = purl;
-        component.scope = Some(Scope::Required);
+        component.scope = match dep_kinds
+            .get(&package.id)
+            .unwrap_or(&DependencyKind::Normal)
+        {
+            DependencyKind::Normal => Some(Scope::Required),
+            _ => Some(Scope::Excluded),
+        };
         component.external_references = Self::get_external_references(package);
         component.licenses = self.get_licenses(package);
         component.hashes = self.get_hashes(package);
@@ -206,7 +257,7 @@ impl SbomGenerator {
     /// Same as [Self::create_component] but also includes information
     /// on binaries and libraries comprising it as subcomponents
     fn create_toplevel_component(&self, package: &Package) -> (Component, TargetKinds) {
-        let mut top_component = self.create_component(package, package);
+        let mut top_component = self.create_component(package, package, &DependencyKindMap::new());
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut target_kinds = HashMap::new();
         for tgt in filter_targets(&package.targets) {
@@ -542,6 +593,49 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
         .collect()
 }
 
+fn index_dep_kinds(root: &PackageId, resolve: &ResolveMap) -> DependencyKindMap {
+    // cache strongest found dependency kind for every node
+    let mut id_to_dep_kind: HashMap<&PackageId, PrivateDepKind> = HashMap::new();
+    id_to_dep_kind.insert(root, PrivateDepKind::Runtime);
+
+    let root_node = &resolve[root];
+    let mut nodes_to_visit = LinkedList::<&Node>::new();
+    nodes_to_visit.push_front(root_node);
+
+    // perform a simple iterative DFS over the dependencies,
+    // mark child deps with the minimum of parent kind and their own strongest value
+    // therefore e.g. mark decendants of build dependencies as build dependencies,
+    // as long as they never occur as normal dependency.
+    while !nodes_to_visit.is_empty() {
+        let node = nodes_to_visit.pop_front().unwrap();
+        let parent_node_kind = id_to_dep_kind[&node.id];
+
+        for child_dep in &node.deps {
+            let child_node = &resolve[&child_dep.pkg];
+            let dep_kind = strongest_dep_kind(child_dep.dep_kinds.as_slice());
+            let child_node_kind = min(parent_node_kind, dep_kind);
+
+            let dep_kind_on_previous_visit = id_to_dep_kind.get(&child_node.id);
+            // insert/update a nodes dependency kind, when its new or stronger than the previous value
+            if dep_kind_on_previous_visit.is_none()
+                || child_node_kind > *dep_kind_on_previous_visit.unwrap()
+            {
+                let _ = id_to_dep_kind.insert(&child_node.id, child_node_kind);
+            }
+
+            // cargo metadata already return a DAG, so assume this will terminate
+            // and don't mark already visited notes. It's ok and necessary to visit
+            // deps as often as they occur.
+            nodes_to_visit.push_front(child_node);
+        }
+    }
+
+    id_to_dep_kind
+        .iter()
+        .map(|(x, y)| ((*x).clone(), DependencyKind::from(*y)))
+        .collect()
+}
+
 #[derive(Error, Debug)]
 pub enum GeneratorError {
     #[error("Expected a root package in the cargo config: {config_filepath}")]
@@ -584,13 +678,15 @@ fn top_level_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
+    config: &SbomConfig,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let root_node = strip_dev_dependencies(&resolve[root]);
+    let root_node = add_filtered_dependencies(&resolve[root], config);
 
     let mut pkg_result = PackageMap::new();
+
     // Record the root package, then its direct non-dev dependencies
     pkg_result.insert(root.to_owned(), packages[root].to_owned());
     for id in &root_node.dependencies {
@@ -615,6 +711,7 @@ fn all_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
+    config: &SbomConfig,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
@@ -635,9 +732,11 @@ fn all_dependencies(
             // If we haven't processed this node yet...
             if !out_resolve.contains_key(&node.id) {
                 // Add the node to the output
-                out_resolve.insert(node.id.to_owned(), strip_dev_dependencies(node));
+                out_resolve.insert(node.id.to_owned(), add_filtered_dependencies(node, config));
                 // Queue its dependencies for the next BFS loop iteration
-                next_queue.extend(non_dev_dependencies(&node.deps).map(|dep| &resolve[&dep.pkg]));
+                next_queue.extend(
+                    filtered_dependencies(&node.deps, config).map(|dep| &resolve[&dep.pkg]),
+                );
             }
         }
         std::mem::swap(&mut current_queue, &mut next_queue);
@@ -653,20 +752,27 @@ fn all_dependencies(
     (out_packages, out_resolve)
 }
 
-fn strip_dev_dependencies(node: &Node) -> Node {
+fn add_filtered_dependencies(node: &Node, config: &SbomConfig) -> Node {
     let mut node = node.clone();
-    node.deps = non_dev_dependencies(&node.deps).cloned().collect();
+    node.deps = filtered_dependencies(&node.deps, config).cloned().collect();
     node.dependencies = node.deps.iter().map(|d| d.pkg.to_owned()).collect();
     node
 }
 
 /// Filters out dependencies only used for development, and not affecting the final binary.
 /// These are specified under `[dev-dependencies]` in Cargo.toml.
-fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
+fn filtered_dependencies<'a>(
+    input: &'a [NodeDep],
+    config: &'a SbomConfig,
+) -> impl Iterator<Item = &'a NodeDep> {
     input.iter().filter(|p| {
-        p.dep_kinds
-            .iter()
-            .any(|dep| dep.kind != DependencyKind::Development)
+        p.dep_kinds.iter().any(|dep| {
+            if let Some(true) = config.only_normal_deps {
+                dep.kind == DependencyKind::Normal
+            } else {
+                dep.kind != DependencyKind::Development
+            }
+        })
     })
 }
 
@@ -677,6 +783,7 @@ fn non_dev_dependencies(input: &[NodeDep]) -> impl Iterator<Item = &NodeDep> {
 /// * `package_name` - Package from which this SBOM was generated
 /// * `sbom_config` - Configuration options used during generation
 /// * `target_kinds` - Detailed information on the kinds of targets in `sbom`
+#[derive(Debug)]
 pub struct GeneratedSbom {
     pub bom: Bom,
     pub manifest_path: PathBuf,
