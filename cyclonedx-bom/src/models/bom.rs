@@ -242,7 +242,7 @@ impl Bom {
         writer: &mut W,
     ) -> Result<(), crate::errors::JsonWriteError> {
         let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
-        serde_json::to_writer_pretty(writer, &bom)?;
+        serde_json::to_writer(writer, &bom)?;
         Ok(())
     }
 
@@ -289,7 +289,7 @@ impl Bom {
         writer: &mut W,
     ) -> Result<(), crate::errors::JsonWriteError> {
         let bom: crate::specs::v1_4::bom::Bom = self.try_into()?;
-        serde_json::to_writer_pretty(writer, &bom)?;
+        serde_json::to_writer(writer, &bom)?;
         Ok(())
     }
 
@@ -329,7 +329,7 @@ impl Bom {
         writer: &mut W,
     ) -> Result<(), crate::errors::JsonWriteError> {
         let bom: crate::specs::v1_5::bom::Bom = self.try_into()?;
-        serde_json::to_writer_pretty(writer, &bom)?;
+        serde_json::to_writer(writer, &bom)?;
         Ok(())
     }
 
