@@ -72,6 +72,9 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
       --top-level
           List only top-level dependencies
 
+      --no-build-deps
+          Do not list build dependencies in the SBOM
+
       --override-filename <FILENAME>
           Custom string to use for the output filename
 
@@ -82,7 +85,7 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
           Add license names which will not be warned about when parsing them as a SPDX expression fails
 
       --spec-version <SPEC_VERSION>
-          The CycloneDX specification version to output: `1.3` or `1.4`. Defaults to 1.3
+          The CycloneDX specification version to output: `1.3`, `1.4` or `1.5`. Defaults to 1.3
 
   -h, --help
           Print help (see a summary with '-h')
