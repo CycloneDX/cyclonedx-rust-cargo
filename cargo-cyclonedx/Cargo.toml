@@ -1,6 +1,6 @@
 [package]
 name = "cargo-cyclonedx"
-version = "0.5.3"
+version = "0.5.4"
 categories = ["command-line-utilities", "development-tools", "development-tools::cargo-plugins"]
 description = "CycloneDX Software Bill of Materials (SBOM) for Rust Crates"
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
