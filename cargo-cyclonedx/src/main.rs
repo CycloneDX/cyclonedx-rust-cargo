@@ -187,7 +187,7 @@ mod tests {
         test_cargo_toml.push("tests/fixtures/build_then_runtime_dep/Cargo.toml");
 
         let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
-        let args = ["cyclonedx", path_arg, "--only-normal-deps"];
+        let args = ["cyclonedx", path_arg, "--no-build-deps"];
         let args_parsed = cli::Args::parse_from(args.iter());
 
         let sboms = generate_sboms(&args_parsed).unwrap();
