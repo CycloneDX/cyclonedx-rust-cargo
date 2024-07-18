@@ -1,5 +1,6 @@
 use crate::config::Describe;
 use std::cmp::min;
+use std::collections::HashSet;
 /*
  * This file is part of CycloneDX Rust Cargo.
  *
@@ -55,8 +56,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use log::Level;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
-use std::collections::{BTreeMap, LinkedList};
 use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufWriter;
@@ -72,7 +73,7 @@ type ResolveMap = BTreeMap<PackageId, Node>;
 type DependencyKindMap = BTreeMap<PackageId, DependencyKind>;
 
 /// The values are ordered from weakest to strongest so that casting to integer would make sense
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
 enum PrivateDepKind {
     Development,
     Build,
@@ -97,13 +98,6 @@ impl From<&DependencyKind> for PrivateDepKind {
             _ => panic!("Unknown dependency kind"),
         }
     }
-}
-
-fn strongest_dep_kind(deps: &[cargo_metadata::DepKindInfo]) -> PrivateDepKind {
-    deps.iter()
-        .map(|d| PrivateDepKind::from(&d.kind))
-        .max()
-        .unwrap_or(PrivateDepKind::Runtime) // for compatibility with Rust earlier than 1.41
 }
 
 pub struct SbomGenerator {
@@ -595,33 +589,45 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
 
 fn index_dep_kinds(root: &PackageId, resolve: &ResolveMap) -> DependencyKindMap {
     // cache strongest found dependency kind for every node
-    let mut id_to_dep_kind: HashMap<&PackageId, PrivateDepKind> = HashMap::new();
-    id_to_dep_kind.insert(root, PrivateDepKind::Runtime);
+    let mut id_to_dep_kind: HashMap<PackageId, PrivateDepKind> = HashMap::new();
+    id_to_dep_kind.insert(root.clone(), PrivateDepKind::Runtime);
 
-    let root_node = &resolve[root];
-    let mut nodes_to_visit = LinkedList::<&Node>::new();
-    nodes_to_visit.push_front(root_node);
+    type DepNode = (PackageId, PrivateDepKind, PrivateDepKind);
+
+    let mut nodes_to_visit: Vec<DepNode> = vec![];
+    nodes_to_visit.push((
+        root.clone(),
+        PrivateDepKind::Runtime,
+        PrivateDepKind::Runtime,
+    ));
+
+    let mut visited_nodes: HashSet<DepNode> = HashSet::new();
 
     // perform a simple iterative DFS over the dependencies,
     // mark child deps with the minimum of parent kind and their own strongest value
     // therefore e.g. mark decendants of build dependencies as build dependencies,
     // as long as they never occur as normal dependency.
-    while !nodes_to_visit.is_empty() {
-        let node = nodes_to_visit.pop_front().unwrap();
-        let parent_node_kind = id_to_dep_kind[&node.id];
+    while let Some((pkg_id, node_kind, path_node_kind)) = nodes_to_visit.pop() {
+        visited_nodes.insert((pkg_id.clone(), node_kind, path_node_kind));
 
+        let dep_kind_on_previous_visit = id_to_dep_kind.get(&pkg_id);
+        // insert/update a nodes dependency kind, when its new or stronger than the previous value
+        if dep_kind_on_previous_visit.is_none()
+            || path_node_kind > *dep_kind_on_previous_visit.unwrap()
+        {
+            let _ = id_to_dep_kind.insert(pkg_id.clone(), path_node_kind);
+        }
+
+        let node = &resolve[&pkg_id];
         for child_dep in &node.deps {
-            let child_node = &resolve[&child_dep.pkg];
-            let dep_kind = strongest_dep_kind(child_dep.dep_kinds.as_slice());
-            let child_node_kind = min(parent_node_kind, dep_kind);
+            for dep_kind in &child_dep.dep_kinds {
+                let current_kind = PrivateDepKind::from(&dep_kind.kind);
+                let new_path_node_kind = min(current_kind, path_node_kind);
 
-            let dep_kind_on_previous_visit = id_to_dep_kind.get(&child_node.id);
-            // insert/update a nodes dependency kind, when its new or stronger than the previous value
-            if dep_kind_on_previous_visit.is_none()
-                || child_node_kind > *dep_kind_on_previous_visit.unwrap()
-            {
-                let _ = id_to_dep_kind.insert(&child_node.id, child_node_kind);
-                nodes_to_visit.push_front(child_node);
+                let dep_node: DepNode = (child_dep.pkg.clone(), current_kind, new_path_node_kind);
+                if !visited_nodes.contains(&dep_node) {
+                    nodes_to_visit.push(dep_node);
+                }
             }
         }
     }
