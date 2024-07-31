@@ -102,7 +102,7 @@ Defaults to the host target, as printed by 'rustc -vV'"
     pub spec_version: Option<SpecVersion>,
 
     /// Do not include build-time dependencies in the SBOM
-    #[clap(name = "no-build-deps", long = "no-build-deps")]
+    #[clap(long = "no-build-deps")]
     pub no_build_deps: bool,
 }
 
