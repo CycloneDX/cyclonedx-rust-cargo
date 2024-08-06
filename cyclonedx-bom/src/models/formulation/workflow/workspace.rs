@@ -8,18 +8,18 @@ use super::resource_reference::ResourceReference;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Workspace {
-    pub(crate) bom_ref: BomReference,
-    pub(crate) uid: String,
-    pub(crate) name: Option<String>,
-    pub(crate) aliases: Option<Vec<String>>,
-    pub(crate) description: Option<String>,
-    pub(crate) resource_references: Option<Vec<ResourceReference>>,
-    pub(crate) access_mode: Option<AccessMode>,
-    pub(crate) mount_path: Option<String>,
-    pub(crate) managed_data_type: Option<String>,
-    pub(crate) volume_request: Option<String>,
-    pub(crate) volume: Option<Volume>,
-    pub(crate) properties: Option<Properties>,
+    pub bom_ref: BomReference,
+    pub uid: String,
+    pub name: Option<String>,
+    pub aliases: Option<Vec<String>>,
+    pub description: Option<String>,
+    pub resource_references: Option<Vec<ResourceReference>>,
+    pub access_mode: Option<AccessMode>,
+    pub mount_path: Option<String>,
+    pub managed_data_type: Option<String>,
+    pub volume_request: Option<String>,
+    pub volume: Option<Volume>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Workspace {
@@ -53,7 +53,7 @@ pub enum AccessMode {
 }
 
 impl AccessMode {
-    pub(crate) fn new_unchecked<S: AsRef<str>>(s: S) -> Self {
+    pub fn new_unchecked<S: AsRef<str>>(s: S) -> Self {
         match s.as_ref() {
             "read-only" => Self::ReadOnly,
             "read-write" => Self::ReadWrite,
@@ -73,15 +73,15 @@ pub fn validate_access_mode(access_mode: &AccessMode) -> Result<(), ValidationEr
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Volume {
-    pub(crate) uid: Option<String>,
-    pub(crate) name: Option<String>,
-    pub(crate) mode: Mode,
-    pub(crate) path: Option<String>,
-    pub(crate) size_allocated: Option<String>,
-    pub(crate) persistent: Option<bool>,
-    pub(crate) remote: Option<bool>,
-    pub(crate) properties: Option<Properties>,
+pub struct Volume {
+    pub uid: Option<String>,
+    pub name: Option<String>,
+    pub mode: Mode,
+    pub path: Option<String>,
+    pub size_allocated: Option<String>,
+    pub persistent: Option<bool>,
+    pub remote: Option<bool>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Volume {
@@ -104,7 +104,7 @@ pub enum Mode {
 }
 
 impl Mode {
-    pub(crate) fn new_unchecked<S: AsRef<str>>(s: S) -> Self {
+    pub fn new_unchecked<S: AsRef<str>>(s: S) -> Self {
         match s.as_ref() {
             "filesystem" => Self::Filesystem,
             "block" => Self::Block,

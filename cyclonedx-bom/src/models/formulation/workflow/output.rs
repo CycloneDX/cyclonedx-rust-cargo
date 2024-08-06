@@ -7,12 +7,12 @@ use crate::{
 use super::{resource_reference::ResourceReference, EnvironmentVar};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Output {
-    pub(crate) required: RequiredOutputField,
-    pub(crate) r#type: Option<Type>,
-    pub(crate) source: Option<ResourceReference>,
-    pub(crate) target: Option<ResourceReference>,
-    pub(crate) properties: Option<Properties>,
+pub struct Output {
+    pub required: RequiredOutputField,
+    pub r#type: Option<Type>,
+    pub source: Option<ResourceReference>,
+    pub target: Option<ResourceReference>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Output {
@@ -41,7 +41,7 @@ impl Validate for Output {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum RequiredOutputField {
+pub enum RequiredOutputField {
     Resource(ResourceReference),
     EnvironmentVars(Vec<EnvironmentVar>),
     Data(Attachment),
@@ -49,7 +49,7 @@ pub(crate) enum RequiredOutputField {
 
 #[derive(Debug, Clone, strum::Display, PartialEq, Eq, Hash)]
 #[strum(serialize_all = "kebab-case")]
-pub(crate) enum Type {
+pub enum Type {
     Artifact,
     Attestation,
     Log,
@@ -62,7 +62,7 @@ pub(crate) enum Type {
 }
 
 impl Type {
-    pub(crate) fn new_unchecked<S: AsRef<str>>(s: S) -> Self {
+    pub fn new_unchecked<S: AsRef<str>>(s: S) -> Self {
         match s.as_ref() {
             "artifact" => Self::Artifact,
             "attestation" => Self::Attestation,

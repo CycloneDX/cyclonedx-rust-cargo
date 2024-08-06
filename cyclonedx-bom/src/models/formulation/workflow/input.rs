@@ -7,11 +7,11 @@ use crate::{
 use super::{resource_reference::ResourceReference, EnvironmentVar};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Input {
-    pub(crate) required: RequiredInputField,
-    pub(crate) source: Option<ResourceReference>,
-    pub(crate) target: Option<ResourceReference>,
-    pub(crate) properties: Option<Properties>,
+pub struct Input {
+    pub required: RequiredInputField,
+    pub source: Option<ResourceReference>,
+    pub target: Option<ResourceReference>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Input {
@@ -39,7 +39,7 @@ impl Validate for Input {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum RequiredInputField {
+pub enum RequiredInputField {
     Resource(ResourceReference),
     Parameters(Vec<Parameter>),
     EnvironmentVars(Vec<EnvironmentVar>),
@@ -47,8 +47,8 @@ pub(crate) enum RequiredInputField {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Parameter {
-    pub(crate) name: Option<String>,
-    pub(crate) value: Option<String>,
-    pub(crate) data_type: Option<String>,
+pub struct Parameter {
+    pub name: Option<String>,
+    pub value: Option<String>,
+    pub data_type: Option<String>,
 }

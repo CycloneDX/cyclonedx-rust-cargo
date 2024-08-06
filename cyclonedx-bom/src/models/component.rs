@@ -218,7 +218,7 @@ pub enum Classification {
 }
 
 impl Classification {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "application" => Self::Application,
             "framework" => Self::Framework,
@@ -256,7 +256,7 @@ pub enum Scope {
 }
 
 impl Scope {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "required" => Self::Required,
             "optional" => Self::Optional,
@@ -281,7 +281,7 @@ pub fn validate_mime_type(mime_type: &MimeType) -> Result<(), ValidationError> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct MimeType(pub(crate) String);
+pub struct MimeType(pub String);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Swid {
@@ -321,6 +321,24 @@ pub fn validate_cpe(cpe: &Cpe) -> Result<(), ValidationError> {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Cpe(pub(crate) String);
+
+impl Cpe {
+    pub fn new(inner: &str) -> Self {
+        Self(inner.to_string())
+    }
+}
+
+impl From<String> for Cpe {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl AsRef<String> for Cpe {
+    fn as_ref(&self) -> &String {
+        &self.0
+    }
+}
 
 impl AsRef<str> for Cpe {
     fn as_ref(&self) -> &str {
@@ -513,7 +531,7 @@ pub enum IdentityField {
 }
 
 impl IdentityField {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "group" => Self::Group,
             "name" => Self::Name,
@@ -593,7 +611,7 @@ pub fn validate_copyright(_copyright: &Copyright) -> Result<(), ValidationError>
 pub struct Copyright(pub String);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct CopyrightTexts(pub(crate) Vec<Copyright>);
+pub struct CopyrightTexts(pub Vec<Copyright>);
 
 impl Validate for CopyrightTexts {
     fn validate_version(&self, _version: SpecVersion) -> ValidationResult {

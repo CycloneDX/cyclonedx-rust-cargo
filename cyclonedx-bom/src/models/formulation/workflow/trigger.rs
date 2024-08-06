@@ -12,19 +12,19 @@ use crate::{
 use super::{input::Input, output::Output, resource_reference::ResourceReference};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Trigger {
-    pub(crate) bom_ref: BomReference,
-    pub(crate) uid: String,
-    pub(crate) name: Option<String>,
-    pub(crate) description: Option<String>,
-    pub(crate) resource_references: Option<Vec<ResourceReference>>,
-    pub(crate) r#type: Type,
-    pub(crate) event: Option<Event>,
-    pub(crate) conditions: Option<Vec<Condition>>,
-    pub(crate) time_activated: Option<DateTime>,
-    pub(crate) inputs: Option<Vec<Input>>,
-    pub(crate) outputs: Option<Vec<Output>>,
-    pub(crate) properties: Option<Properties>,
+pub struct Trigger {
+    pub bom_ref: BomReference,
+    pub uid: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub resource_references: Option<Vec<ResourceReference>>,
+    pub r#type: Type,
+    pub event: Option<Event>,
+    pub conditions: Option<Vec<Condition>>,
+    pub time_activated: Option<DateTime>,
+    pub inputs: Option<Vec<Input>>,
+    pub outputs: Option<Vec<Output>>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Trigger {
@@ -100,14 +100,14 @@ impl Validate for Type {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Event {
-    pub(crate) uid: Option<String>,
-    pub(crate) description: Option<String>,
-    pub(crate) time_received: Option<DateTime>,
-    pub(crate) data: Option<Attachment>,
-    pub(crate) source: Option<ResourceReference>,
-    pub(crate) target: Option<ResourceReference>,
-    pub(crate) properties: Option<Properties>,
+pub struct Event {
+    pub uid: Option<String>,
+    pub description: Option<String>,
+    pub time_received: Option<DateTime>,
+    pub data: Option<Attachment>,
+    pub source: Option<ResourceReference>,
+    pub target: Option<ResourceReference>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Event {
@@ -130,10 +130,10 @@ impl Validate for Event {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Condition {
-    pub(crate) description: Option<String>,
-    pub(crate) expression: Option<String>,
-    pub(crate) properties: Option<Properties>,
+pub struct Condition {
+    pub description: Option<String>,
+    pub expression: Option<String>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Condition {

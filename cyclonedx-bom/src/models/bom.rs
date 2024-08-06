@@ -79,7 +79,7 @@ impl FromStr for SpecVersion {
     }
 }
 
-pub(crate) fn validate_bom_ref(
+pub fn validate_bom_ref(
     _bom_ref: &BomReference,
     version: SpecVersion,
 ) -> Result<(), ValidationError> {
@@ -91,7 +91,7 @@ pub(crate) fn validate_bom_ref(
 
 /// A reference to a Bom element
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct BomReference(pub(crate) String);
+pub struct BomReference(pub String);
 
 impl BomReference {
     pub fn new<T>(input: T) -> Self
@@ -576,7 +576,7 @@ fn validate_vulnerabilities_bom_refs(
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct UrnUuid(pub(crate) String);
+pub struct UrnUuid(pub String);
 
 impl UrnUuid {
     pub fn new(value: String) -> Result<Self, UrnUuidError> {

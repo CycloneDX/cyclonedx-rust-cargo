@@ -145,7 +145,7 @@ pub enum ExternalReferenceType {
 }
 
 impl ExternalReferenceType {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "vcs" => Self::Vcs,
             "issue-tracker" => Self::IssueTracker,
@@ -226,7 +226,7 @@ impl std::fmt::Display for Uri {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct BomLink(pub(crate) String);
+pub struct BomLink(pub String);
 
 fn validate_bom_link(bom_link: &BomLink, version: SpecVersion) -> Result<(), ValidationError> {
     if version < SpecVersion::V1_5 {

@@ -131,7 +131,7 @@ pub fn validate_algorithm(algorithm: &Algorithm) -> Result<(), ValidationError> 
 
 impl Algorithm {
     #[allow(unused)]
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "RS256" => Algorithm::RS256,
             "RS384" => Algorithm::RS384,

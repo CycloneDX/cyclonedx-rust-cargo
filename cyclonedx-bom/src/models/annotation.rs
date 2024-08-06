@@ -45,12 +45,12 @@ impl Validate for Annotations {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Annotation {
-    pub(crate) bom_ref: Option<String>,
-    pub(crate) subjects: Vec<String>,
-    pub(crate) annotator: Annotator,
-    pub(crate) timestamp: DateTime,
-    pub(crate) text: String,
-    pub(crate) signature: Option<Signature>,
+    pub bom_ref: Option<String>,
+    pub subjects: Vec<String>,
+    pub annotator: Annotator,
+    pub timestamp: DateTime,
+    pub text: String,
+    pub signature: Option<Signature>,
 }
 
 impl Validate for Annotation {

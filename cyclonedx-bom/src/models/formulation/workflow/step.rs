@@ -2,10 +2,10 @@ use crate::{models::property::Properties, prelude::Validate, validation::Validat
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Step {
-    pub(crate) commands: Option<Vec<Command>>,
-    pub(crate) description: Option<String>,
-    pub(crate) name: Option<String>,
-    pub(crate) properties: Option<Properties>,
+    pub commands: Option<Vec<Command>>,
+    pub description: Option<String>,
+    pub name: Option<String>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Step {
@@ -24,8 +24,8 @@ impl Validate for Step {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Command {
-    pub(crate) executed: Option<String>,
-    pub(crate) properties: Option<Properties>,
+    pub executed: Option<String>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Command {

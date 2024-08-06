@@ -218,7 +218,7 @@ pub enum DataFlowType {
 }
 
 impl DataFlowType {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "inbound" => Self::Inbound,
             "outbound" => Self::Outbound,
