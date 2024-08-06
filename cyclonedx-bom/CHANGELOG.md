@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.0 - 2024-08-06
+
+### Changed
+
+ - Made model types `pub` instead of `pub(crate)`, which allows client code to write more fields in SBOMs ([#758])
+ - Removed `#[non_exhaustive]` from `SpecVersion`, which was a source of bugs in client code ([#749])
+ - Switched from `packageurl` to `purl` crate as the PURL implementation ([#746])
+ - Removed JSON schema validation from the public API and moved `jsonschema` to dev-dependencies to combat dependency bloat ([#750])
+
 ## 0.6.1 - 2024-06-04
 
 ### Added
