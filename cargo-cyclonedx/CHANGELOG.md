@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.5 - 2024-07-01
+
+### Changed
+
+ - Build dependencies are now recorded with `scope: "excluded"`, to indicate that they are not used at runtime. ([#755])
+
+### Added
+
+ - `--no-build-deps` flag to omit build dependencies entirely. ([#755])
+
 ## 0.5.4 - 2024-07-17
 
 ### Fixed
@@ -131,3 +141,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#724]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/724
 [#727]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/727
 [#746]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/746
+[#755]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/755
