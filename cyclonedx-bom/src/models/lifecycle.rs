@@ -57,7 +57,7 @@ impl std::fmt::Display for Phase {
 }
 
 impl Phase {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "design" => Self::Design,
             "pre-build" => Self::PreBuild,

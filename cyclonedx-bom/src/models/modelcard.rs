@@ -120,7 +120,7 @@ pub enum ApproachType {
 }
 
 impl ApproachType {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "supervised" => Self::Supervised,
             "unsupervised" => Self::Unsupervised,

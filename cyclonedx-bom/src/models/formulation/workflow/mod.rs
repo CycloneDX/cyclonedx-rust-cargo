@@ -18,24 +18,24 @@ use self::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Workflow {
-    pub(crate) bom_ref: BomReference,
-    pub(crate) uid: String,
-    pub(crate) name: Option<String>,
-    pub(crate) description: Option<String>,
-    pub(crate) resource_references: Option<Vec<ResourceReference>>,
-    pub(crate) tasks: Option<Vec<Task>>,
-    pub(crate) task_dependencies: Option<Vec<Dependency>>,
-    pub(crate) task_types: Vec<TaskType>,
-    pub(crate) trigger: Option<Trigger>,
-    pub(crate) steps: Option<Vec<Step>>,
-    pub(crate) inputs: Option<Vec<Input>>,
-    pub(crate) outputs: Option<Vec<Output>>,
-    pub(crate) time_start: Option<DateTime>,
-    pub(crate) time_end: Option<DateTime>,
-    pub(crate) workspaces: Option<Vec<Workspace>>,
-    pub(crate) runtime_topology: Option<Vec<Dependency>>,
-    pub(crate) properties: Option<Properties>,
+pub struct Workflow {
+    pub bom_ref: BomReference,
+    pub uid: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub resource_references: Option<Vec<ResourceReference>>,
+    pub tasks: Option<Vec<Task>>,
+    pub task_dependencies: Option<Vec<Dependency>>,
+    pub task_types: Vec<TaskType>,
+    pub trigger: Option<Trigger>,
+    pub steps: Option<Vec<Step>>,
+    pub inputs: Option<Vec<Input>>,
+    pub outputs: Option<Vec<Output>>,
+    pub time_start: Option<DateTime>,
+    pub time_end: Option<DateTime>,
+    pub workspaces: Option<Vec<Workspace>>,
+    pub runtime_topology: Option<Vec<Dependency>>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Workflow {
@@ -81,22 +81,22 @@ impl Validate for Workflow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Task {
-    pub(crate) bom_ref: BomReference,
-    pub(crate) uid: String,
-    pub(crate) name: Option<String>,
-    pub(crate) description: Option<String>,
-    pub(crate) resource_references: Option<Vec<ResourceReference>>,
-    pub(crate) task_types: Vec<TaskType>,
-    pub(crate) trigger: Option<Trigger>,
-    pub(crate) steps: Option<Vec<Step>>,
-    pub(crate) inputs: Option<Vec<Input>>,
-    pub(crate) outputs: Option<Vec<Output>>,
-    pub(crate) time_start: Option<DateTime>,
-    pub(crate) time_end: Option<DateTime>,
-    pub(crate) workspaces: Option<Vec<Workspace>>,
-    pub(crate) runtime_topology: Option<Vec<Dependency>>,
-    pub(crate) properties: Option<Properties>,
+pub struct Task {
+    pub bom_ref: BomReference,
+    pub uid: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub resource_references: Option<Vec<ResourceReference>>,
+    pub task_types: Vec<TaskType>,
+    pub trigger: Option<Trigger>,
+    pub steps: Option<Vec<Step>>,
+    pub inputs: Option<Vec<Input>>,
+    pub outputs: Option<Vec<Output>>,
+    pub time_start: Option<DateTime>,
+    pub time_end: Option<DateTime>,
+    pub workspaces: Option<Vec<Workspace>>,
+    pub runtime_topology: Option<Vec<Dependency>>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Task {
@@ -137,7 +137,7 @@ impl Validate for Task {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, strum::Display)]
 #[strum(serialize_all = "kebab-case")]
-pub(crate) enum TaskType {
+pub enum TaskType {
     Copy,
     Clone,
     Lint,
@@ -155,7 +155,7 @@ pub(crate) enum TaskType {
 }
 
 impl TaskType {
-    pub(crate) fn new_unchecked<S: AsRef<str>>(s: S) -> Self {
+    pub fn new_unchecked<S: AsRef<str>>(s: S) -> Self {
         match s.as_ref() {
             "copy" => Self::Copy,
             "clone" => Self::Clone,
@@ -188,7 +188,7 @@ impl Validate for TaskType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum EnvironmentVar {
+pub enum EnvironmentVar {
     Property { name: String, value: String },
     Value(String),
 }

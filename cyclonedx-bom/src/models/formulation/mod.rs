@@ -11,11 +11,11 @@ use super::{bom::BomReference, component::Components, property::Properties, serv
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Formula {
-    pub(crate) bom_ref: Option<BomReference>,
-    pub(crate) components: Option<Components>,
-    pub(crate) services: Option<Services>,
-    pub(crate) workflows: Option<Vec<Workflow>>,
-    pub(crate) properties: Option<Properties>,
+    pub bom_ref: Option<BomReference>,
+    pub components: Option<Components>,
+    pub services: Option<Services>,
+    pub workflows: Option<Vec<Workflow>>,
+    pub properties: Option<Properties>,
 }
 
 impl Validate for Formula {

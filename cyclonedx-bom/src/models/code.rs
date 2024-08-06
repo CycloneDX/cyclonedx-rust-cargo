@@ -147,7 +147,7 @@ pub enum IssueClassification {
 }
 
 impl IssueClassification {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "defect" => Self::Defect,
             "enhancement" => Self::Enhancement,
@@ -216,7 +216,7 @@ pub enum PatchClassification {
 }
 
 impl PatchClassification {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "unofficial" => Self::Unofficial,
             "monkey" => Self::Monkey,

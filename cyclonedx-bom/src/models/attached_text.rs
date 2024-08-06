@@ -27,9 +27,9 @@ use super::bom::SpecVersion;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AttachedText {
-    pub(crate) content_type: Option<NormalizedString>,
-    pub(crate) encoding: Option<Encoding>,
-    pub(crate) content: String,
+    pub content_type: Option<NormalizedString>,
+    pub encoding: Option<Encoding>,
+    pub content: String,
 }
 
 impl AttachedText {
@@ -74,7 +74,7 @@ impl Validate for AttachedText {
 }
 
 /// Function to check [`Encoding`].
-pub(crate) fn validate_encoding(encoding: &Encoding) -> Result<(), ValidationError> {
+pub fn validate_encoding(encoding: &Encoding) -> Result<(), ValidationError> {
     if matches!(encoding, Encoding::UnknownEncoding(_)) {
         return Err(ValidationError::new("Unknown encoding"));
     }
@@ -83,7 +83,7 @@ pub(crate) fn validate_encoding(encoding: &Encoding) -> Result<(), ValidationErr
 
 #[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
 #[strum(serialize_all = "kebab-case")]
-pub(crate) enum Encoding {
+pub enum Encoding {
     Base64,
     #[doc(hidden)]
     #[strum(default)]
@@ -91,7 +91,7 @@ pub(crate) enum Encoding {
 }
 
 impl Encoding {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "base64" => Self::Base64,
             unknown => Self::UnknownEncoding(unknown.to_string()),

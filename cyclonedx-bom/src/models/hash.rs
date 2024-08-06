@@ -87,7 +87,7 @@ pub enum HashAlgorithm {
     UnknownHashAlgorithm(String),
 }
 impl HashAlgorithm {
-    pub(crate) fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
         match value.as_ref() {
             "MD5" => Self::MD5,
             "SHA-1" => Self::SHA1,
