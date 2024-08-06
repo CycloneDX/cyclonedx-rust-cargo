@@ -1,7 +1,7 @@
 mod v1_3 {
     use cyclonedx_bom::models::bom::{Bom, SpecVersion};
-    use cyclonedx_bom::schema::validate_json_with_schema;
     use cyclonedx_bom::validation::Validate;
+    use test_utils::validate_json_with_schema;
 
     #[test]
     fn it_should_parse_all_of_the_valid_xml_specifications() {

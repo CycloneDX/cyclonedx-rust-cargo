@@ -46,8 +46,6 @@ use super::vulnerability::Vulnerability;
 
 /// Represents the spec version of a BOM.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy, PartialOrd, strum::Display)]
-#[repr(u16)]
-#[non_exhaustive]
 pub enum SpecVersion {
     #[strum(to_string = "1.3")]
     #[serde(rename = "1.3")]
@@ -155,11 +153,6 @@ impl Bom {
         reader: R,
         version: SpecVersion,
     ) -> Result<Self, crate::errors::JsonReadError> {
-        // While the SpecVersion enum is non-exhaustive in the public API
-        // (and it probably shouldn't be!), we can match exhaustively here
-        // which avoids issues which crop up when the API user has to match:
-        // https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/722
-        // https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/723
         match version {
             SpecVersion::V1_3 => Self::parse_from_json_v1_3(reader),
             SpecVersion::V1_4 => Self::parse_from_json_v1_4(reader),
@@ -173,8 +166,6 @@ impl Bom {
         writer: &mut W,
         version: SpecVersion,
     ) -> Result<(), crate::errors::JsonWriteError> {
-        // See `parse_from_json_with_version` for an explanation
-        // why we do this match here and why API users shouldn't do it
         match version {
             SpecVersion::V1_3 => self.output_as_json_v1_3(writer),
             SpecVersion::V1_4 => self.output_as_json_v1_4(writer),
@@ -187,8 +178,6 @@ impl Bom {
         reader: R,
         version: SpecVersion,
     ) -> Result<Self, crate::errors::XmlReadError> {
-        // See `parse_from_json_with_version` for an explanation
-        // why we do this match here and why API users shouldn't do it
         match version {
             SpecVersion::V1_3 => Self::parse_from_xml_v1_3(reader),
             SpecVersion::V1_4 => Self::parse_from_xml_v1_4(reader),
@@ -202,8 +191,6 @@ impl Bom {
         writer: &mut W,
         version: SpecVersion,
     ) -> Result<(), crate::errors::XmlWriteError> {
-        // See `parse_from_json_with_version` for an explanation
-        // why we do this match here and why API users shouldn't do it
         match version {
             SpecVersion::V1_3 => self.output_as_xml_v1_3(writer),
             SpecVersion::V1_4 => self.output_as_xml_v1_4(writer),

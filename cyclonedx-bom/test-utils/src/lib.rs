@@ -18,7 +18,7 @@
 
 use jsonschema::{error::ValidationErrorKind, paths::JSONPointer, JSONSchema};
 
-use crate::models::bom::SpecVersion;
+use cyclonedx_bom::models::bom::SpecVersion;
 
 #[derive(Debug)]
 pub struct ValidationError {
@@ -51,7 +51,7 @@ impl ValidationError {
 ///
 /// ```rust
 /// use cyclonedx_bom::prelude::*;
-/// use cyclonedx_bom::schema::validate_json_with_schema;
+/// use test_utils::validate_json_with_schema;
 ///
 /// let bom_json = r#"{
 ///   "bomFormat": "CycloneDX",
@@ -116,41 +116,42 @@ fn with_idn_email(_s: &str) -> bool {
 
 #[cfg(test)]
 mod test {
-    use crate::{models::bom::SpecVersion, schema::validate_json_with_schema};
+    use super::validate_json_with_schema;
+    use cyclonedx_bom::models::bom::SpecVersion;
 
     #[test]
     fn it_should_validate_version_13() {
         let input = r#"
-{
-  "bomFormat": "CycloneDX",
-  "specVersion": "1.3",
-  "version": 1,
-  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
-  "components": [
-    {
-      "type": "library",
-      "name": "acme-library-a",
-      "version": "1.0.0",
-      "components": [
-        {
-          "type": "library",
-          "name": "acme-library-b",
-          "version": "2.0.0"
-        }
-      ]
-    }
-  ],
-  "services": [
-    {
-      "name": "acme-service-a",
-      "services": [
-        {
-          "name": "acme-service-b"
-        }
-      ]
-    }
-  ]
-}"#;
+ {
+   "bomFormat": "CycloneDX",
+   "specVersion": "1.3",
+   "version": 1,
+   "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+   "components": [
+     {
+       "type": "library",
+       "name": "acme-library-a",
+       "version": "1.0.0",
+       "components": [
+         {
+           "type": "library",
+           "name": "acme-library-b",
+           "version": "2.0.0"
+         }
+       ]
+     }
+   ],
+   "services": [
+     {
+       "name": "acme-service-a",
+       "services": [
+         {
+           "name": "acme-service-b"
+         }
+       ]
+     }
+   ]
+ }"#;
         let json = serde_json::from_str(input).expect("Failed to parse JSON");
         assert!(validate_json_with_schema(&json, SpecVersion::V1_3).is_ok());
     }
