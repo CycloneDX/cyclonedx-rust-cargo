@@ -442,6 +442,17 @@ impl FromXmlType for f32 {
     }
 }
 
+/// Reads a simple String tag.
+///
+/// ```xml
+/// <description>Content</description>
+/// ```
+/// &
+/// ```xml
+/// <description />
+/// ```
+///
+/// are valid XML tags. The first returns the string "Content", the latter is an empty string.
 pub(crate) fn read_simple_tag<R: Read>(
     event_reader: &mut EventReader<R>,
     element: &OwnedName,
@@ -449,13 +460,19 @@ pub(crate) fn read_simple_tag<R: Read>(
     let element_display = element.to_string();
     let content = event_reader
         .next()
-        .map_err(to_xml_read_error(&element_display))
-        .and_then(inner_text_or_error(&element_display))?;
+        .map_err(to_xml_read_error(&element_display))?;
 
-    event_reader
-        .next()
-        .map_err(to_xml_read_error(&element_display))
-        .and_then(closing_tag_or_error(element))?;
+    let content = match content {
+        reader::XmlEvent::EndElement { .. } => String::new(),
+        reader::XmlEvent::Characters(content) | reader::XmlEvent::CData(content) => {
+            event_reader
+                .next()
+                .map_err(to_xml_read_error(&element_display))
+                .and_then(closing_tag_or_error(element))?;
+            content
+        }
+        unexpected => return Err(unexpected_element_error(element, unexpected)),
+    };
 
     Ok(content)
 }
