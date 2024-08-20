@@ -50,6 +50,7 @@ use cyclonedx_bom::models::license::{License, LicenseChoice, Licenses};
 use cyclonedx_bom::models::metadata::Metadata;
 use cyclonedx_bom::models::metadata::MetadataError;
 use cyclonedx_bom::models::organization::OrganizationalContact;
+use cyclonedx_bom::models::property::{Properties, Property};
 use cyclonedx_bom::models::tool::{Tool, Tools};
 use cyclonedx_bom::validation::Validate;
 use once_cell::sync::Lazy;
@@ -515,6 +516,13 @@ impl SbomGenerator {
         let tool = Tool::new("CycloneDX", "cargo-cyclonedx", env!("CARGO_PKG_VERSION"));
 
         metadata.tools = Some(Tools::List(vec![tool]));
+
+        use crate::config::Target::*;
+        let properties = match self.config.target.as_ref().unwrap() {
+            SingleTarget(target) => vec![Property::new("cdx:rustc:sbom:target:triple", target)],
+            AllTargets => vec![Property::new("cdx:rustc:sbom:target:all_targets", "true")],
+        };
+        metadata.properties = Some(Properties(properties));
 
         Ok((metadata, target_kinds))
     }
