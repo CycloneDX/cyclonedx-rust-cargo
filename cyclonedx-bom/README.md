@@ -8,7 +8,7 @@
 
 # `cyclonedx-bom`
 
-The [CycloneDX](https://cyclonedx.org/) library provides JSON and XML serialization and derserialization of Software Bill-of-Materials (SBOM) files.
+The [CycloneDX](https://cyclonedx.org/) library provides JSON and XML serialization and deserialization of Software Bill-of-Materials (SBOM) files.
 
 CycloneDX is a full-stack SBOM/xBOM standard designed for use in application security contexts and supply chain component analysis.
 

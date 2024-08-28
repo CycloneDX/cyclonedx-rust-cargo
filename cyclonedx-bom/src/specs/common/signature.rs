@@ -422,7 +422,7 @@ pub(crate) mod test {
     }
 
     #[test]
-    fn it_shoud_fail_with_missing_value() {
+    fn it_should_fail_with_missing_value() {
         let input = r#"
 <signature>
     <algorithm><RS512/algorithm>

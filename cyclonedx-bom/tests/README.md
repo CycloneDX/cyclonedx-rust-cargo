@@ -32,7 +32,7 @@ Run verification of all versions:
 cargo test --test 'spec*'
 ```
 
-To verify only a specific version run, setting X and Y appropriatly:
+To verify only a specific version run, setting X and Y appropriately:
 
 ```
 cargo test --test 'spec*vX_Y'
@@ -75,7 +75,7 @@ Run validation of all versions:
 cargo test --test 'ex*'
 ```
 
-To validate only a specific version run, setting X and Y appropriatly:
+To validate only a specific version run, setting X and Y appropriately:
 
 ```
 cargo test --test 'ex*vX_Y'
@@ -128,7 +128,7 @@ PRODUCT_VERSION="3.15"
 FILENAME="xvalid_sbom-${SBOM_VERSION}_trivy-${TRIVY_VERSION}_${PRODUCT}-${PRODUCT_VERSION}.cdx.json"
 TRIVY_BIN="./trivy"
 
-# Set used scanners / checks explicitely
+# Set used scanners / checks explicitly
 # Note: 'vuln' is required to scan for vulnerabilities when using the CycloneDX format
 
 # Including 0.36.1 this option is used:
