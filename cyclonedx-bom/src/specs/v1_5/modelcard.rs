@@ -1771,7 +1771,7 @@ pub(crate) mod test {
     }
 
     #[test]
-    fn it_sould_read_xml_model_card() {
+    fn it_should_read_xml_model_card() {
         let input = r#"
 <modelCard>
   <modelParameters>

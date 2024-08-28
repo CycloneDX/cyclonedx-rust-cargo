@@ -250,9 +250,9 @@ mod test {
 
     #[test]
     fn valid_spdx_identifiers_should_pass_validation() {
-        let validaton_result = validate_spdx_identifier(&SpdxIdentifier("MIT".to_string()));
+        let validation_result = validate_spdx_identifier(&SpdxIdentifier("MIT".to_string()));
 
-        assert!(validaton_result.is_ok());
+        assert!(validation_result.is_ok());
     }
 
     #[test]

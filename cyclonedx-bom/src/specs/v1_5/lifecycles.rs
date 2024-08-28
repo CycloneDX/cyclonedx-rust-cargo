@@ -289,7 +289,7 @@ pub(crate) mod test {
     }
 
     #[test]
-    fn it_should_read_xml_emopty_lifecycles() {
+    fn it_should_read_xml_empty_lifecycles() {
         let input = r#"
 <lifecycles>
 </lifecycles>
