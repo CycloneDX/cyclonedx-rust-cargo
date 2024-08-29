@@ -165,7 +165,7 @@ impl From<models::signature::Signer> for Signer {
     fn from(signer: models::signature::Signer) -> Self {
         Self {
             algorithm: signer.algorithm.into(),
-            value: signer.value.clone(),
+            value: signer.value,
         }
     }
 }
@@ -174,7 +174,7 @@ impl From<Signer> for models::signature::Signer {
     fn from(signer: Signer) -> Self {
         Self {
             algorithm: signer.algorithm.into(),
-            value: signer.value.to_string(),
+            value: signer.value,
         }
     }
 }
