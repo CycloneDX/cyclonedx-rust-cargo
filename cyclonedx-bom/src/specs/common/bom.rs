@@ -180,6 +180,7 @@ pub(crate) mod base {
                 formulation: None,
                 #[versioned("1.5")]
                 formulation: convert_optional_vec(other.formulation),
+                spec_version: other.spec_version,
             }
         }
     }
@@ -606,6 +607,7 @@ pub(crate) mod base {
         pub(crate) fn corresponding_internal_model() -> models::bom::Bom {
             models::bom::Bom {
                 version: 1,
+                spec_version: SPEC_VERSION,
                 serial_number: Some(models::bom::UrnUuid("fake-uuid".to_string())),
                 metadata: Some(corresponding_metadata()),
                 components: Some(corresponding_components()),
