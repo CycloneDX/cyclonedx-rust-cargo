@@ -119,6 +119,7 @@ pub struct Bom {
     pub annotations: Option<Annotations>,
     /// Added in version 1.5
     pub formulation: Option<Vec<Formula>>,
+    pub spec_version: SpecVersion,
 }
 
 impl Bom {
@@ -350,6 +351,7 @@ impl Default for Bom {
             signature: None,
             annotations: None,
             formulation: None,
+            spec_version: SpecVersion::V1_3,
         }
     }
 }
@@ -651,6 +653,7 @@ mod test {
     fn it_should_validate_an_empty_bom_as_passed() {
         let bom = Bom {
             version: 1,
+            spec_version: SpecVersion::V1_3,
             serial_number: None,
             metadata: None,
             components: None,
@@ -674,6 +677,7 @@ mod test {
     fn it_should_validate_broken_dependency_refs_as_failed() {
         let bom = Bom {
             version: 1,
+            spec_version: SpecVersion::V1_3,
             serial_number: None,
             metadata: None,
             components: None,
@@ -713,6 +717,7 @@ mod test {
     fn it_should_validate_broken_composition_refs_as_failed() {
         let bom = Bom {
             version: 1,
+            spec_version: SpecVersion::V1_3,
             serial_number: None,
             metadata: None,
             components: None,
@@ -752,6 +757,7 @@ mod test {
     fn it_should_validate_a_bom_with_multiple_validation_issues_as_failed() {
         let bom = Bom {
             version: 1,
+            spec_version: SpecVersion::V1_3,
             serial_number: Some(UrnUuid("invalid uuid".to_string())),
             metadata: Some(Metadata {
                 timestamp: Some(DateTime("invalid datetime".to_string())),
@@ -941,6 +947,7 @@ mod test {
 
         let validation_result = Bom {
             version: 1,
+            spec_version: SpecVersion::V1_3,
             serial_number: None,
             metadata: Some(Metadata {
                 timestamp: None,
