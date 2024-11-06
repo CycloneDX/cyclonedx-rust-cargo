@@ -514,7 +514,6 @@ pub(crate) mod base {
             },
             metadata::test::{corresponding_metadata, example_metadata},
             service::test::{corresponding_services, example_services},
-            //spec_version::test::{SpecVersion::V1_3,SpecVersion::V1_3},
         };
         #[versioned("1.5")]
         use crate::specs::{
@@ -531,7 +530,6 @@ pub(crate) mod base {
                 metadata::test::{corresponding_metadata, example_metadata},
                 service::test::{corresponding_services, example_services},
                 vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
-                //spec_version::test::{SpecVersion::V1_5,SpecVersion::V1_5},
             },
         };
         #[versioned("1.4")]
@@ -546,7 +544,6 @@ pub(crate) mod base {
                 metadata::test::{corresponding_metadata, example_metadata},
                 service::test::{corresponding_services, example_services},
                 vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
-                //spec_version::test::{SpecVersion::V1_4,SpecVersion::V1_4},
             },
         };
         use crate::{
