@@ -457,6 +457,10 @@ impl Validate for Bom {
 
         context.into()
     }
+
+    fn validate(&self) -> ValidationResult {
+        return self.validate_version(self.spec_version);
+    }
 }
 
 #[derive(Default)]
@@ -717,7 +721,7 @@ mod test {
     fn it_should_validate_broken_composition_refs_as_failed() {
         let bom = Bom {
             version: 1,
-            spec_version: SpecVersion::V1_3,
+            spec_version: SpecVersion::V1_5,
             serial_number: None,
             metadata: None,
             components: None,
@@ -947,7 +951,7 @@ mod test {
 
         let validation_result = Bom {
             version: 1,
-            spec_version: SpecVersion::V1_3,
+            spec_version: SpecVersion::V1_4,
             serial_number: None,
             metadata: Some(Metadata {
                 timestamp: None,
