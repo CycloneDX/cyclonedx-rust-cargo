@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.0 - 2024-11-07
+
+### Added
+
+ - Support parsing of empty XML string tags ([#761])
+ - Add spec version to `bom` struct and make validation honor it ([#767])
+
 ## 0.7.0 - 2024-08-06
 
 ### Changed
@@ -94,3 +101,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#723]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/723
 [#724]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/724
 [#725]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/725
+[#746]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/746
+[#749]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/749
+[#750]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/750
+[#758]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/758
+[#761]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/761
+[#767]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/767

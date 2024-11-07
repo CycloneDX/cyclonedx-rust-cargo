@@ -191,7 +191,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-cyclonedx"
-version = "0.5.5"
+version = "0.5.6"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -315,7 +315,7 @@ dependencies = [
 
 [[package]]
 name = "cyclonedx-bom"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "base64",
  "cyclonedx-bom-macros",
