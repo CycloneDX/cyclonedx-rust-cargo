@@ -246,6 +246,10 @@ impl SbomGenerator {
             .as_ref()
             .map(|s| NormalizedString::new(s));
 
+        if !package.authors.is_empty() {
+            component.author = Some(NormalizedString::new(&package.authors.join(", ")));
+        }
+
         component
     }
 
