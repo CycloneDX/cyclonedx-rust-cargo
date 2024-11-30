@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.7 - 2024-11-30
+
+### Added
+
+ - Cargo.lock v4 format stabilized in Rust 1.78 is now supported. ([#772]) Previously the SBOM would be generated but package hashes would not be recorded in presence of v4 lockfiles.
+ - The `component.author` field is now set to comma-separated list of authors ([#770]). We'd like to use `component.authors` instead once CycloneDX v1.6 is supported.
+
 ## 0.5.6 - 2024-11-07
 
 ### Added
@@ -149,3 +156,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#746]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/746
 [#755]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/755
 [#762]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/762
+[#770]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/770
+[#772]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/772

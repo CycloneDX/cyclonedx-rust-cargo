@@ -246,6 +246,7 @@ impl SbomGenerator {
             .as_ref()
             .map(|s| NormalizedString::new(s));
 
+        // TODO: record in `authors` field rather than `author` when writing v1.6
         if !package.authors.is_empty() {
             component.author = Some(NormalizedString::new(&package.authors.join(", ")));
         }
