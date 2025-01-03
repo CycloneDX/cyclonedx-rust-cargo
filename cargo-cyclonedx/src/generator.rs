@@ -66,7 +66,7 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
-use validator::validate_email;
+use validator::ValidateEmail;
 
 // Maps from PackageId to Package for efficiency - faster lookups than in a Vec
 type PackageMap = BTreeMap<PackageId, Package>;
@@ -562,7 +562,7 @@ impl SbomGenerator {
                 let email = captures.name("email").map(|m| m.as_str());
 
                 if let Some(email) = email {
-                    if !validate_email(email) {
+                    if !email.validate_email() {
                         return Err(GeneratorError::AuthorParseError(
                             "Invalid email, does not conform to HTML5 spec".to_string(),
                         ));
