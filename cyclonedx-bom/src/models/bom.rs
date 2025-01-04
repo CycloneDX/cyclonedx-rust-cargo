@@ -459,7 +459,7 @@ impl Validate for Bom {
     }
 
     fn validate(&self) -> ValidationResult {
-        return self.validate_version(self.spec_version);
+        self.validate_version(self.spec_version)
     }
 }
 

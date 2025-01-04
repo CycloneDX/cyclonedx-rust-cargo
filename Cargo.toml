@@ -12,7 +12,7 @@ edition = "2021"
 homepage = "https://cyclonedx.org/"
 license = "Apache-2.0"
 repository = "https://github.com/CycloneDX/cyclonedx-rust-cargo"
-rust-version = "1.70.0"
+rust-version = "1.71.1"
 
 # Config for 'dist'
 [workspace.metadata.dist]
