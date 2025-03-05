@@ -41,6 +41,15 @@ cargo install cargo-cyclonedx
 cargo cyclonedx
 ```
 
+## Security considerations
+
+`cargo-cyclonedx` calls into Cargo internally to get information about a Rust project. Like nearly any other build system,
+Cargo [may run arbitrary code](https://shnatsel.medium.com/do-not-run-any-cargo-commands-on-untrusted-projects-4c31c89a78d6)
+when invoked on an untrusted project, so `cargo-cyclonedx` should not be called on untrusted projects either.
+
+Some of the other tools for generating CycloneDX SBOMs do not invoke Cargo and only parse the `Cargo.lock` file.
+However, the only way to generate the `Cargo.lock` file for them to scan is to invoke Cargo, so this issue is currently unavoidable for any tool that describes a Cargo project.
+
 ## Contributing
 
 Contributions are welcome.
