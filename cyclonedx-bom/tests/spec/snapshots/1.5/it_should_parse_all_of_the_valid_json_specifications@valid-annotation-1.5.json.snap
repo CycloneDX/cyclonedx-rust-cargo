@@ -18,6 +18,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
   ],
   "annotations": [
     {
+      "bom-ref": "annotation-1",
       "subjects": [
         "component-a"
       ],
@@ -39,6 +40,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
       "text": "This is a sample annotation made by an organization"
     },
     {
+      "bom-ref": "annotation-2",
       "subjects": [
         "component-a"
       ],
@@ -53,6 +55,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
       "text": "This is a sample annotation made by a person"
     },
     {
+      "bom-ref": "annotation-3",
       "subjects": [
         "component-a"
       ],
@@ -67,6 +70,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-annotation-1.5.json
       "text": "This is a sample annotation made by a component"
     },
     {
+      "bom-ref": "annotation-4",
       "subjects": [
         "component-a"
       ],

@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 654
 expression: actual
 ---
 {
@@ -851,7 +850,7 @@ expression: actual
   },
   "annotations": [
     {
-      "bomRef": "annotation-1",
+      "bom-ref": "annotation-1",
       "subjects": [
         "subject1"
       ],

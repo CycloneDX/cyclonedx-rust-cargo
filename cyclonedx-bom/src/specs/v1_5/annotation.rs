@@ -114,7 +114,7 @@ impl FromXml for Annotations {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Annotation {
     /// Optional identifier to reference the annotation elsewhere in the Bom.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
     bom_ref: Option<String>,
     /// A list of BOM references, TODO change to `Subjects`
     subjects: Vec<String>,
