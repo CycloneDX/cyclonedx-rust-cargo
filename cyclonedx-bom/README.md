@@ -95,10 +95,6 @@ See [README](./tests/README.md) for details.
 
 See [CONTRIBUTING](../CONTRIBUTING.md) for details.
 
-### Bug Bounty
-
-We are running a [Bug Bounty](https://yeswehack.com/programs/cyclonedx-rust-cargo-bounty-program) program financed by the [Bug Resilience Program](https://www.sovereigntechfund.de/programs/bug-resilience/faq) of the [Sovereign Tech Fund](https://www.sovereigntechfund.de/). Thank you very much!
-
 ## Copyright & License
 
 CycloneDX Rust Cargo is Copyright (c) OWASP Foundation. All Rights Reserved.
