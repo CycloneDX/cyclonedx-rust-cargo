@@ -119,7 +119,7 @@ fn setup_logging(args: &Args) -> anyhow::Result<()> {
 
 fn locate_manifest(args: &Args) -> Result<PathBuf, io::Error> {
     if let Some(manifest_path) = &args.manifest_path {
-        let manifest_path = manifest_path.canonicalize()?;
+        let manifest_path = std::path::absolute(manifest_path)?;
         log::info!(
             "Using manually specified Cargo.toml manifest located at: {}",
             manifest_path.to_string_lossy()

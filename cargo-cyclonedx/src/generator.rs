@@ -964,7 +964,7 @@ impl GeneratedSbom {
 /// This must be run **after** `cargo metadata` which will generate the `Cargo.lock` file
 /// and make sure it's up to date.
 fn locate_cargo_lock(manifest_path: &Path) -> Result<PathBuf, std::io::Error> {
-    let manifest_path = manifest_path.canonicalize()?;
+    let manifest_path = std::path::absolute(manifest_path)?;
     let ancestors = manifest_path.as_path().ancestors();
 
     for path in ancestors {
