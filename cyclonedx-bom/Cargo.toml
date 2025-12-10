@@ -15,7 +15,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-base64 = "0.21.2"
+base64 = "0.22.1"
 fluent-uri = "0.4.1"
 indexmap = "2.2.2"
 once_cell = "1.18.0"
