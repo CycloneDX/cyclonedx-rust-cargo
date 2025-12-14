@@ -1589,9 +1589,9 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 
 [[package]]
 name = "smallvec"
-version = "1.13.2"
+version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "spanned"
@@ -1605,9 +1605,9 @@ dependencies = [
 
 [[package]]
 name = "spdx"
-version = "0.10.6"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47317bbaf63785b53861e1ae2d11b80d6b624211d42cb20efcd210ee6f8a14bc"
+checksum = "35107b1c818f4e9cb9e6c4444ca560ba03b4ee1288dcecc6d7830c2023a7609e"
 dependencies = [
  "smallvec",
 ]
