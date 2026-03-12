@@ -324,12 +324,7 @@ impl SbomGenerator {
 
             subcomponents.push(subcomponent);
         }
-        // Do not include subcomponents when describing one binary per SBOM
-        // https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/763
-        match self.config.describe.unwrap_or_default() {
-            Describe::Crate => top_component.components = Some(Components(subcomponents)),
-            Describe::Binaries | Describe::AllCargoTargets => (), // do not include subcomponents
-        }
+        top_component.components = Some(Components(subcomponents));
         (top_component, TargetKinds(target_kinds))
     }
 
