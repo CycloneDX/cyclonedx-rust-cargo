@@ -258,6 +258,7 @@ impl SbomGenerator {
     /// on binaries and libraries comprising it as subcomponents
     fn create_toplevel_component(&self, package: &Package) -> (Component, TargetKinds) {
         let mut top_component = self.create_component(package, package, &DependencyKindMap::new());
+        top_component.component_type = Self::get_classification(package);
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut target_kinds = HashMap::new();
         for tgt in filter_targets(&package.targets) {
@@ -515,9 +516,7 @@ impl SbomGenerator {
             metadata.authors = Some(authors);
         }
 
-        let (mut component, target_kinds) = self.create_toplevel_component(package);
-
-        component.component_type = Self::get_classification(package);
+        let (component, target_kinds) = self.create_toplevel_component(package);
 
         metadata.component = Some(component);
 
@@ -896,7 +895,7 @@ impl GeneratedSbom {
                     Describe::Crate => unreachable!(),
                 }
             })
-            .map(|component| {
+            .map(move |component| {
                 let target_kind = &target_kinds.0[component.bom_ref.as_ref().unwrap()];
                 // In the original SBOM the toplevel component describes a crate.
                 // We need to change it to describe a specific binary.
@@ -908,6 +907,15 @@ impl GeneratedSbom {
                 toplevel_component.name = component.name.clone();
                 toplevel_component.component_type = component.component_type.clone();
                 toplevel_component.purl.clone_from(&component.purl);
+
+                // Clear the subcomponents when we are describing only one binary per SBOM.
+                // See https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/763
+                match describe {
+                    Describe::Crate => (),
+                    Describe::Binaries | Describe::AllCargoTargets => {
+                        toplevel_component.components = None
+                    }
+                }
 
                 (new_bom, target_kind.clone())
             })
