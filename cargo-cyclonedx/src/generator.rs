@@ -452,22 +452,25 @@ impl SbomGenerator {
 
         // Check for license file.
         // It is possible to specify both a named license and a license file in Cargo.toml.
-        // If that happens, we encode both.
-        if let Some(license_file) = package.license_file().as_ref() {
-            match std::fs::read_to_string(license_file.as_path()) {
-                Ok(content) => {
-                    let mut license = License::named_license("Unknown");
-                    let encoded_text = AttachedText::new(None, content);
-                    license.text = Some(encoded_text);
-                    licenses.push(LicenseChoice::License(license));
-                }
-                Err(error) => {
-                    log::warn!(
-                        "Failed to read license file '{}' for package {}: {}",
-                        package.name,
-                        license_file,
-                        error
-                    );
+        // This is not legal in CycloneDX; if we include both, then the file will fail validation:
+        // https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/803
+        if licenses.is_empty() {
+            if let Some(license_file) = package.license_file().as_ref() {
+                match std::fs::read_to_string(license_file.as_path()) {
+                    Ok(content) => {
+                        let mut license = License::named_license("Unknown");
+                        let encoded_text = AttachedText::new(None, content);
+                        license.text = Some(encoded_text);
+                        licenses.push(LicenseChoice::License(license));
+                    }
+                    Err(error) => {
+                        log::warn!(
+                            "Failed to read license file '{}' for package {}: {}",
+                            package.name,
+                            license_file,
+                            error
+                        );
+                    }
                 }
             }
         }
