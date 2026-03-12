@@ -20,6 +20,11 @@ fn main() -> ui_test::Result<()> {
         },
     );
 
+    // Don't compare exact stderr output against .stderr files.
+    // Only check inline `//~` error annotations, which are
+    // resilient to diagnostic wording changes across Rust versions.
+    config.stderr_filter("(?s).*", "");
+
     let args = Args::test()?;
     config.with_args(&args);
 
