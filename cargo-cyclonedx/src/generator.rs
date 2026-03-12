@@ -892,7 +892,7 @@ impl GeneratedSbom {
                     Describe::Crate => unreachable!(),
                 }
             })
-            .map(|component| {
+            .map(move |component| {
                 let target_kind = &target_kinds.0[component.bom_ref.as_ref().unwrap()];
                 // In the original SBOM the toplevel component describes a crate.
                 // We need to change it to describe a specific binary.
@@ -904,6 +904,15 @@ impl GeneratedSbom {
                 toplevel_component.name = component.name.clone();
                 toplevel_component.component_type = component.component_type.clone();
                 toplevel_component.purl.clone_from(&component.purl);
+
+                // Clear the subcomponents when we are describing only one binary per SBOM.
+                // See https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/763
+                match describe {
+                    Describe::Crate => (),
+                    Describe::Binaries | Describe::AllCargoTargets => {
+                        toplevel_component.components = None
+                    }
+                }
 
                 (new_bom, target_kind.clone())
             })
