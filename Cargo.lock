@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-cyclonedx"
-version = "0.5.7"
+version = "0.5.8"
 dependencies = [
  "anyhow",
  "assert_cmd",
