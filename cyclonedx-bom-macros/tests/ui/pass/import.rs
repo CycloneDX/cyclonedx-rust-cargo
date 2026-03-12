@@ -1,3 +1,4 @@
+//@run
 use cyclonedx_bom_macros::versioned;
 
 #[versioned("1.0", "2.0")]

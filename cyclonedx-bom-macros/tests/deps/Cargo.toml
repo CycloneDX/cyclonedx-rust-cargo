@@ -1,0 +1,10 @@
+[package]
+name = "ui-test-deps"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+cyclonedx-bom-macros = { path = "../.." }
+
+[workspace]

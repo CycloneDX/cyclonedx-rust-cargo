@@ -13,7 +13,11 @@ rust-version.workspace = true
 proc-macro = true
 
 [dev-dependencies]
-trybuild = "1.0"
+ui_test = "0.27"
+
+[[test]]
+name = "ui"
+harness = false
 
 [dependencies]
 proc-macro2 = "1.0.78"

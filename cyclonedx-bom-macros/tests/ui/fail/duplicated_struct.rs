@@ -7,7 +7,7 @@ mod base {
     pub struct Foo;
 
     #[versioned("1.0")]
-    pub struct Foo;
+    pub struct Foo; //~ E0428
 }
 
 fn main() {
