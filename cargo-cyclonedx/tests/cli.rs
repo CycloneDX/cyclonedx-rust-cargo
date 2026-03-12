@@ -5,7 +5,7 @@ use std::process::Command;
 
 #[test]
 fn find_content_in_help_output() -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
     cmd.arg("cyclonedx").arg("--help");
 
     cmd.assert()
@@ -19,7 +19,7 @@ fn find_content_in_help_output() -> Result<(), Box<dyn std::error::Error>> {
 fn manifest_doesnt_exist() -> Result<(), Box<dyn std::error::Error>> {
     let tmp_dir = assert_fs::TempDir::new()?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
     cmd.current_dir(tmp_dir.path()).arg("cyclonedx");
 
     cmd.assert().failure().stdout("");
@@ -34,7 +34,7 @@ fn manifest_is_invalid() -> Result<(), Box<dyn std::error::Error>> {
     let tmp_file = assert_fs::NamedTempFile::new("Cargo.toml")?;
     tmp_file.touch()?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
 
     cmd.arg("cyclonedx")
         .arg("--manifest-path")
@@ -50,7 +50,7 @@ fn manifest_is_invalid() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn find_content_in_bom_files() -> Result<(), Box<dyn std::error::Error>> {
     let tmp_dir = make_temp_rust_project()?;
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
 
     cmd.current_dir(tmp_dir.path())
         .arg("cyclonedx")
@@ -107,7 +107,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
         pkg_name, license,
     ))?;
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
 
     cmd.current_dir(tmp_dir.path())
         .arg("cyclonedx")
@@ -122,7 +122,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
             pkg_name, license,
         )));
 
-    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
 
     cmd.current_dir(tmp_dir.path()).arg("cyclonedx").arg("-qq");
 

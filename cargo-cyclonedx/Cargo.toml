@@ -1,6 +1,6 @@
 [package]
 name = "cargo-cyclonedx"
-version = "0.5.7"
+version = "0.5.8"
 categories = ["command-line-utilities", "development-tools", "development-tools::cargo-plugins"]
 description = "CycloneDX Software Bill of Materials (SBOM) for Rust Crates"
 keywords = ["sbom", "bom", "components", "dependencies", "owasp"]
@@ -38,7 +38,7 @@ thiserror = "1.0.48"
 validator = { version = "0.19.0" }
 
 [dev-dependencies]
-assert_cmd = "2.0.12"
+assert_cmd = "2.1.2"
 assert_fs = "1.0.13"
 predicates = "3.0.3"
 serde_json = "1.0.108"

@@ -258,6 +258,7 @@ impl SbomGenerator {
     /// on binaries and libraries comprising it as subcomponents
     fn create_toplevel_component(&self, package: &Package) -> (Component, TargetKinds) {
         let mut top_component = self.create_component(package, package, &DependencyKindMap::new());
+        top_component.component_type = Self::get_classification(package);
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut target_kinds = HashMap::new();
         for tgt in filter_targets(&package.targets) {
@@ -452,22 +453,25 @@ impl SbomGenerator {
 
         // Check for license file.
         // It is possible to specify both a named license and a license file in Cargo.toml.
-        // If that happens, we encode both.
-        if let Some(license_file) = package.license_file().as_ref() {
-            match std::fs::read_to_string(license_file.as_path()) {
-                Ok(content) => {
-                    let mut license = License::named_license("Unknown");
-                    let encoded_text = AttachedText::new(None, content);
-                    license.text = Some(encoded_text);
-                    licenses.push(LicenseChoice::License(license));
-                }
-                Err(error) => {
-                    log::warn!(
-                        "Failed to read license file '{}' for package {}: {}",
-                        package.name,
-                        license_file,
-                        error
-                    );
+        // This is not legal in CycloneDX; if we include both, then the file will fail validation:
+        // https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/803
+        if licenses.is_empty() {
+            if let Some(license_file) = package.license_file().as_ref() {
+                match std::fs::read_to_string(license_file.as_path()) {
+                    Ok(content) => {
+                        let mut license = License::named_license("Unknown");
+                        let encoded_text = AttachedText::new(None, content);
+                        license.text = Some(encoded_text);
+                        licenses.push(LicenseChoice::License(license));
+                    }
+                    Err(error) => {
+                        log::warn!(
+                            "Failed to read license file '{}' for package {}: {}",
+                            package.name,
+                            license_file,
+                            error
+                        );
+                    }
                 }
             }
         }
@@ -512,9 +516,7 @@ impl SbomGenerator {
             metadata.authors = Some(authors);
         }
 
-        let (mut component, target_kinds) = self.create_toplevel_component(package);
-
-        component.component_type = Self::get_classification(package);
+        let (component, target_kinds) = self.create_toplevel_component(package);
 
         metadata.component = Some(component);
 
@@ -893,7 +895,7 @@ impl GeneratedSbom {
                     Describe::Crate => unreachable!(),
                 }
             })
-            .map(|component| {
+            .map(move |component| {
                 let target_kind = &target_kinds.0[component.bom_ref.as_ref().unwrap()];
                 // In the original SBOM the toplevel component describes a crate.
                 // We need to change it to describe a specific binary.
@@ -905,6 +907,15 @@ impl GeneratedSbom {
                 toplevel_component.name = component.name.clone();
                 toplevel_component.component_type = component.component_type.clone();
                 toplevel_component.purl.clone_from(&component.purl);
+
+                // Clear the subcomponents when we are describing only one binary per SBOM.
+                // See https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/763
+                match describe {
+                    Describe::Crate => (),
+                    Describe::Binaries | Describe::AllCargoTargets => {
+                        toplevel_component.components = None
+                    }
+                }
 
                 (new_bom, target_kind.clone())
             })
