@@ -258,6 +258,7 @@ impl SbomGenerator {
     /// on binaries and libraries comprising it as subcomponents
     fn create_toplevel_component(&self, package: &Package) -> (Component, TargetKinds) {
         let mut top_component = self.create_component(package, package, &DependencyKindMap::new());
+        top_component.component_type = Self::get_classification(package);
         let mut subcomponents: Vec<Component> = Vec::new();
         let mut target_kinds = HashMap::new();
         for tgt in filter_targets(&package.targets) {
@@ -512,9 +513,7 @@ impl SbomGenerator {
             metadata.authors = Some(authors);
         }
 
-        let (mut component, target_kinds) = self.create_toplevel_component(package);
-
-        component.component_type = Self::get_classification(package);
+        let (component, target_kinds) = self.create_toplevel_component(package);
 
         metadata.component = Some(component);
 
