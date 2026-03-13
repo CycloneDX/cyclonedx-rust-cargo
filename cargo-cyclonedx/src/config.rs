@@ -62,6 +62,22 @@ impl SbomConfig {
         }
     }
 
+    pub fn from_env() -> SbomConfig {
+        let mut result = Self::empty_config();
+        // The only settings we inherit from Cargo right now are target platform and features.
+        // Cargo features cannot be set via environment variables,
+        // which only leaves the target. Env var name referenced from
+        // https://doc.rust-lang.org/cargo/reference/environment-variables.html#configuration-environment-variables
+        // Experimentally, "all" is not a valid env var target for commands that accept it as CLI value such as `cargo tree`
+        // so we do not do any special-casing for it here, and Target::AllTargets cannot be configured via an env var.
+
+        if let Ok(target) = std::env::var("CARGO_BUILD_TARGET") {
+            result.target = Some(Target::SingleTarget(target));
+        }
+
+        result
+    }
+
     pub fn format(&self) -> Format {
         self.format.unwrap_or_default()
     }
