@@ -399,6 +399,7 @@ impl FromXml for Patches {
 pub(crate) struct Patch {
     #[serde(rename = "type")]
     patch_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     diff: Option<Diff>,
     #[serde(skip_serializing_if = "Option::is_none")]
     resolves: Option<Vec<Issue>>,
