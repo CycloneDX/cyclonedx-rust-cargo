@@ -399,7 +399,7 @@ mod test {
                 "inner",
                 [(
                     0,
-                    validation::r#enum("expression", "SPDX expression is not valid")
+                    validation::r#enum("expression", "SPDX expression `MIT OR` is not valid")
                 )],
             )
         );
@@ -485,11 +485,11 @@ mod test {
                 [
                     (
                         1,
-                        validation::r#enum("expression", "SPDX expression is not valid"),
+                        validation::r#enum("expression", "SPDX expression `MIT OR` is not valid"),
                     ),
                     (
                         2,
-                        validation::r#enum("expression", "SPDX expression is not valid"),
+                        validation::r#enum("expression", "SPDX expression `MIT OR` is not valid"),
                     )
                 ]
             )

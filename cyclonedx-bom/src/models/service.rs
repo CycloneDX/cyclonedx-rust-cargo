@@ -390,7 +390,7 @@ mod test {
                                         0,
                                         validation::r#enum(
                                             "expression",
-                                            "SPDX expression is not valid"
+                                            "SPDX expression `invalid license` is not valid"
                                         )
                                     )]
                                 )
