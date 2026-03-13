@@ -187,7 +187,10 @@ impl std::fmt::Display for SpdxExpression {
 
 pub fn validate_spdx_expression(expression: &SpdxExpression) -> Result<(), ValidationError> {
     if Expression::parse(&expression.expression).is_err() {
-        return Err(ValidationError::new("SPDX expression is not valid"));
+        return Err(ValidationError::new(format!(
+            "SPDX expression `{}` is not valid",
+            &expression.expression
+        )));
     }
     Ok(())
 }
@@ -304,7 +307,7 @@ mod test {
 
         assert_eq!(
             validation_result,
-            Err("SPDX expression is not valid".into()),
+            Err("SPDX expression `not a real license` is not valid".into()),
         );
     }
 }

@@ -314,7 +314,7 @@ mod test {
                             "inner",
                             [(
                                 0,
-                                validation::r#enum("expression", "SPDX expression is not valid")
+                                validation::r#enum("expression", "SPDX expression `invalid license` is not valid")
                             )]
                         )
                     )]
