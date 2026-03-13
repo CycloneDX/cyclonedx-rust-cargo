@@ -1,5 +1,6 @@
 # Rust compilation output
 /target
+/cyclonedx-bom-macros/target
 
 # SBOM documents
 **/bom.xml
