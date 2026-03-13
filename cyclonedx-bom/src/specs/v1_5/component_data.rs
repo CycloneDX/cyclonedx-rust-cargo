@@ -404,7 +404,9 @@ impl FromXml for DataContents {
 /// https://cyclonedx.org/docs/1.5/json/#components_items_modelCard_modelParameters_datasets_items_oneOf_i0_graphics
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub(crate) struct GraphicsCollection {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) collection: Option<Collection>,
 }
 

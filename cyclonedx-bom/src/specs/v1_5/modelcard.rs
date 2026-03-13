@@ -366,7 +366,7 @@ impl FromXml for ModelParameters {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ModelParametersApproach {
-    #[serde(rename = "type")]
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub(crate) approach_type: Option<String>,
 }
 
@@ -584,7 +584,9 @@ impl FromXml for Dataset {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct QuantitativeAnalysis {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) performance_metrics: Option<PerformanceMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) graphics: Option<GraphicsCollection>,
 }
 
