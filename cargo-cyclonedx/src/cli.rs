@@ -140,6 +140,8 @@ impl Args {
             };
 
         let target_string = self.target.clone().unwrap_or_else(host_platform);
+        // this special-casing is exclusive to the CLI,
+        // setting "all" via env var is not supported by Cargo tools like `cargo tree`
         let target = Some(if &target_string == "all" {
             Target::AllTargets
         } else {
