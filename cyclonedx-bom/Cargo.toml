@@ -33,6 +33,6 @@ cyclonedx-bom-macros = { version = "0.1.0", path = "../cyclonedx-bom-macros" }
 strum = { version = "0.26.2", features = ["derive"] }
 
 [dev-dependencies]
-insta = { version = "1.33.0", features = ["glob", "json"] }
+insta = { version = "1.41.1", features = ["glob", "json"] }
 pretty_assertions = "1.4.0"
 test-utils = {path = "test-utils"}
