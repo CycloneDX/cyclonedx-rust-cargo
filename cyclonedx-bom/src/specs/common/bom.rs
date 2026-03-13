@@ -82,6 +82,7 @@ pub(crate) mod base {
         bom_format: BomFormat,
         spec_version: SpecVersion,
         version: u32,
+        #[serde(skip_serializing_if = "Option::is_none")]
         serial_number: Option<UrnUuid>,
         #[serde(skip_serializing_if = "Option::is_none")]
         metadata: Option<Metadata>,
