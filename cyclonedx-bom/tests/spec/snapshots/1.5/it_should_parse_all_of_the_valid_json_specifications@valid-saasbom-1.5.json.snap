@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 52
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.json
 ---
@@ -219,8 +218,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.json
       ]
     },
     {
-      "ref": "ms-2.example.com",
-      "dependsOn": []
+      "ref": "ms-2.example.com"
     },
     {
       "ref": "ms-3.example.com",

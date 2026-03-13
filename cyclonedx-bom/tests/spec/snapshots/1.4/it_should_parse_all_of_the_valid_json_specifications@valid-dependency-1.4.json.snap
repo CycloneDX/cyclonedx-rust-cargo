@@ -30,8 +30,7 @@ input_file: cyclonedx-bom/tests/data/1.4/valid-dependency-1.4.json
   ],
   "dependencies": [
     {
-      "ref": "library-a",
-      "dependsOn": []
+      "ref": "library-a"
     },
     {
       "ref": "library-b",
