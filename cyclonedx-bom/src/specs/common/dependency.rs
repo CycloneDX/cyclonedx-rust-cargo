@@ -80,7 +80,7 @@ impl FromXml for Dependencies {
 pub(crate) struct Dependency {
     #[serde(rename = "ref")]
     pub(crate) dependency_ref: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(crate) depends_on: Vec<String>,
 }
 
