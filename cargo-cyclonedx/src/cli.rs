@@ -5,7 +5,6 @@ use cargo_cyclonedx::{
         SbomConfig, Target,
     },
     format::Format,
-    platform::host_platform,
 };
 use clap::{ArgAction, ArgGroup, Parser};
 use cyclonedx_bom::models::bom::SpecVersion;
@@ -139,11 +138,14 @@ impl Args {
                 })
             };
 
-        let target_string = self.target.clone().unwrap_or_else(host_platform);
-        let target = Some(if &target_string == "all" {
-            Target::AllTargets
-        } else {
-            Target::SingleTarget(target_string)
+        let target = self.target.as_deref().map(|target_string| {
+            // this special-casing is exclusive to the CLI,
+            // setting "all" via env var is not supported by Cargo tools like `cargo tree`
+            if target_string == "all" {
+                Target::AllTargets
+            } else {
+                Target::SingleTarget(target_string.to_owned())
+            }
         });
 
         let platform_suffix = match self.target_in_filename {
