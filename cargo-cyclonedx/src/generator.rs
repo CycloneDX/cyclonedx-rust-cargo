@@ -186,6 +186,14 @@ impl SbomGenerator {
         dep_kinds: &DependencyKindMap,
     ) -> Result<(Bom, TargetKinds), GeneratorError> {
         let mut bom = Bom::default();
+
+        // If we're in reproducible build mode, do not include the
+        // TODO: make it part of SBOM config instead in the next semver break
+        // due to https://github.com/PyO3/maturin/issues/3091
+        if let Ok(_) = std::env::var("SOURCE_DATE_EPOCH") {
+            bom.serial_number = None;
+        }
+
         let root_package = &packages[package];
 
         let components: Vec<_> = packages
