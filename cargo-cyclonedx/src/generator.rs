@@ -512,6 +512,17 @@ impl SbomGenerator {
         let authors = Self::create_authors(package);
 
         let mut metadata = Metadata::new()?;
+
+        if let Ok(timestamp) = std::env::var("SOURCE_DATE_EPOCH") {
+            let timestamp =
+                i64::from_str_radix(&timestamp, 10).expect("Invalid reproducible build timestamp");
+            let datetime = time::OffsetDateTime::from_unix_timestamp(timestamp).unwrap();
+            let time_str = datetime
+                .format(&time::format_description::well_known::Iso8601::DEFAULT)
+                .unwrap();
+            metadata.timestamp = Some(time_str.try_into().unwrap());
+        }
+
         if !authors.is_empty() {
             metadata.authors = Some(authors);
         }
