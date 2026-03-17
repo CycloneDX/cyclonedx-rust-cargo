@@ -187,7 +187,7 @@ impl SbomGenerator {
     ) -> Result<(Bom, TargetKinds), GeneratorError> {
         let mut bom = Bom::default();
 
-        // If we're in reproducible build mode, do not include the
+        // If we're in reproducible build mode, do not include the random serial number
         // TODO: make it part of SBOM config instead in the next semver break
         // due to https://github.com/PyO3/maturin/issues/3091
         if let Ok(_) = std::env::var("SOURCE_DATE_EPOCH") {
@@ -521,6 +521,12 @@ impl SbomGenerator {
 
         let mut metadata = Metadata::new()?;
 
+        // If we're in reproducible build mode, use a fixed timestam provided by the environment.
+        // This is needed for Linux distributions: https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/850
+        // Specification: https://reproducible-builds.org/docs/source-date-epoch/
+        //
+        // TODO: make it part of SBOM config instead in the next semver break
+        // due to https://github.com/PyO3/maturin/issues/3091
         if let Ok(timestamp) = std::env::var("SOURCE_DATE_EPOCH") {
             let timestamp =
                 i64::from_str_radix(&timestamp, 10).expect("Invalid reproducible build timestamp");
