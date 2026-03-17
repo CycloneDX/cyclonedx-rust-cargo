@@ -1,3 +1,19 @@
+//! ## WARNING
+//!
+//! The library API of `cargo-cyclonedx` is **unstable** and not subject to semantic versioning guarantees!
+//!
+//! If the command-line interface is not sufficient, you can depend on this API and avoid breakage
+//! so long as you pin a specific version:
+//!
+//! ```toml
+//! cargo-cyclonedx = "= 0.5.8" # avoids build failures
+//! ```
+//!
+//! Do **NOT** do this:
+//! ```toml
+//! cargo-cyclonedx = "0.5.8" # WRONG, don't use, will break!
+//! ```
+
 /*
  * This file is part of CycloneDX Rust Cargo.
  *
