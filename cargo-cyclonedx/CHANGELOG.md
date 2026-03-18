@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+ - Support for the `SOURCE_DATE_EPOCH` environment variable for reproducible builds. When set, the SBOM timestamp is derived from the value of `SOURCE_DATE_EPOCH` and the random serial number is omitted. ([#852])
+ - The `CARGO_BUILD_TARGET` environment variable is now honored to determine the target platform, matching the behavior of other Cargo tools ([#840])
+
+### Fixed
+
+ - Recognize sparse registries (`sparse+http://...`) as custom registries when constructing PURLs ([#853])
+ - Fixed PURL spec compliance where invalid vcs_url would be produced if package source contains qualifiers such as `?branch=` ([#856])
+
+### Changed
+
+ - Make manifest path absolute without resolving symlinks, bringing the behavior in line with `cargo build` and fixing issues on systems where the project path contains symlinks ([#808])
+ - Avoid writing JSON `null` for more omitted optional fields (`serial_number`, `depends_on`, `diff`, etc.) ([#847]) ([#848]) ([#849])
+ - SPDX validation errors now include the invalid license expression in the error message ([#844])
+ - Increased MSRV (minimum supported Rust version) to 1.85 ([#845])
+
 ## 0.5.8 - 2026-03-12
 
 ### Fixed
@@ -165,3 +184,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#762]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/762
 [#770]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/770
 [#772]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/772
+[#808]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/808
+[#826]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/826
+[#828]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/828
+[#840]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/840
+[#844]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/844
+[#845]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/845
+[#847]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/847
+[#848]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/848
+[#849]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/849
+[#852]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/852
+[#853]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/853
+[#856]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/853
