@@ -22,7 +22,7 @@ pub fn get_purl(
                 Some(("git", _git_path)) => {
                     builder = builder.with_qualifier("vcs_url", source_to_vcs_url(source))?
                 }
-                Some(("registry", registry_url)) => {
+                Some(("registry" | "sparse", registry_url)) => {
                     builder = builder.with_qualifier("repository_url", registry_url)?
                 }
                 Some((source, _path)) => log::warn!("Unknown source kind {}", source),
