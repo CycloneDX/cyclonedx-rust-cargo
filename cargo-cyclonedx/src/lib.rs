@@ -1,3 +1,21 @@
+#![doc = concat!(
+    "## WARNING\n",
+    "\n",
+    "The library API of `cargo-cyclonedx` is **unstable** and not subject to semantic versioning guarantees!\n",
+    "\n",
+    "If the command-line interface is not sufficient, you can depend on this API and avoid breakage\n",
+    "so long as you pin a specific version:\n",
+    "\n",
+    "```toml\n",
+    "cargo-cyclonedx = \"= ", env!("CARGO_PKG_VERSION"), "\" # avoids build failures\n",
+    "```\n",
+    "\n",
+    "Do **NOT** do this:\n",
+    "```toml\n",
+    "cargo-cyclonedx = \"", env!("CARGO_PKG_VERSION"), "\" # WRONG, don't use, will break!\n",
+    "```",
+)]
+
 /*
  * This file is part of CycloneDX Rust Cargo.
  *

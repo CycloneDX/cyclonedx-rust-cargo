@@ -22,7 +22,7 @@ pub fn get_purl(
                 Some(("git", _git_path)) => {
                     builder = builder.with_qualifier("vcs_url", source_to_vcs_url(source))?
                 }
-                Some(("registry", registry_url)) => {
+                Some(("registry" | "sparse", registry_url)) => {
                     builder = builder.with_qualifier("repository_url", registry_url)?
                 }
                 Some((source, _path)) => log::warn!("Unknown source kind {}", source),
@@ -65,10 +65,51 @@ pub fn get_purl(
 }
 
 /// Converts the `cargo metadata`'s `source` field to a valid PURL `vcs_url`.
+///
+/// The `vcs_url` qualifier is specified to use the SPDX Package Download Location format:
+/// `<vcs_tool>+<transport>://<host_name>[/<path_to_repository>][@<revision_tag_or_branch>][#<sub_path>]`
+///
+/// Cargo metadata uses a different format:
+/// `git+<url>[?branch=<branch>|?tag=<tag>|?rev=<rev>]#<commit_hash>`
+///
+/// This function strips the query parameters (since the commit hash already identifies the code)
+/// and converts the `#commit_hash` to `@commit_hash` per the SPDX format.
+///
 /// Assumes that the source kind is `git`, panics if it isn't.
 fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
     assert!(source.repr.starts_with("git+"));
-    source.repr.replace('#', "@")
+    let url = &source.repr;
+    // Find where query parameters start (if any) and where the commit hash fragment starts
+    let query_start = url.find('?');
+    let fragment_start = url.find('#');
+    match (query_start, fragment_start) {
+        // Has both query params and commit hash: strip query, keep commit as @
+        (Some(q), Some(f)) => {
+            let base = &url[..q];
+            let commit = &url[f + 1..];
+            format!("{}@{}", base, commit)
+        }
+        // No query params, has commit hash: just replace # with @
+        (None, Some(_)) => url.replace('#', "@"),
+        // Has query params but no commit hash: extract the ref value as @
+        (Some(q), None) => {
+            let base = &url[..q];
+            let query = &url[q + 1..];
+            // Extract the value from branch=X, tag=X, or rev=X
+            let ref_value = query
+                .split('&')
+                .find_map(|param| {
+                    param
+                        .strip_prefix("branch=")
+                        .or_else(|| param.strip_prefix("tag="))
+                        .or_else(|| param.strip_prefix("rev="))
+                })
+                .unwrap_or(query);
+            format!("{}@{}", base, ref_value)
+        }
+        // No query params, no commit hash: return as-is
+        (None, None) => url.to_string(),
+    }
 }
 
 /// Converts a relative path to PURL subpath
@@ -91,6 +132,8 @@ mod tests {
 
     const CRATES_IO_PACKAGE_JSON: &str = include_str!("../tests/fixtures/crates_io_package.json");
     const GIT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/git_package.json");
+    const GIT_PACKAGE_WITH_BRANCH_JSON: &str =
+        include_str!("../tests/fixtures/git_package_with_branch.json");
     const ROOT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/root_package.json");
     const WORKSPACE_PACKAGE_JSON: &str = include_str!("../tests/fixtures/workspace_package.json");
 
@@ -125,6 +168,32 @@ mod tests {
         let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
         assert_eq!(qualifier.as_str(), "vcs_url");
         assert_eq!(value, "git+https://github.com/rust-secure-code/cargo-auditable.git@da85607fb1a09435d77288ccf05a92b2e8ec3f71");
+        assert!(parsed_purl.subpath().is_none());
+        assert!(parsed_purl.namespace().is_none());
+    }
+
+    #[test]
+    fn git_purl_with_branch() {
+        let git_package: Package = serde_json::from_str(GIT_PACKAGE_WITH_BRANCH_JSON).unwrap();
+        let purl = get_purl(&git_package, &git_package, Utf8Path::new("/foo/bar"), None).unwrap();
+        // Validate that data roundtripped correctly
+        let parsed_purl = Purl::from_str(purl.as_ref()).unwrap();
+        assert_eq!(parsed_purl.name(), "rav1d");
+        assert_eq!(parsed_purl.version(), Some("1.1.0"));
+        assert_eq!(parsed_purl.qualifiers().len(), 1);
+        let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
+        assert_eq!(qualifier.as_str(), "vcs_url");
+        // The ?branch= query param must be stripped; only the commit hash remains after @
+        let decoded_value = percent_decode(value.as_bytes())
+            .decode_utf8()
+            .unwrap()
+            .to_string();
+        assert_eq!(
+            decoded_value,
+            "git+https://github.com/leo030303/rav1d.git@3a50834ce3743bc580f340ba3bfbdbf6a46ab783"
+        );
+        // Ensure ?branch= is NOT present in the vcs_url
+        assert!(!decoded_value.contains("?branch="));
         assert!(parsed_purl.subpath().is_none());
         assert!(parsed_purl.namespace().is_none());
     }
