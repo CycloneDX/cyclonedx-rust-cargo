@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+members = [
+    "app",
+    "my-workspace-hack",
+    "real_dep",
+    "test_utils",
+]

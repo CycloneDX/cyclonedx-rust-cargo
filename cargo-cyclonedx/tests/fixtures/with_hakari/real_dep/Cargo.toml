@@ -1,0 +1,8 @@
+[package]
+name = "real_dep"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+regex = { version = "1", default-features = false, features = ["unicode-case"] }
+my-workspace-hack = { version = "0.1", path = "../my-workspace-hack" }

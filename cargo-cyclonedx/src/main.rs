@@ -75,11 +75,30 @@ fn generate_sboms(args: &Args) -> Result<Vec<GeneratedSbom>> {
     let metadata = get_metadata(args, &manifest_path, &config)?;
     log::trace!("Running `cargo metadata` finished");
 
+    let hakari_id = if config.ignore_hakari == Some(true) {
+        detect_hakari_package(&metadata)
+    } else {
+        None
+    };
+
     log::trace!("SBOM generation started");
-    let boms = SbomGenerator::create_sboms(metadata, &config)?;
+    let boms = SbomGenerator::create_sboms(metadata, &config, hakari_id.as_ref())?;
     log::trace!("SBOM generation finished");
 
     Ok(boms)
+}
+
+/// Detects the hakari workspace-hack package by reading `.config/hakari.toml`
+/// from the workspace root. Returns `None` if the file doesn't exist, can't be
+/// parsed, or the named package isn't in the dependency graph.
+fn detect_hakari_package(metadata: &cargo_metadata::Metadata) -> Option<cargo_metadata::PackageId> {
+    let hakari_toml_path = metadata.workspace_root.join(".config/hakari.toml");
+    let contents = std::fs::read_to_string(hakari_toml_path.as_str()).ok()?;
+    let table: toml::Table = contents.parse().ok()?;
+    let name = table.get("hakari-package")?.as_str()?;
+    let pkg = metadata.packages.iter().find(|p| p.name == name)?;
+    log::info!("Detected hakari package '{}'", name);
+    Some(pkg.id.clone())
 }
 
 fn main() -> anyhow::Result<()> {
@@ -246,5 +265,123 @@ mod tests {
         assert!(components.0.iter().all(|c| c.name
             != NormalizedString::new("runtime_dep_of_build_dep")
             || c.scope == Some(Scope::Excluded)));
+    }
+
+    /// Without --ignore-hakari, the workspace-hack and proptest (promoted
+    /// from dev-dep to normal dep by hakari) both appear in the SBOM.
+    #[test]
+    fn hakari_present_without_flag() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/with_hakari/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+
+        let app_sbom = sboms
+            .iter()
+            .find(|s| s.package_name == "app")
+            .expect("should have an SBOM for app");
+
+        let components = app_sbom.bom.components.as_ref().unwrap();
+        let names: Vec<String> = components.0.iter().map(|c| c.name.to_string()).collect();
+
+        assert!(
+            names.contains(&"my-workspace-hack".to_string()),
+            "workspace-hack should be present without --ignore-hakari, got: {:?}",
+            names,
+        );
+        assert!(
+            names.contains(&"proptest".to_string()),
+            "proptest should be present (promoted by hakari), got: {:?}",
+            names,
+        );
+    }
+
+    /// With --ignore-hakari, the workspace-hack and deps only reachable
+    /// through it (like proptest, promoted from dev-dep) are pruned.
+    /// Shared deps reachable through real paths survive.
+    #[test]
+    fn hakari_pruned_with_flag() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/with_hakari/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg, "--ignore-hakari"];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+
+        // The workspace-hack crate itself should not get its own SBOM
+        assert!(
+            !sboms.iter().any(|s| s.package_name == "my-workspace-hack"),
+            "workspace-hack should not get its own SBOM with --ignore-hakari",
+        );
+
+        let app_sbom = sboms
+            .iter()
+            .find(|s| s.package_name == "app")
+            .expect("should have an SBOM for app");
+
+        let components = app_sbom.bom.components.as_ref().unwrap();
+        let names: Vec<String> = components.0.iter().map(|c| c.name.to_string()).collect();
+
+        // Workspace-hack and proptest (only reachable via hack) are pruned
+        assert!(
+            !names.contains(&"my-workspace-hack".to_string()),
+            "workspace-hack should be pruned, got: {:?}",
+            names,
+        );
+        assert!(
+            !names.contains(&"proptest".to_string()),
+            "proptest should be pruned (only reachable via hack), got: {:?}",
+            names,
+        );
+
+        // Shared deps reachable through real paths survive
+        assert!(
+            names.contains(&"real_dep".to_string()),
+            "real_dep should survive, got: {:?}",
+            names,
+        );
+        assert!(
+            names.contains(&"regex".to_string()),
+            "regex should survive (shared dep), got: {:?}",
+            names,
+        );
+
+        // Dependency graph: no refs or edges mention pruned packages
+        let deps = app_sbom.bom.dependencies.as_ref().unwrap();
+        let pruned = ["my-workspace-hack", "proptest"];
+        for dep in &deps.0 {
+            for name in &pruned {
+                assert!(
+                    !dep.dependency_ref.contains(name),
+                    "dependency_ref should not reference {}: {}",
+                    name,
+                    dep.dependency_ref,
+                );
+                for child in &dep.dependencies {
+                    assert!(
+                        !child.contains(name),
+                        "dependsOn should not reference {}: {}",
+                        name,
+                        child,
+                    );
+                }
+            }
+        }
     }
 }

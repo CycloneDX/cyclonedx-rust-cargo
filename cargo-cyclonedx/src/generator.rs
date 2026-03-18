@@ -120,11 +120,18 @@ impl SbomGenerator {
     pub fn create_sboms(
         meta: CargoMetadata,
         config: &SbomConfig,
+        hakari_id: Option<&PackageId>,
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
         log::trace!("Processing the workspace {}", meta.workspace_root);
-        let members: Vec<PackageId> = meta.workspace_members;
         let packages = index_packages(meta.packages);
         let resolve = index_resolve(meta.resolve.unwrap().nodes);
+
+        // Filter the workspace-hack from the member list so it doesn't get its own SBOM
+        let members: Vec<PackageId> = meta
+            .workspace_members
+            .into_iter()
+            .filter(|m| hakari_id != Some(m))
+            .collect();
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
@@ -132,12 +139,17 @@ impl SbomGenerator {
 
             let dep_kinds = index_dep_kinds(member, &resolve);
 
-            let (dependencies, pruned_resolve) =
+            let (mut dependencies, mut pruned_resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
                     all_dependencies(member, &packages, &resolve, config)
                 } else {
                     top_level_dependencies(member, &packages, &resolve, config)
                 };
+
+            // Prune the hakari package and its exclusively-reachable transitive deps
+            if let Some(hakari_id) = hakari_id {
+                remove_hakari_package(hakari_id, &mut dependencies, &mut pruned_resolve);
+            }
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
 
@@ -600,6 +612,48 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
         .into_iter()
         .map(|pkg| (pkg.id.clone(), pkg))
         .collect()
+}
+
+/// Removes the hakari workspace-hack crate and any dependencies that become
+/// unreachable after its removal.
+///
+/// This is a post-resolution transformation: it does not alter feature
+/// resolution. Features on surviving components remain as-is since they
+/// reflect what was actually compiled.
+fn remove_hakari_package(
+    hakari_id: &PackageId,
+    packages: &mut PackageMap,
+    resolve: &mut ResolveMap,
+) {
+    // Save hakari's dependencies before removing it: these are the only
+    // nodes that could become directly orphaned by this deletion
+    let hakari_deps: Vec<PackageId> = resolve
+        .get(hakari_id)
+        .map(|node| node.dependencies.clone())
+        .unwrap_or_default();
+
+    // Remove the hakari node itself
+    resolve.remove(hakari_id);
+    packages.remove(hakari_id);
+
+    // Remove all edges pointing to the hakari package
+    for node in resolve.values_mut() {
+        node.deps.retain(|dep| dep.pkg != *hakari_id);
+        node.dependencies.retain(|dep| dep != hakari_id);
+    }
+
+    // Cascade: remove each former hakari dep that is no longer referenced
+    // by any remaining node, then check its deps in turn.
+    let mut candidates = hakari_deps;
+    while let Some(id) = candidates.pop() {
+        let still_referenced = resolve.values().any(|node| node.dependencies.contains(&id));
+        if !still_referenced {
+            if let Some(node) = resolve.remove(&id) {
+                candidates.extend(node.dependencies);
+            }
+            packages.remove(&id);
+        }
+    }
 }
 
 fn index_dep_kinds(root: &PackageId, resolve: &ResolveMap) -> DependencyKindMap {
