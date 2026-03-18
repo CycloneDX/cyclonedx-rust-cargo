@@ -34,6 +34,7 @@ pub struct SbomConfig {
     pub describe: Option<Describe>,
     pub spec_version: Option<SpecVersion>,
     pub only_normal_deps: Option<bool>,
+    pub ignore_hakari: Option<bool>,
 }
 
 impl SbomConfig {
@@ -60,6 +61,7 @@ impl SbomConfig {
             describe: other.describe.or(self.describe),
             spec_version: other.spec_version.or(self.spec_version),
             only_normal_deps: other.only_normal_deps.or(self.only_normal_deps),
+            ignore_hakari: other.ignore_hakari.or(self.ignore_hakari),
         }
     }
 

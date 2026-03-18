@@ -108,6 +108,10 @@ Defaults to the host target, as printed by 'rustc -vV'"
     /// Do not include build-time dependencies in the SBOM
     #[clap(long = "no-build-deps")]
     pub no_build_deps: bool,
+
+    /// Remove the cargo-hakari workspace-hack crate and its exclusive dependencies from the SBOM
+    #[clap(long = "ignore-hakari")]
+    pub ignore_hakari: bool,
 }
 
 impl Args {
@@ -182,6 +186,7 @@ impl Args {
         let describe = self.describe;
         let spec_version = self.spec_version;
         let only_normal_deps = Some(self.no_build_deps);
+        let ignore_hakari = Some(self.ignore_hakari);
 
         Ok(SbomConfig {
             format: self.format,
@@ -193,6 +198,7 @@ impl Args {
             describe,
             spec_version,
             only_normal_deps,
+            ignore_hakari,
         })
     }
 }

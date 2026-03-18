@@ -1,0 +1,12 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+real_dep = { path = "../real_dep" }
+regex = { version = "1", default-features = false, features = ["std"] }
+my-workspace-hack = { version = "0.1", path = "../my-workspace-hack" }
+
+[dev-dependencies]
+proptest = "1"
