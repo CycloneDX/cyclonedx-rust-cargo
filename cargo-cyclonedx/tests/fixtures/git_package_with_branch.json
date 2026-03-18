@@ -1,0 +1,270 @@
+{
+  "name": "rav1d",
+  "version": "1.1.0",
+  "id": "git+https://github.com/leo030303/rav1d.git?branch=add-rust-api#rav1d@1.1.0",
+  "license": "BSD-2-Clause",
+  "license_file": null,
+  "description": "Rust port of the dav1d AV1 decoder",
+  "source": "git+https://github.com/leo030303/rav1d.git?branch=add-rust-api#3a50834ce3743bc580f340ba3bfbdbf6a46ab783",
+  "dependencies": [
+    {
+      "name": "assert_matches",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.5.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "atomig",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.4.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "derive"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "av-data",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.4.2",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "bitflags",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^2.4.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "cfg-if",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "libc",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.2",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "parking_lot",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.12.2",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "paste",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.14",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "raw-cpuid",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^11.0.1",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "static_assertions",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.1.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "strum",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.27",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "derive"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "to_method",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.1.0",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "zerocopy",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.7.32",
+      "kind": null,
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "derive"
+      ],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "cc",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^1.0.79",
+      "kind": "build",
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    },
+    {
+      "name": "nasm-rs",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.3",
+      "kind": "build",
+      "rename": null,
+      "optional": false,
+      "uses_default_features": true,
+      "features": [
+        "parallel"
+      ],
+      "target": null,
+      "registry": null
+    }
+  ],
+  "targets": [
+    {
+      "kind": [
+        "staticlib",
+        "rlib"
+      ],
+      "crate_types": [
+        "staticlib",
+        "rlib"
+      ],
+      "name": "rav1d",
+      "src_path": "/home/user/.cargo/git/checkouts/rav1d-da3745f1281a575f/3a50834/src/lib.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": true,
+      "test": true
+    },
+    {
+      "kind": [
+        "custom-build"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "build-script-build",
+      "src_path": "/home/user/.cargo/git/checkouts/rav1d-da3745f1281a575f/3a50834/build.rs",
+      "edition": "2021",
+      "doc": false,
+      "doctest": false,
+      "test": false
+    }
+  ],
+  "features": {
+    "asm": [],
+    "asm_arm64_dotprod": [
+      "asm"
+    ],
+    "asm_arm64_i8mm": [
+      "asm"
+    ],
+    "asm_arm64_sve2": [
+      "asm"
+    ],
+    "bitdepth_16": [],
+    "bitdepth_8": [],
+    "default": [
+      "asm",
+      "asm_arm64_dotprod",
+      "asm_arm64_i8mm",
+      "asm_arm64_sve2",
+      "bitdepth_8",
+      "bitdepth_16"
+    ]
+  },
+  "manifest_path": "/home/user/.cargo/git/checkouts/rav1d-da3745f1281a575f/3a50834/Cargo.toml",
+  "metadata": null,
+  "publish": null,
+  "authors": [
+    "Rav1d Developers",
+    "Prossimo"
+  ],
+  "categories": [],
+  "keywords": [],
+  "readme": "README.md",
+  "repository": "https://github.com/memorysafety/rav1d",
+  "homepage": null,
+  "documentation": null,
+  "edition": "2021",
+  "links": null,
+  "default_run": null,
+  "rust_version": "1.79"
+}
