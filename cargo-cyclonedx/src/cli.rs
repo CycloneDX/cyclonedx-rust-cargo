@@ -24,6 +24,11 @@ pub enum Opts {
 #[derive(Parser, Debug)]
 #[clap(version)]
 #[clap(group(ArgGroup::new("dependencies-group").required(false).args(&["all", "top-level"])))]
+// TODO: replace with clap's Arg::env in 0.6.x after a semver break
+#[command(
+    after_help = "The SOURCE_DATE_EPOCH env var is honored to enable reproducible builds,\n\
+    see https://reproducible-builds.org/docs/source-date-epoch/"
+)]
 pub struct Args {
     /// Path to Cargo.toml
     #[clap(long = "manifest-path", value_name = "PATH", value_hint = clap::ValueHint::FilePath)]
