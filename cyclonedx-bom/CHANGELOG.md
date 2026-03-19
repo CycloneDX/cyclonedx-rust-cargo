@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.8.1 - 2025-03-18
+
+- Increased the MSRV to 1.85.0 ([#845])
+- Updated the `spdx` crate to support additional SPDX expressions ([#845])
+- Extended the invalid SPDX expression error to include the expression ([#844])
+- Several `Option`al fields are not serialized when they're None ([#847], [#848], [#849])
+
 ## 0.8.0 - 2024-11-07
 
 ### Added
@@ -107,3 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#758]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/758
 [#761]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/761
 [#767]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/767
+[#844]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/844
+[#845]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/845
+[#848]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/848
+[#849]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/849
