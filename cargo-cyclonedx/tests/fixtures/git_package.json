@@ -1,7 +1,7 @@
 {
   "name": "auditable-extract",
   "version": "0.3.2",
-  "id": "auditable-extract 0.3.2 (git+https://github.com/rust-secure-code/cargo-auditable.git#da85607fb1a09435d77288ccf05a92b2e8ec3f71)",
+  "id": "git+https://github.com/rust-secure-code/cargo-auditable.git#auditable-extract@0.3.2",
   "license": "MIT OR Apache-2.0",
   "license_file": null,
   "description": "Extract the dependency trees embedded in binaries by `cargo auditable`",

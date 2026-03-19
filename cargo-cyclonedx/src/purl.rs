@@ -20,7 +20,14 @@ pub fn get_purl(
                 // qualifier names are taken from the spec, which defines these two for all PURL types:
                 // https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#known-qualifiers-keyvalue-pairs
                 Some(("git", _git_path)) => {
-                    builder = builder.with_qualifier("vcs_url", source_to_vcs_url(source))?
+                    if let Some(vcs_url) = extract_git_url_from_id(&package.id) {
+                        builder = builder.with_qualifier("vcs_url", vcs_url)?
+                    } else {
+                        log::warn!(
+                            "Package {} has a git source but no extractable VCS URL in its id",
+                            package.name
+                        );
+                    }
                 }
                 Some(("registry" | "sparse", registry_url)) => {
                     builder = builder.with_qualifier("repository_url", registry_url)?
@@ -64,52 +71,30 @@ pub fn get_purl(
     Ok(CdxPurl::from_str(&purl.to_string()).unwrap())
 }
 
-/// Converts the `cargo metadata`'s `source` field to a valid PURL `vcs_url`.
+/// Extracts a clean git VCS URL from a package's `id` field (pkgid spec).
 ///
-/// The `vcs_url` qualifier is specified to use the SPDX Package Download Location format:
-/// `<vcs_tool>+<transport>://<host_name>[/<path_to_repository>][@<revision_tag_or_branch>][#<sub_path>]`
+/// On Rust 1.77+, git dependency package IDs use the "new" pkgid format:
+///   `git+proto://host/path[?query]#name@version`
 ///
-/// Cargo metadata uses a different format:
-/// `git+<url>[?branch=<branch>|?tag=<tag>|?rev=<rev>]#<commit_hash>`
-///
-/// This function strips the query parameters (since the commit hash already identifies the code)
-/// and converts the `#commit_hash` to `@commit_hash` per the SPDX format.
-///
-/// Assumes that the source kind is `git`, panics if it isn't.
-fn source_to_vcs_url(source: &cargo_metadata::Source) -> String {
-    assert!(source.repr.starts_with("git+"));
-    let url = &source.repr;
-    // Find where query parameters start (if any) and where the commit hash fragment starts
-    let query_start = url.find('?');
-    let fragment_start = url.find('#');
-    match (query_start, fragment_start) {
-        // Has both query params and commit hash: strip query, keep commit as @
-        (Some(q), Some(f)) => {
-            let base = &url[..q];
-            let commit = &url[f + 1..];
-            format!("{}@{}", base, commit)
-        }
-        // No query params, has commit hash: just replace # with @
-        (None, Some(_)) => url.replace('#', "@"),
-        // Has query params but no commit hash: extract the ref value as @
-        (Some(q), None) => {
-            let base = &url[..q];
-            let query = &url[q + 1..];
-            // Extract the value from branch=X, tag=X, or rev=X
-            let ref_value = query
-                .split('&')
-                .find_map(|param| {
-                    param
-                        .strip_prefix("branch=")
-                        .or_else(|| param.strip_prefix("tag="))
-                        .or_else(|| param.strip_prefix("rev="))
-                })
-                .unwrap_or(query);
-            format!("{}@{}", base, ref_value)
-        }
-        // No query params, no commit hash: return as-is
-        (None, None) => url.to_string(),
+/// This function:
+/// - Returns `None` if the id does not start with `git+`
+/// - Strips the fragment (`#name@version`)
+/// - Strips query parameters (`?branch=`, `?tag=`, `?rev=`)
+/// - Returns the clean `git+proto://host/path` URL with the `git+` prefix
+pub(crate) fn extract_git_url_from_id(id: &cargo_metadata::PackageId) -> Option<String> {
+    let id_str = &id.repr;
+    if !id_str.starts_with("git+") {
+        return None;
     }
+    // Strip fragment (#name@version)
+    let without_fragment = id_str
+        .split_once('#')
+        .map_or(id_str.as_str(), |(url, _)| url);
+    // Strip query parameters (?branch=, ?tag=, ?rev=)
+    let without_query = without_fragment
+        .split_once('?')
+        .map_or(without_fragment, |(url, _)| url);
+    Some(without_query.to_string())
 }
 
 /// Converts a relative path to PURL subpath
@@ -128,7 +113,6 @@ mod tests {
     use super::*;
     use percent_encoding::percent_decode;
     use purl::Purl;
-    use serde_json;
 
     const CRATES_IO_PACKAGE_JSON: &str = include_str!("../tests/fixtures/crates_io_package.json");
     const GIT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/git_package.json");
@@ -136,6 +120,12 @@ mod tests {
         include_str!("../tests/fixtures/git_package_with_branch.json");
     const ROOT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/root_package.json");
     const WORKSPACE_PACKAGE_JSON: &str = include_str!("../tests/fixtures/workspace_package.json");
+
+    fn pkg_id(s: &str) -> cargo_metadata::PackageId {
+        cargo_metadata::PackageId {
+            repr: s.to_string(),
+        }
+    }
 
     #[test]
     fn crates_io_purl() {
@@ -167,7 +157,15 @@ mod tests {
         assert_eq!(parsed_purl.qualifiers().len(), 1);
         let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
         assert_eq!(qualifier.as_str(), "vcs_url");
-        assert_eq!(value, "git+https://github.com/rust-secure-code/cargo-auditable.git@da85607fb1a09435d77288ccf05a92b2e8ec3f71");
+        // vcs_url comes from package.id (pkgid spec): no commit hash, no query params
+        let decoded_value = percent_decode(value.as_bytes())
+            .decode_utf8()
+            .unwrap()
+            .to_string();
+        assert_eq!(
+            decoded_value,
+            "git+https://github.com/rust-secure-code/cargo-auditable.git"
+        );
         assert!(parsed_purl.subpath().is_none());
         assert!(parsed_purl.namespace().is_none());
     }
@@ -183,17 +181,12 @@ mod tests {
         assert_eq!(parsed_purl.qualifiers().len(), 1);
         let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
         assert_eq!(qualifier.as_str(), "vcs_url");
-        // The ?branch= query param must be stripped; only the commit hash remains after @
+        // vcs_url comes from package.id: ?branch= query param and #fragment must be stripped
         let decoded_value = percent_decode(value.as_bytes())
             .decode_utf8()
             .unwrap()
             .to_string();
-        assert_eq!(
-            decoded_value,
-            "git+https://github.com/leo030303/rav1d.git@3a50834ce3743bc580f340ba3bfbdbf6a46ab783"
-        );
-        // Ensure ?branch= is NOT present in the vcs_url
-        assert!(!decoded_value.contains("?branch="));
+        assert_eq!(decoded_value, "git+https://github.com/leo030303/rav1d.git");
         assert!(parsed_purl.subpath().is_none());
         assert!(parsed_purl.namespace().is_none());
     }
@@ -266,6 +259,45 @@ mod tests {
         assert_eq!(decoded_path, "file://../cyclonedx-bom");
         assert!(parsed_purl.subpath().is_none());
         assert!(parsed_purl.namespace().is_none());
+    }
+
+    #[test]
+    fn extract_git_url_strips_fragment() {
+        // New pkgid format: #name@version fragment must be stripped.
+        // Also verifies that the git+ prefix is preserved and the result is otherwise intact.
+        let id = pkg_id("git+https://github.com/foo/bar.git#bar@1.2.3");
+        assert_eq!(
+            extract_git_url_from_id(&id),
+            Some("git+https://github.com/foo/bar.git".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_git_url_strips_query_params() {
+        // ?branch=, ?tag=, ?rev= must all be stripped, along with the fragment
+        for query in &["?branch=main", "?tag=v1.0", "?rev=abc123"] {
+            let id = pkg_id(&format!("git+https://github.com/foo/bar.git{query}#bar@1.0.0"));
+            let result = extract_git_url_from_id(&id).unwrap();
+            assert_eq!(result, "git+https://github.com/foo/bar.git", "failed for {query}");
+        }
+    }
+
+    #[test]
+    fn extract_git_url_non_git_returns_none() {
+        // registry, sparse, and path sources must return None
+        for id_str in &[
+            "aho-corasick 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+            "registry+https://github.com/rust-lang/crates.io-index#foo@1.0.0",
+            "sparse+https://my.registry.com/index#foo@1.0.0",
+            "foo 0.1.0 (path+file:///home/user/project)",
+        ] {
+            let id = pkg_id(id_str);
+            assert_eq!(
+                extract_git_url_from_id(&id),
+                None,
+                "expected None for id: {id_str}"
+            );
+        }
     }
 
     #[test]
