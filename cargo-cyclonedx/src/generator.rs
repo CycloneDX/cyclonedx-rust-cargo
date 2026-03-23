@@ -413,9 +413,7 @@ impl SbomGenerator {
             // Per the pkgid spec (Rust 1.77+), git source ids look like:
             //   git+proto://host/path[?query]#name@version
             match Uri::try_from(id_vcs_url) {
-                Ok(uri) => {
-                    references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri))
-                }
+                Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
                 Err(e) => log::warn!(
                     "Package {} has an invalid VCS URI (from id: {}): {} ",
                     package.name,

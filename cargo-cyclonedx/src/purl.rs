@@ -276,9 +276,14 @@ mod tests {
     fn extract_git_url_strips_query_params() {
         // ?branch=, ?tag=, ?rev= must all be stripped, along with the fragment
         for query in &["?branch=main", "?tag=v1.0", "?rev=abc123"] {
-            let id = pkg_id(&format!("git+https://github.com/foo/bar.git{query}#bar@1.0.0"));
+            let id = pkg_id(&format!(
+                "git+https://github.com/foo/bar.git{query}#bar@1.0.0"
+            ));
             let result = extract_git_url_from_id(&id).unwrap();
-            assert_eq!(result, "git+https://github.com/foo/bar.git", "failed for {query}");
+            assert_eq!(
+                result, "git+https://github.com/foo/bar.git",
+                "failed for {query}"
+            );
         }
     }
 
