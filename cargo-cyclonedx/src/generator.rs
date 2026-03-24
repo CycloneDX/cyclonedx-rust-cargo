@@ -23,7 +23,7 @@ use crate::config::PlatformSuffix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
-use crate::purl::{extract_git_url_from_id, get_purl};
+use crate::purl::{get_purl, strip_git_url};
 
 use cargo_metadata;
 use cargo_metadata::DependencyKind;
@@ -408,18 +408,40 @@ impl SbomGenerator {
                     e
                 ),
             }
-        } else if let Some(id_vcs_url) = extract_git_url_from_id(&package.id) {
-            // Fall back to the package id for git sources that have no repository field.
-            // Per the pkgid spec (Rust 1.77+), git source ids look like:
-            //   git+proto://host/path[?query]#name@version
-            match Uri::try_from(id_vcs_url) {
-                Ok(uri) => references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
-                Err(e) => log::warn!(
-                    "Package {} has an invalid VCS URI (from id: {}): {} ",
-                    package.name,
-                    package.id,
-                    e
-                ),
+        } else if package
+            .source
+            .as_ref()
+            .map_or(false, |s| s.repr.starts_with("git+"))
+        {
+            if let Some(id_vcs_url) = strip_git_url(&package.id.repr) {
+                // Use the package id (pkgid spec, Rust 1.77+): git+proto://host/path[?query]#name@version
+                match Uri::try_from(id_vcs_url) {
+                    Ok(uri) => {
+                        references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri))
+                    }
+                    Err(e) => log::warn!(
+                        "Package {} has an invalid VCS URI (from id: {}): {} ",
+                        package.name,
+                        package.id,
+                        e
+                    ),
+                }
+            } else if let Some(source_vcs_url) =
+                package.source.as_ref().and_then(|s| strip_git_url(&s.repr))
+            {
+                // Fall back to the source field for older cargo versions (before Rust 1.77)
+                // whose id field uses the old format `name version (source)`.
+                match Uri::try_from(source_vcs_url) {
+                    Ok(uri) => {
+                        references.push(ExternalReference::new(ExternalReferenceType::Vcs, uri))
+                    }
+                    Err(e) => log::warn!(
+                        "Package {} has an invalid VCS URI (from source: {:?}): {} ",
+                        package.name,
+                        package.source,
+                        e
+                    ),
+                }
             }
         }
 
@@ -1153,9 +1175,9 @@ mod test {
     }
 
     #[test]
-    fn external_refs_git_package_falls_back_to_id_when_no_repository() {
-        // When package.repository is absent, the VCS entry must be derived from package.id.
-        // This exercises the new extract_git_url_from_id fallback in get_external_references.
+    fn external_refs_git_package_falls_back_to_source_when_no_repository_old_format() {
+        // Old pkgid format: id is "name version (source)", so strip_git_url(id) returns None.
+        // The code falls back to strip_git_url(source), which strips the #commit_hash.
         let mut json: serde_json::Value = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
         json["repository"] = serde_json::Value::Null;
         let package: cargo_metadata::Package = serde_json::from_value(json).unwrap();
@@ -1168,8 +1190,8 @@ mod test {
 
     #[test]
     fn external_refs_git_with_branch_falls_back_to_id_strips_query_and_fragment() {
-        // When package.repository is absent on a branch-pinned git dep, the id-based URL
-        // must have its ?branch= query and #fragment stripped.
+        // New pkgid format (Rust 1.77+): id is "git+url?branch=...#name@version",
+        // so strip_git_url(id) succeeds and strips both ?branch= and #fragment.
         let mut json: serde_json::Value =
             serde_json::from_str(GIT_PACKAGE_WITH_BRANCH_JSON).unwrap();
         json["repository"] = serde_json::Value::Null;
