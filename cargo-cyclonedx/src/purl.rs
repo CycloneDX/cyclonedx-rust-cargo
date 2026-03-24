@@ -20,7 +20,11 @@ pub fn get_purl(
                 // qualifier names are taken from the spec, which defines these two for all PURL types:
                 // https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#known-qualifiers-keyvalue-pairs
                 Some(("git", _git_path)) => {
-                    builder = builder.with_qualifier("vcs_url", source_to_vcs_url(source))?
+                    // Prefer the stable pkgid spec (Rust 1.77+) id field, fall back
+                    // to the opaque source field for older cargo versions.
+                    let vcs_url = strip_git_url(&package.id.repr)
+                        .unwrap_or_else(|| source_to_vcs_url(source));
+                    builder = builder.with_qualifier("vcs_url", vcs_url)?
                 }
                 Some(("registry" | "sparse", registry_url)) => {
                     builder = builder.with_qualifier("repository_url", registry_url)?
@@ -62,6 +66,23 @@ pub fn get_purl(
         assert_validation_passes(&cdx_purl);
     }
     Ok(CdxPurl::from_str(&purl.to_string()).unwrap())
+}
+
+/// Strips query parameters and the fragment from a `git+...` URL string,
+/// returning the bare `git+proto://host/path` URL, or `None` if not a git URL.
+///
+/// Works with both the package `id` field (new pkgid format, Rust 1.77+:
+/// `git+proto://host/path[?query]#name@version`) and the `source` field
+/// (`git+proto://host/path[?query]#commit_hash`).
+pub(crate) fn strip_git_url(url: &str) -> Option<String> {
+    if !url.starts_with("git+") {
+        return None;
+    }
+    let without_fragment = url.split_once('#').map_or(url, |(base, _)| base);
+    let without_query = without_fragment
+        .split_once('?')
+        .map_or(without_fragment, |(base, _)| base);
+    Some(without_query.to_string())
 }
 
 /// Converts the `cargo metadata`'s `source` field to a valid PURL `vcs_url`.
@@ -128,7 +149,6 @@ mod tests {
     use super::*;
     use percent_encoding::percent_decode;
     use purl::Purl;
-    use serde_json;
 
     const CRATES_IO_PACKAGE_JSON: &str = include_str!("../tests/fixtures/crates_io_package.json");
     const GIT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/git_package.json");
@@ -174,6 +194,8 @@ mod tests {
 
     #[test]
     fn git_purl_with_branch() {
+        // New pkgid format (Rust 1.77+): id is "git+url?branch=...#name@version",
+        // so strip_git_url succeeds and strips both ?branch= and #fragment.
         let git_package: Package = serde_json::from_str(GIT_PACKAGE_WITH_BRANCH_JSON).unwrap();
         let purl = get_purl(&git_package, &git_package, Utf8Path::new("/foo/bar"), None).unwrap();
         // Validate that data roundtripped correctly
@@ -183,15 +205,13 @@ mod tests {
         assert_eq!(parsed_purl.qualifiers().len(), 1);
         let (qualifier, value) = parsed_purl.qualifiers().iter().next().unwrap();
         assert_eq!(qualifier.as_str(), "vcs_url");
-        // The ?branch= query param must be stripped; only the commit hash remains after @
+        // The ?branch= query param must be stripped; the #name@version fragment in the id
+        // is not a commit hash and is also stripped, so vcs_url has no @revision suffix.
         let decoded_value = percent_decode(value.as_bytes())
             .decode_utf8()
             .unwrap()
             .to_string();
-        assert_eq!(
-            decoded_value,
-            "git+https://github.com/leo030303/rav1d.git@3a50834ce3743bc580f340ba3bfbdbf6a46ab783"
-        );
+        assert_eq!(decoded_value, "git+https://github.com/leo030303/rav1d.git");
         // Ensure ?branch= is NOT present in the vcs_url
         assert!(!decoded_value.contains("?branch="));
         assert!(parsed_purl.subpath().is_none());
@@ -266,6 +286,43 @@ mod tests {
         assert_eq!(decoded_path, "file://../cyclonedx-bom");
         assert!(parsed_purl.subpath().is_none());
         assert!(parsed_purl.namespace().is_none());
+    }
+
+    #[test]
+    fn strip_git_url_strips_fragment() {
+        // New pkgid format: #name@version fragment must be stripped.
+        // Also verifies that the git+ prefix is preserved and the result is otherwise intact.
+        assert_eq!(
+            strip_git_url("git+https://github.com/foo/bar.git#bar@1.2.3"),
+            Some("git+https://github.com/foo/bar.git".to_string())
+        );
+    }
+
+    #[test]
+    fn strip_git_url_strips_query_params() {
+        // ?branch=, ?tag=, ?rev= must all be stripped, along with the fragment
+        for query in &["?branch=main", "?tag=v1.0", "?rev=abc123"] {
+            let url = format!("git+https://github.com/foo/bar.git{query}#bar@1.0.0");
+            let result = strip_git_url(&url).unwrap();
+            assert_eq!(
+                result, "git+https://github.com/foo/bar.git",
+                "failed for {query}"
+            );
+        }
+    }
+
+    #[test]
+    fn strip_git_url_non_git_returns_none() {
+        // registry, sparse, and path sources must return None
+        for url in &[
+            "aho-corasick 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+            "registry+https://github.com/rust-lang/crates.io-index#foo@1.0.0",
+            "sparse+https://my.registry.com/index#foo@1.0.0",
+            "foo 0.1.0 (path+file:///home/user/project)",
+            "path+file:///home/user/project#foo@0.1.0",
+        ] {
+            assert_eq!(strip_git_url(url), None, "expected None for: {url}");
+        }
     }
 
     #[test]
