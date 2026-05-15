@@ -20,6 +20,8 @@ use crate::external_models::normalized_string::validate_normalized_string;
 use crate::external_models::uri::validate_uri;
 use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::validation::{Validate, ValidationContext, ValidationResult};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::bom::SpecVersion;
 
@@ -27,6 +29,7 @@ use super::bom::SpecVersion;
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.4/xml/#type_advisoryType)
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Advisory {
     pub title: Option<NormalizedString>,
     pub url: Uri,
@@ -58,6 +61,7 @@ impl Validate for Advisory {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Advisories(pub Vec<Advisory>);
 
 impl Validate for Advisories {

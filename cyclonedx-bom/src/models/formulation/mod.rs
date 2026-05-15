@@ -4,12 +4,15 @@ use crate::{
     prelude::{SpecVersion, Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use self::workflow::Workflow;
 
 use super::{bom::BomReference, component::Components, property::Properties, service::Services};
 
 #[derive(PartialEq, Eq, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Formula {
     pub bom_ref: Option<BomReference>,
     pub components: Option<Components>,

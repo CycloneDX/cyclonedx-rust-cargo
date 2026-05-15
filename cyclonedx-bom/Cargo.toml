@@ -36,3 +36,7 @@ strum = { version = "0.28.0", features = ["derive"] }
 insta = { version = "1.33.0", features = ["glob", "json"] }
 pretty_assertions = "1.4.0"
 test-utils = {path = "test-utils"}
+
+[features]
+default = []
+serde = ["ordered-float/serde"]
