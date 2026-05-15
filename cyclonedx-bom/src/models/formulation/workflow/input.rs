@@ -4,8 +4,12 @@ use crate::{
     validation::ValidationContext,
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use super::{resource_reference::ResourceReference, EnvironmentVar};
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Input {
     pub required: RequiredInputField,
@@ -38,6 +42,7 @@ impl Validate for Input {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RequiredInputField {
     Resource(ResourceReference),
@@ -46,6 +51,7 @@ pub enum RequiredInputField {
     Data(Attachment),
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Parameter {
     pub name: Option<String>,

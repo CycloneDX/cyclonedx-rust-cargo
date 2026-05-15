@@ -17,6 +17,8 @@
  */
 
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::{
     bom::{BomReference, SpecVersion},
@@ -24,6 +26,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Composition {
     pub bom_ref: Option<BomReference>,
     pub aggregate: AggregateType,
@@ -45,6 +48,7 @@ impl Validate for Composition {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Compositions(pub Vec<Composition>);
 
 impl Validate for Compositions {
@@ -75,6 +79,8 @@ pub fn validate_aggregate_type(
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[strum(serialize_all = "snake_case")]
 #[repr(u16)]
 pub enum AggregateType {

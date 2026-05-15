@@ -22,10 +22,13 @@ use crate::{
     external_models::normalized_string::{validate_normalized_string, NormalizedString},
     validation::{Validate, ValidationContext, ValidationError, ValidationResult},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::bom::SpecVersion;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AttachedText {
     pub content_type: Option<NormalizedString>,
     pub encoding: Option<Encoding>,
@@ -82,6 +85,8 @@ pub fn validate_encoding(encoding: &Encoding) -> Result<(), ValidationError> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum Encoding {
     Base64,

@@ -32,6 +32,8 @@ use crate::models::{
     organization::{OrganizationalContact, OrganizationalEntity},
 };
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::property::Properties;
 
@@ -40,6 +42,7 @@ use super::property::Properties;
 /// As defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseChoiceType)
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum LicenseChoice {
     License(License),
     Expression(SpdxExpression),
@@ -82,6 +85,7 @@ impl Validate for LicenseChoice {
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_licenseType)
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct License {
     pub bom_ref: Option<BomReference>,
     pub license_identifier: LicenseIdentifier,
@@ -141,6 +145,7 @@ impl Validate for License {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Licenses(pub Vec<LicenseChoice>);
 
 impl Validate for Licenses {
@@ -180,6 +185,7 @@ pub fn validate_license_identifier(identifier: &LicenseIdentifier) -> Result<(),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum LicenseIdentifier {
     /// An SPDX license identifier from the list on the [SPDX website](https://spdx.org/licenses/).
     SpdxId(SpdxIdentifier),
@@ -204,6 +210,7 @@ impl Validate for LicenseIdentifier {
 ///
 /// For more details see: https://cyclonedx.org/docs/1.5/json/#metadata_licenses_oneOf_i0_items_license_licensing
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Licensing {
     pub alt_ids: Option<Vec<NormalizedString>>,
     pub licensor: Option<LicenseContact>,
@@ -238,6 +245,7 @@ impl Validate for Licensing {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum LicenseContact {
     Organization(OrganizationalEntity),
     Contact(OrganizationalContact),
@@ -261,6 +269,8 @@ fn validate_license_type(license_type: &LicenseType) -> Result<(), ValidationErr
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 #[repr(u16)]
 pub enum LicenseType {

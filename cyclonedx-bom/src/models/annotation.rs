@@ -27,10 +27,13 @@ use crate::{
     prelude::{Validate, ValidationResult},
     validation::ValidationContext,
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::bom::SpecVersion;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Annotations(pub Vec<Annotation>);
 
 impl Validate for Annotations {
@@ -44,6 +47,7 @@ impl Validate for Annotations {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Annotation {
     pub bom_ref: Option<String>,
     pub subjects: Vec<String>,
@@ -64,6 +68,7 @@ impl Validate for Annotation {
 
 /// Represents an Annotator: organization, individual, component or service.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Annotator {
     Organization(OrganizationalEntity),
     Individual(OrganizationalContact),

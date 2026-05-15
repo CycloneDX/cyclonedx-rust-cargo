@@ -17,6 +17,8 @@
  */
 
 use crate::validation::ValidationError;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::ops::Deref;
 
@@ -24,6 +26,7 @@ use std::ops::Deref;
 ///
 /// Defined via the [XML schema](https://www.w3.org/TR/xmlschema-2/#normalizedString)
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NormalizedString(pub(crate) String);
 
 impl NormalizedString {

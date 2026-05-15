@@ -1,5 +1,9 @@
 use crate::{models::property::Properties, prelude::Validate, validation::ValidationContext};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Step {
     pub commands: Option<Vec<Command>>,
@@ -22,6 +26,7 @@ impl Validate for Step {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Command {
     pub executed: Option<String>,

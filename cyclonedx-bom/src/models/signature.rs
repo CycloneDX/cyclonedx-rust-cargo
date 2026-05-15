@@ -20,9 +20,12 @@ use crate::{
     prelude::{SpecVersion, Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Signature {
     /// Multiple signatures
     Signers(Vec<Signer>),
@@ -51,6 +54,7 @@ impl Validate for Signature {
 
 /// For now the [`Signer`] struct only holds algorithm and value
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signer {
     /// Signature algorithm.
     pub algorithm: Algorithm,
@@ -104,6 +108,7 @@ impl Signature {
 
 /// Supported signature algorithms.
 #[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Algorithm {
     RS256,
     RS384,
