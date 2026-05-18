@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 654
 expression: actual
 ---
 {
@@ -561,7 +560,7 @@ expression: actual
       "analysis": {
         "state": "not_affected",
         "justification": "code_not_reachable",
-        "responses": [
+        "response": [
           "update"
         ],
         "detail": "detail"
