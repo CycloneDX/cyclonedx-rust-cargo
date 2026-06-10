@@ -2,7 +2,7 @@ use cargo_cyclonedx::{
     config::{
         Describe, Features, FilenameOverride, FilenameOverrideError, FilenamePattern,
         IncludedDependencies, LicenseParserOptions, OutputOptions, ParseMode, PlatformSuffix,
-        SbomConfig, Target,
+        SbomConfig, Target, WorkspaceSboms,
     },
     format::Format,
 };
@@ -41,6 +41,10 @@ pub struct Args {
     // the ValueEnum derive provides ample help text
     #[clap(long = "describe")]
     pub describe: Option<Describe>,
+
+    // the ValueEnum derive provides ample help text
+    #[clap(long = "workspace-sboms")]
+    pub workspace_sboms: Option<WorkspaceSboms>,
 
     /// Use verbose output (-vv for debug logging, -vvv for tracing)
     #[clap(long = "verbose", short = 'v', action = clap::ArgAction::Count)]
@@ -182,6 +186,7 @@ impl Args {
         let describe = self.describe;
         let spec_version = self.spec_version;
         let only_normal_deps = Some(self.no_build_deps);
+        let workspace_sboms = self.workspace_sboms;
 
         Ok(SbomConfig {
             format: self.format,
@@ -193,6 +198,7 @@ impl Args {
             describe,
             spec_version,
             only_normal_deps,
+            workspace_sboms,
         })
     }
 }
@@ -238,6 +244,27 @@ mod tests {
         assert!(contains_feature(&config, "foo"));
         assert!(contains_feature(&config, "bar"));
         assert!(!contains_feature(&config, ""));
+    }
+
+    #[test]
+    fn parse_workspace_sboms() {
+        let args = vec!["cyclonedx"];
+        let config = parse_to_config(&args);
+        assert!(config.workspace_sboms.is_none());
+
+        let args = vec!["cyclonedx", "--workspace-sboms=all"];
+        let config = parse_to_config(&args);
+        assert_eq!(
+            config.workspace_sboms,
+            Some(WorkspaceSboms::All)
+        );
+
+        let args = vec!["cyclonedx", "--workspace-sboms=manifest-only"];
+        let config = parse_to_config(&args);
+        assert_eq!(
+            config.workspace_sboms,
+            Some(WorkspaceSboms::ManifestOnly)
+        );
     }
 
     fn contains_feature(config: &SbomConfig, feature: &str) -> bool {

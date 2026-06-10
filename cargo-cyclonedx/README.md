@@ -43,6 +43,12 @@ This produces a `bom.xml` file adjacent to every `Cargo.toml` file that exists i
           - binaries:          A separate SBOM is emitted for each binary (bin, cdylib) while all other targets are ignored
           - all-cargo-targets: A separate SBOM is emitted for each Cargo target, including things that aren't directly executable (e.g rlib)
 
+      --workspace-sboms <WORKSPACE_SBOMS>
+          Which workspace members to include when generating SBOMs
+          Possible values:
+          - all:            Generate an SBOM for every workspace member (default)
+          - manifest-only:  Generate an SBOM only for the manifest specified by `--manifest-path` or the current directory
+
   -v, --verbose...
           Use verbose output (-vv for debug logging, -vvv for tracing)
 

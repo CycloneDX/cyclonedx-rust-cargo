@@ -76,7 +76,7 @@ fn generate_sboms(args: &Args) -> Result<Vec<GeneratedSbom>> {
     log::trace!("Running `cargo metadata` finished");
 
     log::trace!("SBOM generation started");
-    let boms = SbomGenerator::create_sboms(metadata, &config)?;
+    let boms = SbomGenerator::create_sboms(metadata, &manifest_path, &config)?;
     log::trace!("SBOM generation finished");
 
     Ok(boms)
@@ -196,7 +196,27 @@ mod tests {
     use clap::Parser;
     use cyclonedx_bom::models::{component::Component, license::Licenses};
     use cyclonedx_bom::prelude::NormalizedString;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
+
+    fn fixture_manifest(crate_path: &[&str]) -> PathBuf {
+        let mut manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        manifest.push("tests/fixtures/build_then_runtime_dep");
+        for segment in crate_path {
+            manifest.push(segment);
+        }
+        manifest.push("Cargo.toml");
+        manifest
+    }
+
+    fn workspace_member_count(manifest: &Path) -> usize {
+        cargo_metadata::MetadataCommand::new()
+            .manifest_path(manifest)
+            .no_deps()
+            .exec()
+            .expect("fixture manifest should be valid for cargo metadata")
+            .workspace_members
+            .len()
+    }
 
     fn generate_fixture_package(fixture: &str) -> Component {
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -407,5 +427,66 @@ mod tests {
         assert!(!names.contains("derive"));
         assert!(!names.contains("macro_only_dep"));
         assert!(names.contains("shared"));
+    }
+
+    #[test]
+    fn generate_all_workspace_sboms_by_default() {
+        let workspace_manifest = fixture_manifest(&[]);
+        let expected_member_count = workspace_member_count(&workspace_manifest);
+        assert!(
+            expected_member_count > 1,
+            "fixture should be a multi-member workspace"
+        );
+
+        let path_arg = &format!("--manifest-path={}", workspace_manifest.display());
+        let args = cli::Args::parse_from(["cyclonedx", path_arg]);
+        let sboms = generate_sboms(&args).unwrap();
+
+        assert_eq!(sboms.len(), expected_member_count);
+    }
+
+    #[test]
+    fn member_manifest_still_generates_all_by_default() {
+        let workspace_manifest = fixture_manifest(&[]);
+        let member_manifest = fixture_manifest(&["top_level_crate"]);
+        let expected_member_count = workspace_member_count(&workspace_manifest);
+
+        let path_arg = &format!("--manifest-path={}", member_manifest.display());
+        let args = cli::Args::parse_from(["cyclonedx", path_arg]);
+        let sboms = generate_sboms(&args).unwrap();
+
+        assert_eq!(sboms.len(), expected_member_count);
+    }
+
+    #[test]
+    fn generate_manifest_only_workspace_sbom() {
+        let member_manifest = fixture_manifest(&["top_level_crate"]);
+
+        let path_arg = &format!("--manifest-path={}", member_manifest.display());
+        let args =
+            cli::Args::parse_from(["cyclonedx", path_arg, "--workspace-sboms=manifest-only"]);
+        let sboms = generate_sboms(&args).unwrap();
+
+        assert_eq!(sboms.len(), 1);
+        assert_eq!(sboms[0].package_name, "top_level_crate");
+    }
+
+    #[test]
+    fn manifest_only_errors_on_virtual_workspace_root() {
+        let workspace_manifest = fixture_manifest(&[]);
+        let path_arg = &format!("--manifest-path={}", workspace_manifest.display());
+        let args =
+            cli::Args::parse_from(["cyclonedx", path_arg, "--workspace-sboms=manifest-only"]);
+
+        let error = generate_sboms(&args).expect_err(
+            "virtual workspace root manifest should not match any workspace member",
+        );
+
+        assert!(
+            error
+                .to_string()
+                .contains("No workspace member matches manifest path"),
+            "unexpected error: {error}"
+        );
     }
 }
