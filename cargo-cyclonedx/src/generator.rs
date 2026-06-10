@@ -21,6 +21,7 @@ use std::collections::HashSet;
 use crate::config::FilenamePattern;
 use crate::config::PlatformSuffix;
 use crate::config::SbomConfig;
+use crate::config::WorkspaceSboms;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
 use crate::purl::get_purl;
@@ -119,15 +120,24 @@ pub struct TargetKinds(
 impl SbomGenerator {
     pub fn create_sboms(
         meta: CargoMetadata,
+        root_manifest_path: &Path,
         config: &SbomConfig,
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
         log::trace!("Processing the workspace {}", meta.workspace_root);
         let members: Vec<PackageId> = meta.workspace_members;
         let packages = index_packages(meta.packages);
         let resolve = index_resolve(meta.resolve.unwrap().nodes);
+        let root_manifest_path = absolute_path(root_manifest_path);
+        let manifest_only = config.workspace_sboms() == WorkspaceSboms::ManifestOnly;
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
+            let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
+
+            if manifest_only && absolute_path(&manifest_path) != root_manifest_path {
+                continue;
+            }
+
             log::trace!("Processing the package {}", member);
 
             let dep_kinds = index_dep_kinds(member, &resolve);
@@ -138,8 +148,6 @@ impl SbomGenerator {
                 } else {
                     top_level_dependencies(member, &packages, &resolve, config)
                 };
-
-            let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
 
             let mut crate_hashes = HashMap::new();
             match locate_cargo_lock(&manifest_path) {
@@ -173,6 +181,12 @@ impl SbomGenerator {
             };
 
             result.push(generated);
+        }
+
+        if manifest_only && result.is_empty() {
+            return Err(GeneratorError::NoMatchingWorkspaceMember {
+                manifest_path: root_manifest_path.display().to_string(),
+            });
         }
 
         Ok(result)
@@ -702,6 +716,12 @@ pub enum GeneratorError {
 
     #[error("Could not parse author string: {}", .0)]
     AuthorParseError(String),
+
+    #[error(
+        "No workspace member matches manifest path {manifest_path}. \
+         Point --manifest-path at a crate's Cargo.toml, or use --workspace-sboms all."
+    )]
+    NoMatchingWorkspaceMember { manifest_path: String },
 }
 
 /// Generates the `Dependencies` field in the final SBOM
@@ -994,6 +1014,11 @@ impl GeneratedSbom {
             self.sbom_config.format()
         )
     }
+}
+
+/// Normalizes a path for comparison without resolving symlinks, matching `locate_manifest`.
+fn absolute_path(path: &Path) -> PathBuf {
+    std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 /// Locates the corresponding `Cargo.lock` file given the location of `Cargo.toml`.

@@ -34,6 +34,7 @@ pub struct SbomConfig {
     pub describe: Option<Describe>,
     pub spec_version: Option<SpecVersion>,
     pub only_normal_deps: Option<bool>,
+    pub workspace_sboms: Option<WorkspaceSboms>,
 }
 
 impl SbomConfig {
@@ -60,6 +61,7 @@ impl SbomConfig {
             describe: other.describe.or(self.describe),
             spec_version: other.spec_version.or(self.spec_version),
             only_normal_deps: other.only_normal_deps.or(self.only_normal_deps),
+            workspace_sboms: other.workspace_sboms.or(self.workspace_sboms),
         }
     }
 
@@ -93,6 +95,10 @@ impl SbomConfig {
 
     pub fn license_parser(&self) -> LicenseParserOptions {
         self.license_parser.clone().unwrap_or_default()
+    }
+
+    pub fn workspace_sboms(&self) -> WorkspaceSboms {
+        self.workspace_sboms.unwrap_or_default()
     }
 }
 
@@ -248,6 +254,17 @@ pub enum ParseMode {
     /// Parse licenses in lax mode
     #[default]
     Lax,
+}
+
+/// Which workspace members to include when generating SBOMs.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum WorkspaceSboms {
+    /// Generate an SBOM for every workspace member (default)
+    #[default]
+    All,
+    /// Generate an SBOM only for the manifest specified by `--manifest-path` or the current directory
+    #[value(name = "manifest-only")]
+    ManifestOnly,
 }
 
 /// What does the SBOM describe?

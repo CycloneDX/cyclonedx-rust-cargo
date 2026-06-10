@@ -133,6 +133,57 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[test]
+fn manifest_only_writes_single_member_bom() -> Result<(), Box<dyn std::error::Error>> {
+    let tmp_dir = make_temp_workspace()?;
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.current_dir(tmp_dir.path().join("crate_a"))
+        .arg("cyclonedx")
+        .arg("--workspace-sboms=manifest-only")
+        .arg("--override-filename=bom")
+        .arg("--format=json")
+        .arg("-qq");
+
+    cmd.assert().success().stdout("");
+
+    tmp_dir
+        .child("crate_a/bom.json")
+        .assert(predicate::path::exists());
+    assert!(!tmp_dir.child("crate_b/bom.json").path().exists());
+
+    tmp_dir.close()?;
+
+    Ok(())
+}
+
+fn make_temp_workspace() -> Result<assert_fs::TempDir, assert_fs::fixture::FixtureError> {
+    let tmp_dir = assert_fs::TempDir::new()?;
+
+    tmp_dir.child("Cargo.toml").write_str(
+        r#"
+[workspace]
+members = ["crate_a", "crate_b"]
+"#,
+    )?;
+
+    for crate_name in ["crate_a", "crate_b"] {
+        let crate_dir = tmp_dir.child(crate_name);
+        crate_dir
+            .child("src/main.rs")
+            .write_str("fn main() {}")?;
+        crate_dir.child("Cargo.toml").write_str(&format!(
+            r#"
+[package]
+name = "{crate_name}"
+version = "0.0.0"
+"#,
+        ))?;
+    }
+
+    Ok(tmp_dir)
+}
+
 fn make_temp_rust_project() -> Result<assert_fs::TempDir, assert_fs::fixture::FixtureError> {
     let tmp_dir = assert_fs::TempDir::new()?;
     tmp_dir.child("src/main.rs").touch()?;
