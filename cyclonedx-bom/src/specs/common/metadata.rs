@@ -78,6 +78,9 @@ pub(crate) mod base {
         #[serde(skip_serializing_if = "Option::is_none")]
         #[versioned("1.5", "1.6", "1.7")]
         lifecycles: Option<Lifecycles>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        manufacturer: Option<OrganizationalEntity>,
     }
 
     impl TryFrom<models::metadata::Metadata> for Metadata {
@@ -95,6 +98,8 @@ pub(crate) mod base {
                 properties: convert_optional(other.properties),
                 #[versioned("1.5", "1.6", "1.7")]
                 lifecycles: convert_optional(other.lifecycles),
+                #[versioned("1.6", "1.7")]
+                manufacturer: convert_optional(other.manufacturer),
             })
         }
     }
@@ -114,6 +119,10 @@ pub(crate) mod base {
                 lifecycles: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 lifecycles: convert_optional(other.lifecycles),
+                #[versioned("1.3", "1.4", "1.5")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                manufacturer: convert_optional(other.manufacturer),
             }
         }
     }
@@ -319,6 +328,8 @@ pub(crate) mod base {
                 properties,
                 #[versioned("1.5", "1.6", "1.7")]
                 lifecycles,
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
             })
         }
     }
@@ -383,6 +394,8 @@ pub(crate) mod base {
                 properties: Some(example_properties()),
                 #[versioned("1.5", "1.6", "1.7")]
                 lifecycles: Some(example_lifecycles()),
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
             }
         }
 
@@ -400,6 +413,10 @@ pub(crate) mod base {
                 lifecycles: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 lifecycles: Some(corresponding_lifecycles()),
+                #[versioned("1.3", "1.4", "1.5")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
             }
         }
 

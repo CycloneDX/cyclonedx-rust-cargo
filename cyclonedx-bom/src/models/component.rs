@@ -29,7 +29,7 @@ use crate::models::code::{Commits, Patches};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::hash::Hashes;
 use crate::models::license::Licenses;
-use crate::models::organization::OrganizationalEntity;
+use crate::models::organization::{OrganizationalContact, OrganizationalEntity};
 use crate::models::property::Properties;
 use crate::validation::ValidationError;
 use crate::{
@@ -76,6 +76,18 @@ pub struct Component {
     pub model_card: Option<ModelCard>,
     /// Added in version 1.5
     pub data: Option<ComponentData>,
+    /// Added in version 1.6
+    pub manufacturer: Option<OrganizationalEntity>,
+    /// Added in version 1.6, replaces deprecated `author`
+    pub authors: Option<Vec<OrganizationalContact>>,
+    /// Added in version 1.6
+    pub omnibor_id: Option<Vec<String>>,
+    /// Added in version 1.6
+    pub swhid: Option<Vec<String>>,
+    /// Added in version 1.7
+    pub is_external: Option<bool>,
+    /// Added in version 1.7
+    pub version_range: Option<String>,
 }
 
 impl Component {
@@ -112,6 +124,12 @@ impl Component {
             signature: None,
             model_card: None,
             data: None,
+            manufacturer: None,
+            authors: None,
+            omnibor_id: None,
+            swhid: None,
+            is_external: None,
+            version_range: None,
         }
     }
 }
@@ -846,6 +864,12 @@ mod test {
                 description: None,
                 governance: None,
             }),
+            manufacturer: None,
+            authors: None,
+            omnibor_id: None,
+            swhid: None,
+            is_external: None,
+            version_range: None,
         }];
         let validation_result = Components(vec).validate();
 
@@ -940,6 +964,12 @@ mod test {
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: None,
             data: None,
+            manufacturer: None,
+            authors: None,
+            omnibor_id: None,
+            swhid: None,
+            is_external: None,
+            version_range: None,
         }])
         .validate();
 
@@ -1185,6 +1215,12 @@ mod test {
             signature: None,
             model_card: None,
             data: None,
+            manufacturer: None,
+            authors: None,
+            omnibor_id: None,
+            swhid: None,
+            is_external: None,
+            version_range: None,
         }
     }
 

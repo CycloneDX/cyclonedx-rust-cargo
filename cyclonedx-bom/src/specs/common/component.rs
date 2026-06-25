@@ -63,7 +63,7 @@ pub(crate) mod base {
             attached_text::AttachedText,
             code::{Commits, Patches},
             hash::Hashes,
-            organization::OrganizationalEntity,
+            organization::{OrganizationalContact, OrganizationalEntity},
             property::Properties,
         },
         utilities::{convert_optional, convert_vec, try_convert_optional, try_convert_vec},
@@ -203,6 +203,24 @@ pub(crate) mod base {
         #[versioned("1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) data: Option<crate::specs::v1_7::component_data::ComponentData>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) manufacturer: Option<OrganizationalEntity>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) authors: Option<Vec<OrganizationalContact>>,
+        #[versioned("1.6", "1.7")]
+        #[serde(rename = "omniborId", skip_serializing_if = "Option::is_none")]
+        pub(crate) omnibor_id: Option<Vec<String>>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) swhid: Option<Vec<String>>,
+        #[versioned("1.7")]
+        #[serde(rename = "isExternal", skip_serializing_if = "Option::is_none")]
+        pub(crate) is_external: Option<bool>,
+        #[versioned("1.7")]
+        #[serde(rename = "versionRange", skip_serializing_if = "Option::is_none")]
+        pub(crate) version_range: Option<String>,
     }
 
     impl TryFrom<models::component::Component> for Component {
@@ -248,6 +266,20 @@ pub(crate) mod base {
                 model_card: convert_optional(other.model_card),
                 #[versioned("1.5", "1.6", "1.7")]
                 data: convert_optional(other.data),
+                #[versioned("1.6", "1.7")]
+                manufacturer: convert_optional(other.manufacturer),
+                #[versioned("1.6", "1.7")]
+                authors: other
+                    .authors
+                    .map(|a| a.into_iter().map(Into::into).collect()),
+                #[versioned("1.6", "1.7")]
+                omnibor_id: other.omnibor_id,
+                #[versioned("1.6", "1.7")]
+                swhid: other.swhid,
+                #[versioned("1.7")]
+                is_external: other.is_external,
+                #[versioned("1.7")]
+                version_range: other.version_range,
             })
         }
     }
@@ -295,6 +327,32 @@ pub(crate) mod base {
                 data: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 data: convert_optional(other.data),
+                #[versioned("1.3", "1.4", "1.5")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                manufacturer: convert_optional(other.manufacturer),
+                #[versioned("1.3", "1.4", "1.5")]
+                authors: None,
+                #[versioned("1.6", "1.7")]
+                authors: other
+                    .authors
+                    .map(|a| a.into_iter().map(Into::into).collect()),
+                #[versioned("1.3", "1.4", "1.5")]
+                omnibor_id: None,
+                #[versioned("1.6", "1.7")]
+                omnibor_id: other.omnibor_id,
+                #[versioned("1.3", "1.4", "1.5")]
+                swhid: None,
+                #[versioned("1.6", "1.7")]
+                swhid: other.swhid,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                is_external: None,
+                #[versioned("1.7")]
+                is_external: other.is_external,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                version_range: None,
+                #[versioned("1.7")]
+                version_range: other.version_range,
             }
         }
     }
@@ -737,6 +795,18 @@ pub(crate) mod base {
                 model_card,
                 #[versioned("1.5", "1.6", "1.7")]
                 data,
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                authors: None,
+                #[versioned("1.6", "1.7")]
+                omnibor_id: None,
+                #[versioned("1.6", "1.7")]
+                swhid: None,
+                #[versioned("1.7")]
+                is_external: None,
+                #[versioned("1.7")]
+                version_range: None,
             })
         }
     }
@@ -1544,6 +1614,18 @@ pub(crate) mod base {
                 model_card: Some(example_modelcard()),
                 #[versioned("1.5", "1.6", "1.7")]
                 data: Some(example_component_data()),
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                authors: None,
+                #[versioned("1.6", "1.7")]
+                omnibor_id: None,
+                #[versioned("1.6", "1.7")]
+                swhid: None,
+                #[versioned("1.7")]
+                is_external: None,
+                #[versioned("1.7")]
+                version_range: None,
             }
         }
 
@@ -1586,6 +1668,30 @@ pub(crate) mod base {
                 data: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 data: Some(corresponding_component_data()),
+                #[versioned("1.3", "1.4", "1.5")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                authors: None,
+                #[versioned("1.6", "1.7")]
+                authors: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                omnibor_id: None,
+                #[versioned("1.6", "1.7")]
+                omnibor_id: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                swhid: None,
+                #[versioned("1.6", "1.7")]
+                swhid: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                is_external: None,
+                #[versioned("1.7")]
+                is_external: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                version_range: None,
+                #[versioned("1.7")]
+                version_range: None,
             }
         }
 

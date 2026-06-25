@@ -871,6 +871,7 @@ mod test {
                 licenses: None,
                 properties: None,
                 lifecycles: None,
+                manufacturer: None,
             }),
             components: Some(Components(vec![Component {
                 component_type: Classification::UnknownClassification("unknown".to_string()),
@@ -899,6 +900,12 @@ mod test {
                 signature: None,
                 model_card: None,
                 data: None,
+                manufacturer: None,
+                authors: None,
+                omnibor_id: None,
+                swhid: None,
+                is_external: None,
+                version_range: None,
             }])),
             services: Some(Services(vec![Service::new("invalid\tname", None)])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
@@ -1061,6 +1068,7 @@ mod test {
                 licenses: None,
                 properties: None,
                 lifecycles: None,
+                manufacturer: None,
             }),
             components: Some(Components(vec![
                 component_builder("metadata-component"),

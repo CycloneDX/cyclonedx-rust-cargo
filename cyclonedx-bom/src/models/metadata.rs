@@ -45,6 +45,8 @@ pub struct Metadata {
     pub properties: Option<Properties>,
     /// Added in 1.5
     pub lifecycles: Option<Lifecycles>,
+    /// Added in 1.6
+    pub manufacturer: Option<OrganizationalEntity>,
 }
 
 impl Metadata {
@@ -160,6 +162,12 @@ mod test {
                 signature: None,
                 model_card: None,
                 data: None,
+                manufacturer: None,
+                authors: None,
+                omnibor_id: None,
+                swhid: None,
+                is_external: None,
+                version_range: None,
             }),
             manufacture: Some(OrganizationalEntity {
                 bom_ref: Some(BomReference::new("Manufacturer")),
@@ -181,6 +189,7 @@ mod test {
                 value: NormalizedString::new("value"),
             }])),
             lifecycles: Some(Lifecycles(vec![Lifecycle::Phase(Phase::Build)])),
+            manufacturer: None,
         }
         .validate();
 
@@ -231,6 +240,12 @@ mod test {
                 signature: None,
                 model_card: None,
                 data: None,
+                manufacturer: None,
+                authors: None,
+                omnibor_id: None,
+                swhid: None,
+                is_external: None,
+                version_range: None,
             }),
             manufacture: Some(OrganizationalEntity {
                 bom_ref: Some(BomReference::new("Manufacturer")),
@@ -255,6 +270,7 @@ mod test {
                 name: "lifecycle".into(),
                 description: Some(NormalizedString("invalid\tvalue".to_string())),
             })])),
+            manufacturer: None,
         }
         .validate();
 
