@@ -1,0 +1,10 @@
+---
+source: cyclonedx-bom/src/specs/common/bom.rs
+expression: minimal_bom_example()
+---
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "serialNumber": "fake-uuid"
+}

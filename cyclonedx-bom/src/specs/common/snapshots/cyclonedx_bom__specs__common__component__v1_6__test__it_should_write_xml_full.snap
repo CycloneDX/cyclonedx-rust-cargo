@@ -1,0 +1,177 @@
+---
+source: cyclonedx-bom/src/specs/common/component.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<components>
+  <component type="component type" mime-type="mime type" bom-ref="bom ref">
+    <supplier>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </supplier>
+    <author>author</author>
+    <publisher>publisher</publisher>
+    <group>group</group>
+    <name>name</name>
+    <version>version</version>
+    <description>description</description>
+    <scope>scope</scope>
+    <hashes>
+      <hash alg="algorithm">hash value</hash>
+    </hashes>
+    <licenses>
+      <expression>expression</expression>
+    </licenses>
+    <copyright>copyright</copyright>
+    <cpe>cpe</cpe>
+    <purl>purl</purl>
+    <swid tagId="tag id" name="name" version="version" tagVersion="1" patch="true">
+      <text content-type="content type" encoding="encoding">content</text>
+      <url>url</url>
+    </swid>
+    <modified>true</modified>
+    <pedigree>
+      <ancestors />
+      <descendants />
+      <variants />
+      <commits>
+        <commit>
+          <uid>uid</uid>
+          <url>url</url>
+          <author>
+            <timestamp>timestamp</timestamp>
+            <name>name</name>
+            <email>email</email>
+          </author>
+          <committer>
+            <timestamp>timestamp</timestamp>
+            <name>name</name>
+            <email>email</email>
+          </committer>
+          <message>message</message>
+        </commit>
+      </commits>
+      <patches>
+        <patch type="patch type">
+          <diff>
+            <text content-type="content type" encoding="encoding">content</text>
+            <url>url</url>
+          </diff>
+          <resolves>
+            <issue type="issue type">
+              <id>id</id>
+              <name>name</name>
+              <description>description</description>
+              <source>
+                <name>name</name>
+                <url>url</url>
+              </source>
+              <references>
+                <url>reference</url>
+              </references>
+            </issue>
+          </resolves>
+        </patch>
+      </patches>
+      <notes>notes</notes>
+    </pedigree>
+    <externalReferences>
+      <reference type="external reference type">
+        <url>url</url>
+        <comment>comment</comment>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </reference>
+    </externalReferences>
+    <properties>
+      <property name="name">value</property>
+    </properties>
+    <components />
+    <evidence>
+      <licenses>
+        <expression>expression</expression>
+      </licenses>
+      <copyright>
+        <text><![CDATA[copyright]]></text>
+      </copyright>
+    </evidence>
+    <signature>
+      <algorithm>HS512</algorithm>
+      <value>1234567890</value>
+    </signature>
+    <modelCard bom-ref="modelcard-1">
+      <modelParameters>
+        <approach>
+          <type>supervised</type>
+        </approach>
+        <task>Task</task>
+        <architectureFamily>Architecture</architectureFamily>
+        <modelArchitecture>Model</modelArchitecture>
+        <datasets>
+          <dataset bom-ref="dataset-1">
+            <type>dataset</type>
+            <name>Training Data</name>
+            <contents>
+              <url>https://example.com/path/to/dataset</url>
+            </contents>
+            <classification>public</classification>
+            <governance>
+              <owners>
+                <owner>
+                  <contact bom-ref="contact-1">
+                    <name>Contact</name>
+                    <email>contact@example.com</email>
+                  </contact>
+                </owner>
+              </owners>
+            </governance>
+          </dataset>
+        </datasets>
+        <inputs>
+          <input>
+            <format>string</format>
+          </input>
+        </inputs>
+        <outputs>
+          <output>
+            <format>image</format>
+          </output>
+        </outputs>
+      </modelParameters>
+      <quantitativeAnalysis>
+        <performanceMetrics>
+          <performanceMetric>
+            <type>metric-1</type>
+            <value>metric value</value>
+            <confidenceInterval>
+              <lowerBound>low</lowerBound>
+              <upperBound>high</upperBound>
+            </confidenceInterval>
+          </performanceMetric>
+        </performanceMetrics>
+        <graphics>
+          <description>Graphic Desc</description>
+          <collection>
+            <graphic>
+              <name>Graphic A</name>
+              <image>1234</image>
+            </graphic>
+          </collection>
+        </graphics>
+      </quantitativeAnalysis>
+    </modelCard>
+    <data>
+      <type>configuration</type>
+      <name>config</name>
+      <contents>
+        <attachment>foo: bar</attachment>
+      </contents>
+    </data>
+  </component>
+</components>

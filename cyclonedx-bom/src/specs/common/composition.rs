@@ -18,7 +18,7 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4", "1.5")]
+#[versioned("1.3", "1.4", "1.5", "1.6", "1.7")]
 pub(crate) mod base {
     use crate::{
         errors::XmlReadError,
@@ -31,7 +31,7 @@ pub(crate) mod base {
             ToInnerXml, ToXml,
         },
     };
-    #[versioned("1.4", "1.5")]
+    #[versioned("1.4", "1.5", "1.6", "1.7")]
     use crate::{specs::common::signature::Signature, utilities::convert_optional};
     use serde::{Deserialize, Serialize};
     use xml::reader;
@@ -88,7 +88,7 @@ pub(crate) mod base {
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub(crate) struct Composition {
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         bom_ref: Option<String>,
         aggregate: String,
@@ -96,10 +96,10 @@ pub(crate) mod base {
         assemblies: Option<Vec<BomReference>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         dependencies: Option<Vec<BomReference>>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         vulnerabilities: Option<Vec<BomReference>>,
-        #[versioned("1.4", "1.5")]
+        #[versioned("1.4", "1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         signature: Option<Signature>,
     }
@@ -107,14 +107,14 @@ pub(crate) mod base {
     impl From<models::composition::Composition> for Composition {
         fn from(other: models::composition::Composition) -> Self {
             Self {
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 bom_ref: other.bom_ref.map(|b| b.0),
                 aggregate: other.aggregate.to_string(),
                 assemblies: convert_optional_vec(other.assemblies),
                 dependencies: convert_optional_vec(other.dependencies),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 vulnerabilities: convert_optional_vec(other.vulnerabilities),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: convert_optional(other.signature),
             }
         }
@@ -125,24 +125,24 @@ pub(crate) mod base {
             Self {
                 #[versioned("1.3", "1.4")]
                 bom_ref: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 bom_ref: other.bom_ref.map(models::bom::BomReference),
                 aggregate: models::composition::AggregateType::new_unchecked(other.aggregate),
                 assemblies: convert_optional_vec(other.assemblies),
                 dependencies: convert_optional_vec(other.dependencies),
                 #[versioned("1.3", "1.4")]
                 vulnerabilities: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 vulnerabilities: convert_optional_vec(other.vulnerabilities),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: convert_optional(other.signature),
             }
         }
     }
 
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const BOM_REF_ATTR: &str = "bom-ref";
     const COMPOSITION_TAG: &str = "composition";
     const AGGREGATE_TAG: &str = "aggregate";
@@ -150,11 +150,11 @@ pub(crate) mod base {
     const ASSEMBLY_TAG: &str = "assembly";
     const DEPENDENCIES_TAG: &str = "dependencies";
     const DEPENDENCY_TAG: &str = "dependency";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const VULNERABILITIES_TAG: &str = "vulnerabilities";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const VULNERABILITY_TAG: &str = "vulnerability";
-    #[versioned("1.4", "1.5")]
+    #[versioned("1.4", "1.5", "1.6", "1.7")]
     const SIGNATURE_TAG: &str = "signature";
 
     impl ToXml for Composition {
@@ -164,9 +164,9 @@ pub(crate) mod base {
         ) -> Result<(), crate::errors::XmlWriteError> {
             #[versioned("1.3", "1.4")]
             let start_tag = xml::writer::XmlEvent::start_element(COMPOSITION_TAG);
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut start_tag = xml::writer::XmlEvent::start_element(COMPOSITION_TAG);
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             if let Some(bom_ref) = &self.bom_ref {
                 start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
             }
@@ -197,7 +197,7 @@ pub(crate) mod base {
                 write_close_tag(writer, DEPENDENCIES_TAG)?;
             }
 
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             if let Some(vulnerabilities) = &self.vulnerabilities {
                 write_start_tag(writer, VULNERABILITIES_TAG)?;
 
@@ -208,7 +208,7 @@ pub(crate) mod base {
                 write_close_tag(writer, VULNERABILITIES_TAG)?;
             }
 
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             if let Some(signature) = &self.signature {
                 signature.write_xml_element(writer)?;
             }
@@ -228,14 +228,14 @@ pub(crate) mod base {
         where
             Self: Sized,
         {
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let bom_ref: Option<String> = crate::xml::optional_attribute(attributes, BOM_REF_ATTR);
             let mut aggregate: Option<String> = None;
             let mut assemblies: Option<Vec<BomReference>> = None;
             let mut dependencies: Option<Vec<BomReference>> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut vulnerabilities: Option<Vec<BomReference>> = None;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             let mut signature: Option<Signature> = None;
 
             let mut got_end_tag = false;
@@ -267,7 +267,7 @@ pub(crate) mod base {
                             DEPENDENCY_TAG,
                         )?)
                     }
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement { name, .. }
                         if name.local_name == VULNERABILITIES_TAG =>
                     {
@@ -277,7 +277,7 @@ pub(crate) mod base {
                             VULNERABILITY_TAG,
                         )?);
                     }
-                    #[versioned("1.4", "1.5")]
+                    #[versioned("1.4", "1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == SIGNATURE_TAG => {
@@ -300,14 +300,14 @@ pub(crate) mod base {
             })?;
 
             Ok(Self {
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 bom_ref,
                 aggregate,
                 assemblies,
                 dependencies,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 vulnerabilities,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature,
             })
         }
@@ -318,7 +318,7 @@ pub(crate) mod base {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        #[versioned("1.4", "1.5")]
+        #[versioned("1.4", "1.5", "1.6", "1.7")]
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
         use crate::xml::test::{read_element_from_string, write_element_to_string};
 
@@ -332,14 +332,14 @@ pub(crate) mod base {
 
         pub(crate) fn example_composition() -> Composition {
             Composition {
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 bom_ref: Some("composition-ref".to_string()),
                 aggregate: "aggregate".to_string(),
                 assemblies: Some(vec![BomReference::new("assembly-ref")]),
                 dependencies: Some(vec![BomReference::new("dependency-ref")]),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 vulnerabilities: Some(vec![BomReference::new("vulnerability-ref")]),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: Some(example_signature()),
             }
         }
@@ -348,7 +348,7 @@ pub(crate) mod base {
             models::composition::Composition {
                 #[versioned("1.3", "1.4")]
                 bom_ref: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 bom_ref: Some(models::bom::BomReference::new("composition-ref")),
                 aggregate: models::composition::AggregateType::UnknownAggregateType(
                     "aggregate".to_string(),
@@ -357,11 +357,11 @@ pub(crate) mod base {
                 dependencies: Some(vec![models::bom::BomReference::new("dependency-ref")]),
                 #[versioned("1.3", "1.4")]
                 vulnerabilities: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 vulnerabilities: Some(vec![models::bom::BomReference::new("vulnerability-ref")]),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: Some(corresponding_signature()),
             }
         }
@@ -406,7 +406,7 @@ pub(crate) mod base {
   </composition>
 </compositions>
 "#;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let input = r#"
 <compositions>
   <composition bom-ref="composition-ref">

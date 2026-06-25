@@ -25,7 +25,7 @@ impl Validate for Formula {
                 "Formula is not defined for version {version}"
             )))
             .into(),
-            SpecVersion::V1_5 => ValidationContext::new()
+            SpecVersion::V1_5 | SpecVersion::V1_6 | SpecVersion::V1_7 => ValidationContext::new()
                 .add_unique_list_option(
                     "components", // components is uniqueItems: true
                     self.components.as_ref().map(|wrapper| wrapper.0.iter()),

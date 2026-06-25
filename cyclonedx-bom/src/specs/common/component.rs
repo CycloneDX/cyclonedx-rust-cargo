@@ -18,15 +18,29 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4", "1.5")]
+#[versioned("1.3", "1.4", "1.5", "1.6", "1.7")]
 pub(crate) mod base {
-    #[versioned("1.4", "1.5")]
+    #[versioned("1.4", "1.5", "1.6", "1.7")]
     use crate::specs::common::signature::Signature;
 
     #[versioned("1.4")]
     use crate::specs::v1_4::{external_reference::ExternalReferences, license::Licenses};
     #[versioned("1.5")]
     use crate::specs::v1_5::{
+        evidence::{Callstack, Identity, Occurrences},
+        external_reference::ExternalReferences,
+        license::Licenses,
+        modelcard::ModelCard,
+    };
+    #[versioned("1.6")]
+    use crate::specs::v1_6::{
+        evidence::{Callstack, Identity, Occurrences},
+        external_reference::ExternalReferences,
+        license::Licenses,
+        modelcard::ModelCard,
+    };
+    #[versioned("1.7")]
+    use crate::specs::v1_7::{
         evidence::{Callstack, Identity, Occurrences},
         external_reference::ExternalReferences,
         license::Licenses,
@@ -143,7 +157,7 @@ pub(crate) mod base {
         pub(crate) name: String,
         #[versioned("1.3")]
         version: String,
-        #[versioned("1.4", "1.5")]
+        #[versioned("1.4", "1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) version: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -174,15 +188,21 @@ pub(crate) mod base {
         pub(crate) components: Option<Components>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) evidence: Option<ComponentEvidence>,
-        #[versioned("1.4", "1.5")]
+        #[versioned("1.4", "1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) signature: Option<Signature>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) model_card: Option<ModelCard>,
         #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) data: Option<crate::specs::v1_5::component_data::ComponentData>,
+        #[versioned("1.6")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) data: Option<crate::specs::v1_6::component_data::ComponentData>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) data: Option<crate::specs::v1_7::component_data::ComponentData>,
     }
 
     impl TryFrom<models::component::Component> for Component {
@@ -193,7 +213,7 @@ pub(crate) mod base {
             let version = other.version.map(|v| v.to_string()).ok_or_else(|| {
                 BomError::BomSerializationError(SpecVersion::V1_3, "version missing".to_string())
             })?;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             let version = other.version.map(|v| v.to_string());
             Ok(Self {
                 component_type: other.component_type.to_string(),
@@ -217,16 +237,16 @@ pub(crate) mod base {
                 pedigree: try_convert_optional(other.pedigree)?,
                 #[versioned("1.3", "1.4")]
                 external_references: try_convert_optional(other.external_references)?,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 external_references: convert_optional(other.external_references),
                 properties: convert_optional(other.properties),
                 components: try_convert_optional(other.components)?,
                 evidence: convert_optional(other.evidence),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: convert_optional(other.signature),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card: convert_optional(other.model_card),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data: convert_optional(other.data),
             })
         }
@@ -247,7 +267,7 @@ pub(crate) mod base {
                 name: NormalizedString::new_unchecked(other.name),
                 #[versioned("1.3")]
                 version: Some(NormalizedString::new_unchecked(other.version)),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 version: other.version.map(NormalizedString::new_unchecked),
                 description: other.description.map(NormalizedString::new_unchecked),
                 scope: other.scope.map(models::component::Scope::new_unchecked),
@@ -265,15 +285,15 @@ pub(crate) mod base {
                 evidence: convert_optional(other.evidence),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: convert_optional(other.signature),
                 #[versioned("1.3", "1.4")]
                 model_card: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card: convert_optional(other.model_card),
                 #[versioned("1.3", "1.4")]
                 data: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data: convert_optional(other.data),
             }
         }
@@ -294,9 +314,9 @@ pub(crate) mod base {
     const COPYRIGHT_TAG: &str = "copyright";
     const PURL_TAG: &str = "purl";
     const MODIFIED_TAG: &str = "modified";
-    #[versioned("1.4", "1.5")]
+    #[versioned("1.4", "1.5", "1.6", "1.7")]
     const SIGNATURE_TAG: &str = "signature";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const COMPONENT_DATA_TAG: &str = "data";
 
     impl ToXml for Component {
@@ -341,7 +361,7 @@ pub(crate) mod base {
 
             #[versioned("1.3")]
             write_simple_tag(writer, VERSION_TAG, &self.version)?;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             if let Some(version) = &self.version {
                 write_simple_tag(writer, VERSION_TAG, version)?;
             }
@@ -404,17 +424,17 @@ pub(crate) mod base {
                 }
             }
 
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             if let Some(signature) = &self.signature {
                 signature.write_xml_element(writer)?;
             }
 
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             if let Some(model_card) = &self.model_card {
                 model_card.write_xml_element(writer)?;
             }
 
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             if let Some(data) = &self.data {
                 data.write_xml_named_element(writer, COMPONENT_DATA_TAG)?;
             }
@@ -431,7 +451,7 @@ pub(crate) mod base {
     const LICENSES_TAG: &str = "licenses";
     const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
     const PROPERTIES_TAG: &str = "properties";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const MODEL_CARD_TAG: &str = "modelCard";
 
     impl FromXml for Component {
@@ -467,12 +487,16 @@ pub(crate) mod base {
             let mut properties: Option<Properties> = None;
             let mut components: Option<Components> = None;
             let mut evidence: Option<ComponentEvidence> = None;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             let mut signature: Option<Signature> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut model_card: Option<ModelCard> = None;
             #[versioned("1.5")]
             let mut data: Option<crate::specs::v1_5::component_data::ComponentData> = None;
+            #[versioned("1.6")]
+            let mut data: Option<crate::specs::v1_6::component_data::ComponentData> = None;
+            #[versioned("1.7")]
+            let mut data: Option<crate::specs::v1_7::component_data::ComponentData> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -600,7 +624,7 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.4", "1.5")]
+                    #[versioned("1.4", "1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == SIGNATURE_TAG => {
@@ -610,7 +634,7 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == MODEL_CARD_TAG => {
@@ -627,6 +651,32 @@ pub(crate) mod base {
                     } if name.local_name == COMPONENT_DATA_TAG => {
                         data = Some(
                             crate::specs::v1_5::component_data::ComponentData::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?,
+                        )
+                    }
+
+                    #[versioned("1.6")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == COMPONENT_DATA_TAG => {
+                        data = Some(
+                            crate::specs::v1_6::component_data::ComponentData::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?,
+                        )
+                    }
+
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == COMPONENT_DATA_TAG => {
+                        data = Some(
+                            crate::specs::v1_7::component_data::ComponentData::read_xml_element(
                                 event_reader,
                                 &name,
                                 &attributes,
@@ -681,11 +731,11 @@ pub(crate) mod base {
                 properties,
                 components,
                 evidence,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data,
             })
         }
@@ -902,13 +952,13 @@ pub(crate) mod base {
         licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
         copyright: Option<CopyrightTexts>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         occurrences: Option<Occurrences>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         callstack: Option<Callstack>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         identity: Option<Identity>,
     }
@@ -918,11 +968,11 @@ pub(crate) mod base {
             Self {
                 licenses: convert_optional(other.licenses),
                 copyright: convert_optional(other.copyright),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 occurrences: convert_optional(other.occurrences),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 callstack: convert_optional(other.callstack),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 identity: convert_optional(other.identity),
             }
         }
@@ -935,15 +985,15 @@ pub(crate) mod base {
                 copyright: convert_optional(other.copyright),
                 #[versioned("1.3", "1.4")]
                 occurrences: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 occurrences: convert_optional(other.occurrences),
                 #[versioned("1.3", "1.4")]
                 callstack: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 callstack: convert_optional(other.callstack),
                 #[versioned("1.3", "1.4")]
                 identity: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 identity: convert_optional(other.identity),
             }
         }
@@ -976,11 +1026,11 @@ pub(crate) mod base {
         }
     }
 
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const OCCURRENCES_TAG: &str = "occurrences";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const CALLSTACK_TAG: &str = "callstack";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const IDENTITY_TAG: &str = "identity";
 
     impl FromXml for ComponentEvidence {
@@ -994,11 +1044,11 @@ pub(crate) mod base {
         {
             let mut licenses: Option<Licenses> = None;
             let mut copyright: Option<CopyrightTexts> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut occurrences: Option<Occurrences> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut callstack: Option<Callstack> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut identity: Option<Identity> = None;
 
             let mut got_end_tag = false;
@@ -1025,7 +1075,7 @@ pub(crate) mod base {
                             &attributes,
                         )?);
                     }
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == OCCURRENCES_TAG => {
@@ -1036,7 +1086,7 @@ pub(crate) mod base {
                         )?);
                     }
 
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == CALLSTACK_TAG => {
@@ -1047,7 +1097,7 @@ pub(crate) mod base {
                         )?);
                     }
 
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == IDENTITY_TAG => {
@@ -1069,11 +1119,11 @@ pub(crate) mod base {
             Ok(Self {
                 licenses,
                 copyright,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 occurrences,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 callstack,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 identity,
             })
         }
@@ -1373,7 +1423,7 @@ pub(crate) mod base {
 
     #[cfg(test)]
     pub(crate) mod test {
-        #[versioned("1.4", "1.5")]
+        #[versioned("1.4", "1.5", "1.6", "1.7")]
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
 
         #[versioned("1.4")]
@@ -1386,6 +1436,34 @@ pub(crate) mod base {
 
         #[versioned("1.5")]
         use crate::specs::v1_5::{
+            component_data::tests::{corresponding_component_data, example_component_data},
+            evidence::test::{
+                corresponding_callstack, corresponding_identity, corresponding_occurrences,
+                example_callstack, example_identity, example_occurrences,
+            },
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            license::test::{corresponding_licenses, example_licenses},
+            modelcard::test::{corresponding_modelcard, example_modelcard},
+        };
+
+        #[versioned("1.6")]
+        use crate::specs::v1_6::{
+            component_data::tests::{corresponding_component_data, example_component_data},
+            evidence::test::{
+                corresponding_callstack, corresponding_identity, corresponding_occurrences,
+                example_callstack, example_identity, example_occurrences,
+            },
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            license::test::{corresponding_licenses, example_licenses},
+            modelcard::test::{corresponding_modelcard, example_modelcard},
+        };
+
+        #[versioned("1.7")]
+        use crate::specs::v1_7::{
             component_data::tests::{corresponding_component_data, example_component_data},
             evidence::test::{
                 corresponding_callstack, corresponding_identity, corresponding_occurrences,
@@ -1444,7 +1522,7 @@ pub(crate) mod base {
                 name: "name".to_string(),
                 #[versioned("1.3")]
                 version: "version".to_string(),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 version: Some("version".to_string()),
                 description: Some("description".to_string()),
                 scope: Some("scope".to_string()),
@@ -1460,11 +1538,11 @@ pub(crate) mod base {
                 properties: Some(example_properties()),
                 components: Some(example_empty_components()),
                 evidence: Some(example_evidence()),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: Some(example_signature()),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card: Some(example_modelcard()),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data: Some(example_component_data()),
             }
         }
@@ -1498,15 +1576,15 @@ pub(crate) mod base {
                 evidence: Some(corresponding_evidence()),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: Some(corresponding_signature()),
                 #[versioned("1.3", "1.4")]
                 model_card: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card: Some(corresponding_modelcard()),
                 #[versioned("1.3", "1.4")]
                 data: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data: Some(corresponding_component_data()),
             }
         }
@@ -1581,7 +1659,7 @@ pub(crate) mod base {
             }
         }
 
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         fn example_evidence() -> ComponentEvidence {
             ComponentEvidence {
                 licenses: Some(example_licenses()),
@@ -1603,7 +1681,7 @@ pub(crate) mod base {
             }
         }
 
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         fn corresponding_evidence() -> models::component::ComponentEvidence {
             models::component::ComponentEvidence {
                 licenses: Some(corresponding_licenses()),
@@ -1850,7 +1928,7 @@ pub(crate) mod base {
   </component>
 </components>
 "#;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let input = r#"
 <components>
   <component type="component type" mime-type="mime type" bom-ref="bom ref">

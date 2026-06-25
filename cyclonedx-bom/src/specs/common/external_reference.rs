@@ -18,7 +18,7 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4", "1.5")]
+#[versioned("1.3", "1.4", "1.5", "1.6", "1.7")]
 pub(crate) mod base {
     use crate::{
         errors::XmlReadError,
