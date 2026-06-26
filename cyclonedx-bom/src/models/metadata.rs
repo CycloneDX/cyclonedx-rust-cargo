@@ -71,6 +71,8 @@ pub enum TlpClassification {
     AmberStrict,
     #[serde(rename = "RED")]
     Red,
+    #[serde(untagged)]
+    Unknown(String),
 }
 
 impl Metadata {

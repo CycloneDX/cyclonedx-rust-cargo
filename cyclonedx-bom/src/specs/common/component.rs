@@ -355,16 +355,16 @@ pub(crate) mod base {
                 swhid: None,
                 #[versioned("1.6", "1.7")]
                 swhid: other.swhid,
+                #[versioned("1.3", "1.4", "1.5")]
+                crypto_properties: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: other.crypto_properties,
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
                 is_external: None,
                 #[versioned("1.7")]
                 is_external: other.is_external,
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
                 version_range: None,
-                #[versioned("1.3", "1.4", "1.5")]
-                crypto_properties: None,
-                #[versioned("1.6", "1.7")]
-                crypto_properties: other.crypto_properties,
                 #[versioned("1.7")]
                 version_range: other.version_range,
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
@@ -515,6 +515,38 @@ pub(crate) mod base {
                 data.write_xml_named_element(writer, COMPONENT_DATA_TAG)?;
             }
 
+            #[versioned("1.6", "1.7")]
+            if let Some(manufacturer) = &self.manufacturer {
+                if manufacturer.will_write() {
+                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
+                }
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(authors) = &self.authors {
+                write_start_tag(writer, AUTHORS_TAG)?;
+                for author in authors {
+                    if author.will_write() {
+                        author.write_xml_named_element(writer, COMPONENT_AUTHOR_TAG)?;
+                    }
+                }
+                write_close_tag(writer, AUTHORS_TAG)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(omnibor_id) = &self.omnibor_id {
+                for id in omnibor_id {
+                    write_simple_tag(writer, OMNIBOR_ID_TAG, id)?;
+                }
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(swhid) = &self.swhid {
+                for id in swhid {
+                    write_simple_tag(writer, SWHID_TAG, id)?;
+                }
+            }
+
             writer
                 .write(XmlEvent::end_element())
                 .map_err(to_xml_write_error(COMPONENT_TAG))?;
@@ -527,6 +559,16 @@ pub(crate) mod base {
     const LICENSES_TAG: &str = "licenses";
     const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
     const PROPERTIES_TAG: &str = "properties";
+    #[versioned("1.6", "1.7")]
+    const MANUFACTURER_TAG: &str = "manufacturer";
+    #[versioned("1.6", "1.7")]
+    const AUTHORS_TAG: &str = "authors";
+    #[versioned("1.6", "1.7")]
+    const COMPONENT_AUTHOR_TAG: &str = "author";
+    #[versioned("1.6", "1.7")]
+    const OMNIBOR_ID_TAG: &str = "omniborId";
+    #[versioned("1.6", "1.7")]
+    const SWHID_TAG: &str = "swhid";
     #[versioned("1.5", "1.6", "1.7")]
     const MODEL_CARD_TAG: &str = "modelCard";
 
@@ -573,6 +615,14 @@ pub(crate) mod base {
             let mut data: Option<crate::specs::v1_6::component_data::ComponentData> = None;
             #[versioned("1.7")]
             let mut data: Option<crate::specs::v1_7::component_data::ComponentData> = None;
+            #[versioned("1.6", "1.7")]
+            let mut manufacturer: Option<OrganizationalEntity> = None;
+            #[versioned("1.6", "1.7")]
+            let mut component_authors: Option<Vec<OrganizationalContact>> = None;
+            #[versioned("1.6", "1.7")]
+            let mut omnibor_id: Option<Vec<String>> = None;
+            #[versioned("1.6", "1.7")]
+            let mut swhid_list: Option<Vec<String>> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -760,6 +810,36 @@ pub(crate) mod base {
                         )
                     }
 
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == MANUFACTURER_TAG => {
+                        manufacturer = Some(OrganizationalEntity::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == AUTHORS_TAG => {
+                        component_authors =
+                            Some(read_list_tag(event_reader, &name, COMPONENT_AUTHOR_TAG)?)
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == OMNIBOR_ID_TAG =>
+                    {
+                        let value = read_simple_tag(event_reader, &name)?;
+                        omnibor_id.get_or_insert_with(Vec::new).push(value);
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. } if name.local_name == SWHID_TAG => {
+                        let value = read_simple_tag(event_reader, &name)?;
+                        swhid_list.get_or_insert_with(Vec::new).push(value);
+                    }
+
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -814,13 +894,13 @@ pub(crate) mod base {
                 #[versioned("1.5", "1.6", "1.7")]
                 data,
                 #[versioned("1.6", "1.7")]
-                manufacturer: None,
+                manufacturer,
                 #[versioned("1.6", "1.7")]
-                authors: None,
+                authors: component_authors,
                 #[versioned("1.6", "1.7")]
-                omnibor_id: None,
+                omnibor_id,
                 #[versioned("1.6", "1.7")]
-                swhid: None,
+                swhid: swhid_list,
                 #[versioned("1.6", "1.7")]
                 crypto_properties: None,
                 #[versioned("1.7")]

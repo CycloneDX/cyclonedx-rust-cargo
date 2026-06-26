@@ -146,6 +146,8 @@ pub(crate) mod base {
     const AUTHOR_TAG: &str = "author";
     const MANUFACTURE_TAG: &str = "manufacture";
     const SUPPLIER_TAG: &str = "supplier";
+    #[versioned("1.6", "1.7")]
+    const MANUFACTURER_TAG: &str = "manufacturer";
 
     impl ToXml for Metadata {
         fn write_xml_element<W: std::io::Write>(
@@ -199,6 +201,13 @@ pub(crate) mod base {
                 lifecycles.write_xml_element(writer)?;
             }
 
+            #[versioned("1.6", "1.7")]
+            if let Some(manufacturer) = &self.manufacturer {
+                if manufacturer.will_write() {
+                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
+                }
+            }
+
             write_close_tag(writer, METADATA_TAG)?;
 
             Ok(())
@@ -242,6 +251,8 @@ pub(crate) mod base {
             let mut properties: Option<Properties> = None;
             #[versioned("1.5", "1.6", "1.7")]
             let mut lifecycles: Option<Lifecycles> = None;
+            #[versioned("1.6", "1.7")]
+            let mut manufacturer: Option<OrganizationalEntity> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -319,6 +330,16 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == MANUFACTURER_TAG => {
+                        manufacturer = Some(OrganizationalEntity::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -342,7 +363,7 @@ pub(crate) mod base {
                 #[versioned("1.5", "1.6", "1.7")]
                 lifecycles,
                 #[versioned("1.6", "1.7")]
-                manufacturer: None,
+                manufacturer,
                 #[versioned("1.7")]
                 distribution_constraints: None,
             })
