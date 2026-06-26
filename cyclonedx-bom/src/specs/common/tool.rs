@@ -625,10 +625,14 @@ pub(crate) mod base {
                 omnibor_id: None,
                 #[versioned("1.6", "1.7")]
                 swhid: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: None,
                 #[versioned("1.7")]
                 is_external: None,
                 #[versioned("1.7")]
                 version_range: None,
+                #[versioned("1.7")]
+                patent_assertions: None,
             };
             let expected = Tools::Object {
                 services: Some(Services(vec![service])),

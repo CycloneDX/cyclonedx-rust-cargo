@@ -84,10 +84,14 @@ pub struct Component {
     pub omnibor_id: Option<Vec<String>>,
     /// Added in version 1.6
     pub swhid: Option<Vec<String>>,
+    /// Added in version 1.6
+    pub crypto_properties: Option<serde_json::Value>,
     /// Added in version 1.7
     pub is_external: Option<bool>,
     /// Added in version 1.7
     pub version_range: Option<String>,
+    /// Added in version 1.7
+    pub patent_assertions: Option<serde_json::Value>,
 }
 
 impl Component {
@@ -128,8 +132,10 @@ impl Component {
             authors: None,
             omnibor_id: None,
             swhid: None,
+            crypto_properties: None,
             is_external: None,
             version_range: None,
+            patent_assertions: None,
         }
     }
 }
@@ -868,8 +874,10 @@ mod test {
             authors: None,
             omnibor_id: None,
             swhid: None,
+            crypto_properties: None,
             is_external: None,
             version_range: None,
+            patent_assertions: None,
         }];
         let validation_result = Components(vec).validate();
 
@@ -968,8 +976,10 @@ mod test {
             authors: None,
             omnibor_id: None,
             swhid: None,
+            crypto_properties: None,
             is_external: None,
             version_range: None,
+            patent_assertions: None,
         }])
         .validate();
 
@@ -1219,8 +1229,10 @@ mod test {
             authors: None,
             omnibor_id: None,
             swhid: None,
+            crypto_properties: None,
             is_external: None,
             version_range: None,
+            patent_assertions: None,
         }
     }
 

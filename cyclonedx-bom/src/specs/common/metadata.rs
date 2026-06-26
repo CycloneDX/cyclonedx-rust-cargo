@@ -81,6 +81,9 @@ pub(crate) mod base {
         #[versioned("1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         manufacturer: Option<OrganizationalEntity>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        distribution_constraints: Option<serde_json::Value>,
     }
 
     impl TryFrom<models::metadata::Metadata> for Metadata {
@@ -100,6 +103,10 @@ pub(crate) mod base {
                 lifecycles: convert_optional(other.lifecycles),
                 #[versioned("1.6", "1.7")]
                 manufacturer: convert_optional(other.manufacturer),
+                #[versioned("1.7")]
+                distribution_constraints: other
+                    .distribution_constraints
+                    .map(|dc| serde_json::to_value(&dc).unwrap_or_default()),
             })
         }
     }
@@ -123,6 +130,12 @@ pub(crate) mod base {
                 manufacturer: None,
                 #[versioned("1.6", "1.7")]
                 manufacturer: convert_optional(other.manufacturer),
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                distribution_constraints: None,
+                #[versioned("1.7")]
+                distribution_constraints: other
+                    .distribution_constraints
+                    .and_then(|v| serde_json::from_value(v).ok()),
             }
         }
     }
@@ -330,6 +343,8 @@ pub(crate) mod base {
                 lifecycles,
                 #[versioned("1.6", "1.7")]
                 manufacturer: None,
+                #[versioned("1.7")]
+                distribution_constraints: None,
             })
         }
     }
@@ -396,6 +411,8 @@ pub(crate) mod base {
                 lifecycles: Some(example_lifecycles()),
                 #[versioned("1.6", "1.7")]
                 manufacturer: None,
+                #[versioned("1.7")]
+                distribution_constraints: None,
             }
         }
 
@@ -417,6 +434,10 @@ pub(crate) mod base {
                 manufacturer: None,
                 #[versioned("1.6", "1.7")]
                 manufacturer: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                distribution_constraints: None,
+                #[versioned("1.7")]
+                distribution_constraints: None,
             }
         }
 

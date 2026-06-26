@@ -127,6 +127,12 @@ pub struct Bom {
     pub annotations: Option<Annotations>,
     /// Added in version 1.5
     pub formulation: Option<Vec<Formula>>,
+    /// Added in version 1.6
+    pub declarations: Option<Value>,
+    /// Added in version 1.6
+    pub definitions: Option<Value>,
+    /// Added in version 1.7
+    pub citations: Option<Value>,
     pub spec_version: SpecVersion,
 }
 
@@ -449,6 +455,9 @@ impl Default for Bom {
             signature: None,
             annotations: None,
             formulation: None,
+            declarations: None,
+            definitions: None,
+            citations: None,
             spec_version: SpecVersion::V1_3,
         }
     }
@@ -768,6 +777,9 @@ mod test {
             annotations: None,
             properties: None,
             formulation: None,
+            declarations: None,
+            definitions: None,
+            citations: None,
         };
 
         let actual = bom.validate();
@@ -795,6 +807,9 @@ mod test {
             signature: None,
             annotations: None,
             formulation: None,
+            declarations: None,
+            definitions: None,
+            citations: None,
         };
 
         let actual = bom.validate();
@@ -839,6 +854,9 @@ mod test {
             signature: None,
             annotations: None,
             formulation: None,
+            declarations: None,
+            definitions: None,
+            citations: None,
         };
 
         let actual = bom.validate_version(SpecVersion::V1_3);
@@ -872,6 +890,7 @@ mod test {
                 properties: None,
                 lifecycles: None,
                 manufacturer: None,
+                distribution_constraints: None,
             }),
             components: Some(Components(vec![Component {
                 component_type: Classification::UnknownClassification("unknown".to_string()),
@@ -904,8 +923,10 @@ mod test {
                 authors: None,
                 omnibor_id: None,
                 swhid: None,
+                crypto_properties: None,
                 is_external: None,
                 version_range: None,
+                patent_assertions: None,
             }])),
             services: Some(Services(vec![Service::new("invalid\tname", None)])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
@@ -958,6 +979,9 @@ mod test {
             signature: None,
             annotations: None,
             formulation: None,
+            declarations: None,
+            definitions: None,
+            citations: None,
         };
 
         let actual = bom.validate();
@@ -1069,6 +1093,7 @@ mod test {
                 properties: None,
                 lifecycles: None,
                 manufacturer: None,
+                distribution_constraints: None,
             }),
             components: Some(Components(vec![
                 component_builder("metadata-component"),
@@ -1091,6 +1116,9 @@ mod test {
             signature: None,
             annotations: None,
             formulation: None,
+            declarations: None,
+            definitions: None,
+            citations: None,
         }
         .validate();
 

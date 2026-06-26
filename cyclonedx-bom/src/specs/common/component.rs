@@ -215,12 +215,18 @@ pub(crate) mod base {
         #[versioned("1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) swhid: Option<Vec<String>>,
+        #[versioned("1.6", "1.7")]
+        #[serde(rename = "cryptoProperties", skip_serializing_if = "Option::is_none")]
+        pub(crate) crypto_properties: Option<serde_json::Value>,
         #[versioned("1.7")]
         #[serde(rename = "isExternal", skip_serializing_if = "Option::is_none")]
         pub(crate) is_external: Option<bool>,
         #[versioned("1.7")]
         #[serde(rename = "versionRange", skip_serializing_if = "Option::is_none")]
         pub(crate) version_range: Option<String>,
+        #[versioned("1.7")]
+        #[serde(rename = "patentAssertions", skip_serializing_if = "Option::is_none")]
+        pub(crate) patent_assertions: Option<serde_json::Value>,
     }
 
     impl TryFrom<models::component::Component> for Component {
@@ -276,10 +282,14 @@ pub(crate) mod base {
                 omnibor_id: other.omnibor_id,
                 #[versioned("1.6", "1.7")]
                 swhid: other.swhid,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: other.crypto_properties,
                 #[versioned("1.7")]
                 is_external: other.is_external,
                 #[versioned("1.7")]
                 version_range: other.version_range,
+                #[versioned("1.7")]
+                patent_assertions: other.patent_assertions,
             })
         }
     }
@@ -351,8 +361,16 @@ pub(crate) mod base {
                 is_external: other.is_external,
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
                 version_range: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                crypto_properties: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: other.crypto_properties,
                 #[versioned("1.7")]
                 version_range: other.version_range,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                patent_assertions: None,
+                #[versioned("1.7")]
+                patent_assertions: other.patent_assertions,
             }
         }
     }
@@ -803,10 +821,14 @@ pub(crate) mod base {
                 omnibor_id: None,
                 #[versioned("1.6", "1.7")]
                 swhid: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: None,
                 #[versioned("1.7")]
                 is_external: None,
                 #[versioned("1.7")]
                 version_range: None,
+                #[versioned("1.7")]
+                patent_assertions: None,
             })
         }
     }
@@ -1622,10 +1644,14 @@ pub(crate) mod base {
                 omnibor_id: None,
                 #[versioned("1.6", "1.7")]
                 swhid: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: None,
                 #[versioned("1.7")]
                 is_external: None,
                 #[versioned("1.7")]
                 version_range: None,
+                #[versioned("1.7")]
+                patent_assertions: None,
             }
         }
 
@@ -1688,10 +1714,18 @@ pub(crate) mod base {
                 is_external: None,
                 #[versioned("1.7")]
                 is_external: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                crypto_properties: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: None,
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
                 version_range: None,
                 #[versioned("1.7")]
                 version_range: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                patent_assertions: None,
+                #[versioned("1.7")]
+                patent_assertions: None,
             }
         }
 

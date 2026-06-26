@@ -147,6 +147,15 @@ pub(crate) mod base {
         #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         formulation: Option<Vec<Formula>>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        declarations: Option<serde_json::Value>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        definitions: Option<serde_json::Value>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        citations: Option<serde_json::Value>,
     }
 
     impl TryFrom<models::bom::Bom> for Bom {
@@ -182,6 +191,12 @@ pub(crate) mod base {
                             .collect::<Result<Vec<_>, _>>()
                     })
                     .transpose()?,
+                #[versioned("1.6", "1.7")]
+                declarations: other.declarations,
+                #[versioned("1.6", "1.7")]
+                definitions: other.definitions,
+                #[versioned("1.7")]
+                citations: other.citations,
             })
         }
     }
@@ -217,6 +232,18 @@ pub(crate) mod base {
                 formulation: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 formulation: convert_optional_vec(other.formulation),
+                #[versioned("1.3", "1.4", "1.5")]
+                declarations: None,
+                #[versioned("1.6", "1.7")]
+                declarations: other.declarations,
+                #[versioned("1.3", "1.4", "1.5")]
+                definitions: None,
+                #[versioned("1.6", "1.7")]
+                definitions: other.definitions,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                citations: None,
+                #[versioned("1.7")]
+                citations: other.citations,
                 spec_version: other.spec_version,
             }
         }
@@ -520,6 +547,12 @@ pub(crate) mod base {
                 properties,
                 #[versioned("1.5", "1.6", "1.7")]
                 formulation,
+                #[versioned("1.6", "1.7")]
+                declarations: None,
+                #[versioned("1.6", "1.7")]
+                definitions: None,
+                #[versioned("1.7")]
+                citations: None,
             })
         }
     }
@@ -651,6 +684,12 @@ pub(crate) mod base {
                 properties: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 formulation: None,
+                #[versioned("1.6", "1.7")]
+                declarations: None,
+                #[versioned("1.6", "1.7")]
+                definitions: None,
+                #[versioned("1.7")]
+                citations: None,
             }
         }
 
@@ -676,6 +715,12 @@ pub(crate) mod base {
                 properties: Some(example_properties()),
                 #[versioned("1.5", "1.6", "1.7")]
                 formulation: Some(vec![example_formula()]),
+                #[versioned("1.6", "1.7")]
+                declarations: None,
+                #[versioned("1.6", "1.7")]
+                definitions: None,
+                #[versioned("1.7")]
+                citations: None,
             }
         }
 
@@ -710,6 +755,18 @@ pub(crate) mod base {
                 formulation: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 formulation: Some(vec![corresponding_formula()]),
+                #[versioned("1.3", "1.4", "1.5")]
+                declarations: None,
+                #[versioned("1.6", "1.7")]
+                declarations: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                definitions: None,
+                #[versioned("1.6", "1.7")]
+                definitions: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                citations: None,
+                #[versioned("1.7")]
+                citations: None,
             }
         }
 
