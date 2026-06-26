@@ -52,6 +52,8 @@ pub(crate) mod base {
         specs::v1_3::{external_reference::ExternalReferences, license::Licenses},
     };
 
+    #[versioned("1.6", "1.7")]
+    use crate::specs::common::organization::OrganizationalContact;
     use crate::{
         errors::{BomError, XmlReadError},
         external_models::{
@@ -63,7 +65,7 @@ pub(crate) mod base {
             attached_text::AttachedText,
             code::{Commits, Patches},
             hash::Hashes,
-            organization::{OrganizationalContact, OrganizationalEntity},
+            organization::OrganizationalEntity,
             property::Properties,
         },
         utilities::{convert_optional, convert_vec, try_convert_optional, try_convert_vec},
