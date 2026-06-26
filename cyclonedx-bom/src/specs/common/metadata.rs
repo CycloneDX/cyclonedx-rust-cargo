@@ -148,6 +148,8 @@ pub(crate) mod base {
     const SUPPLIER_TAG: &str = "supplier";
     #[versioned("1.6", "1.7")]
     const MANUFACTURER_TAG: &str = "manufacturer";
+    #[versioned("1.7")]
+    const DISTRIBUTION_CONSTRAINTS_TAG: &str = "distributionConstraints";
 
     impl ToXml for Metadata {
         fn write_xml_element<W: std::io::Write>(
@@ -208,6 +210,15 @@ pub(crate) mod base {
                 }
             }
 
+            #[versioned("1.7")]
+            if let Some(distribution_constraints) = &self.distribution_constraints {
+                crate::xml::write_value_as_xml(
+                    writer,
+                    DISTRIBUTION_CONSTRAINTS_TAG,
+                    distribution_constraints,
+                )?;
+            }
+
             write_close_tag(writer, METADATA_TAG)?;
 
             Ok(())
@@ -253,6 +264,8 @@ pub(crate) mod base {
             let mut lifecycles: Option<Lifecycles> = None;
             #[versioned("1.6", "1.7")]
             let mut manufacturer: Option<OrganizationalEntity> = None;
+            #[versioned("1.7")]
+            let mut distribution_constraints: Option<serde_json::Value> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -340,6 +353,13 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == DISTRIBUTION_CONSTRAINTS_TAG =>
+                    {
+                        distribution_constraints =
+                            Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    }
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -365,7 +385,7 @@ pub(crate) mod base {
                 #[versioned("1.6", "1.7")]
                 manufacturer,
                 #[versioned("1.7")]
-                distribution_constraints: None,
+                distribution_constraints,
             })
         }
     }

@@ -310,6 +310,21 @@ pub(crate) mod base {
                 write_list_tag(writer, FORMULATION_TAG, formulation)?;
             }
 
+            #[versioned("1.6", "1.7")]
+            if let Some(declarations) = &self.declarations {
+                crate::xml::write_value_as_xml(writer, DECLARATIONS_TAG, declarations)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(definitions) = &self.definitions {
+                crate::xml::write_value_as_xml(writer, DEFINITIONS_TAG, definitions)?;
+            }
+
+            #[versioned("1.7")]
+            if let Some(citations) = &self.citations {
+                crate::xml::write_value_as_xml(writer, CITATIONS_TAG, citations)?;
+            }
+
             writer
                 .write(XmlEvent::end_element())
                 .map_err(to_xml_write_error(BOM_TAG))?;
@@ -336,6 +351,12 @@ pub(crate) mod base {
     const FORMULATION_TAG: &str = "formulation";
     #[versioned("1.5", "1.6", "1.7")]
     const FORMULA_TAG: &str = "formula";
+    #[versioned("1.6", "1.7")]
+    const DECLARATIONS_TAG: &str = "declarations";
+    #[versioned("1.6", "1.7")]
+    const DEFINITIONS_TAG: &str = "definitions";
+    #[versioned("1.7")]
+    const CITATIONS_TAG: &str = "citations";
 
     impl FromXmlDocument for Bom {
         fn read_xml_document<R: std::io::Read>(
@@ -400,6 +421,12 @@ pub(crate) mod base {
             let mut properties: Option<Properties> = None;
             #[versioned("1.5", "1.6", "1.7")]
             let mut formulation: Option<Vec<Formula>> = None;
+            #[versioned("1.6", "1.7")]
+            let mut declarations: Option<serde_json::Value> = None;
+            #[versioned("1.6", "1.7")]
+            let mut definitions: Option<serde_json::Value> = None;
+            #[versioned("1.7")]
+            let mut citations: Option<serde_json::Value> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -507,6 +534,25 @@ pub(crate) mod base {
                             Some(crate::xml::read_list_tag(event_reader, &name, FORMULA_TAG)?)
                     }
 
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == DECLARATIONS_TAG =>
+                    {
+                        declarations = Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == DEFINITIONS_TAG =>
+                    {
+                        definitions = Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == CITATIONS_TAG =>
+                    {
+                        citations = Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    }
+
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
                         read_lax_validation_tag(event_reader, &name)?
@@ -548,11 +594,11 @@ pub(crate) mod base {
                 #[versioned("1.5", "1.6", "1.7")]
                 formulation,
                 #[versioned("1.6", "1.7")]
-                declarations: None,
+                declarations,
                 #[versioned("1.6", "1.7")]
-                definitions: None,
+                definitions,
                 #[versioned("1.7")]
-                citations: None,
+                citations,
             })
         }
     }

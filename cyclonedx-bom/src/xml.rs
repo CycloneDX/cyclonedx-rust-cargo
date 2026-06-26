@@ -117,6 +117,92 @@ pub(crate) fn write_close_tag<W: Write>(
         .map_err(to_xml_write_error(tag))
 }
 
+/// Writes a `serde_json::Value` as XML elements.
+/// Objects become nested elements, arrays become repeated child elements,
+/// strings/numbers/bools become text content.
+pub(crate) fn write_value_as_xml<W: Write>(
+    writer: &mut EventWriter<W>,
+    tag: &str,
+    value: &serde_json::Value,
+) -> Result<(), XmlWriteError> {
+    match value {
+        serde_json::Value::Object(map) => {
+            write_start_tag(writer, tag)?;
+            for (key, val) in map {
+                if !val.is_null() {
+                    write_value_as_xml(writer, key, val)?;
+                }
+            }
+            write_close_tag(writer, tag)?;
+        }
+        serde_json::Value::Array(arr) => {
+            for item in arr {
+                write_value_as_xml(writer, tag, item)?;
+            }
+        }
+        serde_json::Value::String(s) => {
+            write_simple_tag(writer, tag, s)?;
+        }
+        serde_json::Value::Number(n) => {
+            write_simple_tag(writer, tag, &n.to_string())?;
+        }
+        serde_json::Value::Bool(b) => {
+            write_simple_tag(writer, tag, if *b { "true" } else { "false" })?;
+        }
+        serde_json::Value::Null => {}
+    }
+    Ok(())
+}
+
+/// Reads an XML element subtree into a `serde_json::Value`.
+/// Elements with children become objects, repeated elements become arrays,
+/// text-only elements become strings.
+pub(crate) fn read_xml_as_value<R: Read>(
+    event_reader: &mut xml::EventReader<R>,
+    element_name: &xml::name::OwnedName,
+) -> Result<serde_json::Value, XmlReadError> {
+    let mut map = serde_json::Map::new();
+    let mut text = String::new();
+
+    loop {
+        let event = event_reader
+            .next()
+            .map_err(to_xml_read_error(&element_name.local_name))?;
+        match event {
+            reader::XmlEvent::StartElement { name, .. } => {
+                let child_value = read_xml_as_value(event_reader, &name)?;
+                let key = name.local_name;
+                if let Some(existing) = map.remove(&key) {
+                    match existing {
+                        serde_json::Value::Array(mut arr) => {
+                            arr.push(child_value);
+                            map.insert(key, serde_json::Value::Array(arr));
+                        }
+                        other => {
+                            map.insert(key, serde_json::Value::Array(vec![other, child_value]));
+                        }
+                    }
+                } else {
+                    map.insert(key, child_value);
+                }
+            }
+            reader::XmlEvent::Characters(s) | reader::XmlEvent::CData(s) => {
+                text.push_str(&s);
+            }
+            reader::XmlEvent::EndElement { name } if name == *element_name => {
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    if map.is_empty() {
+        Ok(serde_json::Value::String(text))
+    } else {
+        Ok(serde_json::Value::Object(map))
+    }
+}
+
 pub(crate) fn write_list_tag<W: Write>(
     writer: &mut EventWriter<W>,
     tag: &str,

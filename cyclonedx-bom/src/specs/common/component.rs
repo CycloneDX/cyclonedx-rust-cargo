@@ -549,6 +549,30 @@ pub(crate) mod base {
                 }
             }
 
+            #[versioned("1.6", "1.7")]
+            if let Some(crypto_properties) = &self.crypto_properties {
+                crate::xml::write_value_as_xml(writer, CRYPTO_PROPERTIES_TAG, crypto_properties)?;
+            }
+
+            #[versioned("1.7")]
+            if let Some(is_external) = &self.is_external {
+                write_simple_tag(
+                    writer,
+                    IS_EXTERNAL_TAG,
+                    if *is_external { "true" } else { "false" },
+                )?;
+            }
+
+            #[versioned("1.7")]
+            if let Some(version_range) = &self.version_range {
+                write_simple_tag(writer, VERSION_RANGE_TAG, version_range)?;
+            }
+
+            #[versioned("1.7")]
+            if let Some(patent_assertions) = &self.patent_assertions {
+                crate::xml::write_value_as_xml(writer, PATENT_ASSERTIONS_TAG, patent_assertions)?;
+            }
+
             writer
                 .write(XmlEvent::end_element())
                 .map_err(to_xml_write_error(COMPONENT_TAG))?;
@@ -571,6 +595,14 @@ pub(crate) mod base {
     const OMNIBOR_ID_TAG: &str = "omniborId";
     #[versioned("1.6", "1.7")]
     const SWHID_TAG: &str = "swhid";
+    #[versioned("1.6", "1.7")]
+    const CRYPTO_PROPERTIES_TAG: &str = "cryptoProperties";
+    #[versioned("1.7")]
+    const IS_EXTERNAL_TAG: &str = "isExternal";
+    #[versioned("1.7")]
+    const VERSION_RANGE_TAG: &str = "versionRange";
+    #[versioned("1.7")]
+    const PATENT_ASSERTIONS_TAG: &str = "patentAssertions";
     #[versioned("1.5", "1.6", "1.7")]
     const MODEL_CARD_TAG: &str = "modelCard";
 
@@ -625,6 +657,14 @@ pub(crate) mod base {
             let mut omnibor_id: Option<Vec<String>> = None;
             #[versioned("1.6", "1.7")]
             let mut swhid_list: Option<Vec<String>> = None;
+            #[versioned("1.6", "1.7")]
+            let mut crypto_properties: Option<serde_json::Value> = None;
+            #[versioned("1.7")]
+            let mut is_external: Option<bool> = None;
+            #[versioned("1.7")]
+            let mut version_range: Option<String> = None;
+            #[versioned("1.7")]
+            let mut patent_assertions: Option<serde_json::Value> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -841,6 +881,32 @@ pub(crate) mod base {
                         let value = read_simple_tag(event_reader, &name)?;
                         swhid_list.get_or_insert_with(Vec::new).push(value);
                     }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == CRYPTO_PROPERTIES_TAG =>
+                    {
+                        crypto_properties =
+                            Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == IS_EXTERNAL_TAG =>
+                    {
+                        is_external = Some(read_simple_tag(event_reader, &name)? == "true")
+                    }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == VERSION_RANGE_TAG =>
+                    {
+                        version_range = Some(read_simple_tag(event_reader, &name)?)
+                    }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == PATENT_ASSERTIONS_TAG =>
+                    {
+                        patent_assertions =
+                            Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    }
 
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
@@ -904,13 +970,13 @@ pub(crate) mod base {
                 #[versioned("1.6", "1.7")]
                 swhid: swhid_list,
                 #[versioned("1.6", "1.7")]
-                crypto_properties: None,
+                crypto_properties,
                 #[versioned("1.7")]
-                is_external: None,
+                is_external,
                 #[versioned("1.7")]
-                version_range: None,
+                version_range,
                 #[versioned("1.7")]
-                patent_assertions: None,
+                patent_assertions,
             })
         }
     }
