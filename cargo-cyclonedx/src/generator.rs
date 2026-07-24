@@ -465,10 +465,24 @@ impl SbomGenerator {
         // https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/803
         if licenses.is_empty() {
             if let Some(license_file) = package.license_file().as_ref() {
-                match std::fs::read_to_string(license_file.as_path()) {
-                    Ok(content) => {
+                let result: Result<AttachedText, String> = std::fs::read(license_file.as_path())
+                    .map_err(|e| e.to_string())
+                    .and_then(|bytes| {
+                        let content_type: Option<NormalizedString> =
+                            if std::str::from_utf8(&bytes).is_ok() {
+                                None // "text/plain"
+                            } else if bytes.starts_with(b"%PDF") {
+                                Some(NormalizedString::new("application/pdf"))
+                            } else {
+                                Some(NormalizedString::new("application/octet-stream"))
+                            };
+
+                        Ok(AttachedText::new(content_type, bytes))
+                    });
+
+                match result {
+                    Ok(encoded_text) => {
                         let mut license = License::named_license("Unknown");
-                        let encoded_text = AttachedText::new(None, content);
                         license.text = Some(encoded_text);
                         licenses.push(LicenseChoice::License(license));
                     }
