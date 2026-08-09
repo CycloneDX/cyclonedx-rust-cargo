@@ -247,4 +247,40 @@ mod tests {
             != NormalizedString::new("runtime_dep_of_build_dep")
             || c.scope == Some(Scope::Excluded)));
     }
+
+    #[test]
+    fn parse_toml_with_metadata_table() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use cyclonedx_bom::models::component::Scope;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/build_then_runtime_dep/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = [
+            "cyclonedx",
+            path_arg,
+            "--no-build-deps",
+            "--metadata-section-name=cyclonedx",
+        ];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+
+        let components = sboms[0].bom.components.as_ref().unwrap();
+        assert!(components
+            .0
+            .iter()
+            .all(|f| f.scope == Some(Scope::Required)));
+        assert!(components.0.iter().all(|f| {
+            if f.name == "top_level_crate".into() {
+                f.modified == Some(true)
+            } else {
+                f.modified == None
+            }
+        }));
+    }
 }

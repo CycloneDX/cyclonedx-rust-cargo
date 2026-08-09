@@ -259,6 +259,8 @@ impl SbomGenerator {
             component.author = Some(NormalizedString::new(&package.authors.join(", ")));
         }
 
+        self.add_metadata_subtable(package, &mut component);
+
         component
     }
 
@@ -511,6 +513,29 @@ impl SbomGenerator {
                 None
             }
         }
+    }
+
+    fn add_metadata_subtable(&self, package: &Package, component: &mut Component) {
+        let Some(table_name) = self.config.package_metadata_subtable.as_ref() else {
+            // No `[package.metadata]` subtable, so don't try to add any more
+            // information
+            return;
+        };
+
+        let Some(table) = package.metadata.get(table_name) else {
+            log::warn!("could not find metadata table called {table_name}");
+            return;
+        };
+        if let Some(modified) = table.get("modified") {
+            if let Some(modified) = modified.as_bool() {
+                component.modified = Some(modified);
+            } else {
+                log::warn!("`modified` field in `{table_name}` table was not a boolean, ignoring");
+            }
+        }
+        // TODO support for other fields not covered by the Cargo.toml format could be added here.
+        // TODO serde could be used to parse this table into a struct to reduce need for manual
+        // deserialization.
     }
 
     fn create_metadata(

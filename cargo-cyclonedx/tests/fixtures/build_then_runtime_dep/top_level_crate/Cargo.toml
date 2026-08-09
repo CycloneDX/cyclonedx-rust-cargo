@@ -7,3 +7,6 @@ edition = "2021"
 
 [build-dependencies]
 build_dep = {path = "../build_dep"}
+
+[package.metadata.cyclonedx]
+modified = true

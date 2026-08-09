@@ -108,6 +108,10 @@ Defaults to the host target, as printed by 'rustc -vV'"
     /// Do not include build-time dependencies in the SBOM
     #[clap(long = "no-build-deps")]
     pub no_build_deps: bool,
+
+    /// Look for extra SBOM information in this subtable of `[package.metadata]`
+    #[clap(long = "metadata-section-name")]
+    pub package_metadata_subtable: Option<String>,
 }
 
 impl Args {
@@ -193,6 +197,7 @@ impl Args {
             describe,
             spec_version,
             only_normal_deps,
+            package_metadata_subtable: self.package_metadata_subtable.clone(),
         })
     }
 }

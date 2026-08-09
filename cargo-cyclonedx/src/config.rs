@@ -34,6 +34,9 @@ pub struct SbomConfig {
     pub describe: Option<Describe>,
     pub spec_version: Option<SpecVersion>,
     pub only_normal_deps: Option<bool>,
+    /// An extra section under `[package.metadata]` for data that is not stored
+    /// in Cargo.toml
+    pub package_metadata_subtable: Option<String>,
 }
 
 impl SbomConfig {
@@ -60,6 +63,10 @@ impl SbomConfig {
             describe: other.describe.or(self.describe),
             spec_version: other.spec_version.or(self.spec_version),
             only_normal_deps: other.only_normal_deps.or(self.only_normal_deps),
+            package_metadata_subtable: other
+                .package_metadata_subtable
+                .clone()
+                .or_else(|| self.package_metadata_subtable.clone()),
         }
     }
 

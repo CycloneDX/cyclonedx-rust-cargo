@@ -135,7 +135,7 @@ fn find_content_in_stderr() -> Result<(), Box<dyn std::error::Error>> {
 
 fn make_temp_rust_project() -> Result<assert_fs::TempDir, assert_fs::fixture::FixtureError> {
     let tmp_dir = assert_fs::TempDir::new()?;
-    tmp_dir.child("src/main.rs").touch()?;
+    tmp_dir.child("src/main.rs").write_str("fn main() {}")?;
 
     tmp_dir
         .child("Cargo.toml")
