@@ -188,6 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#746]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/746
 [#755]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/755
 [#762]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/762
+[#766]: https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766
 [#770]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/770
 [#772]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/772
 [#808]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/808
@@ -199,7 +200,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#847]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/847
 [#848]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/848
 [#849]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/849
-[#766]: https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766
 [#852]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/852
 [#853]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/853
 [#856]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/853

@@ -74,10 +74,11 @@ use validator::ValidateEmail;
 type PackageMap = BTreeMap<PackageId, Package>;
 type ResolveMap = BTreeMap<PackageId, Node>;
 type DependencyKindMap = BTreeMap<PackageId, DependencyKind>;
-/// Which optional dependencies each package's enabled features activate,
-/// keyed on the name feature syntax refers to them by. Worked out once per
-/// `cargo metadata` invocation because it does not vary by workspace member.
-type ActivationMap<'a> = HashMap<&'a PackageId, HashSet<&'a str>>;
+/// The edges of the resolve graph that cargo actually builds, as
+/// `(parent, child, kind)`. Optional dependencies that no enabled feature
+/// activates are absent. Worked out once per `cargo metadata` invocation
+/// because it does not vary by workspace member.
+type BuiltEdges<'a> = HashSet<(&'a PackageId, &'a PackageId, DependencyKind)>;
 
 /// The values are ordered from weakest to strongest so that casting to integer would make sense
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
@@ -132,19 +133,19 @@ impl SbomGenerator {
         let packages = index_packages(meta.packages);
         let resolve = index_resolve(meta.resolve.unwrap().nodes);
 
-        let activated = index_activated_dependencies(&packages, &resolve);
+        let built = index_built_edges(&packages, &resolve);
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
             log::trace!("Processing the package {}", member);
 
-            let dep_kinds = index_dep_kinds(member, &packages, &resolve, &activated);
+            let dep_kinds = index_dep_kinds(member, &resolve, &built);
 
             let (dependencies, pruned_resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(member, &packages, &resolve, &activated, config)
+                    all_dependencies(member, &packages, &resolve, &built, config)
                 } else {
-                    top_level_dependencies(member, &packages, &resolve, &activated, config)
+                    top_level_dependencies(member, &packages, &resolve, &built, config)
                 };
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
@@ -637,9 +638,8 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
 
 fn index_dep_kinds(
     root: &PackageId,
-    packages: &PackageMap,
     resolve: &ResolveMap,
-    activated: &ActivationMap,
+    built: &BuiltEdges,
 ) -> DependencyKindMap {
     // cache strongest found dependency kind for every node
     let mut id_to_dep_kind: HashMap<PackageId, PrivateDepKind> = HashMap::new();
@@ -672,19 +672,15 @@ fn index_dep_kinds(
         }
 
         let node = &resolve[&pkg_id];
-        let parent = packages.get(&pkg_id).zip(activated.get(&pkg_id));
         for child_dep in &node.deps {
-            let child = packages.get(&child_dep.pkg);
             for dep_kind in &child_dep.dep_kinds {
                 // Unlike `filtered_dependencies` this walk deliberately keeps
                 // dev- and build-dependencies, since their whole purpose here is
                 // to mark components as `Excluded`. Optional dependencies that
                 // were never activated are still skipped: an edge that is not
                 // built must not raise the scope of a package reached elsewhere.
-                if let (Some((parent, activated)), Some(child)) = (parent, child) {
-                    if !is_activated(parent, child, dep_kind, activated) {
-                        continue;
-                    }
+                if !built.contains(&(&pkg_id, &child_dep.pkg, dep_kind.kind)) {
+                    continue;
                 }
                 let current_kind = PrivateDepKind::from(&dep_kind.kind);
                 let new_path_node_kind = min(current_kind, path_node_kind);
@@ -745,13 +741,13 @@ fn top_level_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
-    activated: &ActivationMap,
+    built: &BuiltEdges,
     config: &SbomConfig,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let root_node = add_filtered_dependencies(&resolve[root], packages, activated, config);
+    let root_node = add_filtered_dependencies(&resolve[root], built, config);
 
     let mut pkg_result = PackageMap::new();
 
@@ -779,7 +775,7 @@ fn all_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
-    activated: &ActivationMap,
+    built: &BuiltEdges,
     config: &SbomConfig,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
@@ -803,12 +799,11 @@ fn all_dependencies(
                 // Add the node to the output
                 out_resolve.insert(
                     node.id.to_owned(),
-                    add_filtered_dependencies(node, packages, activated, config),
+                    add_filtered_dependencies(node, built, config),
                 );
                 // Queue its dependencies for the next BFS loop iteration
                 next_queue.extend(
-                    filtered_dependencies(node, packages, activated, config)
-                        .map(|dep| &resolve[&dep.pkg]),
+                    filtered_dependencies(node, built, config).map(|dep| &resolve[&dep.pkg]),
                 );
             }
         }
@@ -825,14 +820,9 @@ fn all_dependencies(
     (out_packages, out_resolve)
 }
 
-fn add_filtered_dependencies(
-    node: &Node,
-    packages: &PackageMap,
-    activated: &ActivationMap,
-    config: &SbomConfig,
-) -> Node {
+fn add_filtered_dependencies(node: &Node, built: &BuiltEdges, config: &SbomConfig) -> Node {
     let mut node_copy = node.clone();
-    node_copy.deps = filtered_dependencies(node, packages, activated, config)
+    node_copy.deps = filtered_dependencies(node, built, config)
         .cloned()
         .collect();
     node_copy.dependencies = node_copy.deps.iter().map(|d| d.pkg.to_owned()).collect();
@@ -852,43 +842,46 @@ fn add_filtered_dependencies(
 /// <https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766>.
 fn filtered_dependencies<'a>(
     node: &'a Node,
-    packages: &'a PackageMap,
-    activated: &'a ActivationMap,
+    built: &'a BuiltEdges<'a>,
     config: &'a SbomConfig,
 ) -> impl Iterator<Item = &'a NodeDep> {
-    let parent = packages.get(&node.id).zip(activated.get(&node.id));
-
     node.deps.iter().filter(move |edge| {
         edge.dep_kinds.iter().any(|dep_kind| {
             included_kind(dep_kind.kind, config)
-                && match (parent, packages.get(&edge.pkg)) {
-                    (Some((parent, activated)), Some(child)) => {
-                        is_activated(parent, child, dep_kind, activated)
-                    }
-                    // Without both manifests there is nothing to check against,
-                    // so keep the edge rather than risk dropping a real dependency.
-                    _ => true,
-                }
+                && built.contains(&(&node.id, &edge.pkg, dep_kind.kind))
         })
     })
 }
 
-/// Works out, for every package in the resolve graph, which of its optional
-/// dependencies its enabled features activate.
-fn index_activated_dependencies<'a>(
-    packages: &'a PackageMap,
-    resolve: &'a ResolveMap,
-) -> ActivationMap<'a> {
-    resolve
-        .iter()
-        .filter_map(|(id, node)| {
-            let package = packages.get(id)?;
-            Some((
-                id,
-                activated_dependencies(&package.features, &node.features),
-            ))
-        })
-        .collect()
+/// Works out which edges of the resolve graph cargo actually builds, so that the
+/// optional dependencies no enabled feature activates can be left out.
+fn index_built_edges<'a>(packages: &'a PackageMap, resolve: &'a ResolveMap) -> BuiltEdges<'a> {
+    let mut built = BuiltEdges::new();
+
+    for (parent_id, node) in resolve {
+        // Without the parent's manifest there is nothing to check against, so keep
+        // all of its edges rather than risk dropping a real dependency.
+        let parent = packages.get(parent_id);
+        let activated = parent
+            .map(|parent| activated_dependencies(&parent.features, &node.features))
+            .unwrap_or_default();
+
+        for edge in &node.deps {
+            for dep_kind in &edge.dep_kinds {
+                let keep = match (parent, packages.get(&edge.pkg)) {
+                    (Some(parent), Some(child)) => {
+                        is_built(parent, child, &edge.name, dep_kind, &activated)
+                    }
+                    _ => true,
+                };
+                if keep {
+                    built.insert((parent_id, &edge.pkg, dep_kind.kind));
+                }
+            }
+        }
+    }
+
+    built
 }
 
 /// Whether a dependency of this kind belongs in the SBOM at all.
@@ -900,41 +893,58 @@ fn included_kind(kind: DependencyKind, config: &SbomConfig) -> bool {
     }
 }
 
-/// Whether `parent` actually builds `child` as a dependency of the given kind and platform.
+/// Whether `parent` actually builds `child` as a dependency of the given kind and
+/// platform, or whether it is an optional dependency that no enabled feature
+/// activates.
 ///
 /// A single edge in the resolve graph can be backed by more than one entry in the
 /// parent's manifest - the same crate can be depended on twice under different
-/// renames - so the edge survives if any of those entries is non-optional or is
-/// activated by an enabled feature.
-fn is_activated(
+/// renames - so the candidates are narrowed down to the entry that produced this
+/// edge, and the edge survives if what is left is non-optional or activated.
+fn is_built(
     parent: &Package,
     child: &Package,
+    edge_name: &str,
     dep_kind: &DepKindInfo,
     activated: &HashSet<&str>,
 ) -> bool {
-    let declares_edge = |dep: &&CargoDependency| {
-        dep.name == child.name && dep.kind == dep_kind.kind && dep.target == dep_kind.target
-    };
-    let is_built =
-        |dep: &&CargoDependency| !dep.optional || activated.contains(dependency_key(dep));
-
-    // The version requirement tells same-named entries apart.
-    let mut by_version = parent
+    let candidates: Vec<&CargoDependency> = parent
         .dependencies
         .iter()
-        .filter(declares_edge)
-        .filter(|dep| dep.req.matches(&child.version))
-        .peekable();
-    if by_version.peek().is_some() {
-        return by_version.any(|dep| is_built(&dep));
+        .filter(|dep| {
+            dep.name == child.name && dep.kind == dep_kind.kind && dep.target == dep_kind.target
+        })
+        .collect();
+
+    // An edge with no matching manifest entry at all is not something we
+    // understand, so keep it.
+    if candidates.is_empty() {
+        return true;
     }
 
-    // If the version requirement ruled out every entry - pre-release versions and
-    // `[patch]` can both do that - fall back to matching on the name alone rather
-    // than dropping the edge. An edge with no matching manifest entry at all is
-    // not something we understand, so keep that too.
-    let mut by_name = parent.dependencies.iter().filter(declares_edge).peekable();
-    by_name.peek().is_none() || by_name.any(|dep| is_built(&dep))
+    // Either narrowing can rule out every candidate - pre-release versions and
+    // `[patch]` defeat the version requirement, and a `[lib] name` that differs
+    // from the package name defeats the edge name - so a narrowing that would
+    // leave nothing to choose from is skipped.
+    let candidates = narrow(candidates, |dep| dep.req.matches(&child.version));
+    let candidates = narrow(candidates, |dep| {
+        dependency_key(dep).replace('-', "_") == edge_name
+    });
+
+    candidates
+        .iter()
+        .any(|dep| !dep.optional || activated.contains(dependency_key(dep)))
+}
+
+/// Keeps the candidates matching `predicate`, or all of them if that would leave
+/// none.
+fn narrow<T: Copy>(candidates: Vec<T>, predicate: impl Fn(&T) -> bool) -> Vec<T> {
+    let narrowed: Vec<T> = candidates.iter().copied().filter(&predicate).collect();
+    if narrowed.is_empty() {
+        candidates
+    } else {
+        narrowed
+    }
 }
 
 /// The name a dependency is known by in feature syntax: the rename if it was
@@ -1362,6 +1372,12 @@ mod test {
         let features = features(&[("a", &["b", "dep:x"]), ("b", &["a"])]);
 
         assert_eq!(activated(&features, &["a"]), set(&["x"]));
+    }
+
+    #[test]
+    fn narrowing_that_leaves_nothing_is_skipped() {
+        assert_eq!(narrow(vec![1, 2, 3], |n| *n > 1), vec![2, 3]);
+        assert_eq!(narrow(vec![1, 2, 3], |n| *n > 9), vec![1, 2, 3]);
     }
 
     #[test]
