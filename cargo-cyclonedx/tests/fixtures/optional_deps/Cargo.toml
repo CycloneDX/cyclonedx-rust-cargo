@@ -1,14 +1,8 @@
-# `weak_dep` and `disabled_dep` are workspace members so that `cargo metadata`
-# has a reason to keep them in the resolve graph. It then reports them
-# differently, which is the point of the fixture:
-#
-#  * `weak_dep` stays on `top_level_crate`'s node even though only a weak
-#    feature (`weak_dep?/some_feature`) ever names it. Nothing builds it, and
-#    dropping the edge has to drop `dep_of_weak` with it. This is the case the
-#    feature filter exists for.
-#  * `disabled_dep` is never named at all, and cargo already leaves it off the
-#    node. It is here so the SBOM is asserted end to end rather than against
-#    whichever of the two layers happens to do the pruning.
+# `weak_dep` and `disabled_dep` are workspace members so that `cargo metadata` has
+# a reason to keep them in the resolve graph, where it then reports them
+# differently: `weak_dep` stays on `top_level_crate`'s node even though only a
+# weak feature ever names it, while `disabled_dep` is never named and cargo
+# already leaves it off. Asserting the SBOM covers both.
 [workspace]
 resolver = "2"
 members = [

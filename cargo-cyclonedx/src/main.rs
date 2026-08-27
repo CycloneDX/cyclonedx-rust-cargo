@@ -251,6 +251,11 @@ mod tests {
     /// Optional dependencies that no enabled feature activates are reported by
     /// `cargo metadata` all the same, and must not reach the SBOM.
     /// See <https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766>.
+    ///
+    /// Pruning `weak_dep` drops `dep_of_weak` with it, so this also asserts the
+    /// pruned graph leaves no dangling `dependencies` references: the two code
+    /// paths that do the dropping - rewriting a node's own edges and deciding
+    /// what the graph walk visits next - have to agree.
     #[test]
     fn parse_toml_with_unactivated_optional_deps() {
         use crate::cli;
@@ -267,55 +272,22 @@ mod tests {
         let args_parsed = cli::Args::parse_from(args.iter());
 
         let sboms = generate_sboms(&args_parsed).unwrap();
-        let components: BTreeSet<String> = sboms[0]
-            .bom
-            .components
-            .as_ref()
-            .unwrap()
-            .0
-            .iter()
-            .map(|c| c.name.to_string())
-            .collect();
+        let bom = &sboms[0].bom;
+        let components = &bom.components.as_ref().unwrap().0;
 
         // `plain_dep` is not optional; `enabled_dep` is activated by `dep:`;
         // `renamed_dep` is activated through its rename, `aliased/some_feature`.
         // `weak_dep` is only named weakly and `disabled_dep` not at all, so
         // neither is built - and `dep_of_weak`, reachable only through
         // `weak_dep`, has to go with it.
+        let names: BTreeSet<String> = components.iter().map(|c| c.name.to_string()).collect();
         let expected: BTreeSet<String> = ["plain_dep", "enabled_dep", "renamed_dep"]
             .iter()
             .map(|n| n.to_string())
             .collect();
-        assert_eq!(components, expected);
-    }
+        assert_eq!(names, expected);
 
-    /// Pruning `weak_dep` drops `dep_of_weak` with it. The two code paths that
-    /// do the dropping - rewriting a node's own edges and deciding what the
-    /// graph walk visits next - have to agree, or the SBOM ends up with
-    /// dependency references that point at components it does not contain.
-    #[test]
-    fn no_dangling_dependency_refs() {
-        use crate::cli;
-        use crate::generate_sboms;
-        use clap::Parser;
-        use std::collections::BTreeSet;
-        use std::path::PathBuf;
-
-        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_cargo_toml.push("tests/fixtures/optional_deps/top_level_crate/Cargo.toml");
-
-        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
-        let args = ["cyclonedx", path_arg];
-        let args_parsed = cli::Args::parse_from(args.iter());
-
-        let sboms = generate_sboms(&args_parsed).unwrap();
-        let bom = &sboms[0].bom;
-
-        let mut known: BTreeSet<&str> = bom
-            .components
-            .as_ref()
-            .unwrap()
-            .0
+        let mut known: BTreeSet<&str> = components
             .iter()
             .filter_map(|c| c.bom_ref.as_deref())
             .collect();
