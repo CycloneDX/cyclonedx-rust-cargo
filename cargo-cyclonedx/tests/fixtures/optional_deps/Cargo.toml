@@ -1,0 +1,16 @@
+# `weak_dep` and `disabled_dep` are workspace members so that `cargo metadata` has
+# a reason to keep them in the resolve graph, where it then reports them
+# differently: `weak_dep` stays on `top_level_crate`'s node even though only a
+# weak feature ever names it, while `disabled_dep` is never named and cargo
+# already leaves it off. Asserting the SBOM covers both.
+[workspace]
+resolver = "2"
+members = [
+    "top_level_crate",
+    "plain_dep",
+    "enabled_dep",
+    "disabled_dep",
+    "weak_dep",
+    "dep_of_weak",
+    "renamed_dep",
+]

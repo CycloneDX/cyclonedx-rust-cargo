@@ -26,6 +26,8 @@ use crate::format::Format;
 use crate::purl::get_purl;
 
 use cargo_metadata;
+use cargo_metadata::DepKindInfo;
+use cargo_metadata::Dependency as CargoDependency;
 use cargo_metadata::DependencyKind;
 use cargo_metadata::Metadata as CargoMetadata;
 use cargo_metadata::Node;
@@ -124,7 +126,7 @@ impl SbomGenerator {
         log::trace!("Processing the workspace {}", meta.workspace_root);
         let members: Vec<PackageId> = meta.workspace_members;
         let packages = index_packages(meta.packages);
-        let resolve = index_resolve(meta.resolve.unwrap().nodes);
+        let resolve = prune_unbuilt_edges(index_resolve(meta.resolve.unwrap().nodes), &packages);
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
@@ -818,6 +820,122 @@ fn filtered_dependencies<'a>(
     })
 }
 
+/// Removes the resolve edges cargo does not actually build: optional dependencies
+/// that no enabled feature activates.
+///
+/// `cargo metadata` reports those in `resolve.nodes[].deps` whether or not the
+/// resolver enabled them, so they have to be recovered by replaying the feature
+/// resolution recorded alongside them in `resolve.nodes[].features`. See
+/// <https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766>.
+///
+/// Every lookup fails open: an edge that cannot be matched to a manifest entry is
+/// kept, so this can remove false positives but not introduce false negatives.
+fn prune_unbuilt_edges(mut resolve: ResolveMap, packages: &PackageMap) -> ResolveMap {
+    for (parent_id, node) in resolve.iter_mut() {
+        // Without the parent's manifest there is nothing to check against.
+        let Some(parent) = packages.get(parent_id) else {
+            continue;
+        };
+        let activated = activated_dependencies(&parent.features, &node.features);
+
+        node.deps.retain_mut(|edge| {
+            let Some(child) = packages.get(&edge.pkg) else {
+                return true;
+            };
+            edge.dep_kinds
+                .retain(|dep_kind| is_built(parent, child, dep_kind, &activated));
+            !edge.dep_kinds.is_empty()
+        });
+        node.dependencies = node.deps.iter().map(|edge| edge.pkg.clone()).collect();
+    }
+
+    resolve
+}
+
+/// Whether `parent` actually builds `child` as a dependency of the given kind and
+/// platform, or whether it is an optional dependency that no enabled feature
+/// activates.
+///
+/// One resolve edge can be backed by several entries in the parent's manifest -
+/// the same crate can be depended on twice under different renames - so the edge
+/// survives if any entry that could have produced it is non-optional or activated.
+fn is_built(
+    parent: &Package,
+    child: &Package,
+    dep_kind: &DepKindInfo,
+    activated: &HashSet<&str>,
+) -> bool {
+    let candidates: Vec<&CargoDependency> = parent
+        .dependencies
+        .iter()
+        .filter(|dep| {
+            dep.name == child.name && dep.kind == dep_kind.kind && dep.target == dep_kind.target
+        })
+        .collect();
+
+    // An edge with no matching manifest entry at all is not something we
+    // understand, so keep it.
+    if candidates.is_empty() {
+        return true;
+    }
+
+    // Pre-release versions and `[patch]` can defeat the version requirement, so a
+    // narrowing that would leave nothing to choose from is skipped.
+    let matching: Vec<&CargoDependency> = candidates
+        .iter()
+        .copied()
+        .filter(|dep| dep.req.matches(&child.version))
+        .collect();
+    let candidates = if matching.is_empty() {
+        candidates
+    } else {
+        matching
+    };
+
+    // Feature syntax refers to a renamed dependency by its rename.
+    candidates
+        .iter()
+        .any(|dep| !dep.optional || activated.contains(dep.rename.as_deref().unwrap_or(&dep.name)))
+}
+
+/// Collects the optional dependencies that `enabled_features` activate, given a
+/// package's `[features]` table as reported by `cargo metadata`.
+///
+/// `dep:foo` and `foo/bar` activate `foo`, the weak `foo?/bar` does not, and
+/// anything else is another feature of this package, expanded recursively.
+/// Optional dependencies with an implicit feature of their own arrive normalized
+/// as `"foo": ["dep:foo"]`, so they need no special handling.
+fn activated_dependencies<'a>(
+    features: &'a BTreeMap<String, Vec<String>>,
+    enabled_features: &'a [String],
+) -> HashSet<&'a str> {
+    let mut activated = HashSet::new();
+    let mut visited: HashSet<&str> = HashSet::new();
+    let mut queue: Vec<&str> = enabled_features.iter().map(String::as_str).collect();
+
+    while let Some(feature) = queue.pop() {
+        if !visited.insert(feature) {
+            continue;
+        }
+        let Some(entries) = features.get(feature) else {
+            continue;
+        };
+        for entry in entries {
+            if let Some(dep) = entry.strip_prefix("dep:") {
+                activated.insert(dep);
+            } else if let Some((dep, _feature_of_dep)) = entry.split_once('/') {
+                if !dep.ends_with('?') {
+                    activated.insert(dep);
+                }
+            } else {
+                queue.push(entry);
+            }
+        }
+    }
+
+    activated
+}
+
 /// Contains a generated SBOM and context used in its generation
 ///
 /// * `bom` - Generated SBOM
@@ -1076,6 +1194,7 @@ impl From<std::io::Error> for SbomWriterError {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::collections::BTreeSet;
 
     #[test]
     fn it_should_parse_author_and_email() {
@@ -1114,5 +1233,70 @@ mod test {
         let expected = OrganizationalContact::new("<First Last user@domain.tld>", None);
 
         assert_eq!(actual, expected);
+    }
+
+    fn features(entries: &[(&str, &[&str])]) -> BTreeMap<String, Vec<String>> {
+        entries
+            .iter()
+            .map(|(name, values)| {
+                (
+                    name.to_string(),
+                    values.iter().map(|v| v.to_string()).collect(),
+                )
+            })
+            .collect()
+    }
+
+    fn activated(features: &BTreeMap<String, Vec<String>>, enabled: &[&str]) -> BTreeSet<String> {
+        let enabled: Vec<String> = enabled.iter().map(|f| f.to_string()).collect();
+        activated_dependencies(features, &enabled)
+            .into_iter()
+            .map(String::from)
+            .collect()
+    }
+
+    fn set(names: &[&str]) -> BTreeSet<String> {
+        names.iter().map(|n| n.to_string()).collect()
+    }
+
+    #[test]
+    fn dep_syntax_activates_an_optional_dependency() {
+        let features = features(&[("json", &["dep:serde_json"])]);
+
+        assert_eq!(activated(&features, &["json"]), set(&["serde_json"]));
+        assert_eq!(activated(&features, &[]), set(&[]));
+    }
+
+    #[test]
+    fn features_are_expanded_transitively() {
+        let features = features(&[
+            ("default", &["std"]),
+            ("std", &["alloc"]),
+            ("alloc", &["dep:allocator"]),
+        ]);
+
+        assert_eq!(activated(&features, &["default"]), set(&["allocator"]));
+    }
+
+    #[test]
+    fn a_feature_of_a_dependency_activates_it_unless_it_is_weak() {
+        let features = features(&[("strong", &["chrono/serde"]), ("weak", &["chrono?/serde"])]);
+
+        assert_eq!(activated(&features, &["strong"]), set(&["chrono"]));
+        assert_eq!(activated(&features, &["weak"]), set(&[]));
+        // A weak reference does not undo a strong one.
+        assert_eq!(activated(&features, &["strong", "weak"]), set(&["chrono"]));
+    }
+
+    #[test]
+    fn cyclic_features_terminate() {
+        let features = features(&[("a", &["b", "dep:x"]), ("b", &["a"])]);
+
+        assert_eq!(activated(&features, &["a"]), set(&["x"]));
+    }
+
+    #[test]
+    fn unknown_features_are_ignored() {
+        assert_eq!(activated(&features(&[]), &["not-a-feature"]), set(&[]));
     }
 }

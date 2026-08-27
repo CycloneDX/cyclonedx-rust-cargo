@@ -1,0 +1,11 @@
+[package]
+name = "weak_dep"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+some_feature = []
+
+# Reachable only through `weak_dep`, so it has to disappear along with it.
+[dependencies]
+dep_of_weak = { path = "../dep_of_weak" }

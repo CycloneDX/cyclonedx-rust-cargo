@@ -1,0 +1,22 @@
+[package]
+name = "top_level_crate"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["turn_on"]
+turn_on = [
+    # Activates `enabled_dep`.
+    "dep:enabled_dep",
+    # Activates `renamed_dep`, which is only ever named by its rename.
+    "aliased/some_feature",
+    # Weak: enables a feature on `weak_dep` without activating it.
+    "weak_dep?/some_feature",
+]
+
+[dependencies]
+plain_dep = { path = "../plain_dep" }
+enabled_dep = { path = "../enabled_dep", optional = true }
+disabled_dep = { path = "../disabled_dep", optional = true }
+weak_dep = { path = "../weak_dep", optional = true }
+aliased = { path = "../renamed_dep", package = "renamed_dep", optional = true }

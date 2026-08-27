@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+ - Optional dependencies that no enabled feature activates are no longer included in the SBOM. `cargo metadata` lists them in the dependency graph whether or not the resolver enabled them, so the enabled features recorded alongside are now replayed to tell the two apart. ([#766])
+
 ## 0.5.9 - 2026-03-19
 
 ### Added
@@ -182,6 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#746]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/746
 [#755]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/755
 [#762]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/762
+[#766]: https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766
 [#770]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/770
 [#772]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/772
 [#808]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/808
