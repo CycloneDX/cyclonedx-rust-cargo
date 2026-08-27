@@ -247,4 +247,102 @@ mod tests {
             != NormalizedString::new("runtime_dep_of_build_dep")
             || c.scope == Some(Scope::Excluded)));
     }
+
+    /// Optional dependencies that no enabled feature activates are reported by
+    /// `cargo metadata` all the same, and must not reach the SBOM.
+    /// See <https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766>.
+    #[test]
+    fn parse_toml_with_unactivated_optional_deps() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use std::collections::BTreeSet;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/optional_deps/top_level_crate/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+        let components: BTreeSet<String> = sboms[0]
+            .bom
+            .components
+            .as_ref()
+            .unwrap()
+            .0
+            .iter()
+            .map(|c| c.name.to_string())
+            .collect();
+
+        // `plain_dep` is not optional; `enabled_dep` is activated by `dep:`;
+        // `renamed_dep` is activated through its rename, `aliased/some_feature`.
+        // `weak_dep` is only named weakly and `disabled_dep` not at all, so
+        // neither is built - and `dep_of_weak`, reachable only through
+        // `weak_dep`, has to go with it.
+        let expected: BTreeSet<String> = ["plain_dep", "enabled_dep", "renamed_dep"]
+            .iter()
+            .map(|n| n.to_string())
+            .collect();
+        assert_eq!(components, expected);
+    }
+
+    /// Pruning `weak_dep` drops `dep_of_weak` with it. The two code paths that
+    /// do the dropping - rewriting a node's own edges and deciding what the
+    /// graph walk visits next - have to agree, or the SBOM ends up with
+    /// dependency references that point at components it does not contain.
+    #[test]
+    fn no_dangling_dependency_refs() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use std::collections::BTreeSet;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/optional_deps/top_level_crate/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+        let bom = &sboms[0].bom;
+
+        let mut known: BTreeSet<&str> = bom
+            .components
+            .as_ref()
+            .unwrap()
+            .0
+            .iter()
+            .filter_map(|c| c.bom_ref.as_deref())
+            .collect();
+        known.insert(
+            bom.metadata
+                .as_ref()
+                .unwrap()
+                .component
+                .as_ref()
+                .unwrap()
+                .bom_ref
+                .as_deref()
+                .unwrap(),
+        );
+
+        for dependency in &bom.dependencies.as_ref().unwrap().0 {
+            assert!(
+                known.contains(dependency.dependency_ref.as_str()),
+                "dangling dependency entry: {}",
+                dependency.dependency_ref
+            );
+            for dependency_ref in &dependency.dependencies {
+                assert!(
+                    known.contains(dependency_ref.as_str()),
+                    "dangling dependency reference: {dependency_ref}"
+                );
+            }
+        }
+    }
 }

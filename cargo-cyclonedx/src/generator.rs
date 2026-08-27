@@ -26,6 +26,8 @@ use crate::format::Format;
 use crate::purl::get_purl;
 
 use cargo_metadata;
+use cargo_metadata::DepKindInfo;
+use cargo_metadata::Dependency as CargoDependency;
 use cargo_metadata::DependencyKind;
 use cargo_metadata::Metadata as CargoMetadata;
 use cargo_metadata::Node;
@@ -72,6 +74,10 @@ use validator::ValidateEmail;
 type PackageMap = BTreeMap<PackageId, Package>;
 type ResolveMap = BTreeMap<PackageId, Node>;
 type DependencyKindMap = BTreeMap<PackageId, DependencyKind>;
+/// Which optional dependencies each package's enabled features activate,
+/// keyed on the name feature syntax refers to them by. Worked out once per
+/// `cargo metadata` invocation because it does not vary by workspace member.
+type ActivationMap<'a> = HashMap<&'a PackageId, HashSet<&'a str>>;
 
 /// The values are ordered from weakest to strongest so that casting to integer would make sense
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
@@ -126,17 +132,19 @@ impl SbomGenerator {
         let packages = index_packages(meta.packages);
         let resolve = index_resolve(meta.resolve.unwrap().nodes);
 
+        let activated = index_activated_dependencies(&packages, &resolve);
+
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
             log::trace!("Processing the package {}", member);
 
-            let dep_kinds = index_dep_kinds(member, &resolve);
+            let dep_kinds = index_dep_kinds(member, &packages, &resolve, &activated);
 
             let (dependencies, pruned_resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(member, &packages, &resolve, config)
+                    all_dependencies(member, &packages, &resolve, &activated, config)
                 } else {
-                    top_level_dependencies(member, &packages, &resolve, config)
+                    top_level_dependencies(member, &packages, &resolve, &activated, config)
                 };
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
@@ -627,7 +635,12 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
         .collect()
 }
 
-fn index_dep_kinds(root: &PackageId, resolve: &ResolveMap) -> DependencyKindMap {
+fn index_dep_kinds(
+    root: &PackageId,
+    packages: &PackageMap,
+    resolve: &ResolveMap,
+    activated: &ActivationMap,
+) -> DependencyKindMap {
     // cache strongest found dependency kind for every node
     let mut id_to_dep_kind: HashMap<PackageId, PrivateDepKind> = HashMap::new();
     id_to_dep_kind.insert(root.clone(), PrivateDepKind::Runtime);
@@ -659,8 +672,20 @@ fn index_dep_kinds(root: &PackageId, resolve: &ResolveMap) -> DependencyKindMap 
         }
 
         let node = &resolve[&pkg_id];
+        let parent = packages.get(&pkg_id).zip(activated.get(&pkg_id));
         for child_dep in &node.deps {
+            let child = packages.get(&child_dep.pkg);
             for dep_kind in &child_dep.dep_kinds {
+                // Unlike `filtered_dependencies` this walk deliberately keeps
+                // dev- and build-dependencies, since their whole purpose here is
+                // to mark components as `Excluded`. Optional dependencies that
+                // were never activated are still skipped: an edge that is not
+                // built must not raise the scope of a package reached elsewhere.
+                if let (Some((parent, activated)), Some(child)) = (parent, child) {
+                    if !is_activated(parent, child, dep_kind, activated) {
+                        continue;
+                    }
+                }
                 let current_kind = PrivateDepKind::from(&dep_kind.kind);
                 let new_path_node_kind = min(current_kind, path_node_kind);
 
@@ -720,12 +745,13 @@ fn top_level_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
+    activated: &ActivationMap,
     config: &SbomConfig,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let root_node = add_filtered_dependencies(&resolve[root], config);
+    let root_node = add_filtered_dependencies(&resolve[root], packages, activated, config);
 
     let mut pkg_result = PackageMap::new();
 
@@ -753,6 +779,7 @@ fn all_dependencies(
     root: &PackageId,
     packages: &PackageMap,
     resolve: &ResolveMap,
+    activated: &ActivationMap,
     config: &SbomConfig,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
@@ -774,10 +801,14 @@ fn all_dependencies(
             // If we haven't processed this node yet...
             if !out_resolve.contains_key(&node.id) {
                 // Add the node to the output
-                out_resolve.insert(node.id.to_owned(), add_filtered_dependencies(node, config));
+                out_resolve.insert(
+                    node.id.to_owned(),
+                    add_filtered_dependencies(node, packages, activated, config),
+                );
                 // Queue its dependencies for the next BFS loop iteration
                 next_queue.extend(
-                    filtered_dependencies(&node.deps, config).map(|dep| &resolve[&dep.pkg]),
+                    filtered_dependencies(node, packages, activated, config)
+                        .map(|dep| &resolve[&dep.pkg]),
                 );
             }
         }
@@ -794,28 +825,166 @@ fn all_dependencies(
     (out_packages, out_resolve)
 }
 
-fn add_filtered_dependencies(node: &Node, config: &SbomConfig) -> Node {
-    let mut node = node.clone();
-    node.deps = filtered_dependencies(&node.deps, config).cloned().collect();
-    node.dependencies = node.deps.iter().map(|d| d.pkg.to_owned()).collect();
-    node
+fn add_filtered_dependencies(
+    node: &Node,
+    packages: &PackageMap,
+    activated: &ActivationMap,
+    config: &SbomConfig,
+) -> Node {
+    let mut node_copy = node.clone();
+    node_copy.deps = filtered_dependencies(node, packages, activated, config)
+        .cloned()
+        .collect();
+    node_copy.dependencies = node_copy.deps.iter().map(|d| d.pkg.to_owned()).collect();
+    node_copy
 }
 
-/// Filters out dependencies only used for development, and not affecting the final binary.
-/// These are specified under `[dev-dependencies]` in Cargo.toml.
+/// Filters out the dependencies of `node` that do not end up being built:
+///
+/// * dependencies only used for development, specified under `[dev-dependencies]`
+///   in `Cargo.toml` (and also build dependencies, if so configured);
+/// * optional dependencies that none of the enabled features activate.
+///
+/// `cargo metadata` reports optional dependencies in `resolve.nodes[].deps`
+/// whether or not the resolver enabled them, so the second group has to be
+/// recovered by replaying the feature resolution recorded in
+/// `resolve.nodes[].features`. See
+/// <https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766>.
 fn filtered_dependencies<'a>(
-    input: &'a [NodeDep],
+    node: &'a Node,
+    packages: &'a PackageMap,
+    activated: &'a ActivationMap,
     config: &'a SbomConfig,
 ) -> impl Iterator<Item = &'a NodeDep> {
-    input.iter().filter(|p| {
-        p.dep_kinds.iter().any(|dep| {
-            if let Some(true) = config.only_normal_deps {
-                dep.kind == DependencyKind::Normal
-            } else {
-                dep.kind != DependencyKind::Development
-            }
+    let parent = packages.get(&node.id).zip(activated.get(&node.id));
+
+    node.deps.iter().filter(move |edge| {
+        edge.dep_kinds.iter().any(|dep_kind| {
+            included_kind(dep_kind.kind, config)
+                && match (parent, packages.get(&edge.pkg)) {
+                    (Some((parent, activated)), Some(child)) => {
+                        is_activated(parent, child, dep_kind, activated)
+                    }
+                    // Without both manifests there is nothing to check against,
+                    // so keep the edge rather than risk dropping a real dependency.
+                    _ => true,
+                }
         })
     })
+}
+
+/// Works out, for every package in the resolve graph, which of its optional
+/// dependencies its enabled features activate.
+fn index_activated_dependencies<'a>(
+    packages: &'a PackageMap,
+    resolve: &'a ResolveMap,
+) -> ActivationMap<'a> {
+    resolve
+        .iter()
+        .filter_map(|(id, node)| {
+            let package = packages.get(id)?;
+            Some((
+                id,
+                activated_dependencies(&package.features, &node.features),
+            ))
+        })
+        .collect()
+}
+
+/// Whether a dependency of this kind belongs in the SBOM at all.
+fn included_kind(kind: DependencyKind, config: &SbomConfig) -> bool {
+    if let Some(true) = config.only_normal_deps {
+        kind == DependencyKind::Normal
+    } else {
+        kind != DependencyKind::Development
+    }
+}
+
+/// Whether `parent` actually builds `child` as a dependency of the given kind and platform.
+///
+/// A single edge in the resolve graph can be backed by more than one entry in the
+/// parent's manifest - the same crate can be depended on twice under different
+/// renames - so the edge survives if any of those entries is non-optional or is
+/// activated by an enabled feature.
+fn is_activated(
+    parent: &Package,
+    child: &Package,
+    dep_kind: &DepKindInfo,
+    activated: &HashSet<&str>,
+) -> bool {
+    let declares_edge = |dep: &&CargoDependency| {
+        dep.name == child.name && dep.kind == dep_kind.kind && dep.target == dep_kind.target
+    };
+    let is_built =
+        |dep: &&CargoDependency| !dep.optional || activated.contains(dependency_key(dep));
+
+    // The version requirement tells same-named entries apart.
+    let mut by_version = parent
+        .dependencies
+        .iter()
+        .filter(declares_edge)
+        .filter(|dep| dep.req.matches(&child.version))
+        .peekable();
+    if by_version.peek().is_some() {
+        return by_version.any(|dep| is_built(&dep));
+    }
+
+    // If the version requirement ruled out every entry - pre-release versions and
+    // `[patch]` can both do that - fall back to matching on the name alone rather
+    // than dropping the edge. An edge with no matching manifest entry at all is
+    // not something we understand, so keep that too.
+    let mut by_name = parent.dependencies.iter().filter(declares_edge).peekable();
+    by_name.peek().is_none() || by_name.any(|dep| is_built(&dep))
+}
+
+/// The name a dependency is known by in feature syntax: the rename if it was
+/// renamed with `package = "..."`, and the package name otherwise.
+fn dependency_key(dep: &CargoDependency) -> &str {
+    dep.rename.as_deref().unwrap_or(&dep.name)
+}
+
+/// Collects the optional dependencies that `enabled_features` activate, given a
+/// package's `[features]` table as reported by `cargo metadata`.
+///
+/// Every entry of a feature is one of four things:
+///
+/// * `dep:foo` - activates the optional dependency `foo`;
+/// * `foo/bar` - activates `foo` if it is optional, and enables `bar` on it;
+/// * `foo?/bar` - enables `bar` on `foo`, but only if something else activates it;
+/// * `bar` - another feature of this package, expanded recursively.
+///
+/// Optional dependencies that are never named with `dep:` also get an implicit
+/// feature of their own, but `cargo metadata` normalizes those into an explicit
+/// `"foo": ["dep:foo"]` entry, so they need no special handling here.
+fn activated_dependencies<'a>(
+    features: &'a BTreeMap<String, Vec<String>>,
+    enabled_features: &'a [String],
+) -> HashSet<&'a str> {
+    let mut activated = HashSet::new();
+    let mut visited: HashSet<&str> = HashSet::new();
+    let mut queue: Vec<&str> = enabled_features.iter().map(String::as_str).collect();
+
+    while let Some(feature) = queue.pop() {
+        if !visited.insert(feature) {
+            continue;
+        }
+        let Some(entries) = features.get(feature) else {
+            continue;
+        };
+        for entry in entries {
+            if let Some(dep) = entry.strip_prefix("dep:") {
+                activated.insert(dep);
+            } else if let Some((dep, _feature_of_dep)) = entry.split_once('/') {
+                if !dep.ends_with('?') {
+                    activated.insert(dep);
+                }
+            } else {
+                queue.push(entry);
+            }
+        }
+    }
+
+    activated
 }
 
 /// Contains a generated SBOM and context used in its generation
@@ -1076,6 +1245,7 @@ impl From<std::io::Error> for SbomWriterError {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::collections::BTreeSet;
 
     #[test]
     fn it_should_parse_author_and_email() {
@@ -1114,5 +1284,88 @@ mod test {
         let expected = OrganizationalContact::new("<First Last user@domain.tld>", None);
 
         assert_eq!(actual, expected);
+    }
+
+    fn features(entries: &[(&str, &[&str])]) -> BTreeMap<String, Vec<String>> {
+        entries
+            .iter()
+            .map(|(name, values)| {
+                (
+                    name.to_string(),
+                    values.iter().map(|v| v.to_string()).collect(),
+                )
+            })
+            .collect()
+    }
+
+    fn activated(features: &BTreeMap<String, Vec<String>>, enabled: &[&str]) -> BTreeSet<String> {
+        let enabled: Vec<String> = enabled.iter().map(|f| f.to_string()).collect();
+        activated_dependencies(features, &enabled)
+            .into_iter()
+            .map(String::from)
+            .collect()
+    }
+
+    fn set(names: &[&str]) -> BTreeSet<String> {
+        names.iter().map(|n| n.to_string()).collect()
+    }
+
+    #[test]
+    fn dep_syntax_activates_an_optional_dependency() {
+        let features = features(&[("json", &["dep:serde_json"])]);
+
+        assert_eq!(activated(&features, &["json"]), set(&["serde_json"]));
+        assert_eq!(activated(&features, &[]), set(&[]));
+    }
+
+    #[test]
+    fn implicit_features_activate_an_optional_dependency() {
+        // An optional dependency that no feature mentions with `dep:` gets a
+        // feature of its own, which `cargo metadata` reports in this normalized form.
+        let features = features(&[("serde_json", &["dep:serde_json"])]);
+
+        assert_eq!(activated(&features, &["serde_json"]), set(&["serde_json"]));
+    }
+
+    #[test]
+    fn features_are_expanded_transitively() {
+        let features = features(&[
+            ("default", &["std"]),
+            ("std", &["alloc"]),
+            ("alloc", &["dep:allocator"]),
+        ]);
+
+        assert_eq!(activated(&features, &["default"]), set(&["allocator"]));
+    }
+
+    #[test]
+    fn a_feature_of_a_dependency_activates_it_unless_it_is_weak() {
+        let features = features(&[("strong", &["chrono/serde"]), ("weak", &["chrono?/serde"])]);
+
+        assert_eq!(activated(&features, &["strong"]), set(&["chrono"]));
+        assert_eq!(activated(&features, &["weak"]), set(&[]));
+        // A weak reference does not undo a strong one.
+        assert_eq!(activated(&features, &["strong", "weak"]), set(&["chrono"]));
+    }
+
+    #[test]
+    fn dependencies_are_keyed_on_the_rename() {
+        // `chrono_0_4 = { package = "chrono", optional = true }` is activated as
+        // `chrono_0_4`, never as `chrono`.
+        let features = features(&[("dates", &["dep:chrono_0_4"])]);
+
+        assert_eq!(activated(&features, &["dates"]), set(&["chrono_0_4"]));
+    }
+
+    #[test]
+    fn cyclic_features_terminate() {
+        let features = features(&[("a", &["b", "dep:x"]), ("b", &["a"])]);
+
+        assert_eq!(activated(&features, &["a"]), set(&["x"]));
+    }
+
+    #[test]
+    fn unknown_features_are_ignored() {
+        assert_eq!(activated(&features(&[]), &["not-a-feature"]), set(&[]));
     }
 }
