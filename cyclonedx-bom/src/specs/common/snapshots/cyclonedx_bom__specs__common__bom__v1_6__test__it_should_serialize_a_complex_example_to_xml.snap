@@ -6,6 +6,11 @@ expression: xml_output
 <bom xmlns="http://cyclonedx.org/schema/bom/1.6" serialNumber="fake-uuid" version="1">
   <metadata>
     <timestamp>timestamp</timestamp>
+    <lifecycles>
+      <lifecycle>
+        <phase>design</phase>
+      </lifecycle>
+    </lifecycles>
     <tools>
       <tool>
         <vendor>vendor</vendor>
@@ -117,9 +122,6 @@ expression: xml_output
           </hashes>
         </reference>
       </externalReferences>
-      <properties>
-        <property name="name">value</property>
-      </properties>
       <components />
       <evidence>
         <licenses>
@@ -129,10 +131,6 @@ expression: xml_output
           <text><![CDATA[copyright]]></text>
         </copyright>
       </evidence>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
       <modelCard bom-ref="modelcard-1">
         <modelParameters>
           <approach>
@@ -201,6 +199,13 @@ expression: xml_output
           <attachment>foo: bar</attachment>
         </contents>
       </data>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </component>
     <manufacture>
       <name>name</name>
@@ -226,11 +231,6 @@ expression: xml_output
     <properties>
       <property name="name">value</property>
     </properties>
-    <lifecycles>
-      <lifecycle>
-        <phase>design</phase>
-      </lifecycle>
-    </lifecycles>
   </metadata>
   <components>
     <component type="component type" mime-type="mime type" bom-ref="bom ref">
@@ -318,9 +318,6 @@ expression: xml_output
           </hashes>
         </reference>
       </externalReferences>
-      <properties>
-        <property name="name">value</property>
-      </properties>
       <components />
       <evidence>
         <licenses>
@@ -330,10 +327,6 @@ expression: xml_output
           <text><![CDATA[copyright]]></text>
         </copyright>
       </evidence>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
       <modelCard bom-ref="modelcard-1">
         <modelParameters>
           <approach>
@@ -402,6 +395,13 @@ expression: xml_output
           <attachment>foo: bar</attachment>
         </contents>
       </data>
+      <properties>
+        <property name="name">value</property>
+      </properties>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
     </component>
   </components>
   <services>
@@ -424,6 +424,7 @@ expression: xml_output
       </endpoints>
       <authenticated>true</authenticated>
       <x-trust-boundary>true</x-trust-boundary>
+      <trustZone>trust zone</trustZone>
       <data>
         <dataflow name="Consumer to Stock Service" name="Traffic to/from consumer to service">
           <classification flow="flow">classification</classification>
@@ -456,15 +457,14 @@ expression: xml_output
           </hashes>
         </reference>
       </externalReferences>
+      <services />
       <properties>
         <property name="name">value</property>
       </properties>
-      <services />
       <signature>
         <algorithm>HS512</algorithm>
         <value>1234567890</value>
       </signature>
-      <trustZone>trust zone</trustZone>
     </service>
   </services>
   <externalReferences>
@@ -499,9 +499,6 @@ expression: xml_output
       </signature>
     </composition>
   </compositions>
-  <properties>
-    <property name="name">value</property>
-  </properties>
   <vulnerabilities>
     <vulnerability bom-ref="bom-ref">
       <id>id</id>
@@ -539,6 +536,14 @@ expression: xml_output
       <description>description</description>
       <detail>detail</detail>
       <recommendation>recommendation</recommendation>
+      <workaround>workaround</workaround>
+      <proofOfConcept>
+        <reproductionSteps>reproduction steps</reproductionSteps>
+        <environment>production</environment>
+        <supportingMaterial>
+          <attachment encoding="base64" encoding="image/jpeg">abcdefgh</attachment>
+        </supportingMaterial>
+      </proofOfConcept>
       <advisories>
         <advisory>
           <title>title</title>
@@ -616,9 +621,32 @@ expression: xml_output
       <properties>
         <property name="name">value</property>
       </properties>
-      <workaround>workaround</workaround>
     </vulnerability>
   </vulnerabilities>
+  <annotations>
+    <annotation bom-ref="annotation-1">
+      <subjects>
+        <subject>subject1</subject>
+      </subjects>
+      <annotator>
+        <organization>
+          <name>name</name>
+          <url>url</url>
+          <contact>
+            <name>name</name>
+            <email>email</email>
+            <phone>phone</phone>
+          </contact>
+        </organization>
+      </annotator>
+      <timestamp>timestamp</timestamp>
+      <text>Annotation text</text>
+      <signature>
+        <algorithm>HS512</algorithm>
+        <value>1234567890</value>
+      </signature>
+    </annotation>
+  </annotations>
   <formulation>
     <formula bom-ref="formula-1">
       <components>
@@ -629,4 +657,11 @@ expression: xml_output
       </components>
     </formula>
   </formulation>
+  <properties>
+    <property name="name">value</property>
+  </properties>
+  <signature>
+    <algorithm>HS512</algorithm>
+    <value>1234567890</value>
+  </signature>
 </bom>

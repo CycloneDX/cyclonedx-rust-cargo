@@ -120,6 +120,7 @@ pub(crate) fn write_close_tag<W: Write>(
 /// Writes a `serde_json::Value` as XML elements.
 /// Objects become nested elements, arrays become repeated child elements,
 /// strings/numbers/bools become text content.
+/// Keys starting with `@` are written as XML attributes on the parent element.
 pub(crate) fn write_value_as_xml<W: Write>(
     writer: &mut EventWriter<W>,
     tag: &str,
@@ -127,9 +128,20 @@ pub(crate) fn write_value_as_xml<W: Write>(
 ) -> Result<(), XmlWriteError> {
     match value {
         serde_json::Value::Object(map) => {
-            write_start_tag(writer, tag)?;
+            let mut start = XmlEvent::start_element(tag);
+
+            let attr_values: Vec<_> = map
+                .iter()
+                .filter(|(k, _)| k.starts_with('@'))
+                .filter_map(|(k, v)| v.as_str().map(|s| (k.as_str(), s)))
+                .collect();
+            for (k, v) in &attr_values {
+                start = start.attr(&k[1..], v);
+            }
+
+            writer.write(start).map_err(to_xml_write_error(tag))?;
             for (key, val) in map {
-                if !val.is_null() {
+                if !key.starts_with('@') && !val.is_null() {
                     write_value_as_xml(writer, key, val)?;
                 }
             }
@@ -156,21 +168,38 @@ pub(crate) fn write_value_as_xml<W: Write>(
 
 /// Reads an XML element subtree into a `serde_json::Value`.
 /// Elements with children become objects, repeated elements become arrays,
-/// text-only elements become strings.
+/// text-only elements become strings. XML attributes are preserved as `@attr` keys.
 pub(crate) fn read_xml_as_value<R: Read>(
     event_reader: &mut xml::EventReader<R>,
     element_name: &xml::name::OwnedName,
 ) -> Result<serde_json::Value, XmlReadError> {
+    read_xml_as_value_inner(event_reader, element_name, &[])
+}
+
+fn read_xml_as_value_inner<R: Read>(
+    event_reader: &mut xml::EventReader<R>,
+    element_name: &xml::name::OwnedName,
+    start_attributes: &[xml::attribute::OwnedAttribute],
+) -> Result<serde_json::Value, XmlReadError> {
     let mut map = serde_json::Map::new();
     let mut text = String::new();
+
+    for attr in start_attributes {
+        map.insert(
+            format!("@{}", attr.name.local_name),
+            serde_json::Value::String(attr.value.clone()),
+        );
+    }
 
     loop {
         let event = event_reader
             .next()
             .map_err(to_xml_read_error(&element_name.local_name))?;
         match event {
-            reader::XmlEvent::StartElement { name, .. } => {
-                let child_value = read_xml_as_value(event_reader, &name)?;
+            reader::XmlEvent::StartElement {
+                name, attributes, ..
+            } => {
+                let child_value = read_xml_as_value_inner(event_reader, &name, &attributes)?;
                 let key = name.local_name;
                 if let Some(existing) = map.remove(&key) {
                     match existing {
@@ -196,8 +225,12 @@ pub(crate) fn read_xml_as_value<R: Read>(
         }
     }
 
-    if map.is_empty() {
+    let has_non_attr_keys = map.keys().any(|k| !k.starts_with('@'));
+    if !has_non_attr_keys && map.is_empty() {
         Ok(serde_json::Value::String(text))
+    } else if !has_non_attr_keys && !text.is_empty() {
+        map.insert("#text".to_string(), serde_json::Value::String(text));
+        Ok(serde_json::Value::Object(map))
     } else {
         Ok(serde_json::Value::Object(map))
     }

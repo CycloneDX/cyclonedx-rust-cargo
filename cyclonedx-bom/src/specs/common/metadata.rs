@@ -104,9 +104,10 @@ pub(crate) mod base {
                 #[versioned("1.6", "1.7")]
                 manufacturer: convert_optional(other.manufacturer),
                 #[versioned("1.7")]
-                distribution_constraints: other
-                    .distribution_constraints
-                    .map(|dc| serde_json::to_value(&dc).unwrap_or_default()),
+                distribution_constraints: other.distribution_constraints.map(|dc| {
+                    serde_json::to_value(&dc)
+                        .expect("DistributionConstraints is always serializable")
+                }),
             })
         }
     }
@@ -162,8 +163,20 @@ pub(crate) mod base {
                 write_simple_tag(writer, TIMESTAMP_TAG, timestamp)?;
             }
 
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(lifecycles) = &self.lifecycles {
+                lifecycles.write_xml_element(writer)?;
+            }
+
             if let Some(tools) = &self.tools {
                 tools.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(manufacturer) = &self.manufacturer {
+                if manufacturer.will_write() {
+                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
+                }
             }
 
             if let Some(authors) = &self.authors {
@@ -196,18 +209,6 @@ pub(crate) mod base {
 
             if let Some(properties) = &self.properties {
                 properties.write_xml_element(writer)?;
-            }
-
-            #[versioned("1.5", "1.6", "1.7")]
-            if let Some(lifecycles) = &self.lifecycles {
-                lifecycles.write_xml_element(writer)?;
-            }
-
-            #[versioned("1.6", "1.7")]
-            if let Some(manufacturer) = &self.manufacturer {
-                if manufacturer.will_write() {
-                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
-                }
             }
 
             #[versioned("1.7")]

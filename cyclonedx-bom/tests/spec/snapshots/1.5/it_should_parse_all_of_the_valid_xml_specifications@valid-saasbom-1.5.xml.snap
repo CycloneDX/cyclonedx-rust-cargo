@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 26
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
 ---
@@ -26,6 +25,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
         <endpoint>https://example.com/app</endpoint>
       </endpoints>
       <authenticated>true</authenticated>
+      <trustZone>Acme Public Zone</trustZone>
       <data>
         <dataflow name="Consumer to Stock Service" name="Traffic to/from consumer to service">
           <classification flow="bi-directional">Customer</classification>
@@ -90,6 +90,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
             <endpoint>https://ms-1.example.com</endpoint>
           </endpoints>
           <authenticated>true</authenticated>
+          <trustZone>Acme Private Zone</trustZone>
           <data>
             <dataflow name="Stock Service to MS-1" name="Traffic to/from stock service to microservice-1">
               <classification flow="bi-directional">PII</classification>
@@ -115,7 +116,6 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
               <url>https://ms-1.example.com/swagger</url>
             </reference>
           </externalReferences>
-          <trustZone>Acme Private Zone</trustZone>
         </service>
         <service bom-ref="ms-2.example.com">
           <provider>
@@ -128,6 +128,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
             <endpoint>https://ms-2.example.com</endpoint>
           </endpoints>
           <authenticated>true</authenticated>
+          <trustZone>Acme Private Zone</trustZone>
           <data>
             <dataflow name="Stock Service to MS-2" name="Traffic to/from stock service to microservice-2">
               <classification flow="bi-directional">PII</classification>
@@ -144,7 +145,6 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
               <url>https://ms-2.example.com/swagger</url>
             </reference>
           </externalReferences>
-          <trustZone>Acme Private Zone</trustZone>
         </service>
         <service bom-ref="ms-3.example.com">
           <provider>
@@ -157,6 +157,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
             <endpoint>https://ms-3.example.com</endpoint>
           </endpoints>
           <authenticated>true</authenticated>
+          <trustZone>Acme Private Zone</trustZone>
           <data>
             <dataflow name="Stock Service to MS-3" name="Traffic to/from stock service to microservice-3">
               <classification flow="bi-directional">PII</classification>
@@ -179,7 +180,6 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
               <url>https://ms-3.example.com/swagger</url>
             </reference>
           </externalReferences>
-          <trustZone>Acme Private Zone</trustZone>
         </service>
         <service bom-ref="ms-1-pgsql.example.com">
           <group>org.postgresql</group>
@@ -190,6 +190,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
             <endpoint>https://ms-1-pgsql.example.com:5432</endpoint>
           </endpoints>
           <authenticated>true</authenticated>
+          <trustZone>Acme Private Zone</trustZone>
           <data>
             <dataflow name="MS-1 to Database" name="Traffic to/from microservice-1 to database">
               <classification flow="bi-directional">PII</classification>
@@ -201,7 +202,6 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
               </destination>
             </dataflow>
           </data>
-          <trustZone>Acme Private Zone</trustZone>
         </service>
         <service bom-ref="s3-example.amazon.com">
           <group>com.amazon</group>
@@ -211,6 +211,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
             <endpoint>https://s3-example.amazon.com</endpoint>
           </endpoints>
           <authenticated>true</authenticated>
+          <trustZone>Public Internet</trustZone>
           <data>
             <dataflow name="MS-3 to S3" name="Data pushed from microservice-3 to S3 bucket">
               <classification flow="inbound">Public</classification>
@@ -219,10 +220,8 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-saasbom-1.5.xml
               </source>
             </dataflow>
           </data>
-          <trustZone>Public Internet</trustZone>
         </service>
       </services>
-      <trustZone>Acme Public Zone</trustZone>
     </service>
   </services>
   <dependencies>

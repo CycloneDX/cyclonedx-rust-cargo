@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/common/metadata.rs
-assertion_line: 387
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -117,9 +116,6 @@ expression: xml_output
         </hashes>
       </reference>
     </externalReferences>
-    <properties>
-      <property name="name">value</property>
-    </properties>
     <components />
     <evidence>
       <licenses>
@@ -129,6 +125,9 @@ expression: xml_output
         <text><![CDATA[copyright]]></text>
       </copyright>
     </evidence>
+    <properties>
+      <property name="name">value</property>
+    </properties>
     <signature>
       <algorithm>HS512</algorithm>
       <value>1234567890</value>

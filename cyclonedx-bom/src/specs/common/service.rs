@@ -317,6 +317,11 @@ pub(crate) mod base {
                 )?;
             }
 
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(trust_zone) = &self.trust_zone {
+                write_simple_tag(writer, TRUST_ZONE_TAG, trust_zone)?;
+            }
+
             if let Some(data) = &self.data {
                 write_start_tag(writer, DATA_TAG)?;
                 data.write_xml_element(writer)?;
@@ -331,22 +336,17 @@ pub(crate) mod base {
                 external_references.write_xml_element(writer)?;
             }
 
-            if let Some(properties) = &self.properties {
-                properties.write_xml_element(writer)?;
-            }
-
             if let Some(services) = &self.services {
                 services.write_xml_element(writer)?;
+            }
+
+            if let Some(properties) = &self.properties {
+                properties.write_xml_element(writer)?;
             }
 
             #[versioned("1.4", "1.5", "1.6", "1.7")]
             if let Some(signature) = &self.signature {
                 signature.write_xml_element(writer)?;
-            }
-
-            #[versioned("1.5", "1.6", "1.7")]
-            if let Some(trust_zone) = &self.trust_zone {
-                write_simple_tag(writer, TRUST_ZONE_TAG, trust_zone)?;
             }
 
             writer

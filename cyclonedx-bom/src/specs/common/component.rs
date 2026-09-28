@@ -423,6 +423,24 @@ pub(crate) mod base {
                 }
             }
 
+            #[versioned("1.6", "1.7")]
+            if let Some(manufacturer) = &self.manufacturer {
+                if manufacturer.will_write() {
+                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
+                }
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(authors) = &self.authors {
+                write_start_tag(writer, AUTHORS_TAG)?;
+                for author in authors {
+                    if author.will_write() {
+                        author.write_xml_named_element(writer, COMPONENT_AUTHOR_TAG)?;
+                    }
+                }
+                write_close_tag(writer, AUTHORS_TAG)?;
+            }
+
             if let Some(author) = &self.author {
                 write_simple_tag(writer, AUTHOR_TAG, author)?;
             }
@@ -442,6 +460,20 @@ pub(crate) mod base {
             #[versioned("1.4", "1.5", "1.6", "1.7")]
             if let Some(version) = &self.version {
                 write_simple_tag(writer, VERSION_TAG, version)?;
+            }
+
+            #[versioned("1.7")]
+            if let Some(version_range) = &self.version_range {
+                write_simple_tag(writer, VERSION_RANGE_TAG, version_range)?;
+            }
+
+            #[versioned("1.7")]
+            if let Some(is_external) = &self.is_external {
+                write_simple_tag(
+                    writer,
+                    IS_EXTERNAL_TAG,
+                    if *is_external { "true" } else { "false" },
+                )?;
             }
 
             if let Some(description) = &self.description {
@@ -464,12 +496,31 @@ pub(crate) mod base {
                 write_simple_tag(writer, COPYRIGHT_TAG, copyright)?;
             }
 
+            #[versioned("1.7")]
+            if let Some(patent_assertions) = &self.patent_assertions {
+                crate::xml::write_value_as_xml(writer, PATENT_ASSERTIONS_TAG, patent_assertions)?;
+            }
+
             if let Some(cpe) = &self.cpe {
                 cpe.write_xml_element(writer)?;
             }
 
             if let Some(purl) = &self.purl {
                 write_simple_tag(writer, PURL_TAG, purl)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(omnibor_id) = &self.omnibor_id {
+                for id in omnibor_id {
+                    write_simple_tag(writer, OMNIBOR_ID_TAG, id)?;
+                }
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(swhid) = &self.swhid {
+                for id in swhid {
+                    write_simple_tag(writer, SWHID_TAG, id)?;
+                }
             }
 
             if let Some(swid) = &self.swid {
@@ -488,10 +539,6 @@ pub(crate) mod base {
                 external_references.write_xml_element(writer)?;
             }
 
-            if let Some(properties) = &self.properties {
-                properties.write_xml_element(writer)?;
-            }
-
             if let Some(components) = &self.components {
                 components.write_xml_element(writer)?;
             }
@@ -500,11 +547,6 @@ pub(crate) mod base {
                 if evidence.will_write() {
                     evidence.write_xml_element(writer)?;
                 }
-            }
-
-            #[versioned("1.4", "1.5", "1.6", "1.7")]
-            if let Some(signature) = &self.signature {
-                signature.write_xml_element(writer)?;
             }
 
             #[versioned("1.5", "1.6", "1.7")]
@@ -518,59 +560,17 @@ pub(crate) mod base {
             }
 
             #[versioned("1.6", "1.7")]
-            if let Some(manufacturer) = &self.manufacturer {
-                if manufacturer.will_write() {
-                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
-                }
-            }
-
-            #[versioned("1.6", "1.7")]
-            if let Some(authors) = &self.authors {
-                write_start_tag(writer, AUTHORS_TAG)?;
-                for author in authors {
-                    if author.will_write() {
-                        author.write_xml_named_element(writer, COMPONENT_AUTHOR_TAG)?;
-                    }
-                }
-                write_close_tag(writer, AUTHORS_TAG)?;
-            }
-
-            #[versioned("1.6", "1.7")]
-            if let Some(omnibor_id) = &self.omnibor_id {
-                for id in omnibor_id {
-                    write_simple_tag(writer, OMNIBOR_ID_TAG, id)?;
-                }
-            }
-
-            #[versioned("1.6", "1.7")]
-            if let Some(swhid) = &self.swhid {
-                for id in swhid {
-                    write_simple_tag(writer, SWHID_TAG, id)?;
-                }
-            }
-
-            #[versioned("1.6", "1.7")]
             if let Some(crypto_properties) = &self.crypto_properties {
                 crate::xml::write_value_as_xml(writer, CRYPTO_PROPERTIES_TAG, crypto_properties)?;
             }
 
-            #[versioned("1.7")]
-            if let Some(is_external) = &self.is_external {
-                write_simple_tag(
-                    writer,
-                    IS_EXTERNAL_TAG,
-                    if *is_external { "true" } else { "false" },
-                )?;
+            if let Some(properties) = &self.properties {
+                properties.write_xml_element(writer)?;
             }
 
-            #[versioned("1.7")]
-            if let Some(version_range) = &self.version_range {
-                write_simple_tag(writer, VERSION_RANGE_TAG, version_range)?;
-            }
-
-            #[versioned("1.7")]
-            if let Some(patent_assertions) = &self.patent_assertions {
-                crate::xml::write_value_as_xml(writer, PATENT_ASSERTIONS_TAG, patent_assertions)?;
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
+            if let Some(signature) = &self.signature {
+                signature.write_xml_element(writer)?;
             }
 
             writer
@@ -863,9 +863,9 @@ pub(crate) mod base {
                         )?)
                     }
                     #[versioned("1.6", "1.7")]
-                    reader::XmlEvent::StartElement {
-                        name, attributes, ..
-                    } if name.local_name == AUTHORS_TAG => {
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == AUTHORS_TAG =>
+                    {
                         component_authors =
                             Some(read_list_tag(event_reader, &name, COMPONENT_AUTHOR_TAG)?)
                     }

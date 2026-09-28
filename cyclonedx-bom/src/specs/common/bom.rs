@@ -295,14 +295,14 @@ pub(crate) mod base {
                 compositions.write_xml_element(writer)?;
             }
 
-            #[versioned("1.5", "1.6", "1.7")]
-            if let Some(properties) = &self.properties {
-                properties.write_xml_element(writer)?;
-            }
-
             #[versioned("1.4", "1.5", "1.6", "1.7")]
             if let Some(vulnerabilities) = &self.vulnerabilities {
                 vulnerabilities.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(annotations) = &self.annotations {
+                annotations.write_xml_element(writer)?;
             }
 
             #[versioned("1.5", "1.6", "1.7")]
@@ -323,6 +323,16 @@ pub(crate) mod base {
             #[versioned("1.7")]
             if let Some(citations) = &self.citations {
                 crate::xml::write_value_as_xml(writer, CITATIONS_TAG, citations)?;
+            }
+
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(properties) = &self.properties {
+                properties.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
+            if let Some(signature) = &self.signature {
+                signature.write_xml_element(writer)?;
             }
 
             writer

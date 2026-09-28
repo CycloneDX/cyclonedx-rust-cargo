@@ -38,9 +38,9 @@ expression: xml_output
         </hashes>
       </reference>
     </externalReferences>
+    <services />
     <properties>
       <property name="name">value</property>
     </properties>
-    <services />
   </service>
 </services>

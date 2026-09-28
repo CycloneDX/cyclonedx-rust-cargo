@@ -23,6 +23,7 @@ expression: xml_output
     </endpoints>
     <authenticated>true</authenticated>
     <x-trust-boundary>true</x-trust-boundary>
+    <trustZone>trust zone</trustZone>
     <data>
       <dataflow name="Consumer to Stock Service" name="Traffic to/from consumer to service">
         <classification flow="flow">classification</classification>
@@ -55,14 +56,13 @@ expression: xml_output
         </hashes>
       </reference>
     </externalReferences>
+    <services />
     <properties>
       <property name="name">value</property>
     </properties>
-    <services />
     <signature>
       <algorithm>HS512</algorithm>
       <value>1234567890</value>
     </signature>
-    <trustZone>trust zone</trustZone>
   </service>
 </services>
