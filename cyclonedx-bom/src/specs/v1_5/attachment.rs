@@ -78,7 +78,7 @@ impl ToInnerXml for Attachment {
             start_tag = start_tag.attr(ENCODING_ATTR, encoding);
         }
         if let Some(content_type) = &self.content_type {
-            start_tag = start_tag.attr(ENCODING_ATTR, content_type);
+            start_tag = start_tag.attr(CONTENT_TYPE_ATTR, content_type);
         }
         writer.write(start_tag).map_err(to_xml_write_error(tag))?;
 

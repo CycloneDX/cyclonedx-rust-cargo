@@ -1,0 +1,24 @@
+---
+source: cyclonedx-bom/src/specs/v1_7/citation.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<citations>
+  <citation bom-ref="citation-1">
+    <pointers>
+      <pointer>/components/0/name</pointer>
+      <pointer>/components/0/version</pointer>
+    </pointers>
+    <timestamp>2025-05-01T14:00:00Z</timestamp>
+    <attributedTo>person-1</attributedTo>
+    <note>Manually entered</note>
+  </citation>
+  <citation>
+    <expressions>
+      <expression>$.components[*].licenses[*].license.id</expression>
+    </expressions>
+    <timestamp>2025-05-01T14:05:00Z</timestamp>
+    <attributedTo>scan-tool-1</attributedTo>
+    <process>task-license-scan</process>
+  </citation>
+</citations>

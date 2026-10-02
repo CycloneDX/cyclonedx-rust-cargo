@@ -18,19 +18,26 @@
 
 pub(crate) mod annotation;
 pub(crate) mod attachment;
+pub(crate) mod citation;
 pub(crate) mod component_data;
 pub(crate) mod data_governance;
+pub(crate) mod distribution_constraints;
 pub(crate) mod evidence;
 pub(crate) mod formulation;
 pub(crate) mod licensing;
 pub(crate) mod lifecycles;
 pub(crate) mod modelcard;
+pub(crate) mod patent;
 pub(crate) mod proof_of_concept;
 pub(crate) mod service_data;
 
 pub(crate) use crate::specs::common::bom::v1_7 as bom;
 pub(crate) use crate::specs::common::component::v1_7 as component;
 pub(crate) use crate::specs::common::composition::v1_7 as composition;
+pub(crate) use crate::specs::common::crypto_properties::v1_7 as crypto_properties;
+pub(crate) use crate::specs::common::declarations::v1_7 as declarations;
+pub(crate) use crate::specs::common::definitions::v1_7 as definitions;
+pub(crate) use crate::specs::common::dependency::v1_7 as dependency;
 pub(crate) use crate::specs::common::external_reference::v1_7 as external_reference;
 pub(crate) use crate::specs::common::license::v1_7 as license;
 pub(crate) use crate::specs::common::metadata::v1_7 as metadata;

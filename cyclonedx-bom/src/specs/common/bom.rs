@@ -64,8 +64,9 @@ pub(crate) mod base {
             common::signature::Signature,
             v1_6::{
                 annotation::Annotations, component::Components, composition::Compositions,
-                external_reference::ExternalReferences, formulation::Formula, metadata::Metadata,
-                service::Services, vulnerability::Vulnerabilities,
+                definitions::Definitions, external_reference::ExternalReferences,
+                formulation::Formula, metadata::Metadata, service::Services,
+                vulnerability::Vulnerabilities,
             },
         },
         utilities::convert_optional_vec,
@@ -77,7 +78,8 @@ pub(crate) mod base {
             common::property::Properties,
             common::signature::Signature,
             v1_7::{
-                annotation::Annotations, component::Components, composition::Compositions,
+                annotation::Annotations, citation::Citations, component::Components,
+                composition::Compositions, definitions::Definitions,
                 external_reference::ExternalReferences, formulation::Formula, metadata::Metadata,
                 service::Services, vulnerability::Vulnerabilities,
             },
@@ -86,7 +88,21 @@ pub(crate) mod base {
         xml::write_list_tag,
     };
 
-    use crate::{specs::common::dependency::Dependencies, xml::ToXml};
+    #[versioned("1.3")]
+    use crate::specs::v1_3::dependency::Dependencies;
+    #[versioned("1.4")]
+    use crate::specs::v1_4::dependency::Dependencies;
+    #[versioned("1.5")]
+    use crate::specs::v1_5::dependency::Dependencies;
+    #[versioned("1.6")]
+    use crate::specs::v1_6::declarations::Declarations;
+    #[versioned("1.6")]
+    use crate::specs::v1_6::dependency::Dependencies;
+    #[versioned("1.7")]
+    use crate::specs::v1_7::declarations::Declarations;
+    #[versioned("1.7")]
+    use crate::specs::v1_7::dependency::Dependencies;
+    use crate::xml::ToXml;
     use serde::{Deserialize, Serialize};
     use xml::{reader, writer::XmlEvent};
 
@@ -149,13 +165,13 @@ pub(crate) mod base {
         formulation: Option<Vec<Formula>>,
         #[versioned("1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        declarations: Option<serde_json::Value>,
+        declarations: Option<Declarations>,
         #[versioned("1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        definitions: Option<serde_json::Value>,
+        definitions: Option<Definitions>,
         #[versioned("1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        citations: Option<serde_json::Value>,
+        citations: Option<Citations>,
     }
 
     impl TryFrom<models::bom::Bom> for Bom {
@@ -192,11 +208,11 @@ pub(crate) mod base {
                     })
                     .transpose()?,
                 #[versioned("1.6", "1.7")]
-                declarations: other.declarations,
+                declarations: try_convert_optional(other.declarations)?,
                 #[versioned("1.6", "1.7")]
-                definitions: other.definitions,
+                definitions: convert_optional(other.definitions),
                 #[versioned("1.7")]
-                citations: other.citations,
+                citations: convert_optional(other.citations),
             })
         }
     }
@@ -235,15 +251,15 @@ pub(crate) mod base {
                 #[versioned("1.3", "1.4", "1.5")]
                 declarations: None,
                 #[versioned("1.6", "1.7")]
-                declarations: other.declarations,
+                declarations: convert_optional(other.declarations),
                 #[versioned("1.3", "1.4", "1.5")]
                 definitions: None,
                 #[versioned("1.6", "1.7")]
-                definitions: other.definitions,
+                definitions: convert_optional(other.definitions),
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
                 citations: None,
                 #[versioned("1.7")]
-                citations: other.citations,
+                citations: convert_optional(other.citations),
                 spec_version: other.spec_version,
             }
         }
@@ -295,6 +311,11 @@ pub(crate) mod base {
                 compositions.write_xml_element(writer)?;
             }
 
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(properties) = &self.properties {
+                properties.write_xml_element(writer)?;
+            }
+
             #[versioned("1.4", "1.5", "1.6", "1.7")]
             if let Some(vulnerabilities) = &self.vulnerabilities {
                 vulnerabilities.write_xml_element(writer)?;
@@ -312,22 +333,17 @@ pub(crate) mod base {
 
             #[versioned("1.6", "1.7")]
             if let Some(declarations) = &self.declarations {
-                crate::xml::write_value_as_xml(writer, DECLARATIONS_TAG, declarations)?;
+                declarations.write_xml_element(writer)?;
             }
 
             #[versioned("1.6", "1.7")]
             if let Some(definitions) = &self.definitions {
-                crate::xml::write_value_as_xml(writer, DEFINITIONS_TAG, definitions)?;
+                definitions.write_xml_element(writer)?;
             }
 
             #[versioned("1.7")]
             if let Some(citations) = &self.citations {
-                crate::xml::write_value_as_xml(writer, CITATIONS_TAG, citations)?;
-            }
-
-            #[versioned("1.5", "1.6", "1.7")]
-            if let Some(properties) = &self.properties {
-                properties.write_xml_element(writer)?;
+                citations.write_xml_element(writer)?;
             }
 
             #[versioned("1.4", "1.5", "1.6", "1.7")]
@@ -432,11 +448,11 @@ pub(crate) mod base {
             #[versioned("1.5", "1.6", "1.7")]
             let mut formulation: Option<Vec<Formula>> = None;
             #[versioned("1.6", "1.7")]
-            let mut declarations: Option<serde_json::Value> = None;
+            let mut declarations: Option<Declarations> = None;
             #[versioned("1.6", "1.7")]
-            let mut definitions: Option<serde_json::Value> = None;
+            let mut definitions: Option<Definitions> = None;
             #[versioned("1.7")]
-            let mut citations: Option<serde_json::Value> = None;
+            let mut citations: Option<Citations> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -545,22 +561,34 @@ pub(crate) mod base {
                     }
 
                     #[versioned("1.6", "1.7")]
-                    reader::XmlEvent::StartElement { name, .. }
-                        if name.local_name == DECLARATIONS_TAG =>
-                    {
-                        declarations = Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == DECLARATIONS_TAG => {
+                        declarations = Some(Declarations::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
                     }
                     #[versioned("1.6", "1.7")]
-                    reader::XmlEvent::StartElement { name, .. }
-                        if name.local_name == DEFINITIONS_TAG =>
-                    {
-                        definitions = Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == DEFINITIONS_TAG => {
+                        definitions = Some(Definitions::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
                     }
                     #[versioned("1.7")]
-                    reader::XmlEvent::StartElement { name, .. }
-                        if name.local_name == CITATIONS_TAG =>
-                    {
-                        citations = Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == CITATIONS_TAG => {
+                        citations = Some(Citations::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
                     }
 
                     // lax validation of any elements from a different schema
@@ -636,6 +664,10 @@ pub(crate) mod base {
     #[cfg(test)]
     pub(crate) mod test {
         #[versioned("1.3")]
+        use crate::specs::v1_3::dependency::test::{
+            corresponding_dependencies, example_dependencies,
+        };
+        #[versioned("1.3")]
         use crate::specs::v1_3::{
             component::test::{corresponding_components, example_components},
             composition::test::{corresponding_compositions, example_compositions},
@@ -644,6 +676,22 @@ pub(crate) mod base {
             },
             metadata::test::{corresponding_metadata, example_metadata},
             service::test::{corresponding_services, example_services},
+        };
+        #[versioned("1.4")]
+        use crate::specs::v1_4::dependency::test::{
+            corresponding_dependencies, example_dependencies,
+        };
+        #[versioned("1.5")]
+        use crate::specs::v1_5::dependency::test::{
+            corresponding_dependencies, example_dependencies,
+        };
+        #[versioned("1.6")]
+        use crate::specs::v1_6::dependency::test::{
+            corresponding_dependencies, example_dependencies,
+        };
+        #[versioned("1.7")]
+        use crate::specs::v1_7::dependency::test::{
+            corresponding_dependencies, example_dependencies,
         };
         #[versioned("1.5")]
         use crate::specs::{
@@ -710,10 +758,7 @@ pub(crate) mod base {
                 vulnerability::test::{corresponding_vulnerabilities, example_vulnerabilities},
             },
         };
-        use crate::{
-            specs::common::dependency::test::{corresponding_dependencies, example_dependencies},
-            xml::test::{read_document_from_string, write_element_to_string},
-        };
+        use crate::xml::test::{read_document_from_string, write_element_to_string};
 
         use super::*;
         use pretty_assertions::assert_eq;
@@ -2170,6 +2215,18 @@ pub(crate) mod base {
       <licenses>
         <expression>expression</expression>
       </licenses>
+      <patentAssertions>
+        <patentAssertion bom-ref="patent-assertion-1">
+          <assertionType>ownership</assertionType>
+          <patentRefs>
+            <bom-ref>patent-1</bom-ref>
+          </patentRefs>
+          <asserter>
+            <ref>org-acme</ref>
+          </asserter>
+          <notes>notes</notes>
+        </patentAssertion>
+      </patentAssertions>
       <externalReferences>
         <reference type="external reference type">
           <url>url</url>
@@ -2392,7 +2449,7 @@ pub(crate) mod base {
   </formulation>
 </bom>
 "#).trim_start().to_string();
-            let actual: Bom = read_document_from_string(&input);
+            let actual: Bom = read_document_from_string(input);
             let expected = full_bom_example();
             assert_eq!(actual, expected);
         }

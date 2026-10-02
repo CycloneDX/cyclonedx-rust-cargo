@@ -319,7 +319,12 @@ impl ToXml for Annotation {
             write_start_tag(writer, SUBJECTS_TAG)?;
 
             for subject in &self.subjects {
-                write_simple_tag(writer, SUBJECT_TAG, subject)?;
+                writer
+                    .write(writer::XmlEvent::start_element(SUBJECT_TAG).attr(REF_ATTR, subject))
+                    .map_err(to_xml_write_error(SUBJECT_TAG))?;
+                writer
+                    .write(writer::XmlEvent::end_element())
+                    .map_err(to_xml_write_error(SUBJECT_TAG))?;
             }
 
             write_close_tag(writer, SUBJECTS_TAG)?;
@@ -345,6 +350,7 @@ impl ToXml for Annotation {
 
 const SUBJECTS_TAG: &str = "subjects";
 const SUBJECT_TAG: &str = "subject";
+const REF_ATTR: &str = "ref";
 const ANNOTATOR_TAG: &str = "annotator";
 const TIMESTAMP_TAG: &str = "timestamp";
 const TEXT_TAG: &str = "text";
@@ -364,10 +370,10 @@ fn read_subject<R: std::io::Read>(
 
     let ref_name = attributes
         .iter()
-        .find(|a| a.name.local_name == "ref")
+        .find(|a| a.name.local_name == REF_ATTR)
         .map(|a| a.value.clone())
         .ok_or_else(|| XmlReadError::RequiredAttributeMissing {
-            attribute: "ref".to_string(),
+            attribute: REF_ATTR.to_string(),
             element: element_name.local_name.clone(),
         })?;
 

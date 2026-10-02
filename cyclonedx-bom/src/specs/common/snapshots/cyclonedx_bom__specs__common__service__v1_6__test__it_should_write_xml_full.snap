@@ -56,10 +56,10 @@ expression: xml_output
         </hashes>
       </reference>
     </externalReferences>
-    <services />
     <properties>
       <property name="name">value</property>
     </properties>
+    <services />
     <signature>
       <algorithm>HS512</algorithm>
       <value>1234567890</value>

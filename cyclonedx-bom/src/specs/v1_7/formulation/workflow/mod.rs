@@ -10,7 +10,7 @@ use crate::{
     errors::XmlReadError,
     get_elements_lax,
     models::formulation::workflow as models,
-    specs::common::{dependency::Dependency, property::Properties},
+    specs::{common::property::Properties, v1_7::dependency::Dependency},
     utilities::{convert_optional, convert_optional_vec},
     xml::{
         attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,
@@ -669,12 +669,14 @@ mod test {
                 runtime_topology: Some(vec![Dependency {
                     dependency_ref: "component-1".into(),
                     depends_on: vec![],
+                    provides: vec![],
                 }]),
                 properties: None,
             }]),
             task_dependencies: Some(vec![Dependency {
                 dependency_ref: "task-1".into(),
                 depends_on: vec![],
+                provides: vec![],
             }]),
             task_types: vec![TaskType("clean".into()), TaskType("build".into())],
             trigger: Some(Trigger {
@@ -871,6 +873,7 @@ mod test {
             runtime_topology: Some(vec![Dependency {
                 dependency_ref: "component-r".into(),
                 depends_on: vec![],
+                provides: vec![],
             }]),
             properties: Some(Properties(vec![Property {
                 name: "Foo".into(),

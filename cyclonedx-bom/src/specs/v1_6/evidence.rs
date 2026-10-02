@@ -27,7 +27,8 @@ use crate::{
     xml::{
         attribute_or_error, optional_attribute, read_f32_tag, read_list_tag, read_simple_tag,
         read_u32_tag, to_xml_read_error, to_xml_write_error, unexpected_element_error,
-        write_close_tag, write_simple_tag, write_start_tag, FromXml, ToInnerXml, ToXml,
+        write_close_tag, write_simple_option_tag, write_simple_tag, write_start_tag, FromXml,
+        ToInnerXml, ToXml,
     },
 };
 
@@ -93,9 +94,17 @@ impl From<models::component::Occurrences> for Occurrences {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Occurrence {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
     pub bom_ref: Option<String>,
     pub location: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_context: Option<String>,
 }
 
 impl From<Occurrence> for models::component::Occurrence {
@@ -103,6 +112,10 @@ impl From<Occurrence> for models::component::Occurrence {
         Self {
             bom_ref: other.bom_ref.map(crate::models::bom::BomReference::new),
             location: other.location,
+            line: other.line,
+            offset: other.offset,
+            symbol: other.symbol,
+            additional_context: other.additional_context,
         }
     }
 }
@@ -112,12 +125,20 @@ impl From<models::component::Occurrence> for Occurrence {
         Self {
             bom_ref: other.bom_ref.map(|s| s.0),
             location: other.location,
+            line: other.line,
+            offset: other.offset,
+            symbol: other.symbol,
+            additional_context: other.additional_context,
         }
     }
 }
 
 const BOM_REF_ATTR: &str = "bom-ref";
 const LOCATION_TAG: &str = "location";
+const OCCURRENCE_LINE_TAG: &str = "line";
+const OFFSET_TAG: &str = "offset";
+const SYMBOL_TAG: &str = "symbol";
+const ADDITIONAL_CONTEXT_TAG: &str = "additionalContext";
 
 impl ToXml for Occurrence {
     fn write_xml_element<W: std::io::Write>(
@@ -136,6 +157,17 @@ impl ToXml for Occurrence {
 
         write_simple_tag(writer, LOCATION_TAG, &self.location)?;
 
+        if let Some(line) = self.line {
+            write_simple_tag(writer, OCCURRENCE_LINE_TAG, &line.to_string())?;
+        }
+
+        if let Some(offset) = self.offset {
+            write_simple_tag(writer, OFFSET_TAG, &offset.to_string())?;
+        }
+
+        write_simple_option_tag(writer, SYMBOL_TAG, &self.symbol)?;
+        write_simple_option_tag(writer, ADDITIONAL_CONTEXT_TAG, &self.additional_context)?;
+
         write_close_tag(writer, OCCURRENCE_TAG)?;
 
         Ok(())
@@ -153,6 +185,10 @@ impl FromXml for Occurrence {
     {
         let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
         let mut location: Option<String> = None;
+        let mut line: Option<u32> = None;
+        let mut offset: Option<u32> = None;
+        let mut symbol: Option<String> = None;
+        let mut additional_context: Option<String> = None;
 
         let mut got_end_tag = false;
         while !got_end_tag {
@@ -162,6 +198,22 @@ impl FromXml for Occurrence {
             match next_element {
                 reader::XmlEvent::StartElement { name, .. } if name.local_name == LOCATION_TAG => {
                     location = Some(read_simple_tag(event_reader, &name)?);
+                }
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == OCCURRENCE_LINE_TAG =>
+                {
+                    line = Some(read_u32_tag(event_reader, &name)?);
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == OFFSET_TAG => {
+                    offset = Some(read_u32_tag(event_reader, &name)?);
+                }
+                reader::XmlEvent::StartElement { name, .. } if name.local_name == SYMBOL_TAG => {
+                    symbol = Some(read_simple_tag(event_reader, &name)?);
+                }
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == ADDITIONAL_CONTEXT_TAG =>
+                {
+                    additional_context = Some(read_simple_tag(event_reader, &name)?);
                 }
                 reader::XmlEvent::EndElement { name } if &name == element_name => {
                     got_end_tag = true;
@@ -173,7 +225,14 @@ impl FromXml for Occurrence {
         let location = location
             .ok_or_else(|| XmlReadError::required_data_missing(LOCATION_TAG, element_name))?;
 
-        Ok(Self { bom_ref, location })
+        Ok(Self {
+            bom_ref,
+            location,
+            line,
+            offset,
+            symbol,
+            additional_context,
+        })
     }
 }
 
@@ -481,6 +540,8 @@ pub(crate) struct Identity {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) confidence: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) concluded_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) methods: Option<Methods>,
     /// A list of tools references.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -494,6 +555,7 @@ impl From<Identity> for models::component::Identity {
             confidence: other
                 .confidence
                 .map(models::component::ConfidenceScore::new),
+            concluded_value: other.concluded_value,
             methods: convert_optional(other.methods),
             tools: convert_optional(other.tools),
         }
@@ -505,15 +567,49 @@ impl From<models::component::Identity> for Identity {
         Self {
             field: other.field.to_string(),
             confidence: other.confidence.map(|s| s.get()),
+            concluded_value: other.concluded_value,
             methods: convert_optional(other.methods),
             tools: convert_optional(other.tools),
         }
     }
 }
 
+/// 1.6 turned `identity` into an array but still accepts the deprecated 1.5 single object.
+#[derive(Debug, Serialize, PartialEq)]
+pub(crate) struct IdentityList(pub(crate) Vec<Identity>);
+
+impl<'de> Deserialize<'de> for IdentityList {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum OneOrMany {
+            Many(Vec<Identity>),
+            One(Identity),
+        }
+
+        Ok(match OneOrMany::deserialize(deserializer)? {
+            OneOrMany::Many(identities) => Self(identities),
+            OneOrMany::One(identity) => Self(vec![identity]),
+        })
+    }
+}
+
+impl From<IdentityList> for Vec<models::component::Identity> {
+    fn from(other: IdentityList) -> Self {
+        convert_vec(other.0)
+    }
+}
+
+impl From<Vec<models::component::Identity>> for IdentityList {
+    fn from(other: Vec<models::component::Identity>) -> Self {
+        Self(convert_vec(other))
+    }
+}
+
 const IDENTITY_TAG: &str = "identity";
 const FIELD_TAG: &str = "field";
 const CONFIDENCE_TAG: &str = "confidence";
+const CONCLUDED_VALUE_TAG: &str = "concludedValue";
 const METHODS_TAG: &str = "methods";
 const METHOD_TAG: &str = "method";
 const TECHNIQUE_TAG: &str = "technique";
@@ -534,6 +630,8 @@ impl ToXml for Identity {
         if let Some(confidence) = self.confidence {
             write_simple_tag(writer, CONFIDENCE_TAG, confidence.to_string().as_str())?;
         }
+
+        write_simple_option_tag(writer, CONCLUDED_VALUE_TAG, &self.concluded_value)?;
 
         if let Some(methods) = &self.methods {
             methods.write_xml_element(writer)?;
@@ -560,6 +658,7 @@ impl FromXml for Identity {
     {
         let mut field: Option<String> = None;
         let mut confidence: Option<f32> = None;
+        let mut concluded_value: Option<String> = None;
         let mut methods: Option<Methods> = None;
         let mut tools: Option<ToolsReferences> = None;
 
@@ -578,6 +677,12 @@ impl FromXml for Identity {
                     if name.local_name == CONFIDENCE_TAG =>
                 {
                     confidence = Some(read_f32_tag(event_reader, &name)?);
+                }
+
+                reader::XmlEvent::StartElement { name, .. }
+                    if name.local_name == CONCLUDED_VALUE_TAG =>
+                {
+                    concluded_value = Some(read_simple_tag(event_reader, &name)?);
                 }
 
                 reader::XmlEvent::StartElement {
@@ -609,6 +714,7 @@ impl FromXml for Identity {
         Ok(Self {
             field,
             confidence,
+            concluded_value,
             methods,
             tools,
         })
@@ -886,6 +992,10 @@ pub(crate) mod test {
         Occurrences(vec![Occurrence {
             bom_ref: Some("occurrence-1".to_string()),
             location: "location-1".to_string(),
+            line: None,
+            offset: None,
+            symbol: None,
+            additional_context: None,
         }])
     }
 
@@ -893,6 +1003,10 @@ pub(crate) mod test {
         models::component::Occurrences(vec![models::component::Occurrence {
             bom_ref: Some(models::bom::BomReference::new("occurrence-1")),
             location: "location-1".to_string(),
+            line: None,
+            offset: None,
+            symbol: None,
+            additional_context: None,
         }])
     }
 
@@ -926,6 +1040,7 @@ pub(crate) mod test {
         Identity {
             field: "group".to_string(),
             confidence: Some(0.5),
+            concluded_value: None,
             methods: Some(Methods(vec![Method {
                 technique: "technique-1".to_string(),
                 confidence: 0.8,
@@ -939,6 +1054,7 @@ pub(crate) mod test {
         models::component::Identity {
             field: models::component::IdentityField::Group,
             confidence: Some(models::component::ConfidenceScore::new(0.5)),
+            concluded_value: None,
             methods: Some(models::component::Methods(vec![
                 models::component::Method {
                     technique: "technique-1".to_string(),
@@ -958,6 +1074,10 @@ pub(crate) mod test {
 <occurrences>
   <occurrence bom-ref="d6bf237e-4e11-4713-9f62-56d18d5e2079">
     <location>/path/to/component</location>
+    <line>42</line>
+    <offset>16</offset>
+    <symbol>exampleSymbol</symbol>
+    <additionalContext>Found in source code</additionalContext>
   </occurrence>
   <occurrence bom-ref="b574d5d1-e3cf-4dcd-9ba5-f3507eb1b175">
     <location>/another/path/to/component</location>
@@ -969,13 +1089,52 @@ pub(crate) mod test {
             Occurrence {
                 bom_ref: Some("d6bf237e-4e11-4713-9f62-56d18d5e2079".to_string()),
                 location: "/path/to/component".to_string(),
+                line: Some(42),
+                offset: Some(16),
+                symbol: Some("exampleSymbol".to_string()),
+                additional_context: Some("Found in source code".to_string()),
             },
             Occurrence {
                 bom_ref: Some("b574d5d1-e3cf-4dcd-9ba5-f3507eb1b175".to_string()),
                 location: "/another/path/to/component".to_string(),
+                line: None,
+                offset: None,
+                symbol: None,
+                additional_context: None,
             },
         ]);
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_round_trip_xml_occurrence_details() {
+        let occurrences = || {
+            Occurrences(vec![Occurrence {
+                bom_ref: Some("occurrence-1".to_string()),
+                location: "location-1".to_string(),
+                line: Some(42),
+                offset: Some(7),
+                symbol: Some("symbol-1".to_string()),
+                additional_context: Some("context-1".to_string()),
+            }])
+        };
+        let xml_output = write_element_to_string(occurrences());
+        insta::assert_snapshot!(xml_output);
+        let actual: Occurrences = read_element_from_string(xml_output);
+        assert_eq!(actual, occurrences());
+    }
+
+    #[test]
+    fn it_should_round_trip_xml_concluded_value() {
+        let identity = || {
+            let mut identity = example_identity();
+            identity.concluded_value = Some("concluded-value".to_string());
+            identity
+        };
+        let xml_output = write_element_to_string(identity());
+        assert!(xml_output.contains("<concludedValue>concluded-value</concludedValue>"));
+        let actual: Identity = read_element_from_string(xml_output);
+        assert_eq!(actual, identity());
     }
 
     #[test]
@@ -1119,6 +1278,20 @@ pub(crate) mod test {
     }
 
     #[test]
+    fn it_should_deserialize_identity_as_array_or_deprecated_object() {
+        let array: IdentityList =
+            serde_json::from_str(r#"[{"field":"name","confidence":1.0}]"#).unwrap();
+        let object: IdentityList =
+            serde_json::from_str(r#"{"field":"name","confidence":1.0}"#).unwrap();
+        assert_eq!(array, object);
+        assert_eq!(array.0.len(), 1);
+        assert_eq!(
+            serde_json::to_string(&object).unwrap(),
+            r#"[{"field":"name","confidence":1.0}]"#
+        );
+    }
+
+    #[test]
     fn it_should_write_xml_identity() {
         let xml_output = write_element_to_string(example_identity());
         insta::assert_snapshot!(xml_output);
@@ -1130,6 +1303,7 @@ pub(crate) mod test {
 <identity>
   <field>purl</field>
   <confidence>1</confidence>
+  <concludedValue>pkg:maven/com.example/example@1.0.0</concludedValue>
   <methods>
     <method>
       <technique>filename</technique>
@@ -1145,6 +1319,7 @@ pub(crate) mod test {
         let expected = Identity {
             field: "purl".to_string(),
             confidence: Some(1.0),
+            concluded_value: Some("pkg:maven/com.example/example@1.0.0".to_string()),
             methods: Some(Methods(vec![Method {
                 technique: "filename".to_string(),
                 confidence: 0.1,

@@ -178,7 +178,7 @@ expression: actual
         ],
         "occurrences": [
           {
-            "bomRef": "occurrence-1",
+            "bom-ref": "occurrence-1",
             "location": "location-1"
           }
         ],
@@ -194,20 +194,22 @@ expression: actual
             }
           ]
         },
-        "identity": {
-          "field": "group",
-          "confidence": 0.5,
-          "methods": [
-            {
-              "technique": "technique-1",
-              "confidence": 0.8,
-              "value": "identity-value"
-            }
-          ],
-          "tools": [
-            "tool-ref-1"
-          ]
-        }
+        "identity": [
+          {
+            "field": "group",
+            "confidence": 0.5,
+            "methods": [
+              {
+                "technique": "technique-1",
+                "confidence": 0.8,
+                "value": "identity-value"
+              }
+            ],
+            "tools": [
+              "tool-ref-1"
+            ]
+          }
+        ]
       },
       "signature": {
         "algorithm": "HS512",
@@ -235,7 +237,7 @@ expression: actual
                 "owners": [
                   {
                     "Contact": {
-                      "bomRef": "contact-1",
+                      "bom-ref": "contact-1",
                       "name": "Contact",
                       "email": "contact@example.com"
                     }
@@ -469,7 +471,7 @@ expression: actual
         ],
         "occurrences": [
           {
-            "bomRef": "occurrence-1",
+            "bom-ref": "occurrence-1",
             "location": "location-1"
           }
         ],
@@ -485,20 +487,22 @@ expression: actual
             }
           ]
         },
-        "identity": {
-          "field": "group",
-          "confidence": 0.5,
-          "methods": [
-            {
-              "technique": "technique-1",
-              "confidence": 0.8,
-              "value": "identity-value"
-            }
-          ],
-          "tools": [
-            "tool-ref-1"
-          ]
-        }
+        "identity": [
+          {
+            "field": "group",
+            "confidence": 0.5,
+            "methods": [
+              {
+                "technique": "technique-1",
+                "confidence": 0.8,
+                "value": "identity-value"
+              }
+            ],
+            "tools": [
+              "tool-ref-1"
+            ]
+          }
+        ]
       },
       "signature": {
         "algorithm": "HS512",
@@ -526,7 +530,7 @@ expression: actual
                 "owners": [
                   {
                     "Contact": {
-                      "bomRef": "contact-1",
+                      "bom-ref": "contact-1",
                       "name": "Contact",
                       "email": "contact@example.com"
                     }

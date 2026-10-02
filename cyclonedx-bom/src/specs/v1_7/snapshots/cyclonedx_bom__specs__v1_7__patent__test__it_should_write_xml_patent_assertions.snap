@@ -1,0 +1,41 @@
+---
+source: cyclonedx-bom/src/specs/v1_7/patent.rs
+expression: write_element_to_string(assertions)
+---
+<?xml version="1.0" encoding="utf-8"?>
+<patentAssertions>
+  <patentAssertion bom-ref="patent-assertion-1">
+    <assertionType>ownership</assertionType>
+    <patentRefs>
+      <bom-ref>patent-1</bom-ref>
+    </patentRefs>
+    <asserter>
+      <ref>org-acme</ref>
+    </asserter>
+    <notes>notes</notes>
+  </patentAssertion>
+  <patentAssertion>
+    <assertionType>license</assertionType>
+    <asserter>
+      <organization>
+        <name>name</name>
+        <url>url</url>
+        <contact>
+          <name>name</name>
+          <email>email</email>
+          <phone>phone</phone>
+        </contact>
+      </organization>
+    </asserter>
+  </patentAssertion>
+  <patentAssertion>
+    <assertionType>prior-art</assertionType>
+    <asserter>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </asserter>
+  </patentAssertion>
+</patentAssertions>

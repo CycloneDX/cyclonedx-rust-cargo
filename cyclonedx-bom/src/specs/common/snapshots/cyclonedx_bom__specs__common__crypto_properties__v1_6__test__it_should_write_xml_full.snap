@@ -1,0 +1,79 @@
+---
+source: cyclonedx-bom/src/specs/common/crypto_properties.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<cryptoProperties>
+  <assetType>algorithm</assetType>
+  <algorithmProperties>
+    <primitive>ae</primitive>
+    <parameterSetIdentifier>128</parameterSetIdentifier>
+    <curve>secp256r1</curve>
+    <executionEnvironment>software-plain-ram</executionEnvironment>
+    <implementationPlatform>x86_64</implementationPlatform>
+    <certificationLevel>none</certificationLevel>
+    <certificationLevel>cc-eal4+</certificationLevel>
+    <mode>gcm</mode>
+    <padding>pkcs7</padding>
+    <cryptoFunctions>
+      <cryptoFunction>encrypt</cryptoFunction>
+      <cryptoFunction>decrypt</cryptoFunction>
+    </cryptoFunctions>
+    <classicalSecurityLevel>128</classicalSecurityLevel>
+    <nistQuantumSecurityLevel>1</nistQuantumSecurityLevel>
+  </algorithmProperties>
+  <certificateProperties>
+    <subjectName>CN = example.com</subjectName>
+    <issuerName>CN = Example CA</issuerName>
+    <notValidBefore>2024-01-01T00:00:00Z</notValidBefore>
+    <notValidAfter>2025-01-01T00:00:00Z</notValidAfter>
+    <signatureAlgorithmRef>sig-ref</signatureAlgorithmRef>
+    <subjectPublicKeyRef>key-ref</subjectPublicKeyRef>
+    <certificateFormat>X.509</certificateFormat>
+    <certificateExtension>crt</certificateExtension>
+  </certificateProperties>
+  <relatedCryptoMaterialProperties>
+    <type>public-key</type>
+    <id>key-id</id>
+    <state>active</state>
+    <algorithmRef>rsa-ref</algorithmRef>
+    <creationDate>2024-01-01T00:00:00Z</creationDate>
+    <activationDate>2024-01-02T00:00:00Z</activationDate>
+    <updateDate>2024-01-03T00:00:00Z</updateDate>
+    <expirationDate>2025-01-01T00:00:00Z</expirationDate>
+    <value>key value</value>
+    <size>2048</size>
+    <format>PEM</format>
+    <securedBy>
+      <mechanism>Software</mechanism>
+      <algorithmRef>aes-ref</algorithmRef>
+    </securedBy>
+  </relatedCryptoMaterialProperties>
+  <protocolProperties>
+    <type>ike</type>
+    <version>2</version>
+    <cipherSuites>
+      <cipherSuite>
+        <name>TLS_AES_128_GCM_SHA256</name>
+        <algorithms>
+          <algorithm>aes-ref</algorithm>
+        </algorithms>
+        <identifiers>
+          <identifier>0x13</identifier>
+          <identifier>0x01</identifier>
+        </identifiers>
+      </cipherSuite>
+    </cipherSuites>
+    <ikev2TransformTypes>
+      <encr>encr-ref</encr>
+      <prf>prf-ref</prf>
+      <integ>integ-ref</integ>
+      <ke>ke-ref</ke>
+      <esn>true</esn>
+      <auth>auth-ref</auth>
+    </ikev2TransformTypes>
+    <cryptoRef>ref-1</cryptoRef>
+    <cryptoRef>ref-2</cryptoRef>
+  </protocolProperties>
+  <oid>2.16.840.1.101.3.4.1.6</oid>
+</cryptoProperties>

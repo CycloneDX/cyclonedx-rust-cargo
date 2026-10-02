@@ -565,6 +565,8 @@ pub(crate) mod base {
 "#;
             let actual: Tools = read_element_from_string(input);
             let service = Service {
+                #[versioned("1.6", "1.7")]
+                tags: None,
                 bom_ref: None,
                 provider: Some(OrganizationalEntity {
                     bom_ref: None,
@@ -586,8 +588,12 @@ pub(crate) mod base {
                 services: None,
                 signature: None,
                 trust_zone: None,
+                #[versioned("1.7")]
+                patent_assertions: None,
             };
             let component = Component {
+                #[versioned("1.6", "1.7")]
+                tags: None,
                 component_type: "application".to_string(),
                 mime_type: None,
                 bom_ref: None,

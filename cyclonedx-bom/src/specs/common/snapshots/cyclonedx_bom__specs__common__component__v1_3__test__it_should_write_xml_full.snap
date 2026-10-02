@@ -89,6 +89,9 @@ expression: xml_output
         </hashes>
       </reference>
     </externalReferences>
+    <properties>
+      <property name="name">value</property>
+    </properties>
     <components />
     <evidence>
       <licenses>
@@ -98,8 +101,5 @@ expression: xml_output
         <text><![CDATA[copyright]]></text>
       </copyright>
     </evidence>
-    <properties>
-      <property name="name">value</property>
-    </properties>
   </component>
 </components>

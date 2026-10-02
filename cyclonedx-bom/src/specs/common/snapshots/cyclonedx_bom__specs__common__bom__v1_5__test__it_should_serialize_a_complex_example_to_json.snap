@@ -178,7 +178,7 @@ expression: actual
         ],
         "occurrences": [
           {
-            "bomRef": "occurrence-1",
+            "bom-ref": "occurrence-1",
             "location": "location-1"
           }
         ],
@@ -235,7 +235,7 @@ expression: actual
                 "owners": [
                   {
                     "Contact": {
-                      "bomRef": "contact-1",
+                      "bom-ref": "contact-1",
                       "name": "Contact",
                       "email": "contact@example.com"
                     }
@@ -469,7 +469,7 @@ expression: actual
         ],
         "occurrences": [
           {
-            "bomRef": "occurrence-1",
+            "bom-ref": "occurrence-1",
             "location": "location-1"
           }
         ],
@@ -526,7 +526,7 @@ expression: actual
                 "owners": [
                   {
                     "Contact": {
-                      "bomRef": "contact-1",
+                      "bom-ref": "contact-1",
                       "name": "Contact",
                       "email": "contact@example.com"
                     }

@@ -70,7 +70,18 @@ impl Validate for LicenseChoice {
                 context.add_struct("license", license, version);
             }
             LicenseChoice::Expression(expression) => {
-                context.add_enum("expression", expression, validate_spdx_expression);
+                context
+                    .add_enum("expression", expression, validate_spdx_expression)
+                    .add_field_option(
+                        "acknowledgement",
+                        expression.acknowledgement.as_ref(),
+                        validate_license_acknowledgement,
+                    )
+                    .add_list_option("details", expression.details.as_ref(), |detail| {
+                        detail.validate_version(version)
+                    })
+                    .add_struct_option("licensing", expression.licensing.as_ref(), version)
+                    .add_struct_option("properties", expression.properties.as_ref(), version);
             }
         }
 
@@ -85,6 +96,8 @@ impl Validate for LicenseChoice {
 pub struct License {
     pub bom_ref: Option<BomReference>,
     pub license_identifier: LicenseIdentifier,
+    /// Added in version 1.6
+    pub acknowledgement: Option<LicenseAcknowledgement>,
     pub text: Option<AttachedText>,
     pub url: Option<Uri>,
     pub licensing: Option<Licensing>,
@@ -102,6 +115,7 @@ impl License {
         Self {
             bom_ref: None,
             license_identifier: LicenseIdentifier::Name(NormalizedString::new(license)),
+            acknowledgement: None,
             text: None,
             url: None,
             licensing: None,
@@ -120,6 +134,7 @@ impl License {
         Self {
             bom_ref: None,
             license_identifier: LicenseIdentifier::SpdxId(identifier),
+            acknowledgement: None,
             text: None,
             url: None,
             licensing: None,
@@ -132,6 +147,11 @@ impl Validate for License {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
             .add_struct("license_identifier", &self.license_identifier, version)
+            .add_field_option(
+                "acknowledgement",
+                self.acknowledgement.as_ref(),
+                validate_license_acknowledgement,
+            )
             .add_struct_option("text", self.text.as_ref(), version)
             .add_field_option("url", self.url.as_ref(), validate_uri)
             .add_struct_option("licensing", self.licensing.as_ref(), version)
@@ -148,10 +168,10 @@ impl Validate for Licenses {
         let mut context = ValidationContext::new();
         context.add_list("inner", &self.0, |choice| choice.validate_version(version));
 
-        // In version 1.5 the `licenses` field contains either an array of [`LicenseChoice::License`] or
-        // a single entry of [`LicenseChoice::Expression`], but not both.
+        // In versions 1.5 and 1.6 the `licenses` field contains either an array of [`LicenseChoice::License`] or
+        // a single entry of [`LicenseChoice::Expression`], but not both. 1.7 allows any mix.
         // See https://cyclonedx.org/docs/1.5/json/#components_items_licenses for more details.
-        if version >= SpecVersion::V1_5 {
+        if version == SpecVersion::V1_5 || version == SpecVersion::V1_6 {
             let (licenses, expressions): (Vec<_>, Vec<_>) =
                 self.0.iter().partition(|l| l.is_license());
             match (licenses.len(), expressions.len()) {
@@ -260,6 +280,56 @@ fn validate_license_type(license_type: &LicenseType) -> Result<(), ValidationErr
     Ok(())
 }
 
+/// Whether a license is the one declared by the authors or the one concluded by analysis.
+/// Added in version 1.6
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
+#[strum(serialize_all = "kebab-case")]
+pub enum LicenseAcknowledgement {
+    Declared,
+    Concluded,
+    #[doc(hidden)]
+    #[strum(default)]
+    Unknown(String),
+}
+
+impl LicenseAcknowledgement {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+        match value.as_ref() {
+            "declared" => Self::Declared,
+            "concluded" => Self::Concluded,
+            unknown => Self::Unknown(unknown.to_string()),
+        }
+    }
+}
+
+pub fn validate_license_acknowledgement(
+    acknowledgement: &LicenseAcknowledgement,
+) -> Result<(), ValidationError> {
+    if let LicenseAcknowledgement::Unknown(unknown) = acknowledgement {
+        return Err(format!("Unknown license acknowledgement '{}'", unknown).into());
+    }
+    Ok(())
+}
+
+/// Details for one license identifier that is part of an SPDX expression.
+/// Added in version 1.7
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct LicenseExpressionDetail {
+    pub license_identifier: String,
+    pub bom_ref: Option<BomReference>,
+    pub text: Option<AttachedText>,
+    pub url: Option<Uri>,
+}
+
+impl Validate for LicenseExpressionDetail {
+    fn validate_version(&self, version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_struct_option("text", self.text.as_ref(), version)
+            .add_field_option("url", self.url.as_ref(), validate_uri)
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display, Hash)]
 #[strum(serialize_all = "kebab-case")]
 #[repr(u16)]
@@ -333,6 +403,7 @@ mod test {
             license_identifier: LicenseIdentifier::Name(NormalizedString(
                 "spaces and \ttabs".to_string(),
             )),
+            acknowledgement: None,
             text: None,
             url: None,
             licensing: None,
@@ -409,6 +480,7 @@ mod test {
     fn it_should_merge_validations_correctly_license_choice_licenses() {
         let validation_result = Licenses(vec![
             LicenseChoice::License(License {
+                acknowledgement: None,
                 bom_ref: None,
                 license_identifier: LicenseIdentifier::Name(NormalizedString("MIT".to_string())),
                 text: None,
@@ -417,6 +489,7 @@ mod test {
                 properties: None,
             }),
             LicenseChoice::License(License {
+                acknowledgement: None,
                 bom_ref: None,
                 license_identifier: LicenseIdentifier::Name(NormalizedString(
                     "spaces and \ttabs".to_string(),
@@ -427,6 +500,7 @@ mod test {
                 properties: None,
             }),
             LicenseChoice::License(License {
+                acknowledgement: None,
                 bom_ref: None,
                 license_identifier: LicenseIdentifier::SpdxId(SpdxIdentifier(
                     "Apache=2.0".to_string(),

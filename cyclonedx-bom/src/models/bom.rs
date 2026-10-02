@@ -29,8 +29,11 @@ use xml::{EmitterConfig, EventReader, EventWriter, ParserConfig};
 
 use crate::errors::BomError;
 use crate::models::annotation::Annotations;
+use crate::models::citation::Citations;
 use crate::models::component::{Component, Components};
 use crate::models::composition::Compositions;
+use crate::models::declarations::Declarations;
+use crate::models::definitions::Definitions;
 use crate::models::dependency::Dependencies;
 use crate::models::external_reference::ExternalReferences;
 use crate::models::formulation::Formula;
@@ -128,11 +131,11 @@ pub struct Bom {
     /// Added in version 1.5
     pub formulation: Option<Vec<Formula>>,
     /// Added in version 1.6
-    pub declarations: Option<Value>,
+    pub declarations: Option<Declarations>,
     /// Added in version 1.6
-    pub definitions: Option<Value>,
+    pub definitions: Option<Definitions>,
     /// Added in version 1.7
-    pub citations: Option<Value>,
+    pub citations: Option<Citations>,
     pub spec_version: SpecVersion,
 }
 
@@ -482,6 +485,9 @@ impl Validate for Bom {
         context.add_struct_option("compositions", self.compositions.as_ref(), version);
         context.add_struct_option("properties", self.properties.as_ref(), version);
         context.add_struct_option("vulnerabilities", self.vulnerabilities.as_ref(), version);
+        context.add_struct_option("citations", self.citations.as_ref(), version);
+        context.add_struct_option("declarations", self.declarations.as_ref(), version);
+        context.add_struct_option("definitions", self.definitions.as_ref(), version);
 
         // To keep track of all Bom references inside.
         let mut bom_refs = BomReferencesContext::default();
@@ -525,6 +531,15 @@ impl Validate for Bom {
                                 "Dependency ref '{}' does not exist in the BOM",
                                 sub_dependency
                             ),
+                        );
+                    }
+                }
+
+                for provided in &dependency.provides {
+                    if !bom_refs.contains(provided) {
+                        context.add_custom(
+                            "provides_ref",
+                            format!("Provides ref '{}' does not exist in the BOM", provided),
                         );
                     }
                 }
@@ -800,6 +815,7 @@ mod test {
             dependencies: Some(Dependencies(vec![Dependency {
                 dependency_ref: "dependency".to_string(),
                 dependencies: vec!["sub-dependency".to_string()],
+                provides: vec!["provided".to_string()],
             }])),
             compositions: None,
             properties: None,
@@ -824,6 +840,10 @@ mod test {
                 validation::custom(
                     "sub dependency_ref",
                     ["Dependency ref 'sub-dependency' does not exist in the BOM"]
+                ),
+                validation::custom(
+                    "provides_ref",
+                    ["Provides ref 'provided' does not exist in the BOM"]
                 )
             ]
             .into()
@@ -893,6 +913,7 @@ mod test {
                 distribution_constraints: None,
             }),
             components: Some(Components(vec![Component {
+                tags: None,
                 component_type: Classification::UnknownClassification("unknown".to_string()),
                 mime_type: None,
                 bom_ref: Some("dependency".to_string()),
@@ -930,6 +951,7 @@ mod test {
             }])),
             services: Some(Services(vec![Service::new("invalid\tname", None)])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown".to_string(),
                 ),
@@ -940,6 +962,7 @@ mod test {
             dependencies: Some(Dependencies(vec![Dependency {
                 dependency_ref: "dependency".to_string(),
                 dependencies: vec![],
+                provides: vec![],
             }])),
             compositions: Some(Compositions(vec![Composition {
                 bom_ref: Some(BomReference::new("composition-1")),

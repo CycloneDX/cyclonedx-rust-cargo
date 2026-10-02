@@ -21,6 +21,7 @@ use regex::Regex;
 
 use crate::external_models::uri::{validate_uri as validate_url, Uri as Url};
 use crate::models::hash::Hashes;
+use crate::models::property::Properties;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
 use super::bom::SpecVersion;
@@ -34,6 +35,8 @@ pub struct ExternalReference {
     pub url: Uri,
     pub comment: Option<String>,
     pub hashes: Option<Hashes>,
+    /// Added in version 1.7
+    pub properties: Option<Properties>,
 }
 
 impl ExternalReference {
@@ -51,6 +54,7 @@ impl ExternalReference {
             url: url.into(),
             comment: None,
             hashes: None,
+            properties: None,
         }
     }
 }
@@ -67,6 +71,7 @@ impl Validate for ExternalReference {
             .add_list("hashes", &self.hashes, |hash| {
                 hash.validate_version(version)
             })
+            .add_struct_option("properties", self.properties.as_ref(), version)
             .into()
     }
 }
@@ -142,6 +147,20 @@ pub enum ExternalReferenceType {
     CondifiedInfrastructure,
     QualityMetrics,
     Poam,
+    ElectronicSignature,
+    DigitalSignature,
+    #[strum(serialize = "rfc-9116")]
+    Rfc9116,
+    /// Added in 1.7
+    Patent,
+    /// Added in 1.7
+    PatentFamily,
+    /// Added in 1.7
+    PatentAssertion,
+    /// Added in 1.7
+    Citation,
+    /// Added in 1.6
+    SourceDistribution,
 }
 
 impl ExternalReferenceType {
@@ -185,6 +204,14 @@ impl ExternalReferenceType {
             "codified-infrastructure" => Self::CondifiedInfrastructure,
             "quality-metrics" => Self::QualityMetrics,
             "poam" => Self::Poam,
+            "electronic-signature" => Self::ElectronicSignature,
+            "digital-signature" => Self::DigitalSignature,
+            "rfc-9116" => Self::Rfc9116,
+            "patent" => Self::Patent,
+            "patent-family" => Self::PatentFamily,
+            "patent-assertion" => Self::PatentAssertion,
+            "citation" => Self::Citation,
+            "source-distribution" => Self::SourceDistribution,
             "other" => Self::Other,
             unknown => Self::UnknownExternalReferenceType(unknown.to_string()),
         }
@@ -278,6 +305,7 @@ mod test {
         ));
 
         let external_reference = ExternalReference {
+            properties: None,
             external_reference_type: ExternalReferenceType::Bom,
             url,
             comment: Some("Comment".to_string()),
@@ -299,12 +327,14 @@ mod test {
     fn it_should_pass_validation() {
         let validation_result = ExternalReferences(vec![
             ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::Bom,
                 url: Uri::Url(Url("https://example.com".to_string())),
                 comment: Some("Comment".to_string()),
                 hashes: Some(Hashes(vec![])),
             },
             ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::Bom,
                 url: Uri::BomLink(BomLink(
                     "urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1".to_string(),
@@ -313,6 +343,7 @@ mod test {
                 hashes: Some(Hashes(vec![])),
             },
             ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::Bom,
                 url: Uri::BomLink(BomLink(
                     "urn:cdx:f08a6ccd-4dce-4759-bd84-c626675d60a7/1#componentA".to_string(),
@@ -330,6 +361,7 @@ mod test {
     fn it_should_fail_validation() {
         let validation_result = ExternalReferences(vec![
             ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown reference type".to_string(),
                 ),
@@ -341,6 +373,7 @@ mod test {
                 }])),
             },
             ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown reference type".to_string(),
                 ),

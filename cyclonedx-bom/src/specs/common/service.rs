@@ -20,6 +20,8 @@ use cyclonedx_bom_macros::versioned;
 
 #[versioned("1.3", "1.4", "1.5", "1.6", "1.7")]
 pub(crate) mod base {
+    #[versioned("1.6", "1.7")]
+    use crate::xml::write_list_string_tag;
     #[versioned("1.3", "1.4")]
     use crate::{
         errors::BomError,
@@ -57,7 +59,8 @@ pub(crate) mod base {
     };
     #[versioned("1.7")]
     use crate::specs::v1_7::{
-        external_reference::ExternalReferences, license::Licenses, service_data::ServiceData,
+        external_reference::ExternalReferences, license::Licenses, patent::PatentAssertions,
+        service_data::ServiceData,
     };
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -154,6 +157,12 @@ pub(crate) mod base {
         #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) trust_zone: Option<String>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) tags: Option<Vec<String>>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) patent_assertions: Option<PatentAssertions>,
     }
 
     #[versioned("1.3", "1.4")]
@@ -182,6 +191,8 @@ pub(crate) mod base {
                 signature: convert_optional(other.signature),
                 #[versioned("1.5", "1.6", "1.7")]
                 trust_zone: other.trust_zone.map(|tz| tz.to_string()),
+                #[versioned("1.6", "1.7")]
+                tags: other.tags,
             })
         }
     }
@@ -210,6 +221,10 @@ pub(crate) mod base {
                 signature: convert_optional(other.signature),
                 #[versioned("1.5", "1.6", "1.7")]
                 trust_zone: other.trust_zone.map(|tz| tz.to_string()),
+                #[versioned("1.6", "1.7")]
+                tags: other.tags,
+                #[versioned("1.7")]
+                patent_assertions: convert_optional(other.patent_assertions),
             }
         }
     }
@@ -241,11 +256,23 @@ pub(crate) mod base {
                 trust_zone: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 trust_zone: other.trust_zone.map(NormalizedString::new_unchecked),
+                #[versioned("1.3", "1.4", "1.5")]
+                tags: None,
+                #[versioned("1.6", "1.7")]
+                tags: other.tags,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                patent_assertions: None,
+                #[versioned("1.7")]
+                patent_assertions: convert_optional(other.patent_assertions),
             }
         }
     }
 
     const SERVICE_TAG: &str = "service";
+    #[versioned("1.6", "1.7")]
+    const TAGS_TAG: &str = "tags";
+    #[versioned("1.6", "1.7")]
+    const TAG_TAG: &str = "tag";
     const BOM_REF_ATTR: &str = "bom-ref";
     const PROVIDER_TAG: &str = "provider";
     const GROUP_TAG: &str = "group";
@@ -261,6 +288,8 @@ pub(crate) mod base {
     const SIGNATURE_TAG: &str = "signature";
     #[versioned("1.5", "1.6", "1.7")]
     const TRUST_ZONE_TAG: &str = "trustZone";
+    #[versioned("1.7")]
+    const PATENT_ASSERTIONS_TAG: &str = "patentAssertions";
 
     impl ToXml for Service {
         fn write_xml_element<W: std::io::Write>(
@@ -332,16 +361,26 @@ pub(crate) mod base {
                 licenses.write_xml_element(writer)?;
             }
 
+            #[versioned("1.7")]
+            if let Some(patent_assertions) = &self.patent_assertions {
+                patent_assertions.write_xml_element(writer)?;
+            }
+
             if let Some(external_references) = &self.external_references {
                 external_references.write_xml_element(writer)?;
+            }
+
+            if let Some(properties) = &self.properties {
+                properties.write_xml_element(writer)?;
             }
 
             if let Some(services) = &self.services {
                 services.write_xml_element(writer)?;
             }
 
-            if let Some(properties) = &self.properties {
-                properties.write_xml_element(writer)?;
+            #[versioned("1.6", "1.7")]
+            if let Some(tags) = &self.tags {
+                write_list_string_tag(writer, TAGS_TAG, TAG_TAG, tags)?;
             }
 
             #[versioned("1.4", "1.5", "1.6", "1.7")]
@@ -389,6 +428,10 @@ pub(crate) mod base {
             let mut signature: Option<Signature> = None;
             #[versioned("1.5", "1.6", "1.7")]
             let mut trust_zone: Option<String> = None;
+            #[versioned("1.6", "1.7")]
+            let mut tags: Option<Vec<String>> = None;
+            #[versioned("1.7")]
+            let mut patent_assertions: Option<PatentAssertions> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -505,6 +548,20 @@ pub(crate) mod base {
                     {
                         trust_zone = Some(read_simple_tag(event_reader, &name)?)
                     }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. } if name.local_name == TAGS_TAG => {
+                        tags = Some(read_list_tag(event_reader, &name, TAG_TAG)?)
+                    }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == PATENT_ASSERTIONS_TAG => {
+                        patent_assertions = Some(PatentAssertions::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
 
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {
@@ -541,6 +598,10 @@ pub(crate) mod base {
                 signature,
                 #[versioned("1.5", "1.6", "1.7")]
                 trust_zone,
+                #[versioned("1.6", "1.7")]
+                tags,
+                #[versioned("1.7")]
+                patent_assertions,
             })
         }
     }
@@ -826,6 +887,7 @@ pub(crate) mod base {
                 corresponding_external_references, example_external_references,
             },
             license::test::{corresponding_licenses, example_licenses},
+            patent::test::{corresponding_patent_assertions, example_patent_assertions},
         };
         use crate::{
             specs::common::{
@@ -845,6 +907,8 @@ pub(crate) mod base {
 
         pub(crate) fn example_service() -> Service {
             Service {
+                #[versioned("1.6", "1.7")]
+                tags: None,
                 bom_ref: Some("bom-ref".to_string()),
                 provider: Some(example_entity()),
                 group: Some("group".to_string()),
@@ -863,11 +927,14 @@ pub(crate) mod base {
                 signature: Some(example_signature()),
                 #[versioned("1.5", "1.6", "1.7")]
                 trust_zone: Some("trust zone".to_string()),
+                #[versioned("1.7")]
+                patent_assertions: Some(example_patent_assertions()),
             }
         }
 
         pub(crate) fn corresponding_service() -> models::service::Service {
             models::service::Service {
+                tags: None,
                 bom_ref: Some("bom-ref".to_string()),
                 provider: Some(corresponding_entity()),
                 group: Some(NormalizedString::new_unchecked("group".to_string())),
@@ -890,6 +957,10 @@ pub(crate) mod base {
                 trust_zone: None,
                 #[versioned("1.5", "1.6", "1.7")]
                 trust_zone: Some("trust zone".into()),
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                patent_assertions: None,
+                #[versioned("1.7")]
+                patent_assertions: Some(corresponding_patent_assertions()),
             }
         }
 
@@ -1092,7 +1163,7 @@ pub(crate) mod base {
   </service>
 </services>
 "#;
-            #[versioned("1.5", "1.6", "1.7")]
+            #[versioned("1.5", "1.6")]
             let input = r#"
 <services>
   <service bom-ref="bom-ref">
@@ -1137,6 +1208,84 @@ pub(crate) mod base {
     <licenses>
       <expression>expression</expression>
     </licenses>
+    <externalReferences>
+      <reference type="external reference type">
+        <url>url</url>
+        <comment>comment</comment>
+        <hashes>
+          <hash alg="algorithm">hash value</hash>
+        </hashes>
+      </reference>
+    </externalReferences>
+    <properties>
+      <property name="name">value</property>
+    </properties>
+    <services />
+    <signature>
+      <algorithm>HS512</algorithm>
+     <value>1234567890</value>
+    </signature>
+    <trustZone>trust zone</trustZone>
+  </service>
+</services>
+"#;
+            #[versioned("1.7")]
+            let input = r#"
+<services>
+  <service bom-ref="bom-ref">
+    <provider>
+      <name>name</name>
+      <url>url</url>
+      <contact>
+        <name>name</name>
+        <email>email</email>
+        <phone>phone</phone>
+      </contact>
+    </provider>
+    <group>group</group>
+    <name>name</name>
+    <version>version</version>
+    <description>description</description>
+    <endpoints>
+      <endpoint>endpoint</endpoint>
+    </endpoints>
+    <authenticated>true</authenticated>
+    <x-trust-boundary>true</x-trust-boundary>
+    <data>
+      <dataflow name="Consumer to Stock Service" description="Traffic to/from consumer to service">
+        <classification flow="flow">classification</classification>
+        <governance>
+          <owners>
+            <owner>
+              <organization>
+                <name>Organization 1</name>
+              </organization>
+            </owner>
+          </owners>
+        </governance>
+        <source>
+          <url>https://0.0.0.0</url>
+        </source>
+        <destination>
+          <url>https://0.0.0.0</url>
+        </destination>
+      </dataflow>
+    </data>
+    <licenses>
+      <expression>expression</expression>
+    </licenses>
+    <patentAssertions>
+      <patentAssertion bom-ref="patent-assertion-1">
+        <assertionType>ownership</assertionType>
+        <patentRefs>
+          <bom-ref>patent-1</bom-ref>
+        </patentRefs>
+        <asserter>
+          <ref>org-acme</ref>
+        </asserter>
+        <notes>notes</notes>
+      </patentAssertion>
+    </patentAssertions>
     <externalReferences>
       <reference type="external reference type">
         <url>url</url>

@@ -34,7 +34,8 @@ pub(crate) mod base {
     };
     #[versioned("1.7")]
     use crate::specs::v1_7::{
-        component::Component, license::Licenses, lifecycles::Lifecycles, tool::Tools,
+        component::Component, distribution_constraints::DistributionConstraints, license::Licenses,
+        lifecycles::Lifecycles, tool::Tools,
     };
 
     use crate::errors::BomError;
@@ -83,7 +84,7 @@ pub(crate) mod base {
         manufacturer: Option<OrganizationalEntity>,
         #[versioned("1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
-        distribution_constraints: Option<serde_json::Value>,
+        distribution_constraints: Option<DistributionConstraints>,
     }
 
     impl TryFrom<models::metadata::Metadata> for Metadata {
@@ -104,10 +105,7 @@ pub(crate) mod base {
                 #[versioned("1.6", "1.7")]
                 manufacturer: convert_optional(other.manufacturer),
                 #[versioned("1.7")]
-                distribution_constraints: other.distribution_constraints.map(|dc| {
-                    serde_json::to_value(&dc)
-                        .expect("DistributionConstraints is always serializable")
-                }),
+                distribution_constraints: convert_optional(other.distribution_constraints),
             })
         }
     }
@@ -134,9 +132,7 @@ pub(crate) mod base {
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
                 distribution_constraints: None,
                 #[versioned("1.7")]
-                distribution_constraints: other
-                    .distribution_constraints
-                    .and_then(|v| serde_json::from_value(v).ok()),
+                distribution_constraints: convert_optional(other.distribution_constraints),
             }
         }
     }
@@ -149,9 +145,6 @@ pub(crate) mod base {
     const SUPPLIER_TAG: &str = "supplier";
     #[versioned("1.6", "1.7")]
     const MANUFACTURER_TAG: &str = "manufacturer";
-    #[versioned("1.7")]
-    const DISTRIBUTION_CONSTRAINTS_TAG: &str = "distributionConstraints";
-
     impl ToXml for Metadata {
         fn write_xml_element<W: std::io::Write>(
             &self,
@@ -172,13 +165,6 @@ pub(crate) mod base {
                 tools.write_xml_element(writer)?;
             }
 
-            #[versioned("1.6", "1.7")]
-            if let Some(manufacturer) = &self.manufacturer {
-                if manufacturer.will_write() {
-                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
-                }
-            }
-
             if let Some(authors) = &self.authors {
                 write_start_tag(writer, AUTHORS_TAG)?;
 
@@ -193,6 +179,13 @@ pub(crate) mod base {
 
             if let Some(component) = &self.component {
                 component.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(manufacturer) = &self.manufacturer {
+                if manufacturer.will_write() {
+                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
+                }
             }
 
             if let Some(manufacture) = &self.manufacture {
@@ -213,11 +206,7 @@ pub(crate) mod base {
 
             #[versioned("1.7")]
             if let Some(distribution_constraints) = &self.distribution_constraints {
-                crate::xml::write_value_as_xml(
-                    writer,
-                    DISTRIBUTION_CONSTRAINTS_TAG,
-                    distribution_constraints,
-                )?;
+                distribution_constraints.write_xml_element(writer)?;
             }
 
             write_close_tag(writer, METADATA_TAG)?;
@@ -243,6 +232,8 @@ pub(crate) mod base {
     const PROPERTIES_TAG: &str = "properties";
     #[versioned("1.5", "1.6", "1.7")]
     const LIFECYCLES_TAG: &str = "lifecycles";
+    #[versioned("1.7")]
+    const DISTRIBUTION_CONSTRAINTS_TAG: &str = "distributionConstraints";
 
     impl FromXml for Metadata {
         fn read_xml_element<R: std::io::Read>(
@@ -266,7 +257,7 @@ pub(crate) mod base {
             #[versioned("1.6", "1.7")]
             let mut manufacturer: Option<OrganizationalEntity> = None;
             #[versioned("1.7")]
-            let mut distribution_constraints: Option<serde_json::Value> = None;
+            let mut distribution_constraints: Option<DistributionConstraints> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -355,11 +346,14 @@ pub(crate) mod base {
                         )?)
                     }
                     #[versioned("1.7")]
-                    reader::XmlEvent::StartElement { name, .. }
-                        if name.local_name == DISTRIBUTION_CONSTRAINTS_TAG =>
-                    {
-                        distribution_constraints =
-                            Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == DISTRIBUTION_CONSTRAINTS_TAG => {
+                        distribution_constraints = Some(DistributionConstraints::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
                     }
                     // lax validation of any elements from a different schema
                     reader::XmlEvent::StartElement { name, .. } => {

@@ -121,8 +121,42 @@ expression: xml_output
         </hashes>
       </reference>
     </externalReferences>
+    <properties>
+      <property name="name">value</property>
+    </properties>
     <components />
     <evidence>
+      <identity>
+        <field>group</field>
+        <confidence>0.5</confidence>
+        <methods>
+          <method>
+            <technique>technique-1</technique>
+            <confidence>0.8</confidence>
+            <value>identity-value</value>
+          </method>
+        </methods>
+        <tools>
+          <tool ref="tool-ref-1" />
+        </tools>
+      </identity>
+      <occurrences>
+        <occurrence bom-ref="occurrence-1">
+          <location>location-1</location>
+        </occurrence>
+      </occurrences>
+      <callstack>
+        <frames>
+          <frame>
+            <package>package-1</package>
+            <module>module-1</module>
+            <function>function</function>
+            <line>10</line>
+            <column>20</column>
+            <fullFilename>full-filename</fullFilename>
+          </frame>
+        </frames>
+      </callstack>
       <licenses>
         <expression>expression</expression>
       </licenses>
@@ -198,9 +232,6 @@ expression: xml_output
         <attachment>foo: bar</attachment>
       </contents>
     </data>
-    <properties>
-      <property name="name">value</property>
-    </properties>
     <signature>
       <algorithm>HS512</algorithm>
       <value>1234567890</value>

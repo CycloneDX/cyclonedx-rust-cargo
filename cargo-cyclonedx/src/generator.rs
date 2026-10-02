@@ -711,6 +711,7 @@ fn create_dependencies(resolve: &ResolveMap) -> Dependencies {
         .map(|node| Dependency {
             dependency_ref: node.id.to_string(),
             dependencies: node.dependencies.iter().map(|d| d.to_string()).collect(),
+            provides: Vec::new(),
         })
         .collect();
     Dependencies(deps)

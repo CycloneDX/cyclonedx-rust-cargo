@@ -47,6 +47,18 @@ expression: xml_output
     <licenses>
       <expression>expression</expression>
     </licenses>
+    <patentAssertions>
+      <patentAssertion bom-ref="patent-assertion-1">
+        <assertionType>ownership</assertionType>
+        <patentRefs>
+          <bom-ref>patent-1</bom-ref>
+        </patentRefs>
+        <asserter>
+          <ref>org-acme</ref>
+        </asserter>
+        <notes>notes</notes>
+      </patentAssertion>
+    </patentAssertions>
     <externalReferences>
       <reference type="external reference type">
         <url>url</url>
@@ -56,10 +68,10 @@ expression: xml_output
         </hashes>
       </reference>
     </externalReferences>
-    <services />
     <properties>
       <property name="name">value</property>
     </properties>
+    <services />
     <signature>
       <algorithm>HS512</algorithm>
       <value>1234567890</value>

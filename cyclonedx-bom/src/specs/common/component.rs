@@ -22,6 +22,8 @@ use cyclonedx_bom_macros::versioned;
 pub(crate) mod base {
     #[versioned("1.4", "1.5", "1.6", "1.7")]
     use crate::specs::common::signature::Signature;
+    #[versioned("1.6", "1.7")]
+    use crate::xml::write_list_string_tag;
 
     #[versioned("1.4")]
     use crate::specs::v1_4::{external_reference::ExternalReferences, license::Licenses};
@@ -34,17 +36,18 @@ pub(crate) mod base {
     };
     #[versioned("1.6")]
     use crate::specs::v1_6::{
-        evidence::{Callstack, Identity, Occurrences},
+        evidence::{Callstack, Identity, IdentityList, Occurrences},
         external_reference::ExternalReferences,
         license::Licenses,
         modelcard::ModelCard,
     };
     #[versioned("1.7")]
     use crate::specs::v1_7::{
-        evidence::{Callstack, Identity, Occurrences},
+        evidence::{Callstack, Identity, IdentityList, Occurrences},
         external_reference::ExternalReferences,
         license::Licenses,
         modelcard::ModelCard,
+        patent::PatentAssertions,
     };
     #[versioned("1.3")]
     use crate::{
@@ -217,9 +220,14 @@ pub(crate) mod base {
         #[versioned("1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) swhid: Option<Vec<String>>,
-        #[versioned("1.6", "1.7")]
+        #[versioned("1.6")]
         #[serde(rename = "cryptoProperties", skip_serializing_if = "Option::is_none")]
-        pub(crate) crypto_properties: Option<serde_json::Value>,
+        pub(crate) crypto_properties:
+            Option<crate::specs::v1_6::crypto_properties::CryptoProperties>,
+        #[versioned("1.7")]
+        #[serde(rename = "cryptoProperties", skip_serializing_if = "Option::is_none")]
+        pub(crate) crypto_properties:
+            Option<crate::specs::v1_7::crypto_properties::CryptoProperties>,
         #[versioned("1.7")]
         #[serde(rename = "isExternal", skip_serializing_if = "Option::is_none")]
         pub(crate) is_external: Option<bool>,
@@ -228,7 +236,10 @@ pub(crate) mod base {
         pub(crate) version_range: Option<String>,
         #[versioned("1.7")]
         #[serde(rename = "patentAssertions", skip_serializing_if = "Option::is_none")]
-        pub(crate) patent_assertions: Option<serde_json::Value>,
+        pub(crate) patent_assertions: Option<PatentAssertions>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) tags: Option<Vec<String>>,
     }
 
     impl TryFrom<models::component::Component> for Component {
@@ -285,13 +296,15 @@ pub(crate) mod base {
                 #[versioned("1.6", "1.7")]
                 swhid: other.swhid,
                 #[versioned("1.6", "1.7")]
-                crypto_properties: other.crypto_properties,
+                crypto_properties: convert_optional(other.crypto_properties),
                 #[versioned("1.7")]
                 is_external: other.is_external,
                 #[versioned("1.7")]
                 version_range: other.version_range,
                 #[versioned("1.7")]
-                patent_assertions: other.patent_assertions,
+                patent_assertions: convert_optional(other.patent_assertions),
+                #[versioned("1.6", "1.7")]
+                tags: other.tags,
             })
         }
     }
@@ -360,7 +373,7 @@ pub(crate) mod base {
                 #[versioned("1.3", "1.4", "1.5")]
                 crypto_properties: None,
                 #[versioned("1.6", "1.7")]
-                crypto_properties: other.crypto_properties,
+                crypto_properties: convert_optional(other.crypto_properties),
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
                 is_external: None,
                 #[versioned("1.7")]
@@ -372,7 +385,11 @@ pub(crate) mod base {
                 #[versioned("1.3", "1.4", "1.5", "1.6")]
                 patent_assertions: None,
                 #[versioned("1.7")]
-                patent_assertions: other.patent_assertions,
+                patent_assertions: convert_optional(other.patent_assertions),
+                #[versioned("1.3", "1.4", "1.5")]
+                tags: None,
+                #[versioned("1.6", "1.7")]
+                tags: other.tags,
             }
         }
     }
@@ -407,6 +424,13 @@ pub(crate) mod base {
 
             if let Some(mime_type) = &self.mime_type {
                 component_start_tag = component_start_tag.attr(MIME_TYPE_ATTR, &mime_type.0);
+            }
+
+            #[versioned("1.7")]
+            let is_external = self.is_external.map(|e| e.to_string());
+            #[versioned("1.7")]
+            if let Some(is_external) = &is_external {
+                component_start_tag = component_start_tag.attr(IS_EXTERNAL_ATTR, is_external);
             }
 
             if let Some(bom_ref) = &self.bom_ref {
@@ -467,15 +491,6 @@ pub(crate) mod base {
                 write_simple_tag(writer, VERSION_RANGE_TAG, version_range)?;
             }
 
-            #[versioned("1.7")]
-            if let Some(is_external) = &self.is_external {
-                write_simple_tag(
-                    writer,
-                    IS_EXTERNAL_TAG,
-                    if *is_external { "true" } else { "false" },
-                )?;
-            }
-
             if let Some(description) = &self.description {
                 write_simple_tag(writer, DESCRIPTION_TAG, description)?;
             }
@@ -498,7 +513,7 @@ pub(crate) mod base {
 
             #[versioned("1.7")]
             if let Some(patent_assertions) = &self.patent_assertions {
-                crate::xml::write_value_as_xml(writer, PATENT_ASSERTIONS_TAG, patent_assertions)?;
+                patent_assertions.write_xml_element(writer)?;
             }
 
             if let Some(cpe) = &self.cpe {
@@ -539,6 +554,10 @@ pub(crate) mod base {
                 external_references.write_xml_element(writer)?;
             }
 
+            if let Some(properties) = &self.properties {
+                properties.write_xml_element(writer)?;
+            }
+
             if let Some(components) = &self.components {
                 components.write_xml_element(writer)?;
             }
@@ -561,11 +580,12 @@ pub(crate) mod base {
 
             #[versioned("1.6", "1.7")]
             if let Some(crypto_properties) = &self.crypto_properties {
-                crate::xml::write_value_as_xml(writer, CRYPTO_PROPERTIES_TAG, crypto_properties)?;
+                crypto_properties.write_xml_element(writer)?;
             }
 
-            if let Some(properties) = &self.properties {
-                properties.write_xml_element(writer)?;
+            #[versioned("1.6", "1.7")]
+            if let Some(tags) = &self.tags {
+                write_list_string_tag(writer, TAGS_TAG, TAG_TAG, tags)?;
             }
 
             #[versioned("1.4", "1.5", "1.6", "1.7")]
@@ -597,8 +617,12 @@ pub(crate) mod base {
     const SWHID_TAG: &str = "swhid";
     #[versioned("1.6", "1.7")]
     const CRYPTO_PROPERTIES_TAG: &str = "cryptoProperties";
+    #[versioned("1.6", "1.7")]
+    const TAGS_TAG: &str = "tags";
+    #[versioned("1.6", "1.7")]
+    const TAG_TAG: &str = "tag";
     #[versioned("1.7")]
-    const IS_EXTERNAL_TAG: &str = "isExternal";
+    const IS_EXTERNAL_ATTR: &str = "isExternal";
     #[versioned("1.7")]
     const VERSION_RANGE_TAG: &str = "versionRange";
     #[versioned("1.7")]
@@ -657,14 +681,24 @@ pub(crate) mod base {
             let mut omnibor_id: Option<Vec<String>> = None;
             #[versioned("1.6", "1.7")]
             let mut swhid_list: Option<Vec<String>> = None;
-            #[versioned("1.6", "1.7")]
-            let mut crypto_properties: Option<serde_json::Value> = None;
+            #[versioned("1.6")]
+            let mut crypto_properties: Option<
+                crate::specs::v1_6::crypto_properties::CryptoProperties,
+            > = None;
             #[versioned("1.7")]
-            let mut is_external: Option<bool> = None;
+            let mut crypto_properties: Option<
+                crate::specs::v1_7::crypto_properties::CryptoProperties,
+            > = None;
+            #[versioned("1.7")]
+            let is_external = optional_attribute(attributes, IS_EXTERNAL_ATTR)
+                .map(|e| bool::from_xml_value(IS_EXTERNAL_ATTR, e))
+                .transpose()?;
             #[versioned("1.7")]
             let mut version_range: Option<String> = None;
             #[versioned("1.7")]
-            let mut patent_assertions: Option<serde_json::Value> = None;
+            let mut patent_assertions: Option<PatentAssertions> = None;
+            #[versioned("1.6", "1.7")]
+            let mut tags: Option<Vec<String>> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -882,17 +916,11 @@ pub(crate) mod base {
                         swhid_list.get_or_insert_with(Vec::new).push(value);
                     }
                     #[versioned("1.6", "1.7")]
-                    reader::XmlEvent::StartElement { name, .. }
-                        if name.local_name == CRYPTO_PROPERTIES_TAG =>
-                    {
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == CRYPTO_PROPERTIES_TAG => {
                         crypto_properties =
-                            Some(crate::xml::read_xml_as_value(event_reader, &name)?)
-                    }
-                    #[versioned("1.7")]
-                    reader::XmlEvent::StartElement { name, .. }
-                        if name.local_name == IS_EXTERNAL_TAG =>
-                    {
-                        is_external = Some(read_simple_tag(event_reader, &name)? == "true")
+                            Some(FromXml::read_xml_element(event_reader, &name, &attributes)?)
                     }
                     #[versioned("1.7")]
                     reader::XmlEvent::StartElement { name, .. }
@@ -901,11 +929,18 @@ pub(crate) mod base {
                         version_range = Some(read_simple_tag(event_reader, &name)?)
                     }
                     #[versioned("1.7")]
-                    reader::XmlEvent::StartElement { name, .. }
-                        if name.local_name == PATENT_ASSERTIONS_TAG =>
-                    {
-                        patent_assertions =
-                            Some(crate::xml::read_xml_as_value(event_reader, &name)?)
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == PATENT_ASSERTIONS_TAG => {
+                        patent_assertions = Some(PatentAssertions::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. } if name.local_name == TAGS_TAG => {
+                        tags = Some(read_list_tag(event_reader, &name, TAG_TAG)?)
                     }
 
                     // lax validation of any elements from a different schema
@@ -977,6 +1012,8 @@ pub(crate) mod base {
                 version_range,
                 #[versioned("1.7")]
                 patent_assertions,
+                #[versioned("1.6", "1.7")]
+                tags,
             })
         }
     }
@@ -1198,9 +1235,12 @@ pub(crate) mod base {
         #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         callstack: Option<Callstack>,
-        #[versioned("1.5", "1.6", "1.7")]
+        #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         identity: Option<Identity>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        identity: Option<IdentityList>,
     }
 
     impl From<models::component::ComponentEvidence> for ComponentEvidence {
@@ -1212,7 +1252,12 @@ pub(crate) mod base {
                 occurrences: convert_optional(other.occurrences),
                 #[versioned("1.5", "1.6", "1.7")]
                 callstack: convert_optional(other.callstack),
-                #[versioned("1.5", "1.6", "1.7")]
+                #[versioned("1.5")]
+                identity: other
+                    .identity
+                    .and_then(|identities| identities.into_iter().next())
+                    .map(Into::into),
+                #[versioned("1.6", "1.7")]
                 identity: convert_optional(other.identity),
             }
         }
@@ -1233,7 +1278,9 @@ pub(crate) mod base {
                 callstack: convert_optional(other.callstack),
                 #[versioned("1.3", "1.4")]
                 identity: None,
-                #[versioned("1.5", "1.6", "1.7")]
+                #[versioned("1.5")]
+                identity: other.identity.map(|identity| vec![identity.into()]),
+                #[versioned("1.6", "1.7")]
                 identity: convert_optional(other.identity),
             }
         }
@@ -1247,6 +1294,28 @@ pub(crate) mod base {
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
             write_start_tag(writer, EVIDENCE_TAG)?;
+
+            #[versioned("1.5")]
+            if let Some(identity) = &self.identity {
+                identity.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(identities) = &self.identity {
+                for identity in &identities.0 {
+                    identity.write_xml_element(writer)?;
+                }
+            }
+
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(occurrences) = &self.occurrences {
+                occurrences.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(callstack) = &self.callstack {
+                callstack.write_xml_element(writer)?;
+            }
 
             if let Some(licenses) = &self.licenses {
                 licenses.write_xml_element(writer)?;
@@ -1262,6 +1331,10 @@ pub(crate) mod base {
         }
 
         fn will_write(&self) -> bool {
+            #[versioned("1.5", "1.6", "1.7")]
+            if self.identity.is_some() || self.occurrences.is_some() || self.callstack.is_some() {
+                return true;
+            }
             self.licenses.is_some() || self.copyright.is_some()
         }
     }
@@ -1288,8 +1361,10 @@ pub(crate) mod base {
             let mut occurrences: Option<Occurrences> = None;
             #[versioned("1.5", "1.6", "1.7")]
             let mut callstack: Option<Callstack> = None;
-            #[versioned("1.5", "1.6", "1.7")]
+            #[versioned("1.5")]
             let mut identity: Option<Identity> = None;
+            #[versioned("1.6", "1.7")]
+            let mut identity: Option<IdentityList> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -1337,7 +1412,7 @@ pub(crate) mod base {
                         )?);
                     }
 
-                    #[versioned("1.5", "1.6", "1.7")]
+                    #[versioned("1.5")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == IDENTITY_TAG => {
@@ -1346,6 +1421,20 @@ pub(crate) mod base {
                             &name,
                             &attributes,
                         )?);
+                    }
+
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == IDENTITY_TAG => {
+                        identity
+                            .get_or_insert_with(|| IdentityList(Vec::new()))
+                            .0
+                            .push(Identity::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?);
                     }
 
                     reader::XmlEvent::EndElement { name } if &name == element_name => {
@@ -1752,6 +1841,8 @@ pub(crate) mod base {
 
         pub(crate) fn example_component() -> Component {
             Component {
+                #[versioned("1.6", "1.7")]
+                tags: None,
                 component_type: "component type".to_string(),
                 mime_type: Some(MimeType("mime type".to_string())),
                 bom_ref: Some("bom ref".to_string()),
@@ -1805,6 +1896,7 @@ pub(crate) mod base {
 
         pub(crate) fn corresponding_component() -> models::component::Component {
             models::component::Component {
+                tags: None,
                 component_type: models::component::Classification::UnknownClassification(
                     "component type".to_string(),
                 ),
@@ -1954,7 +2046,10 @@ pub(crate) mod base {
                 copyright: Some(example_copyright_texts()),
                 occurrences: Some(example_occurrences()),
                 callstack: Some(example_callstack()),
+                #[versioned("1.5")]
                 identity: Some(example_identity()),
+                #[versioned("1.6", "1.7")]
+                identity: Some(IdentityList(vec![example_identity()])),
             }
         }
 
@@ -1976,7 +2071,7 @@ pub(crate) mod base {
                 copyright: Some(corresponding_copyright_texts()),
                 occurrences: Some(corresponding_occurrences()),
                 callstack: Some(corresponding_callstack()),
-                identity: Some(corresponding_identity()),
+                identity: Some(vec![corresponding_identity()]),
             }
         }
 
