@@ -237,7 +237,6 @@ pub(crate) mod base {
             write_list_option_tag(writer, EVIDENCE_TAG, &self.evidence)?;
             self.targets.write_xml_element(writer)?;
             self.affirmation.write_xml_element(writer)?;
-            self.signature.write_xml_element(writer)?;
             write_close_tag(writer, DECLARATIONS_TAG)
         }
     }
@@ -390,7 +389,6 @@ pub(crate) mod base {
             for map in self.map.iter().flatten() {
                 map.write_xml_element(writer)?;
             }
-            self.signature.write_xml_element(writer)?;
             write_close_tag(writer, ATTESTATION_TAG)
         }
     }
@@ -759,7 +757,6 @@ pub(crate) mod base {
             write_repeated_string_tag(writer, EVIDENCE_TAG, &self.evidence)?;
             write_repeated_string_tag(writer, COUNTER_EVIDENCE_TAG, &self.counter_evidence)?;
             self.external_references.write_xml_element(writer)?;
-            self.signature.write_xml_element(writer)?;
             write_close_tag(writer, CLAIM_TAG)
         }
     }
@@ -939,7 +936,6 @@ pub(crate) mod base {
             self.author.write_xml_named_element(writer, AUTHOR_TAG)?;
             self.reviewer
                 .write_xml_named_element(writer, REVIEWER_TAG)?;
-            self.signature.write_xml_element(writer)?;
             write_close_tag(writer, EVIDENCE_TAG)
         }
     }
@@ -1353,7 +1349,6 @@ pub(crate) mod base {
             write_start_tag(writer, AFFIRMATION_TAG)?;
             write_simple_option_tag(writer, STATEMENT_TAG, &self.statement)?;
             write_list_option_tag(writer, SIGNATORIES_TAG, &self.signatories)?;
-            self.signature.write_xml_element(writer)?;
             write_close_tag(writer, AFFIRMATION_TAG)
         }
     }
@@ -1433,8 +1428,6 @@ pub(crate) mod base {
                 .write_xml_named_element(writer, ORGANIZATION_TAG)?;
             self.external_reference
                 .write_xml_named_element(writer, EXTERNAL_REFERENCE_TAG)?;
-            // The XSD has no signature element; it sits in the trailing `xs:any` slot.
-            self.signature.write_xml_element(writer)?;
             write_close_tag(writer, SIGNATORY_TAG)
         }
     }

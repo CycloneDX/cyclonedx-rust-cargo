@@ -336,10 +336,6 @@ impl ToXml for Annotation {
 
         write_simple_tag(writer, TEXT_TAG, &self.text)?;
 
-        if let Some(signature) = &self.signature {
-            signature.write_xml_element(writer)?;
-        }
-
         writer
             .write(writer::XmlEvent::end_element())
             .map_err(to_xml_write_error(ANNOTATION_TAG))?;

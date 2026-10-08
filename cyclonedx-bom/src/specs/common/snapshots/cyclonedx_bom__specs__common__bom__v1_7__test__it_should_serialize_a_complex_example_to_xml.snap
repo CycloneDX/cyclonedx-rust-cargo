@@ -233,10 +233,6 @@ expression: xml_output
           <attachment>foo: bar</attachment>
         </contents>
       </data>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </component>
     <manufacture>
       <name>name</name>
@@ -460,10 +456,6 @@ expression: xml_output
           <attachment>foo: bar</attachment>
         </contents>
       </data>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </component>
   </components>
   <services>
@@ -535,10 +527,6 @@ expression: xml_output
         <property name="name">value</property>
       </properties>
       <services />
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </service>
   </services>
   <externalReferences>
@@ -567,10 +555,6 @@ expression: xml_output
       <vulnerabilities>
         <vulnerability ref="vulnerability-ref" />
       </vulnerabilities>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </composition>
   </compositions>
   <properties>
@@ -718,10 +702,6 @@ expression: xml_output
       </annotator>
       <timestamp>timestamp</timestamp>
       <text>Annotation text</text>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </annotation>
   </annotations>
   <formulation>
@@ -734,8 +714,4 @@ expression: xml_output
       </components>
     </formula>
   </formulation>
-  <signature>
-    <algorithm>HS512</algorithm>
-    <value>1234567890</value>
-  </signature>
 </bom>

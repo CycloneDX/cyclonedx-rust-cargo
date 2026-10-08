@@ -22,10 +22,7 @@ use xml::reader;
 use crate::{
     errors::XmlReadError,
     models,
-    xml::{
-        read_list_tag, read_simple_tag, to_xml_read_error, unexpected_element_error,
-        write_close_tag, write_simple_tag, write_start_tag, FromXml, ToXml,
-    },
+    xml::{read_list_tag, read_simple_tag, to_xml_read_error, unexpected_element_error, FromXml},
 };
 
 /// For now the [`Signer`] struct only holds algorithm and value
@@ -43,18 +40,6 @@ impl Signer {
             algorithm: Algorithm::new_unchecked(algorithm),
             value: value.to_string(),
         }
-    }
-}
-
-impl ToXml for Signer {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_simple_tag(writer, ALGORITHM_TAG, &self.algorithm.to_string())?;
-        write_simple_tag(writer, VALUE_TAG, &self.value)?;
-
-        Ok(())
     }
 }
 
@@ -247,41 +232,6 @@ impl From<Algorithm> for models::signature::Algorithm {
     }
 }
 
-impl ToXml for Signature {
-    fn write_xml_element<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut xml::EventWriter<W>,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        write_start_tag(writer, SIGNATURE_TAG)?;
-
-        match self {
-            Signature::Signers(signers) => {
-                write_start_tag(writer, SIGNERS_TAG)?;
-                for signer in signers {
-                    write_start_tag(writer, SIGNER_TAG)?;
-                    signer.write_xml_element(writer)?;
-                    write_close_tag(writer, SIGNER_TAG)?;
-                }
-                write_close_tag(writer, SIGNERS_TAG)?;
-            }
-            Signature::Chain(chain) => {
-                write_start_tag(writer, CHAIN_TAG)?;
-                for signer in chain {
-                    write_start_tag(writer, CHAIN_INNER_TAG)?;
-                    signer.write_xml_element(writer)?;
-                    write_close_tag(writer, CHAIN_INNER_TAG)?;
-                }
-                write_close_tag(writer, CHAIN_TAG)?;
-            }
-            Signature::Single(signer) => signer.write_xml_element(writer)?,
-        }
-
-        write_close_tag(writer, SIGNATURE_TAG)?;
-
-        Ok(())
-    }
-}
-
 const SIGNERS_TAG: &str = "signers";
 const SIGNER_TAG: &str = "signer";
 const CHAIN_TAG: &str = "chain";
@@ -357,11 +307,11 @@ impl FromXml for Signature {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use xml::{name::OwnedName, EmitterConfig, EventReader, EventWriter, ParserConfig};
+    use xml::{name::OwnedName, EventReader, ParserConfig};
 
     use crate::{
         models,
-        xml::{test::read_element_from_string, FromXml, ToXml},
+        xml::{test::read_element_from_string, FromXml},
     };
 
     use super::Signature;
@@ -389,24 +339,6 @@ pub(crate) mod test {
         let element_name = OwnedName::local("signature");
         let actual = Signature::read_xml_element(&mut event_reader, &element_name, &[]);
         assert!(actual.is_err());
-    }
-
-    #[track_caller]
-    fn assert_write_xml(signature: Signature, expected_output: &str) {
-        let mut writer = Vec::new();
-        let config = EmitterConfig::default()
-            .perform_indent(true)
-            .write_document_declaration(false);
-        let mut event_writer = EventWriter::new_with_config(&mut writer, config);
-
-        signature
-            .write_xml_element(&mut event_writer)
-            .expect("Failed to write signature");
-        let actual_output = String::from_utf8_lossy(&writer);
-
-        let expected_output = expected_output.trim();
-
-        assert_eq!(actual_output, expected_output);
     }
 
     #[test]
@@ -450,57 +382,6 @@ pub(crate) mod test {
 </signature>
 "#;
         assert_invalid_signature(input);
-    }
-
-    #[test]
-    fn it_should_write_xml_successfully() {
-        let expected = r#"
-<signature>
-  <algorithm>ES256</algorithm>
-  <value>abcdefgh</value>
-</signature>"#;
-        let signature = Signature::single("ES256", "abcdefgh");
-        assert_write_xml(signature, expected);
-    }
-
-    #[test]
-    fn it_should_write_signature_signers_successfully() {
-        let expected = r#"
-<signature>
-  <signers>
-    <signer>
-      <algorithm>ES256</algorithm>
-      <value>abcdefgh</value>
-    </signer>
-    <signer>
-      <algorithm>HS512</algorithm>
-      <value>1234567890</value>
-    </signer>
-  </signers>
-</signature>
-"#;
-        let signature = Signature::signers(&[("ES256", "abcdefgh"), ("HS512", "1234567890")]);
-        assert_write_xml(signature, expected);
-    }
-
-    #[test]
-    fn it_should_write_signature_chain_successfully() {
-        let expected = r#"
-<signature>
-  <chain>
-    <chain>
-      <algorithm>ES256</algorithm>
-      <value>abcdefgh</value>
-    </chain>
-    <chain>
-      <algorithm>HS512</algorithm>
-      <value>1234567890</value>
-    </chain>
-  </chain>
-</signature>
-"#;
-        let signature = Signature::chain(&[("ES256", "abcdefgh"), ("HS512", "1234567890")]);
-        assert_write_xml(signature, expected);
     }
 
     #[test]

@@ -208,11 +208,6 @@ pub(crate) mod base {
                 write_close_tag(writer, VULNERABILITIES_TAG)?;
             }
 
-            #[versioned("1.4", "1.5", "1.6", "1.7")]
-            if let Some(signature) = &self.signature {
-                signature.write_xml_element(writer)?;
-            }
-
             write_close_tag(writer, COMPOSITION_TAG)?;
 
             Ok(())

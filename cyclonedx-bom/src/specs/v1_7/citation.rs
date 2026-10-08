@@ -165,7 +165,6 @@ impl ToXml for Citation {
         write_simple_option_tag(writer, ATTRIBUTED_TO_TAG, &self.attributed_to)?;
         write_simple_option_tag(writer, PROCESS_TAG, &self.process)?;
         write_simple_option_tag(writer, NOTE_TAG, &self.note)?;
-        self.signature.write_xml_element(writer)?;
 
         write_close_tag(writer, CITATION_TAG)
     }

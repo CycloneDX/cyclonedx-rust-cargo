@@ -200,9 +200,5 @@ expression: xml_output
         <attachment>foo: bar</attachment>
       </contents>
     </data>
-    <signature>
-      <algorithm>HS512</algorithm>
-      <value>1234567890</value>
-    </signature>
   </component>
 </components>

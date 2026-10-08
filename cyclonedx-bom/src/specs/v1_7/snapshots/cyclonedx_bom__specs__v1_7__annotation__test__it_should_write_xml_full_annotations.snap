@@ -17,10 +17,6 @@ expression: xml_output
     </annotator>
     <timestamp>2024-04-07T07:01:00Z</timestamp>
     <text>Contact annotation text</text>
-    <signature>
-      <algorithm>HS512</algorithm>
-      <value>1234567890</value>
-    </signature>
   </annotation>
   <annotation bom-ref="annotation-2">
     <subjects>
@@ -95,10 +91,6 @@ expression: xml_output
           <property name="name">value</property>
         </properties>
         <services />
-        <signature>
-          <algorithm>HS512</algorithm>
-          <value>1234567890</value>
-        </signature>
       </service>
     </annotator>
     <timestamp>2024-04-07T07:01:00Z</timestamp>
@@ -305,10 +297,6 @@ expression: xml_output
             <attachment>foo: bar</attachment>
           </contents>
         </data>
-        <signature>
-          <algorithm>HS512</algorithm>
-          <value>1234567890</value>
-        </signature>
       </component>
     </annotator>
     <timestamp>2024-04-07T07:01:00Z</timestamp>

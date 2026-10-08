@@ -22,6 +22,9 @@ use crate::{
 };
 
 /// Enveloped signature in [JSON Signature Format (JSF)](https://cyberphone.github.io/doc/security/jsf.html)
+///
+/// Signatures are preserved in JSON output and omitted from XML output.
+/// JSF signatures cannot be converted to XML signatures; the emitted XML is unsigned.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Signature {
     /// Multiple signatures
