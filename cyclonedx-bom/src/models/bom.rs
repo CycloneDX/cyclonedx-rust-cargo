@@ -155,15 +155,25 @@ impl Bom {
                 .as_str()
                 .ok_or_else(|| BomError::UnsupportedSpecVersion(version.to_string()))?;
 
-            match SpecVersion::from_str(version)? {
-                SpecVersion::V1_3 => Ok(crate::specs::v1_3::bom::Bom::deserialize(json)?.into()),
-                SpecVersion::V1_4 => Ok(crate::specs::v1_4::bom::Bom::deserialize(json)?.into()),
-                SpecVersion::V1_5 => Ok(crate::specs::v1_5::bom::Bom::deserialize(json)?.into()),
-                SpecVersion::V1_6 => Ok(crate::specs::v1_6::bom::Bom::deserialize(json)?.into()),
-                SpecVersion::V1_7 => Ok(crate::specs::v1_7::bom::Bom::deserialize(json)?.into()),
-            }
+            let version = SpecVersion::from_str(version)?;
+            Self::parse_json_value_with_version(json, version)
         } else {
             Err(BomError::UnsupportedSpecVersion("No field 'specVersion' found".to_string()).into())
+        }
+    }
+
+    /// Parse an existing [`Value`] using the specification version that you provide.
+    /// Use [`parse_json_value`](Self::parse_json_value) to detect the version from the document instead.
+    pub fn parse_json_value_with_version(
+        value: Value,
+        version: SpecVersion,
+    ) -> Result<Self, crate::errors::JsonReadError> {
+        match version {
+            SpecVersion::V1_3 => Ok(crate::specs::v1_3::bom::Bom::deserialize(value)?.into()),
+            SpecVersion::V1_4 => Ok(crate::specs::v1_4::bom::Bom::deserialize(value)?.into()),
+            SpecVersion::V1_5 => Ok(crate::specs::v1_5::bom::Bom::deserialize(value)?.into()),
+            SpecVersion::V1_6 => Ok(crate::specs::v1_6::bom::Bom::deserialize(value)?.into()),
+            SpecVersion::V1_7 => Ok(crate::specs::v1_7::bom::Bom::deserialize(value)?.into()),
         }
     }
 
@@ -174,11 +184,21 @@ impl Bom {
         version: SpecVersion,
     ) -> Result<Self, crate::errors::JsonReadError> {
         match version {
-            SpecVersion::V1_3 => Self::parse_from_json_v1_3(reader),
-            SpecVersion::V1_4 => Self::parse_from_json_v1_4(reader),
-            SpecVersion::V1_5 => Self::parse_from_json_v1_5(reader),
-            SpecVersion::V1_6 => Self::parse_from_json_v1_6(reader),
-            SpecVersion::V1_7 => Self::parse_from_json_v1_7(reader),
+            SpecVersion::V1_3 => {
+                Ok(serde_json::from_reader::<_, crate::specs::v1_3::bom::Bom>(reader)?.into())
+            }
+            SpecVersion::V1_4 => {
+                Ok(serde_json::from_reader::<_, crate::specs::v1_4::bom::Bom>(reader)?.into())
+            }
+            SpecVersion::V1_5 => {
+                Ok(serde_json::from_reader::<_, crate::specs::v1_5::bom::Bom>(reader)?.into())
+            }
+            SpecVersion::V1_6 => {
+                Ok(serde_json::from_reader::<_, crate::specs::v1_6::bom::Bom>(reader)?.into())
+            }
+            SpecVersion::V1_7 => {
+                Ok(serde_json::from_reader::<_, crate::specs::v1_7::bom::Bom>(reader)?.into())
+            }
         }
     }
 
@@ -189,12 +209,28 @@ impl Bom {
         version: SpecVersion,
     ) -> Result<(), crate::errors::JsonWriteError> {
         match version {
-            SpecVersion::V1_3 => self.output_as_json_v1_3(writer),
-            SpecVersion::V1_4 => self.output_as_json_v1_4(writer),
-            SpecVersion::V1_5 => self.output_as_json_v1_5(writer),
-            SpecVersion::V1_6 => self.output_as_json_v1_6(writer),
-            SpecVersion::V1_7 => self.output_as_json_v1_7(writer),
+            SpecVersion::V1_3 => {
+                let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
+                serde_json::to_writer_pretty(writer, &bom)?;
+            }
+            SpecVersion::V1_4 => {
+                let bom: crate::specs::v1_4::bom::Bom = self.try_into()?;
+                serde_json::to_writer_pretty(writer, &bom)?;
+            }
+            SpecVersion::V1_5 => {
+                let bom: crate::specs::v1_5::bom::Bom = self.try_into()?;
+                serde_json::to_writer_pretty(writer, &bom)?;
+            }
+            SpecVersion::V1_6 => {
+                let bom: crate::specs::v1_6::bom::Bom = self.try_into()?;
+                serde_json::to_writer_pretty(writer, &bom)?;
+            }
+            SpecVersion::V1_7 => {
+                let bom: crate::specs::v1_7::bom::Bom = self.try_into()?;
+                serde_json::to_writer_pretty(writer, &bom)?;
+            }
         }
+        Ok(())
     }
 
     /// Parse the input as an XML document conforming to the version of the specification that you provide.
@@ -202,12 +238,24 @@ impl Bom {
         reader: R,
         version: SpecVersion,
     ) -> Result<Self, crate::errors::XmlReadError> {
+        let config = ParserConfig::default().trim_whitespace(true);
+        let mut event_reader = EventReader::new_with_config(reader, config);
         match version {
-            SpecVersion::V1_3 => Self::parse_from_xml_v1_3(reader),
-            SpecVersion::V1_4 => Self::parse_from_xml_v1_4(reader),
-            SpecVersion::V1_5 => Self::parse_from_xml_v1_5(reader),
-            SpecVersion::V1_6 => Self::parse_from_xml_v1_6(reader),
-            SpecVersion::V1_7 => Self::parse_from_xml_v1_7(reader),
+            SpecVersion::V1_3 => {
+                Ok(crate::specs::v1_3::bom::Bom::read_xml_document(&mut event_reader)?.into())
+            }
+            SpecVersion::V1_4 => {
+                Ok(crate::specs::v1_4::bom::Bom::read_xml_document(&mut event_reader)?.into())
+            }
+            SpecVersion::V1_5 => {
+                Ok(crate::specs::v1_5::bom::Bom::read_xml_document(&mut event_reader)?.into())
+            }
+            SpecVersion::V1_6 => {
+                Ok(crate::specs::v1_6::bom::Bom::read_xml_document(&mut event_reader)?.into())
+            }
+            SpecVersion::V1_7 => {
+                Ok(crate::specs::v1_7::bom::Bom::read_xml_document(&mut event_reader)?.into())
+            }
         }
     }
 
@@ -217,227 +265,30 @@ impl Bom {
         writer: &mut W,
         version: SpecVersion,
     ) -> Result<(), crate::errors::XmlWriteError> {
+        let config = EmitterConfig::default().perform_indent(true);
+        let mut event_writer = EventWriter::new_with_config(writer, config);
         match version {
-            SpecVersion::V1_3 => self.output_as_xml_v1_3(writer),
-            SpecVersion::V1_4 => self.output_as_xml_v1_4(writer),
-            SpecVersion::V1_5 => self.output_as_xml_v1_5(writer),
-            SpecVersion::V1_6 => self.output_as_xml_v1_6(writer),
-            SpecVersion::V1_7 => self.output_as_xml_v1_7(writer),
+            SpecVersion::V1_3 => {
+                let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
+                bom.write_xml_element(&mut event_writer)
+            }
+            SpecVersion::V1_4 => {
+                let bom: crate::specs::v1_4::bom::Bom = self.try_into()?;
+                bom.write_xml_element(&mut event_writer)
+            }
+            SpecVersion::V1_5 => {
+                let bom: crate::specs::v1_5::bom::Bom = self.try_into()?;
+                bom.write_xml_element(&mut event_writer)
+            }
+            SpecVersion::V1_6 => {
+                let bom: crate::specs::v1_6::bom::Bom = self.try_into()?;
+                bom.write_xml_element(&mut event_writer)
+            }
+            SpecVersion::V1_7 => {
+                let bom: crate::specs::v1_7::bom::Bom = self.try_into()?;
+                bom.write_xml_element(&mut event_writer)
+            }
         }
-    }
-
-    /// Parse the input as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
-    pub fn parse_from_json_v1_3<R: std::io::Read>(
-        mut reader: R,
-    ) -> Result<Self, crate::errors::JsonReadError> {
-        let bom: crate::specs::v1_3::bom::Bom = serde_json::from_reader(&mut reader)?;
-        Ok(bom.into())
-    }
-
-    /// Parse the input as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
-    /// from an existing [`Value`].
-    pub fn parse_from_json_value_v1_3(value: Value) -> Result<Self, crate::errors::JsonReadError> {
-        let bom: crate::specs::v1_3::bom::Bom = serde_json::from_value(value)?;
-        Ok(bom.into())
-    }
-
-    /// Parse the input as an XML document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/xml/)
-    pub fn parse_from_xml_v1_3<R: std::io::Read>(
-        reader: R,
-    ) -> Result<Self, crate::errors::XmlReadError> {
-        let config = ParserConfig::default().trim_whitespace(true);
-        let mut event_reader = EventReader::new_with_config(reader, config);
-        let bom = crate::specs::v1_3::bom::Bom::read_xml_document(&mut event_reader)?;
-        Ok(bom.into())
-    }
-
-    /// Output as a JSON document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/json/)
-    pub fn output_as_json_v1_3<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
-        serde_json::to_writer_pretty(writer, &bom)?;
-        Ok(())
-    }
-
-    /// Output as an XML document conforming to [version 1.3 of the specification](https://cyclonedx.org/docs/1.3/xml/)
-    pub fn output_as_xml_v1_3<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let config = EmitterConfig::default().perform_indent(true);
-        let mut event_writer = EventWriter::new_with_config(writer, config);
-
-        let bom: crate::specs::v1_3::bom::Bom = self.try_into()?;
-        bom.write_xml_element(&mut event_writer)
-    }
-
-    /// Parse the input as a JSON document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/json/)
-    pub fn parse_from_json_v1_4<R: std::io::Read>(
-        mut reader: R,
-    ) -> Result<Self, crate::errors::JsonReadError> {
-        let bom: crate::specs::v1_4::bom::Bom = serde_json::from_reader(&mut reader)?;
-        Ok(bom.into())
-    }
-
-    /// Parse the input as a JSON document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/json/)
-    /// from an existing [`Value`].
-    pub fn parse_from_json_value_v1_4(value: Value) -> Result<Self, crate::errors::JsonReadError> {
-        let bom: crate::specs::v1_4::bom::Bom = serde_json::from_value(value)?;
-        Ok(bom.into())
-    }
-
-    /// Parse the input as an XML document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/xml/)
-    pub fn parse_from_xml_v1_4<R: std::io::Read>(
-        reader: R,
-    ) -> Result<Self, crate::errors::XmlReadError> {
-        let config = ParserConfig::default().trim_whitespace(true);
-        let mut event_reader = EventReader::new_with_config(reader, config);
-        let bom = crate::specs::v1_4::bom::Bom::read_xml_document(&mut event_reader)?;
-        Ok(bom.into())
-    }
-
-    /// Output as a JSON document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/json/)
-    pub fn output_as_json_v1_4<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_4::bom::Bom = self.try_into()?;
-        serde_json::to_writer_pretty(writer, &bom)?;
-        Ok(())
-    }
-
-    /// Output as an XML document conforming to [version 1.4 of the specification](https://cyclonedx.org/docs/1.4/xml/)
-    pub fn output_as_xml_v1_4<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let config = EmitterConfig::default().perform_indent(true);
-        let mut event_writer = EventWriter::new_with_config(writer, config);
-
-        let bom: crate::specs::v1_4::bom::Bom = self.try_into()?;
-        bom.write_xml_element(&mut event_writer)
-    }
-
-    /// Parse the input as a JSON document conforming to [version 1.5 of the specification](https://cyclonedx.org/docs/1.5/json/)
-    pub fn parse_from_json_v1_5<R: std::io::Read>(
-        mut reader: R,
-    ) -> Result<Self, crate::errors::JsonReadError> {
-        let bom: crate::specs::v1_5::bom::Bom = serde_json::from_reader(&mut reader)?;
-        Ok(bom.into())
-    }
-
-    /// Parse the input as an XML document conforming to [version 1.5 of the specification](https://cyclonedx.org/docs/1.5/xml/)
-    pub fn parse_from_xml_v1_5<R: std::io::Read>(
-        reader: R,
-    ) -> Result<Self, crate::errors::XmlReadError> {
-        let config = ParserConfig::default().trim_whitespace(true);
-        let mut event_reader = EventReader::new_with_config(reader, config);
-        let bom = crate::specs::v1_5::bom::Bom::read_xml_document(&mut event_reader)?;
-        Ok(bom.into())
-    }
-
-    /// Output as a JSON document conforming to [version 1.5 of the specification](https://cyclonedx.org/docs/1.5/json/)
-    pub fn output_as_json_v1_5<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_5::bom::Bom = self.try_into()?;
-        serde_json::to_writer_pretty(writer, &bom)?;
-        Ok(())
-    }
-
-    /// Output as an XML document conforming to [version 1.5 of the specification](https://cyclonedx.org/docs/1.5/xml/)
-    pub fn output_as_xml_v1_5<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let config = EmitterConfig::default().perform_indent(true);
-        let mut event_writer = EventWriter::new_with_config(writer, config);
-
-        let bom: crate::specs::v1_5::bom::Bom = self.try_into()?;
-        bom.write_xml_element(&mut event_writer)
-    }
-
-    /// Parse the input as a JSON document conforming to [version 1.6 of the specification](https://cyclonedx.org/docs/1.6/json/)
-    pub fn parse_from_json_v1_6<R: std::io::Read>(
-        mut reader: R,
-    ) -> Result<Self, crate::errors::JsonReadError> {
-        let bom: crate::specs::v1_6::bom::Bom = serde_json::from_reader(&mut reader)?;
-        Ok(bom.into())
-    }
-
-    /// Parse the input as an XML document conforming to [version 1.6 of the specification](https://cyclonedx.org/docs/1.6/xml/)
-    pub fn parse_from_xml_v1_6<R: std::io::Read>(
-        reader: R,
-    ) -> Result<Self, crate::errors::XmlReadError> {
-        let config = ParserConfig::default().trim_whitespace(true);
-        let mut event_reader = EventReader::new_with_config(reader, config);
-        let bom = crate::specs::v1_6::bom::Bom::read_xml_document(&mut event_reader)?;
-        Ok(bom.into())
-    }
-
-    /// Output as a JSON document conforming to [version 1.6 of the specification](https://cyclonedx.org/docs/1.6/json/)
-    pub fn output_as_json_v1_6<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_6::bom::Bom = self.try_into()?;
-        serde_json::to_writer_pretty(writer, &bom)?;
-        Ok(())
-    }
-
-    /// Output as an XML document conforming to [version 1.6 of the specification](https://cyclonedx.org/docs/1.6/xml/)
-    pub fn output_as_xml_v1_6<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let config = EmitterConfig::default().perform_indent(true);
-        let mut event_writer = EventWriter::new_with_config(writer, config);
-
-        let bom: crate::specs::v1_6::bom::Bom = self.try_into()?;
-        bom.write_xml_element(&mut event_writer)
-    }
-
-    /// Parse the input as a JSON document conforming to [version 1.7 of the specification](https://cyclonedx.org/docs/1.7/json/)
-    pub fn parse_from_json_v1_7<R: std::io::Read>(
-        mut reader: R,
-    ) -> Result<Self, crate::errors::JsonReadError> {
-        let bom: crate::specs::v1_7::bom::Bom = serde_json::from_reader(&mut reader)?;
-        Ok(bom.into())
-    }
-
-    /// Parse the input as an XML document conforming to [version 1.7 of the specification](https://cyclonedx.org/docs/1.7/xml/)
-    pub fn parse_from_xml_v1_7<R: std::io::Read>(
-        reader: R,
-    ) -> Result<Self, crate::errors::XmlReadError> {
-        let config = ParserConfig::default().trim_whitespace(true);
-        let mut event_reader = EventReader::new_with_config(reader, config);
-        let bom = crate::specs::v1_7::bom::Bom::read_xml_document(&mut event_reader)?;
-        Ok(bom.into())
-    }
-
-    /// Output as a JSON document conforming to [version 1.7 of the specification](https://cyclonedx.org/docs/1.7/json/)
-    pub fn output_as_json_v1_7<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::JsonWriteError> {
-        let bom: crate::specs::v1_7::bom::Bom = self.try_into()?;
-        serde_json::to_writer_pretty(writer, &bom)?;
-        Ok(())
-    }
-
-    /// Output as an XML document conforming to [version 1.7 of the specification](https://cyclonedx.org/docs/1.7/xml/)
-    pub fn output_as_xml_v1_7<W: std::io::Write>(
-        self,
-        writer: &mut W,
-    ) -> Result<(), crate::errors::XmlWriteError> {
-        let config = EmitterConfig::default().perform_indent(true);
-        let mut event_writer = EventWriter::new_with_config(writer, config);
-
-        let bom: crate::specs::v1_7::bom::Bom = self.try_into()?;
-        bom.write_xml_element(&mut event_writer)
     }
 }
 
@@ -763,16 +614,91 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn it_should_parse_json_using_function_without_suffix() {
-        let input = r#"{
+    fn it_should_parse_json_with_explicit_and_detected_versions() {
+        for version in [
+            SpecVersion::V1_3,
+            SpecVersion::V1_4,
+            SpecVersion::V1_5,
+            SpecVersion::V1_6,
+            SpecVersion::V1_7,
+        ] {
+            let value = serde_json::json!({
+                "bomFormat": "CycloneDX",
+                "specVersion": version.to_string(),
+                "version": 1,
+                "components": []
+            });
+            let input = value.to_string();
+            let expected = Bom {
+                spec_version: version,
+                serial_number: None,
+                components: Some(Components(vec![])),
+                ..Bom::default()
+            };
+
+            assert_eq!(
+                Bom::parse_json_value_with_version(value.clone(), version).unwrap(),
+                expected
+            );
+            assert_eq!(
+                Bom::parse_from_json_with_version(input.as_bytes(), version).unwrap(),
+                expected
+            );
+            assert_eq!(Bom::parse_json_value(value).unwrap(), expected);
+            assert_eq!(Bom::parse_from_json(input.as_bytes()).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn it_should_reject_invalid_versions_during_json_detection() {
+        for (version, expected) in [
+            (None, "No field 'specVersion' found"),
+            (Some(serde_json::json!(13)), "13"),
+            (Some(serde_json::json!("1.2")), "1.2"),
+        ] {
+            let mut value = serde_json::json!({
+                "bomFormat": "CycloneDX",
+                "version": 1
+            });
+            if let Some(version) = version {
+                value["specVersion"] = version;
+            }
+            let input = value.to_string();
+            for result in [
+                Bom::parse_json_value(value),
+                Bom::parse_from_json(input.as_bytes()),
+            ] {
+                assert!(matches!(
+                    result,
+                    Err(crate::errors::JsonReadError::BomError {
+                        error: BomError::UnsupportedSpecVersion(actual),
+                    }) if actual == expected
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn it_should_preserve_explicit_version_mismatch_behavior() {
+        let value = serde_json::json!({
             "bomFormat": "CycloneDX",
-            "specVersion": "1.3",
-            "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
-            "version": 1,
-            "components": []
-        }"#;
-        let result = Bom::parse_from_json(input.as_bytes());
-        assert!(result.is_ok());
+            "specVersion": "1.4",
+            "version": 1
+        });
+        let input = value.to_string();
+        let bom = Bom::parse_json_value_with_version(value, SpecVersion::V1_3).unwrap();
+        assert_eq!(bom.spec_version, SpecVersion::V1_4);
+        assert_eq!(
+            Bom::parse_from_json_with_version(input.as_bytes(), SpecVersion::V1_3).unwrap(),
+            bom
+        );
+
+        let xml = r#"<?xml version="1.0"?>
+            <bom xmlns="http://cyclonedx.org/schema/bom/1.4" version="1"/>"#;
+        assert!(matches!(
+            Bom::parse_from_xml_with_version(xml.as_bytes(), SpecVersion::V1_3),
+            Err(crate::errors::XmlReadError::InvalidNamespaceError { .. })
+        ));
     }
 
     #[test]

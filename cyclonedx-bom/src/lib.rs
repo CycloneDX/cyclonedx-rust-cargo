@@ -44,7 +44,8 @@
 //!   "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
 //!   "version": 1
 //! }"#;
-//! let bom = Bom::parse_from_json_v1_3(bom_json.as_bytes()).expect("Failed to parse BOM");
+//! let bom = Bom::parse_from_json_with_version(bom_json.as_bytes(), SpecVersion::V1_3)
+//!     .expect("Failed to parse BOM");
 //!
 //! let validation_result = bom.validate();
 //! assert!(validation_result.passed());
@@ -78,7 +79,7 @@
 //!
 //! let mut output = Vec::<u8>::new();
 //!
-//! bom.output_as_json_v1_3(&mut output)
+//! bom.output_as_json(&mut output, SpecVersion::V1_3)
 //!     .expect("Failed to write BOM");
 //! let output = String::from_utf8(output).expect("Failed to read output as a string");
 //! assert_eq!(
