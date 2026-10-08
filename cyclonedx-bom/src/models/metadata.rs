@@ -26,7 +26,7 @@ use crate::models::lifecycle::Lifecycles;
 use crate::models::organization::{OrganizationalContact, OrganizationalEntity};
 use crate::models::property::Properties;
 use crate::models::tool::Tools;
-use crate::validation::{Validate, ValidationContext, ValidationResult};
+use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
 use super::bom::SpecVersion;
 
@@ -45,6 +45,66 @@ pub struct Metadata {
     pub properties: Option<Properties>,
     /// Added in 1.5
     pub lifecycles: Option<Lifecycles>,
+    /// Added in 1.6
+    pub manufacturer: Option<OrganizationalEntity>,
+    /// Added in 1.7
+    pub distribution_constraints: Option<DistributionConstraints>,
+}
+
+/// Conditions and constraints governing the sharing and distribution of the data or components
+/// described by the BOM.
+///
+/// Defined via the [CycloneDX JSON schema](https://cyclonedx.org/docs/1.7/json/#metadata_distributionConstraints).
+/// Added in 1.7
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+pub struct DistributionConstraints {
+    pub tlp: Option<TlpClassification>,
+}
+
+impl Validate for DistributionConstraints {
+    fn validate_version(&self, _version: SpecVersion) -> ValidationResult {
+        ValidationContext::new()
+            .add_enum_option("tlp", self.tlp.as_ref(), validate_tlp_classification)
+            .into()
+    }
+}
+
+/// Traffic Light Protocol (TLP) classification, see <https://www.first.org/tlp/>
+#[derive(Clone, Debug, PartialEq, Eq, Hash, strum::Display)]
+pub enum TlpClassification {
+    #[strum(to_string = "CLEAR")]
+    Clear,
+    #[strum(to_string = "GREEN")]
+    Green,
+    #[strum(to_string = "AMBER")]
+    Amber,
+    #[strum(to_string = "AMBER_AND_STRICT")]
+    AmberAndStrict,
+    #[strum(to_string = "RED")]
+    Red,
+    #[doc(hidden)]
+    #[strum(default)]
+    UnknownTlpClassification(String),
+}
+
+impl TlpClassification {
+    pub fn new_unchecked<A: AsRef<str>>(value: A) -> Self {
+        match value.as_ref() {
+            "CLEAR" => Self::Clear,
+            "GREEN" => Self::Green,
+            "AMBER" => Self::Amber,
+            "AMBER_AND_STRICT" => Self::AmberAndStrict,
+            "RED" => Self::Red,
+            unknown => Self::UnknownTlpClassification(unknown.to_string()),
+        }
+    }
+}
+
+pub fn validate_tlp_classification(tlp: &TlpClassification) -> Result<(), ValidationError> {
+    if matches!(tlp, TlpClassification::UnknownTlpClassification(_)) {
+        return Err(ValidationError::new("Unknown TLP classification"));
+    }
+    Ok(())
 }
 
 impl Metadata {
@@ -88,6 +148,11 @@ impl Validate for Metadata {
             .add_list("properties", self.properties.as_ref(), |property| {
                 property.validate_version(version)
             })
+            .add_struct_option(
+                "distribution_constraints",
+                self.distribution_constraints.as_ref(),
+                version,
+            )
             .into()
     }
 }
@@ -134,6 +199,7 @@ mod test {
                 phone: None,
             }]),
             component: Some(Component {
+                tags: None,
                 component_type: Classification::Application,
                 mime_type: None,
                 bom_ref: None,
@@ -160,6 +226,14 @@ mod test {
                 signature: None,
                 model_card: None,
                 data: None,
+                manufacturer: None,
+                authors: None,
+                omnibor_id: None,
+                swhid: None,
+                crypto_properties: None,
+                is_external: None,
+                version_range: None,
+                patent_assertions: None,
             }),
             manufacture: Some(OrganizationalEntity {
                 bom_ref: Some(BomReference::new("Manufacturer")),
@@ -181,6 +255,8 @@ mod test {
                 value: NormalizedString::new("value"),
             }])),
             lifecycles: Some(Lifecycles(vec![Lifecycle::Phase(Phase::Build)])),
+            manufacturer: None,
+            distribution_constraints: None,
         }
         .validate();
 
@@ -205,6 +281,7 @@ mod test {
                 phone: None,
             }]),
             component: Some(Component {
+                tags: None,
                 component_type: Classification::UnknownClassification("unknown".to_string()),
                 mime_type: None,
                 bom_ref: None,
@@ -231,6 +308,14 @@ mod test {
                 signature: None,
                 model_card: None,
                 data: None,
+                manufacturer: None,
+                authors: None,
+                omnibor_id: None,
+                swhid: None,
+                crypto_properties: None,
+                is_external: None,
+                version_range: None,
+                patent_assertions: None,
             }),
             manufacture: Some(OrganizationalEntity {
                 bom_ref: Some(BomReference::new("Manufacturer")),
@@ -255,6 +340,10 @@ mod test {
                 name: "lifecycle".into(),
                 description: Some(NormalizedString("invalid\tvalue".to_string())),
             })])),
+            manufacturer: None,
+            distribution_constraints: Some(DistributionConstraints {
+                tlp: Some(TlpClassification::new_unchecked("AMBER+STRICT")),
+            }),
         }
         .validate();
 
@@ -334,6 +423,10 @@ mod test {
                             )]
                         )
                     )]
+                ),
+                validation::r#struct(
+                    "distribution_constraints",
+                    validation::r#enum("tlp", "Unknown TLP classification")
                 )
             ]
             .into()

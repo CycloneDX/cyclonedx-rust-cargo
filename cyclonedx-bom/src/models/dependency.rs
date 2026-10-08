@@ -23,4 +23,6 @@ pub struct Dependencies(pub Vec<Dependency>);
 pub struct Dependency {
     pub dependency_ref: String,
     pub dependencies: Vec<String>,
+    /// Added in 1.6
+    pub provides: Vec<String>,
 }

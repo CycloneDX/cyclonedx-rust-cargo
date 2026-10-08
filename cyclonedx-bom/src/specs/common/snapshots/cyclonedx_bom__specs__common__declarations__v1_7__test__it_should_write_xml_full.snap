@@ -1,0 +1,97 @@
+---
+source: cyclonedx-bom/src/specs/common/declarations.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<declarations>
+  <assessors>
+    <assessor bom-ref="assessor-1">
+      <thirdParty>true</thirdParty>
+      <organization>
+        <name>Assessors Inc</name>
+      </organization>
+    </assessor>
+  </assessors>
+  <attestations>
+    <attestation>
+      <summary>summary</summary>
+      <assessor>assessor-1</assessor>
+      <map>
+        <requirement>requirement-1</requirement>
+        <claims>
+          <claim>claim-1</claim>
+        </claims>
+        <counterClaims>
+          <counterClaim>counter-claim-1</counterClaim>
+        </counterClaims>
+        <conformance>
+          <score>0.8</score>
+          <rationale>conformance rationale</rationale>
+          <mitigationStrategies>
+            <mitigationStrategy>evidence-1</mitigationStrategy>
+          </mitigationStrategies>
+        </conformance>
+        <confidence>
+          <score>1</score>
+          <rationale>confidence rationale</rationale>
+        </confidence>
+      </map>
+    </attestation>
+  </attestations>
+  <claims>
+    <claim bom-ref="claim-1">
+      <target>acme-inc</target>
+      <predicate>predicate</predicate>
+      <mitigationStrategies>
+        <mitigationStrategy>evidence-1</mitigationStrategy>
+      </mitigationStrategies>
+      <reasoning>reasoning</reasoning>
+      <evidence>evidence-1</evidence>
+      <evidence>evidence-2</evidence>
+      <counterEvidence>evidence-3</counterEvidence>
+    </claim>
+  </claims>
+  <evidence>
+    <evidence bom-ref="evidence-1">
+      <propertyName>internal.com.acme.someProperty</propertyName>
+      <description>description</description>
+      <data>
+        <name>data name</name>
+        <contents>
+          <attachment content-type="text/plain">evidence</attachment>
+          <url>https://example.com/evidence</url>
+        </contents>
+        <classification>PII</classification>
+        <sensitiveData>first</sensitiveData>
+        <sensitiveData>second</sensitiveData>
+      </data>
+      <created>2023-04-25T00:00:00+00:00</created>
+      <expires>2023-05-25T00:00:00+00:00</expires>
+      <author>
+        <name>Mary</name>
+      </author>
+    </evidence>
+  </evidence>
+  <targets>
+    <organizations>
+      <organization bom-ref="acme-inc">
+        <name>Acme Inc</name>
+      </organization>
+    </organizations>
+  </targets>
+  <affirmation>
+    <statement>statement</statement>
+    <signatories>
+      <signatory>
+        <name>Jerry</name>
+        <role>COO</role>
+        <organization>
+          <name>Acme Inc</name>
+        </organization>
+        <externalReference type="electronic-signature">
+          <url>https://example.com/sig.png</url>
+        </externalReference>
+      </signatory>
+    </signatories>
+  </affirmation>
+</declarations>

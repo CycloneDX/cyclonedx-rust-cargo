@@ -21,7 +21,14 @@ use std::convert::TryFrom;
 use spdx::{Expression, ParseMode};
 use thiserror::Error;
 
-use crate::{models::bom::BomReference, validation::ValidationError};
+use crate::{
+    models::{
+        bom::BomReference,
+        license::{LicenseAcknowledgement, LicenseExpressionDetail, Licensing},
+        property::Properties,
+    },
+    validation::ValidationError,
+};
 
 /// An identifier for a single, specific license
 ///
@@ -112,8 +119,16 @@ pub enum SpdxIdentifierError {
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpdxExpression {
-    pub(crate) bom_ref: Option<BomReference>,
+    pub bom_ref: Option<BomReference>,
     pub(crate) expression: String,
+    /// Added in version 1.6
+    pub acknowledgement: Option<LicenseAcknowledgement>,
+    /// Added in version 1.7
+    pub details: Option<Vec<LicenseExpressionDetail>>,
+    /// Added in version 1.7
+    pub licensing: Option<Licensing>,
+    /// Added in version 1.7
+    pub properties: Option<Properties>,
 }
 
 impl SpdxExpression {
@@ -122,6 +137,10 @@ impl SpdxExpression {
         Self {
             bom_ref: None,
             expression: expression.to_string(),
+            acknowledgement: None,
+            details: None,
+            licensing: None,
+            properties: None,
         }
     }
 
@@ -173,10 +192,7 @@ impl TryFrom<String> for SpdxExpression {
                 ..ParseMode::STRICT
             },
         ) {
-            Ok(_) => Ok(Self {
-                bom_ref: None,
-                expression: value,
-            }),
+            Ok(_) => Ok(Self::new(&value)),
             Err(e) => Err(SpdxExpressionError::InvalidSpdxExpression(format!(
                 "{}",
                 e.reason

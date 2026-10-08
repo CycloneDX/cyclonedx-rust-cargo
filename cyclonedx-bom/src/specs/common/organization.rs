@@ -33,7 +33,7 @@ use xml::{reader, writer::XmlEvent};
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OrganizationalContact {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
     pub(crate) bom_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
@@ -159,7 +159,7 @@ impl FromXml for OrganizationalContact {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OrganizationalEntity {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
     pub(crate) bom_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,

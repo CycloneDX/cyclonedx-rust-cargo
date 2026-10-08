@@ -177,6 +177,7 @@ pub(crate) mod test {
             bom_ref: Some(crate::models::bom::BomReference::new("formula-1")),
             components: Some(crate::models::component::Components(vec![
                 crate::models::component::Component {
+                    tags: None,
                     component_type: crate::models::component::Classification::Platform,
                     mime_type: None,
                     bom_ref: Some("component-1".into()),
@@ -203,6 +204,14 @@ pub(crate) mod test {
                     signature: None,
                     model_card: None,
                     data: None,
+                    manufacturer: None,
+                    authors: None,
+                    omnibor_id: None,
+                    swhid: None,
+                    crypto_properties: None,
+                    is_external: None,
+                    version_range: None,
+                    patent_assertions: None,
                 },
             ])),
             services: None,

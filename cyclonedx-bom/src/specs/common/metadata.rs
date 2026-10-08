@@ -18,7 +18,7 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4", "1.5")]
+#[versioned("1.3", "1.4", "1.5", "1.6", "1.7")]
 pub(crate) mod base {
     #[versioned("1.3")]
     use crate::specs::v1_3::{component::Component, license::Licenses, tool::Tools};
@@ -27,6 +27,15 @@ pub(crate) mod base {
     #[versioned("1.5")]
     use crate::specs::v1_5::{
         component::Component, license::Licenses, lifecycles::Lifecycles, tool::Tools,
+    };
+    #[versioned("1.6")]
+    use crate::specs::v1_6::{
+        component::Component, license::Licenses, lifecycles::Lifecycles, tool::Tools,
+    };
+    #[versioned("1.7")]
+    use crate::specs::v1_7::{
+        component::Component, distribution_constraints::DistributionConstraints, license::Licenses,
+        lifecycles::Lifecycles, tool::Tools,
     };
 
     use crate::errors::BomError;
@@ -68,8 +77,14 @@ pub(crate) mod base {
         #[serde(skip_serializing_if = "Option::is_none")]
         properties: Option<Properties>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         lifecycles: Option<Lifecycles>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        manufacturer: Option<OrganizationalEntity>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        distribution_constraints: Option<DistributionConstraints>,
     }
 
     impl TryFrom<models::metadata::Metadata> for Metadata {
@@ -85,8 +100,12 @@ pub(crate) mod base {
                 supplier: convert_optional(other.supplier),
                 licenses: convert_optional(other.licenses),
                 properties: convert_optional(other.properties),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 lifecycles: convert_optional(other.lifecycles),
+                #[versioned("1.6", "1.7")]
+                manufacturer: convert_optional(other.manufacturer),
+                #[versioned("1.7")]
+                distribution_constraints: convert_optional(other.distribution_constraints),
             })
         }
     }
@@ -104,8 +123,16 @@ pub(crate) mod base {
                 properties: convert_optional(other.properties),
                 #[versioned("1.3", "1.4")]
                 lifecycles: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 lifecycles: convert_optional(other.lifecycles),
+                #[versioned("1.3", "1.4", "1.5")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                manufacturer: convert_optional(other.manufacturer),
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                distribution_constraints: None,
+                #[versioned("1.7")]
+                distribution_constraints: convert_optional(other.distribution_constraints),
             }
         }
     }
@@ -116,7 +143,8 @@ pub(crate) mod base {
     const AUTHOR_TAG: &str = "author";
     const MANUFACTURE_TAG: &str = "manufacture";
     const SUPPLIER_TAG: &str = "supplier";
-
+    #[versioned("1.6", "1.7")]
+    const MANUFACTURER_TAG: &str = "manufacturer";
     impl ToXml for Metadata {
         fn write_xml_element<W: std::io::Write>(
             &self,
@@ -126,6 +154,11 @@ pub(crate) mod base {
 
             if let Some(timestamp) = &self.timestamp {
                 write_simple_tag(writer, TIMESTAMP_TAG, timestamp)?;
+            }
+
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(lifecycles) = &self.lifecycles {
+                lifecycles.write_xml_element(writer)?;
             }
 
             if let Some(tools) = &self.tools {
@@ -148,6 +181,13 @@ pub(crate) mod base {
                 component.write_xml_element(writer)?;
             }
 
+            #[versioned("1.6", "1.7")]
+            if let Some(manufacturer) = &self.manufacturer {
+                if manufacturer.will_write() {
+                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
+                }
+            }
+
             if let Some(manufacture) = &self.manufacture {
                 manufacture.write_xml_named_element(writer, MANUFACTURE_TAG)?
             }
@@ -164,9 +204,9 @@ pub(crate) mod base {
                 properties.write_xml_element(writer)?;
             }
 
-            #[versioned("1.5")]
-            if let Some(lifecycles) = &self.lifecycles {
-                lifecycles.write_xml_element(writer)?;
+            #[versioned("1.7")]
+            if let Some(distribution_constraints) = &self.distribution_constraints {
+                distribution_constraints.write_xml_element(writer)?;
             }
 
             write_close_tag(writer, METADATA_TAG)?;
@@ -190,8 +230,10 @@ pub(crate) mod base {
     const COMPONENT_TAG: &str = "component";
     const LICENSES_TAG: &str = "licenses";
     const PROPERTIES_TAG: &str = "properties";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const LIFECYCLES_TAG: &str = "lifecycles";
+    #[versioned("1.7")]
+    const DISTRIBUTION_CONSTRAINTS_TAG: &str = "distributionConstraints";
 
     impl FromXml for Metadata {
         fn read_xml_element<R: std::io::Read>(
@@ -210,8 +252,12 @@ pub(crate) mod base {
             let mut supplier: Option<OrganizationalEntity> = None;
             let mut licenses: Option<Licenses> = None;
             let mut properties: Option<Properties> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut lifecycles: Option<Lifecycles> = None;
+            #[versioned("1.6", "1.7")]
+            let mut manufacturer: Option<OrganizationalEntity> = None;
+            #[versioned("1.7")]
+            let mut distribution_constraints: Option<DistributionConstraints> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -279,11 +325,31 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == LIFECYCLES_TAG => {
                         lifecycles = Some(Lifecycles::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == MANUFACTURER_TAG => {
+                        manufacturer = Some(OrganizationalEntity::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == DISTRIBUTION_CONSTRAINTS_TAG => {
+                        distribution_constraints = Some(DistributionConstraints::read_xml_element(
                             event_reader,
                             &name,
                             &attributes,
@@ -309,8 +375,12 @@ pub(crate) mod base {
                 supplier,
                 licenses,
                 properties,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 lifecycles,
+                #[versioned("1.6", "1.7")]
+                manufacturer,
+                #[versioned("1.7")]
+                distribution_constraints,
             })
         }
     }
@@ -339,6 +409,20 @@ pub(crate) mod base {
             lifecycles::test::{corresponding_lifecycles, example_lifecycles},
             tool::test::{corresponding_tools, example_tools},
         };
+        #[versioned("1.6")]
+        use crate::specs::v1_6::{
+            component::test::{corresponding_component, example_component},
+            license::test::{corresponding_licenses, example_licenses},
+            lifecycles::test::{corresponding_lifecycles, example_lifecycles},
+            tool::test::{corresponding_tools, example_tools},
+        };
+        #[versioned("1.7")]
+        use crate::specs::v1_7::{
+            component::test::{corresponding_component, example_component},
+            license::test::{corresponding_licenses, example_licenses},
+            lifecycles::test::{corresponding_lifecycles, example_lifecycles},
+            tool::test::{corresponding_tools, example_tools},
+        };
         use crate::{
             specs::common::{
                 organization::test::{
@@ -359,8 +443,12 @@ pub(crate) mod base {
                 supplier: Some(example_entity()),
                 licenses: Some(example_licenses()),
                 properties: Some(example_properties()),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 lifecycles: Some(example_lifecycles()),
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
+                #[versioned("1.7")]
+                distribution_constraints: None,
             }
         }
 
@@ -376,8 +464,16 @@ pub(crate) mod base {
                 properties: Some(corresponding_properties()),
                 #[versioned("1.3", "1.4")]
                 lifecycles: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 lifecycles: Some(corresponding_lifecycles()),
+                #[versioned("1.3", "1.4", "1.5")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                distribution_constraints: None,
+                #[versioned("1.7")]
+                distribution_constraints: None,
             }
         }
 
@@ -692,7 +788,7 @@ pub(crate) mod base {
   </properties>
 </metadata>
 "#;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let input = r#"
 <metadata>
   <timestamp>timestamp</timestamp>

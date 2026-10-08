@@ -79,6 +79,8 @@ pub fn validate_json_with_schema(
         SpecVersion::V1_3 => include_str!("../schema/bom-1.3.schema.json"),
         SpecVersion::V1_4 => include_str!("../schema/bom-1.4.schema.json"),
         SpecVersion::V1_5 => include_str!("../schema/bom-1.5.schema.json"),
+        SpecVersion::V1_6 => include_str!("../schema/bom-1.6.schema.json"),
+        SpecVersion::V1_7 => include_str!("../schema/bom-1.7.schema.json"),
     };
     let schema: serde_json::Value =
         serde_json::from_str(schema).expect("Failed to parse JSON schema file");

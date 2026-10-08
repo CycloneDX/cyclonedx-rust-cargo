@@ -1,0 +1,8 @@
+---
+source: cyclonedx-bom/src/specs/v1_7/distribution_constraints.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<distributionConstraints>
+  <tlp>AMBER_AND_STRICT</tlp>
+</distributionConstraints>

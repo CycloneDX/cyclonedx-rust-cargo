@@ -18,12 +18,16 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4", "1.5")]
+#[versioned("1.3", "1.4", "1.5", "1.6", "1.7")]
 pub(crate) mod base {
     use crate::models;
     use crate::models::bom::BomReference;
     #[versioned("1.5")]
     use crate::specs::{common::property::Properties, v1_5::licensing::Licensing};
+    #[versioned("1.6")]
+    use crate::specs::{common::property::Properties, v1_6::licensing::Licensing};
+    #[versioned("1.7")]
+    use crate::specs::{common::property::Properties, v1_7::licensing::Licensing};
     use crate::xml::{optional_attribute, write_close_tag, write_simple_tag};
     use crate::{
         errors::XmlReadError,
@@ -40,6 +44,8 @@ pub(crate) mod base {
         },
     };
     use crate::{specs::common::attached_text::AttachedText, utilities::convert_optional};
+    #[versioned("1.7")]
+    use crate::{utilities::convert_optional_vec, xml::attribute_or_error};
     use serde::{Deserialize, Serialize};
     use xml::{name::OwnedName, reader, writer};
 
@@ -107,6 +113,16 @@ pub(crate) mod base {
                             &attributes,
                         )?);
                     }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == EXPRESSION_DETAILED_TAG => {
+                        licenses.push(LicenseChoice::Expression(Expression::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?));
+                    }
                     reader::XmlEvent::EndElement { name } if &name == element_name => {
                         got_end_tag = true;
                     }
@@ -146,7 +162,17 @@ pub(crate) mod base {
     }
 
     const BOM_REF_ATTR: &str = "bom-ref";
+    #[versioned("1.6", "1.7")]
+    const ACKNOWLEDGEMENT_ATTR: &str = "acknowledgement";
     const EXPRESSION_TAG: &str = "expression";
+    #[versioned("1.7")]
+    const EXPRESSION_DETAILED_TAG: &str = "expression-detailed";
+    #[versioned("1.7")]
+    const EXPRESSION_ATTR: &str = "expression";
+    #[versioned("1.7")]
+    const DETAILS_TAG: &str = "details";
+    #[versioned("1.7")]
+    const LICENSE_IDENTIFIER_ATTR: &str = "license-identifier";
 
     impl ToXml for LicenseChoice {
         fn write_xml_element<W: std::io::Write>(
@@ -197,19 +223,22 @@ pub(crate) mod base {
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub(crate) struct License {
-        #[versioned("1.5")]
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[versioned("1.5", "1.6", "1.7")]
+        #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
         bom_ref: Option<String>,
         #[serde(flatten)]
         license_identifier: LicenseIdentifier,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        acknowledgement: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         text: Option<AttachedText>,
         #[serde(skip_serializing_if = "Option::is_none")]
         url: Option<String>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         licensing: Option<Licensing>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         properties: Option<Properties>,
     }
@@ -217,14 +246,16 @@ pub(crate) mod base {
     impl From<models::license::License> for License {
         fn from(other: models::license::License) -> Self {
             Self {
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 bom_ref: other.bom_ref.map(|b| b.0),
                 license_identifier: other.license_identifier.into(),
+                #[versioned("1.6", "1.7")]
+                acknowledgement: other.acknowledgement.map(|a| a.to_string()),
                 text: convert_optional(other.text),
                 url: other.url.map(|u| u.to_string()),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 licensing: convert_optional(other.licensing),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 properties: convert_optional(other.properties),
             }
         }
@@ -235,18 +266,24 @@ pub(crate) mod base {
             Self {
                 #[versioned("1.3", "1.4")]
                 bom_ref: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 bom_ref: other.bom_ref.map(models::bom::BomReference::new),
                 license_identifier: other.license_identifier.into(),
+                #[versioned("1.3", "1.4", "1.5")]
+                acknowledgement: None,
+                #[versioned("1.6", "1.7")]
+                acknowledgement: other
+                    .acknowledgement
+                    .map(models::license::LicenseAcknowledgement::new_unchecked),
                 text: convert_optional(other.text),
                 url: other.url.map(Uri),
                 #[versioned("1.3", "1.4")]
                 licensing: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 licensing: convert_optional(other.licensing),
                 #[versioned("1.3", "1.4")]
                 properties: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 properties: convert_optional(other.properties),
             }
         }
@@ -255,9 +292,9 @@ pub(crate) mod base {
     const LICENSE_TAG: &str = "license";
     const TEXT_TAG: &str = "text";
     const URL_TAG: &str = "url";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const LICENSING_TAG: &str = "licensing";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const PROPERTIES_TAG: &str = "properties";
 
     impl ToXml for License {
@@ -268,11 +305,15 @@ pub(crate) mod base {
             #[versioned("1.3", "1.4")]
             let start_tag = xml::writer::XmlEvent::start_element(LICENSE_TAG);
 
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut start_tag = xml::writer::XmlEvent::start_element(LICENSE_TAG);
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             if let Some(bom_ref) = &self.bom_ref {
                 start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
+            }
+            #[versioned("1.6", "1.7")]
+            if let Some(acknowledgement) = &self.acknowledgement {
+                start_tag = start_tag.attr(ACKNOWLEDGEMENT_ATTR, acknowledgement);
             }
 
             writer
@@ -289,7 +330,12 @@ pub(crate) mod base {
                 write_simple_tag(writer, URL_TAG, url)?;
             }
 
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(licensing) = &self.licensing {
+                licensing.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.5", "1.6", "1.7")]
             if let Some(properties) = &self.properties {
                 properties.write_xml_element(writer)?;
             }
@@ -311,14 +357,16 @@ pub(crate) mod base {
         where
             Self: Sized,
         {
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+            #[versioned("1.6", "1.7")]
+            let acknowledgement = optional_attribute(attributes, ACKNOWLEDGEMENT_ATTR);
             let mut license_identifier: Option<LicenseIdentifier> = None;
             let mut text: Option<AttachedText> = None;
             let mut url: Option<String> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut licensing: Option<Licensing> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut properties: Option<Properties> = None;
 
             let mut got_end_tag = false;
@@ -359,7 +407,7 @@ pub(crate) mod base {
                     reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
                         url = Some(read_simple_tag(event_reader, &name)?)
                     }
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == LICENSING_TAG => {
@@ -369,7 +417,7 @@ pub(crate) mod base {
                             &attributes,
                         )?);
                     }
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == PROPERTIES_TAG => {
@@ -397,14 +445,16 @@ pub(crate) mod base {
                 })?;
 
             Ok(Self {
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 bom_ref,
                 license_identifier,
+                #[versioned("1.6", "1.7")]
+                acknowledgement,
                 text,
                 url,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 licensing,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 properties,
             })
         }
@@ -504,9 +554,21 @@ pub(crate) mod base {
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub(crate) struct Expression {
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
         bom_ref: Option<String>,
         expression: String,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        acknowledgement: Option<String>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        expression_details: Option<Vec<ExpressionDetail>>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        licensing: Option<Licensing>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        properties: Option<Properties>,
     }
 
     impl Expression {
@@ -515,16 +577,43 @@ pub(crate) mod base {
             Self {
                 bom_ref: None,
                 expression: expression.to_string(),
+                #[versioned("1.6", "1.7")]
+                acknowledgement: None,
+                #[versioned("1.7")]
+                expression_details: None,
+                #[versioned("1.7")]
+                licensing: None,
+                #[versioned("1.7")]
+                properties: None,
             }
         }
     }
 
+    /// Only expressions carrying 1.7 details need the `expression-detailed` XML form.
+    #[versioned("1.7")]
+    fn is_detailed(expression: &Expression) -> bool {
+        expression.expression_details.is_some()
+            || expression.licensing.is_some()
+            || expression.properties.is_some()
+    }
+
     impl From<Expression> for SpdxExpression {
         fn from(other: Expression) -> Self {
-            Self {
-                bom_ref: other.bom_ref.map(BomReference::new),
-                expression: other.expression,
+            let mut expression = SpdxExpression::new(&other.expression);
+            expression.bom_ref = other.bom_ref.map(BomReference::new);
+            #[versioned("1.6", "1.7")]
+            {
+                expression.acknowledgement = other
+                    .acknowledgement
+                    .map(models::license::LicenseAcknowledgement::new_unchecked);
             }
+            #[versioned("1.7")]
+            {
+                expression.details = convert_optional_vec(other.expression_details);
+                expression.licensing = convert_optional(other.licensing);
+                expression.properties = convert_optional(other.properties);
+            }
+            expression
         }
     }
 
@@ -533,6 +622,14 @@ pub(crate) mod base {
             Self {
                 bom_ref: other.bom_ref.map(|b| b.0),
                 expression: other.expression,
+                #[versioned("1.6", "1.7")]
+                acknowledgement: other.acknowledgement.map(|a| a.to_string()),
+                #[versioned("1.7")]
+                expression_details: convert_optional_vec(other.details),
+                #[versioned("1.7")]
+                licensing: convert_optional(other.licensing),
+                #[versioned("1.7")]
+                properties: convert_optional(other.properties),
             }
         }
     }
@@ -542,10 +639,41 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
+            #[versioned("1.7")]
+            if is_detailed(self) {
+                let mut start_tag = xml::writer::XmlEvent::start_element(EXPRESSION_DETAILED_TAG)
+                    .attr(EXPRESSION_ATTR, &self.expression);
+                if let Some(bom_ref) = &self.bom_ref {
+                    start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
+                }
+                if let Some(acknowledgement) = &self.acknowledgement {
+                    start_tag = start_tag.attr(ACKNOWLEDGEMENT_ATTR, acknowledgement);
+                }
+                writer
+                    .write(start_tag)
+                    .map_err(to_xml_write_error(EXPRESSION_DETAILED_TAG))?;
+
+                for detail in self.expression_details.iter().flatten() {
+                    detail.write_xml_element(writer)?;
+                }
+                if let Some(licensing) = &self.licensing {
+                    licensing.write_xml_element(writer)?;
+                }
+                if let Some(properties) = &self.properties {
+                    properties.write_xml_element(writer)?;
+                }
+
+                return write_close_tag(writer, EXPRESSION_DETAILED_TAG);
+            }
+
             let mut start_tag = xml::writer::XmlEvent::start_element(EXPRESSION_TAG);
 
             if let Some(bom_ref) = &self.bom_ref {
                 start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
+            }
+            #[versioned("1.6", "1.7")]
+            if let Some(acknowledgement) = &self.acknowledgement {
+                start_tag = start_tag.attr(ACKNOWLEDGEMENT_ATTR, acknowledgement);
             }
 
             writer
@@ -572,11 +700,204 @@ pub(crate) mod base {
             Self: Sized,
         {
             let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+            #[versioned("1.6", "1.7")]
+            let acknowledgement = optional_attribute(attributes, ACKNOWLEDGEMENT_ATTR);
+
+            #[versioned("1.7")]
+            if element_name.local_name == EXPRESSION_DETAILED_TAG {
+                let expression = attribute_or_error(element_name, attributes, EXPRESSION_ATTR)?;
+                let mut expression_details: Option<Vec<ExpressionDetail>> = None;
+                let mut licensing: Option<Licensing> = None;
+                let mut properties: Option<Properties> = None;
+
+                let mut got_end_tag = false;
+                while !got_end_tag {
+                    let next_element = event_reader
+                        .next()
+                        .map_err(to_xml_read_error(EXPRESSION_DETAILED_TAG))?;
+                    match next_element {
+                        reader::XmlEvent::StartElement {
+                            name, attributes, ..
+                        } if name.local_name == DETAILS_TAG => {
+                            expression_details.get_or_insert_with(Vec::new).push(
+                                ExpressionDetail::read_xml_element(
+                                    event_reader,
+                                    &name,
+                                    &attributes,
+                                )?,
+                            );
+                        }
+                        reader::XmlEvent::StartElement {
+                            name, attributes, ..
+                        } if name.local_name == LICENSING_TAG => {
+                            licensing = Some(Licensing::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?);
+                        }
+                        reader::XmlEvent::StartElement {
+                            name, attributes, ..
+                        } if name.local_name == PROPERTIES_TAG => {
+                            properties = Some(Properties::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?);
+                        }
+                        // lax validation of any elements from a different schema
+                        reader::XmlEvent::StartElement { name, .. } => {
+                            read_lax_validation_tag(event_reader, &name)?
+                        }
+                        reader::XmlEvent::EndElement { name } if &name == element_name => {
+                            got_end_tag = true;
+                        }
+                        unexpected => {
+                            return Err(unexpected_element_error(element_name, unexpected))
+                        }
+                    }
+                }
+
+                return Ok(Expression {
+                    bom_ref,
+                    expression,
+                    acknowledgement,
+                    expression_details,
+                    licensing,
+                    properties,
+                });
+            }
+
             let expression = read_simple_tag(event_reader, element_name)?;
 
             Ok(Expression {
                 bom_ref,
                 expression,
+                #[versioned("1.6", "1.7")]
+                acknowledgement,
+                #[versioned("1.7")]
+                expression_details: None,
+                #[versioned("1.7")]
+                licensing: None,
+                #[versioned("1.7")]
+                properties: None,
+            })
+        }
+    }
+
+    #[versioned("1.7")]
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct ExpressionDetail {
+        license_identifier: String,
+        #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
+        bom_ref: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        text: Option<AttachedText>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        url: Option<String>,
+    }
+
+    #[versioned("1.7")]
+    impl From<models::license::LicenseExpressionDetail> for ExpressionDetail {
+        fn from(other: models::license::LicenseExpressionDetail) -> Self {
+            Self {
+                license_identifier: other.license_identifier,
+                bom_ref: other.bom_ref.map(|b| b.0),
+                text: convert_optional(other.text),
+                url: other.url.map(|u| u.to_string()),
+            }
+        }
+    }
+
+    #[versioned("1.7")]
+    impl From<ExpressionDetail> for models::license::LicenseExpressionDetail {
+        fn from(other: ExpressionDetail) -> Self {
+            Self {
+                license_identifier: other.license_identifier,
+                bom_ref: other.bom_ref.map(BomReference::new),
+                text: convert_optional(other.text),
+                url: other.url.map(Uri),
+            }
+        }
+    }
+
+    #[versioned("1.7")]
+    impl ToXml for ExpressionDetail {
+        fn write_xml_element<W: std::io::Write>(
+            &self,
+            writer: &mut xml::EventWriter<W>,
+        ) -> Result<(), crate::errors::XmlWriteError> {
+            let mut start_tag = xml::writer::XmlEvent::start_element(DETAILS_TAG)
+                .attr(LICENSE_IDENTIFIER_ATTR, &self.license_identifier);
+            if let Some(bom_ref) = &self.bom_ref {
+                start_tag = start_tag.attr(BOM_REF_ATTR, bom_ref);
+            }
+            writer
+                .write(start_tag)
+                .map_err(to_xml_write_error(DETAILS_TAG))?;
+
+            if let Some(text) = &self.text {
+                text.write_xml_named_element(writer, TEXT_TAG)?;
+            }
+            if let Some(url) = &self.url {
+                write_simple_tag(writer, URL_TAG, url)?;
+            }
+
+            write_close_tag(writer, DETAILS_TAG)
+        }
+    }
+
+    #[versioned("1.7")]
+    impl FromXml for ExpressionDetail {
+        fn read_xml_element<R: std::io::Read>(
+            event_reader: &mut xml::EventReader<R>,
+            element_name: &OwnedName,
+            attributes: &[xml::attribute::OwnedAttribute],
+        ) -> Result<Self, XmlReadError>
+        where
+            Self: Sized,
+        {
+            let license_identifier =
+                attribute_or_error(element_name, attributes, LICENSE_IDENTIFIER_ATTR)?;
+            let bom_ref = optional_attribute(attributes, BOM_REF_ATTR);
+            let mut text: Option<AttachedText> = None;
+            let mut url: Option<String> = None;
+
+            let mut got_end_tag = false;
+            while !got_end_tag {
+                let next_element = event_reader
+                    .next()
+                    .map_err(to_xml_read_error(DETAILS_TAG))?;
+                match next_element {
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == TEXT_TAG => {
+                        text = Some(AttachedText::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    reader::XmlEvent::StartElement { name, .. } if name.local_name == URL_TAG => {
+                        url = Some(read_simple_tag(event_reader, &name)?)
+                    }
+                    // lax validation of any elements from a different schema
+                    reader::XmlEvent::StartElement { name, .. } => {
+                        read_lax_validation_tag(event_reader, &name)?
+                    }
+                    reader::XmlEvent::EndElement { name } if &name == element_name => {
+                        got_end_tag = true;
+                    }
+                    unexpected => return Err(unexpected_element_error(element_name, unexpected)),
+                }
+            }
+
+            Ok(Self {
+                license_identifier,
+                bom_ref,
+                text,
+                url,
             })
         }
     }
@@ -590,6 +911,16 @@ pub(crate) mod base {
         use crate::specs::{
             common::property::test::{corresponding_properties, example_properties},
             v1_5::licensing::test::{corresponding_licensing, example_licensing},
+        };
+        #[versioned("1.6")]
+        use crate::specs::{
+            common::property::test::{corresponding_properties, example_properties},
+            v1_6::licensing::test::{corresponding_licensing, example_licensing},
+        };
+        #[versioned("1.7")]
+        use crate::specs::{
+            common::property::test::{corresponding_properties, example_properties},
+            v1_7::licensing::test::{corresponding_licensing, example_licensing},
         };
 
         use crate::{
@@ -617,13 +948,15 @@ pub(crate) mod base {
             })
         }
 
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         pub(crate) fn example_spdx_license() -> LicenseChoice {
             LicenseChoice::License(License {
                 bom_ref: Some("license-id".to_string()),
                 license_identifier: LicenseIdentifier::SpdxId("spdx id".to_string()),
                 text: Some(example_attached_text()),
                 url: Some("url".to_string()),
+                #[versioned("1.6", "1.7")]
+                acknowledgement: None,
                 licensing: Some(example_licensing()),
                 properties: Some(example_properties()),
             })
@@ -639,13 +972,14 @@ pub(crate) mod base {
                 )),
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
+                acknowledgement: None,
                 licensing: None,
                 properties: None,
             })
         }
 
         #[allow(unused)]
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         pub(crate) fn corresponding_spdx_license() -> models::license::LicenseChoice {
             models::license::LicenseChoice::License(models::license::License {
                 bom_ref: Some(models::bom::BomReference::new("license-id")),
@@ -654,6 +988,7 @@ pub(crate) mod base {
                 )),
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
+                acknowledgement: None,
                 licensing: Some(corresponding_licensing()),
                 properties: Some(corresponding_properties()),
             })
@@ -668,13 +1003,15 @@ pub(crate) mod base {
             })
         }
 
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         pub(crate) fn example_named_license() -> LicenseChoice {
             LicenseChoice::License(License {
                 bom_ref: Some("license-1".to_string()),
                 license_identifier: LicenseIdentifier::Name("name".to_string()),
                 text: Some(example_attached_text()),
                 url: Some("url".to_string()),
+                #[versioned("1.6", "1.7")]
+                acknowledgement: None,
                 licensing: Some(example_licensing()),
                 properties: Some(example_properties()),
             })
@@ -690,13 +1027,14 @@ pub(crate) mod base {
                 ),
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
+                acknowledgement: None,
                 licensing: None,
                 properties: None,
             })
         }
 
         #[allow(unused)]
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         pub(crate) fn corresponding_named_license() -> models::license::LicenseChoice {
             models::license::LicenseChoice::License(models::license::License {
                 bom_ref: Some(models::bom::BomReference::new("license-1".to_string())),
@@ -705,6 +1043,7 @@ pub(crate) mod base {
                 ),
                 text: Some(corresponding_attached_text()),
                 url: Some(Uri("url".to_string())),
+                acknowledgement: None,
                 licensing: Some(corresponding_licensing()),
                 properties: Some(corresponding_properties()),
             })
@@ -794,7 +1133,7 @@ pub(crate) mod base {
             assert_eq!(actual, expected);
         }
 
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[test]
         fn it_should_read_xml_full_license_choice_licenses() {
             let input = r#"
@@ -888,6 +1227,90 @@ pub(crate) mod base {
                 example_license_expression(),
             ]);
             assert_eq!(actual, expected);
+        }
+
+        #[versioned("1.6", "1.7")]
+        #[test]
+        fn it_should_read_xml_acknowledgement() {
+            let input = r#"
+    <licenses>
+      <license acknowledgement="concluded">
+        <id>MIT</id>
+      </license>
+      <expression bom-ref="expr-1" acknowledgement="declared">MIT OR Apache-2.0</expression>
+    </licenses>
+    "#;
+            let actual: Licenses = read_element_from_string(input);
+            let actual: models::license::Licenses = actual.into();
+
+            let models::license::LicenseChoice::License(license) = &actual.0[0] else {
+                panic!("expected a license, got {:?}", actual.0[0]);
+            };
+            assert_eq!(
+                license.acknowledgement,
+                Some(models::license::LicenseAcknowledgement::Concluded)
+            );
+            let models::license::LicenseChoice::Expression(expression) = &actual.0[1] else {
+                panic!("expected an expression, got {:?}", actual.0[1]);
+            };
+            assert_eq!(
+                expression.acknowledgement,
+                Some(models::license::LicenseAcknowledgement::Declared)
+            );
+            assert_eq!(expression.bom_ref, Some(BomReference::new("expr-1")));
+
+            let xml_output = write_element_to_string(Licenses::from(actual.clone()));
+            let round_trip: Licenses = read_element_from_string(xml_output);
+            assert_eq!(models::license::Licenses::from(round_trip), actual);
+        }
+
+        #[versioned("1.7")]
+        #[test]
+        fn it_should_round_trip_expression_detailed() {
+            let input = r#"
+    <licenses>
+      <expression-detailed expression="MIT AND LicenseRef-acme" bom-ref="expr-1" acknowledgement="concluded">
+        <details license-identifier="LicenseRef-acme" bom-ref="acme">
+          <text>Acme license text</text>
+          <url>https://example.com/acme</url>
+        </details>
+        <details license-identifier="MIT"/>
+        <licensing>
+          <purchaseOrder>PO-1</purchaseOrder>
+        </licensing>
+        <properties>
+          <property name="key">value</property>
+        </properties>
+      </expression-detailed>
+    </licenses>
+    "#;
+            let actual: Licenses = read_element_from_string(input);
+            let model: models::license::Licenses = actual.into();
+            let models::license::LicenseChoice::Expression(expression) = &model.0[0] else {
+                panic!("expected an expression, got {:?}", model.0[0]);
+            };
+            assert_eq!(expression.to_string(), "MIT AND LicenseRef-acme");
+            let details = expression.details.as_ref().expect("details");
+            assert_eq!(details.len(), 2);
+            assert_eq!(details[0].license_identifier, "LicenseRef-acme");
+            assert_eq!(details[0].bom_ref, Some(BomReference::new("acme")));
+            assert!(details[0].text.is_some());
+            assert!(expression.licensing.is_some());
+            assert!(expression.properties.is_some());
+
+            let xml_output = write_element_to_string(Licenses::from(model.clone()));
+            insta::assert_snapshot!(xml_output);
+            let round_trip: Licenses = read_element_from_string(xml_output);
+            assert_eq!(models::license::Licenses::from(round_trip), model);
+
+            let json = serde_json::to_value(Licenses::from(model.clone())).unwrap();
+            assert_eq!(
+                json[0]["expressionDetails"][0]["licenseIdentifier"],
+                "LicenseRef-acme"
+            );
+            assert_eq!(json[0]["bom-ref"], "expr-1");
+            let from_json: Licenses = serde_json::from_value(json).unwrap();
+            assert_eq!(models::license::Licenses::from(from_json), model);
         }
     }
 }

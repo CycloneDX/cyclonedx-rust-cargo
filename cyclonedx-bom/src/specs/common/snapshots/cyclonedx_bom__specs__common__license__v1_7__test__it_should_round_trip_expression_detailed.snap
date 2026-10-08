@@ -1,0 +1,20 @@
+---
+source: cyclonedx-bom/src/specs/common/license.rs
+expression: xml_output
+---
+<?xml version="1.0" encoding="utf-8"?>
+<licenses>
+  <expression-detailed expression="MIT AND LicenseRef-acme" bom-ref="expr-1" acknowledgement="concluded">
+    <details license-identifier="LicenseRef-acme" bom-ref="acme">
+      <text>Acme license text</text>
+      <url>https://example.com/acme</url>
+    </details>
+    <details license-identifier="MIT" />
+    <licensing>
+      <purchaseOrder>PO-1</purchaseOrder>
+    </licensing>
+    <properties>
+      <property name="key">value</property>
+    </properties>
+  </expression-detailed>
+</licenses>

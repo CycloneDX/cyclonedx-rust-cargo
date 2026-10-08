@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/src/specs/common/bom.rs
-assertion_line: 660
 expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
@@ -130,10 +129,6 @@ expression: xml_output
           <text><![CDATA[copyright]]></text>
         </copyright>
       </evidence>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </component>
     <manufacture>
       <name>name</name>
@@ -258,10 +253,6 @@ expression: xml_output
           <text><![CDATA[copyright]]></text>
         </copyright>
       </evidence>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </component>
   </components>
   <services>
@@ -303,10 +294,6 @@ expression: xml_output
         <property name="name">value</property>
       </properties>
       <services />
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </service>
   </services>
   <externalReferences>
@@ -332,10 +319,6 @@ expression: xml_output
       <dependencies>
         <dependency ref="dependency-ref" />
       </dependencies>
-      <signature>
-        <algorithm>HS512</algorithm>
-        <value>1234567890</value>
-      </signature>
     </composition>
   </compositions>
   <vulnerabilities>

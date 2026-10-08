@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 52
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-evidence-1.5.json
 ---
@@ -55,9 +54,11 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-evidence-1.5.json
         ],
         "occurrences": [
           {
+            "bom-ref": "d6bf237e-4e11-4713-9f62-56d18d5e2079",
             "location": "/path/to/component"
           },
           {
+            "bom-ref": "b574d5d1-e3cf-4dcd-9ba5-f3507eb1b175",
             "location": "/another/path/to/component"
           }
         ],

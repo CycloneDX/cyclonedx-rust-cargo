@@ -1,0 +1,60 @@
+---
+source: cyclonedx-bom/src/specs/common/definitions.rs
+expression: write_element_to_string(example_definitions())
+---
+<?xml version="1.0" encoding="utf-8"?>
+<definitions>
+  <standards>
+    <standard bom-ref="standard-1">
+      <name>name</name>
+      <version>1.0.0</version>
+      <description>description</description>
+      <owner>owner</owner>
+      <requirements>
+        <requirement bom-ref="requirement-1">
+          <identifier>v1</identifier>
+          <title>title</title>
+          <text>text</text>
+          <descriptions>
+            <description>first</description>
+            <description>second</description>
+          </descriptions>
+          <openCre>CRE:616-305</openCre>
+          <openCre>CRE:764-507</openCre>
+          <parent>requirement-0</parent>
+          <properties>
+            <property name="name">value</property>
+          </properties>
+          <externalReferences>
+            <reference type="external reference type">
+              <url>url</url>
+              <comment>comment</comment>
+              <hashes>
+                <hash alg="algorithm">hash value</hash>
+              </hashes>
+            </reference>
+          </externalReferences>
+        </requirement>
+      </requirements>
+      <levels>
+        <level bom-ref="level-1">
+          <identifier>Level 1</identifier>
+          <title>title</title>
+          <description>description</description>
+          <requirements>
+            <requirement>requirement-1</requirement>
+          </requirements>
+        </level>
+      </levels>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
+    </standard>
+  </standards>
+</definitions>

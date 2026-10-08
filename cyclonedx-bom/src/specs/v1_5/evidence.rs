@@ -93,7 +93,7 @@ impl From<models::component::Occurrences> for Occurrences {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Occurrence {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bom-ref", skip_serializing_if = "Option::is_none")]
     pub bom_ref: Option<String>,
     pub location: String,
 }
@@ -103,6 +103,10 @@ impl From<Occurrence> for models::component::Occurrence {
         Self {
             bom_ref: other.bom_ref.map(crate::models::bom::BomReference::new),
             location: other.location,
+            line: None,
+            offset: None,
+            symbol: None,
+            additional_context: None,
         }
     }
 }
@@ -494,6 +498,7 @@ impl From<Identity> for models::component::Identity {
             confidence: other
                 .confidence
                 .map(models::component::ConfidenceScore::new),
+            concluded_value: None,
             methods: convert_optional(other.methods),
             tools: convert_optional(other.tools),
         }
@@ -893,6 +898,10 @@ pub(crate) mod test {
         models::component::Occurrences(vec![models::component::Occurrence {
             bom_ref: Some(models::bom::BomReference::new("occurrence-1")),
             location: "location-1".to_string(),
+            line: None,
+            offset: None,
+            symbol: None,
+            additional_context: None,
         }])
     }
 
@@ -939,6 +948,7 @@ pub(crate) mod test {
         models::component::Identity {
             field: models::component::IdentityField::Group,
             confidence: Some(models::component::ConfidenceScore::new(0.5)),
+            concluded_value: None,
             methods: Some(models::component::Methods(vec![
                 models::component::Method {
                     technique: "technique-1".to_string(),

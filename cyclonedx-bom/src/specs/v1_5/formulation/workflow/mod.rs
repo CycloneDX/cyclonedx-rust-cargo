@@ -10,7 +10,7 @@ use crate::{
     errors::XmlReadError,
     get_elements_lax,
     models::formulation::workflow as models,
-    specs::common::{dependency::Dependency, property::Properties},
+    specs::{common::property::Properties, v1_5::dependency::Dependency},
     utilities::{convert_optional, convert_optional_vec},
     xml::{
         attribute_or_error, read_lax_validation_tag, read_simple_tag, to_xml_read_error,

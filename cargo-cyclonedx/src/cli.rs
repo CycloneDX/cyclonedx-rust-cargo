@@ -101,7 +101,7 @@ Defaults to the host target, as printed by 'rustc -vV'"
     #[clap(long = "license-accept-named", action=ArgAction::Append)]
     pub license_accept_named: Vec<String>,
 
-    /// The CycloneDX specification version to output: `1.3`, `1.4` or `1.5`. Defaults to 1.3
+    /// The CycloneDX specification version to output: `1.3`, `1.4`, `1.5`, `1.6` or `1.7`. Defaults to 1.3
     #[clap(long = "spec-version")]
     pub spec_version: Option<SpecVersion>,
 

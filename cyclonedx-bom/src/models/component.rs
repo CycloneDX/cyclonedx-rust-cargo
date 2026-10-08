@@ -29,7 +29,8 @@ use crate::models::code::{Commits, Patches};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::hash::Hashes;
 use crate::models::license::Licenses;
-use crate::models::organization::OrganizationalEntity;
+use crate::models::organization::{OrganizationalContact, OrganizationalEntity};
+use crate::models::patent::PatentAssertions;
 use crate::models::property::Properties;
 use crate::validation::ValidationError;
 use crate::{
@@ -42,6 +43,7 @@ use crate::{
 
 use super::bom::{validate_bom_ref, SpecVersion};
 use super::component_data::ComponentData;
+use super::crypto_properties::CryptoProperties;
 use super::modelcard::ModelCard;
 use super::signature::Signature;
 
@@ -76,6 +78,24 @@ pub struct Component {
     pub model_card: Option<ModelCard>,
     /// Added in version 1.5
     pub data: Option<ComponentData>,
+    /// Added in version 1.6
+    pub manufacturer: Option<OrganizationalEntity>,
+    /// Added in version 1.6, replaces deprecated `author`
+    pub authors: Option<Vec<OrganizationalContact>>,
+    /// Added in version 1.6
+    pub omnibor_id: Option<Vec<String>>,
+    /// Added in version 1.6
+    pub swhid: Option<Vec<String>>,
+    /// Added in version 1.6
+    pub crypto_properties: Option<CryptoProperties>,
+    /// Added in version 1.7
+    pub is_external: Option<bool>,
+    /// Added in version 1.7
+    pub version_range: Option<String>,
+    /// Added in version 1.7
+    pub patent_assertions: Option<PatentAssertions>,
+    /// Added in version 1.6
+    pub tags: Option<Vec<String>>,
 }
 
 impl Component {
@@ -86,6 +106,7 @@ impl Component {
         bom_ref: Option<String>,
     ) -> Self {
         Self {
+            tags: None,
             component_type,
             name: NormalizedString::new(name),
             version: Some(NormalizedString::new(version)),
@@ -112,6 +133,14 @@ impl Component {
             signature: None,
             model_card: None,
             data: None,
+            manufacturer: None,
+            authors: None,
+            omnibor_id: None,
+            swhid: None,
+            crypto_properties: None,
+            is_external: None,
+            version_range: None,
+            patent_assertions: None,
         }
     }
 }
@@ -158,6 +187,16 @@ impl Validate for Component {
         ctx.add_struct_option("properties", self.properties.as_ref(), version);
         ctx.add_struct_option("components", self.components.as_ref(), version);
         ctx.add_struct_option("evidence", self.evidence.as_ref(), version);
+        ctx.add_struct_option(
+            "patent_assertions",
+            self.patent_assertions.as_ref(),
+            version,
+        );
+        ctx.add_struct_option(
+            "crypto_properties",
+            self.crypto_properties.as_ref(),
+            version,
+        );
         ctx.into()
     }
 }
@@ -184,9 +223,11 @@ pub fn validate_classification(
         if Classification::File < *classification {
             return Err(ValidationError::new("Unknown classification"));
         }
-    } else if SpecVersion::V1_5 <= version
-        && matches!(classification, Classification::UnknownClassification(_))
-    {
+    } else if version == SpecVersion::V1_5 {
+        if Classification::Data < *classification {
+            return Err(ValidationError::new("Unknown classification"));
+        }
+    } else if matches!(classification, Classification::UnknownClassification(_)) {
         return Err(ValidationError::new("Unknown classification"));
     }
     Ok(())
@@ -212,6 +253,8 @@ pub enum Classification {
     MachineLearningModel = 11,
     /// Added in 1.5
     Data = 12,
+    /// Added in 1.6
+    CryptographicAsset = 13,
     #[doc(hidden)]
     #[strum(default)]
     UnknownClassification(String),
@@ -232,6 +275,7 @@ impl Classification {
             "device-driver" => Self::DeviceDriver,
             "machine-learning-model" => Self::MachineLearningModel,
             "data" => Self::Data,
+            "cryptographic-asset" => Self::CryptographicAsset,
             unknown => Self::UnknownClassification(unknown.to_string()),
         }
     }
@@ -366,8 +410,8 @@ pub struct ComponentEvidence {
     pub occurrences: Option<Occurrences>,
     /// Added in version 1.5
     pub callstack: Option<Callstack>,
-    /// Added in version 1.5
-    pub identity: Option<Identity>,
+    /// Added in version 1.5, a single identity in 1.5 and a list since 1.6
+    pub identity: Option<Vec<Identity>>,
 }
 
 impl Validate for ComponentEvidence {
@@ -377,9 +421,26 @@ impl Validate for ComponentEvidence {
             .add_struct_option("copyright", self.copyright.as_ref(), version)
             .add_struct_option("occurrences", self.occurrences.as_ref(), version)
             .add_struct_option("callstack", self.callstack.as_ref(), version)
-            .add_struct_option("identity", self.identity.as_ref(), version)
+            .add_list_option("identity", self.identity.as_ref(), |identity| {
+                identity.validate_version(version)
+            })
+            .add_field_option("identity_count", self.identity.as_ref(), |identities| {
+                validate_identity_count(identities, version)
+            })
             .into()
     }
+}
+
+fn validate_identity_count(
+    identities: &[Identity],
+    version: SpecVersion,
+) -> Result<(), ValidationError> {
+    if version < SpecVersion::V1_6 && identities.len() > 1 {
+        return Err(ValidationError::new(
+            "Multiple identity evidence entries require spec version 1.6 or later",
+        ));
+    }
+    Ok(())
 }
 
 /// For more details see
@@ -402,6 +463,14 @@ impl Validate for Occurrences {
 pub struct Occurrence {
     pub bom_ref: Option<BomReference>,
     pub location: String,
+    /// Added in version 1.6
+    pub line: Option<u32>,
+    /// Added in version 1.6
+    pub offset: Option<u32>,
+    /// Added in version 1.6
+    pub symbol: Option<String>,
+    /// Added in version 1.6
+    pub additional_context: Option<String>,
 }
 
 impl Occurrence {
@@ -409,6 +478,10 @@ impl Occurrence {
         Self {
             bom_ref: None,
             location: location.to_string(),
+            line: None,
+            offset: None,
+            symbol: None,
+            additional_context: None,
         }
     }
 }
@@ -490,7 +563,7 @@ impl Validate for Frame {
 }
 
 pub fn validate_confidence(confidence: &ConfidenceScore) -> Result<(), ValidationError> {
-    if confidence.get() < 0.0 && 1.0 > confidence.get() {
+    if confidence.get() < 0.0 || confidence.get() > 1.0 {
         return Err("Confidence score outside range 0.0 - 1.0".into());
     }
     Ok(())
@@ -553,6 +626,8 @@ pub struct Identity {
     pub field: IdentityField,
     /// Level between 0.0-1.0 (where 1.0 is highest confidence)
     pub confidence: Option<ConfidenceScore>,
+    /// Added in version 1.6
+    pub concluded_value: Option<String>,
     pub methods: Option<Methods>,
     pub tools: Option<ToolsReferences>,
 }
@@ -655,6 +730,7 @@ mod test {
     #[test]
     fn valid_components_should_pass_validation() {
         let vec = vec![Component {
+            tags: None,
             component_type: Classification::Application,
             mime_type: Some(MimeType("text/text".to_string())),
             bom_ref: Some("bom ref".to_string()),
@@ -714,6 +790,7 @@ mod test {
                 notes: Some("notes".to_string()),
             }),
             external_references: Some(ExternalReferences(vec![ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::Bom,
                 url: Uri::Url(Url("https://www.example.com".to_string())),
                 comment: None,
@@ -729,10 +806,7 @@ mod test {
                     SpdxExpression::new("MIT"),
                 )])),
                 copyright: Some(CopyrightTexts(vec![Copyright("copyright".to_string())])),
-                occurrences: Some(Occurrences(vec![Occurrence {
-                    bom_ref: None,
-                    location: "location".to_string(),
-                }])),
+                occurrences: Some(Occurrences(vec![Occurrence::new("location")])),
                 callstack: Some(Callstack::new(Frames(vec![Frame {
                     package: Some("package".into()),
                     module: "module".into(),
@@ -742,16 +816,17 @@ mod test {
                     column: Some(20),
                     full_filename: Some("full_filename".into()),
                 }]))),
-                identity: Some(Identity {
+                identity: Some(vec![Identity {
                     field: IdentityField::Group,
                     confidence: Some(ConfidenceScore::new(0.8)),
+                    concluded_value: None,
                     methods: Some(Methods(vec![Method {
                         technique: "technique".to_string(),
                         confidence: ConfidenceScore::new(0.5),
                         value: Some("help".to_string()),
                     }])),
                     tools: None,
-                }),
+                }]),
             }),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: Some(ModelCard {
@@ -846,6 +921,14 @@ mod test {
                 description: None,
                 governance: None,
             }),
+            manufacturer: None,
+            authors: None,
+            omnibor_id: None,
+            swhid: None,
+            crypto_properties: None,
+            is_external: None,
+            version_range: None,
+            patent_assertions: None,
         }];
         let validation_result = Components(vec).validate();
 
@@ -855,6 +938,7 @@ mod test {
     #[test]
     fn invalid_components_should_fail_validation() {
         let validation_result = Components(vec![Component {
+            tags: None,
             component_type: Classification::UnknownClassification("unknown".to_string()),
             mime_type: Some(MimeType("invalid mime type".to_string())),
             bom_ref: Some("bom ref".to_string()),
@@ -916,6 +1000,7 @@ mod test {
                 notes: Some("notes".to_string()),
             }),
             external_references: Some(ExternalReferences(vec![ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown".to_string(),
                 ),
@@ -940,6 +1025,14 @@ mod test {
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             model_card: None,
             data: None,
+            manufacturer: None,
+            authors: None,
+            omnibor_id: None,
+            swhid: None,
+            crypto_properties: None,
+            is_external: None,
+            version_range: None,
+            patent_assertions: None,
         }])
         .validate();
 
@@ -1159,6 +1252,7 @@ mod test {
 
     fn invalid_component() -> Component {
         Component {
+            tags: None,
             component_type: Classification::UnknownClassification("unknown".to_string()),
             mime_type: None,
             bom_ref: None,
@@ -1185,6 +1279,14 @@ mod test {
             signature: None,
             model_card: None,
             data: None,
+            manufacturer: None,
+            authors: None,
+            omnibor_id: None,
+            swhid: None,
+            crypto_properties: None,
+            is_external: None,
+            version_range: None,
+            patent_assertions: None,
         }
     }
 
@@ -1194,7 +1296,18 @@ mod test {
         assert!(validate_classification(&Classification::Library, SpecVersion::V1_5).is_ok());
         assert!(validate_classification(&Classification::Platform, SpecVersion::V1_5).is_ok());
 
+        assert!(
+            validate_classification(&Classification::CryptographicAsset, SpecVersion::V1_6).is_ok()
+        );
+        assert!(
+            validate_classification(&Classification::CryptographicAsset, SpecVersion::V1_7).is_ok()
+        );
+
         assert!(validate_classification(&Classification::Platform, SpecVersion::V1_4).is_err());
+        assert!(
+            validate_classification(&Classification::CryptographicAsset, SpecVersion::V1_5)
+                .is_err()
+        );
         assert!(validate_classification(
             &Classification::UnknownClassification("test".to_string()),
             SpecVersion::V1_4

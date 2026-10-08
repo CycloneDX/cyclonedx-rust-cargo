@@ -18,8 +18,10 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4", "1.5")]
+#[versioned("1.3", "1.4", "1.5", "1.6", "1.7")]
 pub(crate) mod base {
+    #[versioned("1.7")]
+    use crate::specs::common::property::Properties;
     use crate::{
         errors::XmlReadError,
         models,
@@ -28,7 +30,7 @@ pub(crate) mod base {
         xml::{
             attribute_or_error, read_list_tag, read_simple_tag, to_xml_read_error,
             to_xml_write_error, unexpected_element_error, write_close_tag, write_simple_tag,
-            write_start_tag, FromXml, ToXml,
+            write_start_tag, FromXml, ToInnerXml, ToXml,
         },
     };
     use serde::{Deserialize, Serialize};
@@ -92,6 +94,9 @@ pub(crate) mod base {
         comment: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         hashes: Option<Hashes>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        properties: Option<Properties>,
     }
 
     impl From<models::external_reference::ExternalReference> for ExternalReference {
@@ -101,6 +106,8 @@ pub(crate) mod base {
                 url: other.url.to_string(),
                 comment: other.comment,
                 hashes: convert_optional(other.hashes),
+                #[versioned("1.7")]
+                properties: convert_optional(other.properties),
             }
         }
     }
@@ -115,6 +122,10 @@ pub(crate) mod base {
                 url: crate::prelude::Uri(other.url).into(),
                 comment: other.comment,
                 hashes: convert_optional(other.hashes),
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                properties: None,
+                #[versioned("1.7")]
+                properties: convert_optional(other.properties),
             }
         }
     }
@@ -129,12 +140,19 @@ pub(crate) mod base {
             &self,
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
+            self.write_xml_named_element(writer, REFERENCE_TAG)
+        }
+    }
+
+    impl ToInnerXml for ExternalReference {
+        fn write_xml_named_element<W: std::io::Write>(
+            &self,
+            writer: &mut xml::EventWriter<W>,
+            tag: &str,
+        ) -> Result<(), crate::errors::XmlWriteError> {
             writer
-                .write(
-                    XmlEvent::start_element(REFERENCE_TAG)
-                        .attr(TYPE_ATTR, &self.external_reference_type),
-                )
-                .map_err(to_xml_write_error(REFERENCE_TAG))?;
+                .write(XmlEvent::start_element(tag).attr(TYPE_ATTR, &self.external_reference_type))
+                .map_err(to_xml_write_error(tag))?;
 
             write_simple_tag(writer, URL_TAG, &self.url)?;
 
@@ -146,15 +164,22 @@ pub(crate) mod base {
                 hashes.write_xml_element(writer)?;
             }
 
+            #[versioned("1.7")]
+            if let Some(properties) = &self.properties {
+                properties.write_xml_element(writer)?;
+            }
+
             writer
                 .write(XmlEvent::end_element())
-                .map_err(to_xml_write_error(REFERENCE_TAG))?;
+                .map_err(to_xml_write_error(tag))?;
 
             Ok(())
         }
     }
 
     const HASHES_TAG: &str = "hashes";
+    #[versioned("1.7")]
+    const PROPERTIES_TAG: &str = "properties";
 
     impl FromXml for ExternalReference {
         fn read_xml_element<R: std::io::Read>(
@@ -169,6 +194,8 @@ pub(crate) mod base {
             let mut url: Option<String> = None;
             let mut comment: Option<String> = None;
             let mut hashes: Option<Hashes> = None;
+            #[versioned("1.7")]
+            let mut properties: Option<Properties> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -189,6 +216,16 @@ pub(crate) mod base {
                     } if name.local_name == HASHES_TAG => {
                         hashes = Some(Hashes::read_xml_element(event_reader, &name, &attributes)?)
                     }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == PROPERTIES_TAG => {
+                        properties = Some(Properties::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
                     reader::XmlEvent::EndElement { name } if &name == element_name => {
                         got_end_tag = true;
                     }
@@ -206,6 +243,8 @@ pub(crate) mod base {
                 url,
                 comment,
                 hashes,
+                #[versioned("1.7")]
+                properties,
             })
         }
     }
@@ -213,6 +252,8 @@ pub(crate) mod base {
     #[cfg(test)]
     pub(crate) mod test {
         use super::*;
+        #[versioned("1.7")]
+        use crate::specs::common::property::test::example_properties;
         use crate::{
             external_models,
             specs::common::hash::test::{corresponding_hashes, example_hashes},
@@ -234,6 +275,8 @@ pub(crate) mod base {
                 url: "url".to_string(),
                 comment: Some("comment".to_string()),
                 hashes: Some(example_hashes()),
+                #[versioned("1.7")]
+                properties: None,
             }
         }
 
@@ -249,6 +292,7 @@ pub(crate) mod base {
                 )),
                 comment: Some("comment".to_string()),
                 hashes: Some(corresponding_hashes()),
+                properties: None,
             }
         }
 
@@ -274,6 +318,21 @@ pub(crate) mod base {
             let actual: ExternalReferences = read_element_from_string(input);
             let expected = example_external_references();
             assert_eq!(actual, expected);
+        }
+
+        #[versioned("1.7")]
+        #[test]
+        fn it_should_round_trip_xml_properties() {
+            let references = || {
+                let mut reference = example_external_reference();
+                reference.properties = Some(example_properties());
+                ExternalReferences(vec![reference])
+            };
+
+            let xml_output = write_element_to_string(references());
+            assert!(xml_output.contains("<properties>"));
+            let actual: ExternalReferences = read_element_from_string(xml_output);
+            assert_eq!(actual, references());
         }
     }
 }

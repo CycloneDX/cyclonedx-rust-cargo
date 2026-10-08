@@ -18,10 +18,12 @@
 
 use cyclonedx_bom_macros::versioned;
 
-#[versioned("1.3", "1.4", "1.5")]
+#[versioned("1.3", "1.4", "1.5", "1.6", "1.7")]
 pub(crate) mod base {
-    #[versioned("1.4", "1.5")]
+    #[versioned("1.4", "1.5", "1.6", "1.7")]
     use crate::specs::common::signature::Signature;
+    #[versioned("1.6", "1.7")]
+    use crate::xml::write_list_string_tag;
 
     #[versioned("1.4")]
     use crate::specs::v1_4::{external_reference::ExternalReferences, license::Licenses};
@@ -32,12 +34,29 @@ pub(crate) mod base {
         license::Licenses,
         modelcard::ModelCard,
     };
+    #[versioned("1.6")]
+    use crate::specs::v1_6::{
+        evidence::{Callstack, Identity, IdentityList, Occurrences},
+        external_reference::ExternalReferences,
+        license::Licenses,
+        modelcard::ModelCard,
+    };
+    #[versioned("1.7")]
+    use crate::specs::v1_7::{
+        evidence::{Callstack, Identity, IdentityList, Occurrences},
+        external_reference::ExternalReferences,
+        license::Licenses,
+        modelcard::ModelCard,
+        patent::PatentAssertions,
+    };
     #[versioned("1.3")]
     use crate::{
         models::bom::SpecVersion,
         specs::v1_3::{external_reference::ExternalReferences, license::Licenses},
     };
 
+    #[versioned("1.6", "1.7")]
+    use crate::specs::common::organization::OrganizationalContact;
     use crate::{
         errors::{BomError, XmlReadError},
         external_models::{
@@ -143,7 +162,7 @@ pub(crate) mod base {
         pub(crate) name: String,
         #[versioned("1.3")]
         version: String,
-        #[versioned("1.4", "1.5")]
+        #[versioned("1.4", "1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) version: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -174,15 +193,53 @@ pub(crate) mod base {
         pub(crate) components: Option<Components>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) evidence: Option<ComponentEvidence>,
-        #[versioned("1.4", "1.5")]
+        #[versioned("1.4", "1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) signature: Option<Signature>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) model_card: Option<ModelCard>,
         #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) data: Option<crate::specs::v1_5::component_data::ComponentData>,
+        #[versioned("1.6")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) data: Option<crate::specs::v1_6::component_data::ComponentData>,
+        #[versioned("1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) data: Option<crate::specs::v1_7::component_data::ComponentData>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) manufacturer: Option<OrganizationalEntity>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) authors: Option<Vec<OrganizationalContact>>,
+        #[versioned("1.6", "1.7")]
+        #[serde(rename = "omniborId", skip_serializing_if = "Option::is_none")]
+        pub(crate) omnibor_id: Option<Vec<String>>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) swhid: Option<Vec<String>>,
+        #[versioned("1.6")]
+        #[serde(rename = "cryptoProperties", skip_serializing_if = "Option::is_none")]
+        pub(crate) crypto_properties:
+            Option<crate::specs::v1_6::crypto_properties::CryptoProperties>,
+        #[versioned("1.7")]
+        #[serde(rename = "cryptoProperties", skip_serializing_if = "Option::is_none")]
+        pub(crate) crypto_properties:
+            Option<crate::specs::v1_7::crypto_properties::CryptoProperties>,
+        #[versioned("1.7")]
+        #[serde(rename = "isExternal", skip_serializing_if = "Option::is_none")]
+        pub(crate) is_external: Option<bool>,
+        #[versioned("1.7")]
+        #[serde(rename = "versionRange", skip_serializing_if = "Option::is_none")]
+        pub(crate) version_range: Option<String>,
+        #[versioned("1.7")]
+        #[serde(rename = "patentAssertions", skip_serializing_if = "Option::is_none")]
+        pub(crate) patent_assertions: Option<PatentAssertions>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) tags: Option<Vec<String>>,
     }
 
     impl TryFrom<models::component::Component> for Component {
@@ -193,7 +250,7 @@ pub(crate) mod base {
             let version = other.version.map(|v| v.to_string()).ok_or_else(|| {
                 BomError::BomSerializationError(SpecVersion::V1_3, "version missing".to_string())
             })?;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             let version = other.version.map(|v| v.to_string());
             Ok(Self {
                 component_type: other.component_type.to_string(),
@@ -217,17 +274,37 @@ pub(crate) mod base {
                 pedigree: try_convert_optional(other.pedigree)?,
                 #[versioned("1.3", "1.4")]
                 external_references: try_convert_optional(other.external_references)?,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 external_references: convert_optional(other.external_references),
                 properties: convert_optional(other.properties),
                 components: try_convert_optional(other.components)?,
                 evidence: convert_optional(other.evidence),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: convert_optional(other.signature),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card: convert_optional(other.model_card),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data: convert_optional(other.data),
+                #[versioned("1.6", "1.7")]
+                manufacturer: convert_optional(other.manufacturer),
+                #[versioned("1.6", "1.7")]
+                authors: other
+                    .authors
+                    .map(|a| a.into_iter().map(Into::into).collect()),
+                #[versioned("1.6", "1.7")]
+                omnibor_id: other.omnibor_id,
+                #[versioned("1.6", "1.7")]
+                swhid: other.swhid,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: convert_optional(other.crypto_properties),
+                #[versioned("1.7")]
+                is_external: other.is_external,
+                #[versioned("1.7")]
+                version_range: other.version_range,
+                #[versioned("1.7")]
+                patent_assertions: convert_optional(other.patent_assertions),
+                #[versioned("1.6", "1.7")]
+                tags: other.tags,
             })
         }
     }
@@ -247,7 +324,7 @@ pub(crate) mod base {
                 name: NormalizedString::new_unchecked(other.name),
                 #[versioned("1.3")]
                 version: Some(NormalizedString::new_unchecked(other.version)),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 version: other.version.map(NormalizedString::new_unchecked),
                 description: other.description.map(NormalizedString::new_unchecked),
                 scope: other.scope.map(models::component::Scope::new_unchecked),
@@ -265,16 +342,54 @@ pub(crate) mod base {
                 evidence: convert_optional(other.evidence),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: convert_optional(other.signature),
                 #[versioned("1.3", "1.4")]
                 model_card: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card: convert_optional(other.model_card),
                 #[versioned("1.3", "1.4")]
                 data: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data: convert_optional(other.data),
+                #[versioned("1.3", "1.4", "1.5")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                manufacturer: convert_optional(other.manufacturer),
+                #[versioned("1.3", "1.4", "1.5")]
+                authors: None,
+                #[versioned("1.6", "1.7")]
+                authors: other
+                    .authors
+                    .map(|a| a.into_iter().map(Into::into).collect()),
+                #[versioned("1.3", "1.4", "1.5")]
+                omnibor_id: None,
+                #[versioned("1.6", "1.7")]
+                omnibor_id: other.omnibor_id,
+                #[versioned("1.3", "1.4", "1.5")]
+                swhid: None,
+                #[versioned("1.6", "1.7")]
+                swhid: other.swhid,
+                #[versioned("1.3", "1.4", "1.5")]
+                crypto_properties: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: convert_optional(other.crypto_properties),
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                is_external: None,
+                #[versioned("1.7")]
+                is_external: other.is_external,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                version_range: None,
+                #[versioned("1.7")]
+                version_range: other.version_range,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                patent_assertions: None,
+                #[versioned("1.7")]
+                patent_assertions: convert_optional(other.patent_assertions),
+                #[versioned("1.3", "1.4", "1.5")]
+                tags: None,
+                #[versioned("1.6", "1.7")]
+                tags: other.tags,
             }
         }
     }
@@ -294,9 +409,9 @@ pub(crate) mod base {
     const COPYRIGHT_TAG: &str = "copyright";
     const PURL_TAG: &str = "purl";
     const MODIFIED_TAG: &str = "modified";
-    #[versioned("1.4", "1.5")]
+    #[versioned("1.4", "1.5", "1.6", "1.7")]
     const SIGNATURE_TAG: &str = "signature";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const COMPONENT_DATA_TAG: &str = "data";
 
     impl ToXml for Component {
@@ -311,6 +426,13 @@ pub(crate) mod base {
                 component_start_tag = component_start_tag.attr(MIME_TYPE_ATTR, &mime_type.0);
             }
 
+            #[versioned("1.7")]
+            let is_external = self.is_external.map(|e| e.to_string());
+            #[versioned("1.7")]
+            if let Some(is_external) = &is_external {
+                component_start_tag = component_start_tag.attr(IS_EXTERNAL_ATTR, is_external);
+            }
+
             if let Some(bom_ref) = &self.bom_ref {
                 component_start_tag = component_start_tag.attr(BOM_REF_ATTR, bom_ref);
             }
@@ -323,6 +445,24 @@ pub(crate) mod base {
                 if supplier.will_write() {
                     supplier.write_xml_named_element(writer, SUPPLIER_TAG)?;
                 }
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(manufacturer) = &self.manufacturer {
+                if manufacturer.will_write() {
+                    manufacturer.write_xml_named_element(writer, MANUFACTURER_TAG)?;
+                }
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(authors) = &self.authors {
+                write_start_tag(writer, AUTHORS_TAG)?;
+                for author in authors {
+                    if author.will_write() {
+                        author.write_xml_named_element(writer, COMPONENT_AUTHOR_TAG)?;
+                    }
+                }
+                write_close_tag(writer, AUTHORS_TAG)?;
             }
 
             if let Some(author) = &self.author {
@@ -341,9 +481,14 @@ pub(crate) mod base {
 
             #[versioned("1.3")]
             write_simple_tag(writer, VERSION_TAG, &self.version)?;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             if let Some(version) = &self.version {
                 write_simple_tag(writer, VERSION_TAG, version)?;
+            }
+
+            #[versioned("1.7")]
+            if let Some(version_range) = &self.version_range {
+                write_simple_tag(writer, VERSION_RANGE_TAG, version_range)?;
             }
 
             if let Some(description) = &self.description {
@@ -366,12 +511,31 @@ pub(crate) mod base {
                 write_simple_tag(writer, COPYRIGHT_TAG, copyright)?;
             }
 
+            #[versioned("1.7")]
+            if let Some(patent_assertions) = &self.patent_assertions {
+                patent_assertions.write_xml_element(writer)?;
+            }
+
             if let Some(cpe) = &self.cpe {
                 cpe.write_xml_element(writer)?;
             }
 
             if let Some(purl) = &self.purl {
                 write_simple_tag(writer, PURL_TAG, purl)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(omnibor_id) = &self.omnibor_id {
+                for id in omnibor_id {
+                    write_simple_tag(writer, OMNIBOR_ID_TAG, id)?;
+                }
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(swhid) = &self.swhid {
+                for id in swhid {
+                    write_simple_tag(writer, SWHID_TAG, id)?;
+                }
             }
 
             if let Some(swid) = &self.swid {
@@ -404,19 +568,24 @@ pub(crate) mod base {
                 }
             }
 
-            #[versioned("1.4", "1.5")]
-            if let Some(signature) = &self.signature {
-                signature.write_xml_element(writer)?;
-            }
-
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             if let Some(model_card) = &self.model_card {
                 model_card.write_xml_element(writer)?;
             }
 
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             if let Some(data) = &self.data {
                 data.write_xml_named_element(writer, COMPONENT_DATA_TAG)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(crypto_properties) = &self.crypto_properties {
+                crypto_properties.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(tags) = &self.tags {
+                write_list_string_tag(writer, TAGS_TAG, TAG_TAG, tags)?;
             }
 
             writer
@@ -431,7 +600,29 @@ pub(crate) mod base {
     const LICENSES_TAG: &str = "licenses";
     const EXTERNAL_REFERENCES_TAG: &str = "externalReferences";
     const PROPERTIES_TAG: &str = "properties";
-    #[versioned("1.5")]
+    #[versioned("1.6", "1.7")]
+    const MANUFACTURER_TAG: &str = "manufacturer";
+    #[versioned("1.6", "1.7")]
+    const AUTHORS_TAG: &str = "authors";
+    #[versioned("1.6", "1.7")]
+    const COMPONENT_AUTHOR_TAG: &str = "author";
+    #[versioned("1.6", "1.7")]
+    const OMNIBOR_ID_TAG: &str = "omniborId";
+    #[versioned("1.6", "1.7")]
+    const SWHID_TAG: &str = "swhid";
+    #[versioned("1.6", "1.7")]
+    const CRYPTO_PROPERTIES_TAG: &str = "cryptoProperties";
+    #[versioned("1.6", "1.7")]
+    const TAGS_TAG: &str = "tags";
+    #[versioned("1.6", "1.7")]
+    const TAG_TAG: &str = "tag";
+    #[versioned("1.7")]
+    const IS_EXTERNAL_ATTR: &str = "isExternal";
+    #[versioned("1.7")]
+    const VERSION_RANGE_TAG: &str = "versionRange";
+    #[versioned("1.7")]
+    const PATENT_ASSERTIONS_TAG: &str = "patentAssertions";
+    #[versioned("1.5", "1.6", "1.7")]
     const MODEL_CARD_TAG: &str = "modelCard";
 
     impl FromXml for Component {
@@ -467,12 +658,42 @@ pub(crate) mod base {
             let mut properties: Option<Properties> = None;
             let mut components: Option<Components> = None;
             let mut evidence: Option<ComponentEvidence> = None;
-            #[versioned("1.4", "1.5")]
+            #[versioned("1.4", "1.5", "1.6", "1.7")]
             let mut signature: Option<Signature> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut model_card: Option<ModelCard> = None;
             #[versioned("1.5")]
             let mut data: Option<crate::specs::v1_5::component_data::ComponentData> = None;
+            #[versioned("1.6")]
+            let mut data: Option<crate::specs::v1_6::component_data::ComponentData> = None;
+            #[versioned("1.7")]
+            let mut data: Option<crate::specs::v1_7::component_data::ComponentData> = None;
+            #[versioned("1.6", "1.7")]
+            let mut manufacturer: Option<OrganizationalEntity> = None;
+            #[versioned("1.6", "1.7")]
+            let mut component_authors: Option<Vec<OrganizationalContact>> = None;
+            #[versioned("1.6", "1.7")]
+            let mut omnibor_id: Option<Vec<String>> = None;
+            #[versioned("1.6", "1.7")]
+            let mut swhid_list: Option<Vec<String>> = None;
+            #[versioned("1.6")]
+            let mut crypto_properties: Option<
+                crate::specs::v1_6::crypto_properties::CryptoProperties,
+            > = None;
+            #[versioned("1.7")]
+            let mut crypto_properties: Option<
+                crate::specs::v1_7::crypto_properties::CryptoProperties,
+            > = None;
+            #[versioned("1.7")]
+            let is_external = optional_attribute(attributes, IS_EXTERNAL_ATTR)
+                .map(|e| bool::from_xml_value(IS_EXTERNAL_ATTR, e))
+                .transpose()?;
+            #[versioned("1.7")]
+            let mut version_range: Option<String> = None;
+            #[versioned("1.7")]
+            let mut patent_assertions: Option<PatentAssertions> = None;
+            #[versioned("1.6", "1.7")]
+            let mut tags: Option<Vec<String>> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -600,7 +821,7 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.4", "1.5")]
+                    #[versioned("1.4", "1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == SIGNATURE_TAG => {
@@ -610,7 +831,7 @@ pub(crate) mod base {
                             &attributes,
                         )?)
                     }
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == MODEL_CARD_TAG => {
@@ -632,6 +853,89 @@ pub(crate) mod base {
                                 &attributes,
                             )?,
                         )
+                    }
+
+                    #[versioned("1.6")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == COMPONENT_DATA_TAG => {
+                        data = Some(
+                            crate::specs::v1_6::component_data::ComponentData::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?,
+                        )
+                    }
+
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == COMPONENT_DATA_TAG => {
+                        data = Some(
+                            crate::specs::v1_7::component_data::ComponentData::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?,
+                        )
+                    }
+
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == MANUFACTURER_TAG => {
+                        manufacturer = Some(OrganizationalEntity::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == AUTHORS_TAG =>
+                    {
+                        component_authors =
+                            Some(read_list_tag(event_reader, &name, COMPONENT_AUTHOR_TAG)?)
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == OMNIBOR_ID_TAG =>
+                    {
+                        let value = read_simple_tag(event_reader, &name)?;
+                        omnibor_id.get_or_insert_with(Vec::new).push(value);
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. } if name.local_name == SWHID_TAG => {
+                        let value = read_simple_tag(event_reader, &name)?;
+                        swhid_list.get_or_insert_with(Vec::new).push(value);
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == CRYPTO_PROPERTIES_TAG => {
+                        crypto_properties =
+                            Some(FromXml::read_xml_element(event_reader, &name, &attributes)?)
+                    }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement { name, .. }
+                        if name.local_name == VERSION_RANGE_TAG =>
+                    {
+                        version_range = Some(read_simple_tag(event_reader, &name)?)
+                    }
+                    #[versioned("1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == PATENT_ASSERTIONS_TAG => {
+                        patent_assertions = Some(PatentAssertions::read_xml_element(
+                            event_reader,
+                            &name,
+                            &attributes,
+                        )?)
+                    }
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement { name, .. } if name.local_name == TAGS_TAG => {
+                        tags = Some(read_list_tag(event_reader, &name, TAG_TAG)?)
                     }
 
                     // lax validation of any elements from a different schema
@@ -681,12 +985,30 @@ pub(crate) mod base {
                 properties,
                 components,
                 evidence,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data,
+                #[versioned("1.6", "1.7")]
+                manufacturer,
+                #[versioned("1.6", "1.7")]
+                authors: component_authors,
+                #[versioned("1.6", "1.7")]
+                omnibor_id,
+                #[versioned("1.6", "1.7")]
+                swhid: swhid_list,
+                #[versioned("1.6", "1.7")]
+                crypto_properties,
+                #[versioned("1.7")]
+                is_external,
+                #[versioned("1.7")]
+                version_range,
+                #[versioned("1.7")]
+                patent_assertions,
+                #[versioned("1.6", "1.7")]
+                tags,
             })
         }
     }
@@ -902,15 +1224,18 @@ pub(crate) mod base {
         licenses: Option<Licenses>,
         #[serde(skip_serializing_if = "Option::is_none")]
         copyright: Option<CopyrightTexts>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         occurrences: Option<Occurrences>,
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         #[serde(skip_serializing_if = "Option::is_none")]
         callstack: Option<Callstack>,
         #[versioned("1.5")]
         #[serde(skip_serializing_if = "Option::is_none")]
         identity: Option<Identity>,
+        #[versioned("1.6", "1.7")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        identity: Option<IdentityList>,
     }
 
     impl From<models::component::ComponentEvidence> for ComponentEvidence {
@@ -918,11 +1243,16 @@ pub(crate) mod base {
             Self {
                 licenses: convert_optional(other.licenses),
                 copyright: convert_optional(other.copyright),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 occurrences: convert_optional(other.occurrences),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 callstack: convert_optional(other.callstack),
                 #[versioned("1.5")]
+                identity: other
+                    .identity
+                    .and_then(|identities| identities.into_iter().next())
+                    .map(Into::into),
+                #[versioned("1.6", "1.7")]
                 identity: convert_optional(other.identity),
             }
         }
@@ -935,15 +1265,17 @@ pub(crate) mod base {
                 copyright: convert_optional(other.copyright),
                 #[versioned("1.3", "1.4")]
                 occurrences: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 occurrences: convert_optional(other.occurrences),
                 #[versioned("1.3", "1.4")]
                 callstack: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 callstack: convert_optional(other.callstack),
                 #[versioned("1.3", "1.4")]
                 identity: None,
                 #[versioned("1.5")]
+                identity: other.identity.map(|identity| vec![identity.into()]),
+                #[versioned("1.6", "1.7")]
                 identity: convert_optional(other.identity),
             }
         }
@@ -957,6 +1289,28 @@ pub(crate) mod base {
             writer: &mut xml::EventWriter<W>,
         ) -> Result<(), crate::errors::XmlWriteError> {
             write_start_tag(writer, EVIDENCE_TAG)?;
+
+            #[versioned("1.5")]
+            if let Some(identity) = &self.identity {
+                identity.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.6", "1.7")]
+            if let Some(identities) = &self.identity {
+                for identity in &identities.0 {
+                    identity.write_xml_element(writer)?;
+                }
+            }
+
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(occurrences) = &self.occurrences {
+                occurrences.write_xml_element(writer)?;
+            }
+
+            #[versioned("1.5", "1.6", "1.7")]
+            if let Some(callstack) = &self.callstack {
+                callstack.write_xml_element(writer)?;
+            }
 
             if let Some(licenses) = &self.licenses {
                 licenses.write_xml_element(writer)?;
@@ -972,15 +1326,19 @@ pub(crate) mod base {
         }
 
         fn will_write(&self) -> bool {
+            #[versioned("1.5", "1.6", "1.7")]
+            if self.identity.is_some() || self.occurrences.is_some() || self.callstack.is_some() {
+                return true;
+            }
             self.licenses.is_some() || self.copyright.is_some()
         }
     }
 
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const OCCURRENCES_TAG: &str = "occurrences";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const CALLSTACK_TAG: &str = "callstack";
-    #[versioned("1.5")]
+    #[versioned("1.5", "1.6", "1.7")]
     const IDENTITY_TAG: &str = "identity";
 
     impl FromXml for ComponentEvidence {
@@ -994,12 +1352,14 @@ pub(crate) mod base {
         {
             let mut licenses: Option<Licenses> = None;
             let mut copyright: Option<CopyrightTexts> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut occurrences: Option<Occurrences> = None;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let mut callstack: Option<Callstack> = None;
             #[versioned("1.5")]
             let mut identity: Option<Identity> = None;
+            #[versioned("1.6", "1.7")]
+            let mut identity: Option<IdentityList> = None;
 
             let mut got_end_tag = false;
             while !got_end_tag {
@@ -1025,7 +1385,7 @@ pub(crate) mod base {
                             &attributes,
                         )?);
                     }
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == OCCURRENCES_TAG => {
@@ -1036,7 +1396,7 @@ pub(crate) mod base {
                         )?);
                     }
 
-                    #[versioned("1.5")]
+                    #[versioned("1.5", "1.6", "1.7")]
                     reader::XmlEvent::StartElement {
                         name, attributes, ..
                     } if name.local_name == CALLSTACK_TAG => {
@@ -1058,6 +1418,20 @@ pub(crate) mod base {
                         )?);
                     }
 
+                    #[versioned("1.6", "1.7")]
+                    reader::XmlEvent::StartElement {
+                        name, attributes, ..
+                    } if name.local_name == IDENTITY_TAG => {
+                        identity
+                            .get_or_insert_with(|| IdentityList(Vec::new()))
+                            .0
+                            .push(Identity::read_xml_element(
+                                event_reader,
+                                &name,
+                                &attributes,
+                            )?);
+                    }
+
                     reader::XmlEvent::EndElement { name } if &name == element_name => {
                         got_end_tag = true;
                     }
@@ -1069,11 +1443,11 @@ pub(crate) mod base {
             Ok(Self {
                 licenses,
                 copyright,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 occurrences,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 callstack,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 identity,
             })
         }
@@ -1373,7 +1747,7 @@ pub(crate) mod base {
 
     #[cfg(test)]
     pub(crate) mod test {
-        #[versioned("1.4", "1.5")]
+        #[versioned("1.4", "1.5", "1.6", "1.7")]
         use crate::specs::common::signature::test::{corresponding_signature, example_signature};
 
         #[versioned("1.4")]
@@ -1386,6 +1760,34 @@ pub(crate) mod base {
 
         #[versioned("1.5")]
         use crate::specs::v1_5::{
+            component_data::tests::{corresponding_component_data, example_component_data},
+            evidence::test::{
+                corresponding_callstack, corresponding_identity, corresponding_occurrences,
+                example_callstack, example_identity, example_occurrences,
+            },
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            license::test::{corresponding_licenses, example_licenses},
+            modelcard::test::{corresponding_modelcard, example_modelcard},
+        };
+
+        #[versioned("1.6")]
+        use crate::specs::v1_6::{
+            component_data::tests::{corresponding_component_data, example_component_data},
+            evidence::test::{
+                corresponding_callstack, corresponding_identity, corresponding_occurrences,
+                example_callstack, example_identity, example_occurrences,
+            },
+            external_reference::test::{
+                corresponding_external_references, example_external_references,
+            },
+            license::test::{corresponding_licenses, example_licenses},
+            modelcard::test::{corresponding_modelcard, example_modelcard},
+        };
+
+        #[versioned("1.7")]
+        use crate::specs::v1_7::{
             component_data::tests::{corresponding_component_data, example_component_data},
             evidence::test::{
                 corresponding_callstack, corresponding_identity, corresponding_occurrences,
@@ -1434,6 +1836,8 @@ pub(crate) mod base {
 
         pub(crate) fn example_component() -> Component {
             Component {
+                #[versioned("1.6", "1.7")]
+                tags: None,
                 component_type: "component type".to_string(),
                 mime_type: Some(MimeType("mime type".to_string())),
                 bom_ref: Some("bom ref".to_string()),
@@ -1444,7 +1848,7 @@ pub(crate) mod base {
                 name: "name".to_string(),
                 #[versioned("1.3")]
                 version: "version".to_string(),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 version: Some("version".to_string()),
                 description: Some("description".to_string()),
                 scope: Some("scope".to_string()),
@@ -1460,17 +1864,34 @@ pub(crate) mod base {
                 properties: Some(example_properties()),
                 components: Some(example_empty_components()),
                 evidence: Some(example_evidence()),
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: Some(example_signature()),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card: Some(example_modelcard()),
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data: Some(example_component_data()),
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                authors: None,
+                #[versioned("1.6", "1.7")]
+                omnibor_id: None,
+                #[versioned("1.6", "1.7")]
+                swhid: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: None,
+                #[versioned("1.7")]
+                is_external: None,
+                #[versioned("1.7")]
+                version_range: None,
+                #[versioned("1.7")]
+                patent_assertions: None,
             }
         }
 
         pub(crate) fn corresponding_component() -> models::component::Component {
             models::component::Component {
+                tags: None,
                 component_type: models::component::Classification::UnknownClassification(
                     "component type".to_string(),
                 ),
@@ -1498,16 +1919,48 @@ pub(crate) mod base {
                 evidence: Some(corresponding_evidence()),
                 #[versioned("1.3")]
                 signature: None,
-                #[versioned("1.4", "1.5")]
+                #[versioned("1.4", "1.5", "1.6", "1.7")]
                 signature: Some(corresponding_signature()),
                 #[versioned("1.3", "1.4")]
                 model_card: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 model_card: Some(corresponding_modelcard()),
                 #[versioned("1.3", "1.4")]
                 data: None,
-                #[versioned("1.5")]
+                #[versioned("1.5", "1.6", "1.7")]
                 data: Some(corresponding_component_data()),
+                #[versioned("1.3", "1.4", "1.5")]
+                manufacturer: None,
+                #[versioned("1.6", "1.7")]
+                manufacturer: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                authors: None,
+                #[versioned("1.6", "1.7")]
+                authors: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                omnibor_id: None,
+                #[versioned("1.6", "1.7")]
+                omnibor_id: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                swhid: None,
+                #[versioned("1.6", "1.7")]
+                swhid: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                is_external: None,
+                #[versioned("1.7")]
+                is_external: None,
+                #[versioned("1.3", "1.4", "1.5")]
+                crypto_properties: None,
+                #[versioned("1.6", "1.7")]
+                crypto_properties: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                version_range: None,
+                #[versioned("1.7")]
+                version_range: None,
+                #[versioned("1.3", "1.4", "1.5", "1.6")]
+                patent_assertions: None,
+                #[versioned("1.7")]
+                patent_assertions: None,
             }
         }
 
@@ -1581,14 +2034,17 @@ pub(crate) mod base {
             }
         }
 
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         fn example_evidence() -> ComponentEvidence {
             ComponentEvidence {
                 licenses: Some(example_licenses()),
                 copyright: Some(example_copyright_texts()),
                 occurrences: Some(example_occurrences()),
                 callstack: Some(example_callstack()),
+                #[versioned("1.5")]
                 identity: Some(example_identity()),
+                #[versioned("1.6", "1.7")]
+                identity: Some(IdentityList(vec![example_identity()])),
             }
         }
 
@@ -1603,14 +2059,14 @@ pub(crate) mod base {
             }
         }
 
-        #[versioned("1.5")]
+        #[versioned("1.5", "1.6", "1.7")]
         fn corresponding_evidence() -> models::component::ComponentEvidence {
             models::component::ComponentEvidence {
                 licenses: Some(corresponding_licenses()),
                 copyright: Some(corresponding_copyright_texts()),
                 occurrences: Some(corresponding_occurrences()),
                 callstack: Some(corresponding_callstack()),
-                identity: Some(corresponding_identity()),
+                identity: Some(vec![corresponding_identity()]),
             }
         }
 
@@ -1850,7 +2306,7 @@ pub(crate) mod base {
   </component>
 </components>
 "#;
-            #[versioned("1.5")]
+            #[versioned("1.5", "1.6", "1.7")]
             let input = r#"
 <components>
   <component type="component type" mime-type="mime type" bom-ref="bom ref">

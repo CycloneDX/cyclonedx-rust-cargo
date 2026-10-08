@@ -22,6 +22,7 @@ use crate::external_models::{normalized_string::NormalizedString, uri::Uri};
 use crate::models::external_reference::ExternalReferences;
 use crate::models::license::Licenses;
 use crate::models::organization::OrganizationalEntity;
+use crate::models::patent::PatentAssertions;
 use crate::models::property::Properties;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
 
@@ -52,6 +53,10 @@ pub struct Service {
     pub signature: Option<Signature>,
     /// Added in version 1.5
     pub trust_zone: Option<NormalizedString>,
+    /// Added in version 1.6
+    pub tags: Option<Vec<String>>,
+    /// Added in version 1.7
+    pub patent_assertions: Option<PatentAssertions>,
 }
 
 impl Service {
@@ -63,6 +68,7 @@ impl Service {
     /// ```
     pub fn new(name: &str, bom_ref: Option<String>) -> Self {
         Self {
+            tags: None,
             name: NormalizedString(name.to_string()),
             bom_ref,
             provider: None,
@@ -79,6 +85,7 @@ impl Service {
             services: None,
             signature: None,
             trust_zone: None,
+            patent_assertions: None,
         }
     }
 }
@@ -109,6 +116,11 @@ impl Validate for Service {
                 "trust_zone",
                 self.trust_zone.as_ref(),
                 validate_normalized_string,
+            )
+            .add_struct_option(
+                "patent_assertions",
+                self.patent_assertions.as_ref(),
+                version,
             )
             .into()
     }
@@ -248,6 +260,7 @@ mod test {
     #[test]
     fn valid_services_should_pass_validation() {
         let validation_result = Services(vec![Service {
+            tags: None,
             bom_ref: Some("bom ref".to_string()),
             provider: Some(OrganizationalEntity::new("name")),
             group: Some(NormalizedString::new("group")),
@@ -265,6 +278,7 @@ mod test {
                 SpdxExpression::new("MIT"),
             )])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::Bom,
                 url: Uri::Url(Uri("https://www.example.com".to_string())),
                 comment: None,
@@ -277,6 +291,7 @@ mod test {
             services: Some(Services(vec![])),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             trust_zone: Some("Trust Zone".into()),
+            patent_assertions: None,
         }])
         .validate();
 
@@ -286,6 +301,7 @@ mod test {
     #[test]
     fn invalid_services_should_fail_validation() {
         let validation_result = Services(vec![Service {
+            tags: None,
             bom_ref: Some("bom ref".to_string()),
             provider: Some(OrganizationalEntity {
                 bom_ref: None,
@@ -308,6 +324,7 @@ mod test {
                 SpdxExpression::new("invalid license"),
             )])),
             external_references: Some(ExternalReferences(vec![ExternalReference {
+                properties: None,
                 external_reference_type: ExternalReferenceType::UnknownExternalReferenceType(
                     "unknown".to_string(),
                 ),
@@ -322,6 +339,7 @@ mod test {
             services: Some(Services(vec![Service::new("invalid\tname", None)])),
             signature: Some(Signature::single(Algorithm::HS512, "abcdefgh")),
             trust_zone: Some("Trust Zone".into()),
+            patent_assertions: None,
         }])
         .validate();
 

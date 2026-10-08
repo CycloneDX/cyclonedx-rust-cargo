@@ -6,7 +6,7 @@ expression: xml_output
 <annotations>
   <annotation bom-ref="annotation-1">
     <subjects>
-      <subject>component-a</subject>
+      <subject ref="component-a" />
     </subjects>
     <annotator>
       <individual>
@@ -17,14 +17,10 @@ expression: xml_output
     </annotator>
     <timestamp>2024-04-07T07:01:00Z</timestamp>
     <text>Contact annotation text</text>
-    <signature>
-      <algorithm>HS512</algorithm>
-      <value>1234567890</value>
-    </signature>
   </annotation>
   <annotation bom-ref="annotation-2">
     <subjects>
-      <subject>component-b</subject>
+      <subject ref="component-b" />
     </subjects>
     <annotator>
       <service bom-ref="bom-ref">
@@ -46,6 +42,7 @@ expression: xml_output
         </endpoints>
         <authenticated>true</authenticated>
         <x-trust-boundary>true</x-trust-boundary>
+        <trustZone>trust zone</trustZone>
         <data>
           <dataflow name="Consumer to Stock Service" name="Traffic to/from consumer to service">
             <classification flow="flow">classification</classification>
@@ -82,11 +79,6 @@ expression: xml_output
           <property name="name">value</property>
         </properties>
         <services />
-        <signature>
-          <algorithm>HS512</algorithm>
-          <value>1234567890</value>
-        </signature>
-        <trustZone>trust zone</trustZone>
       </service>
     </annotator>
     <timestamp>2024-04-07T07:01:00Z</timestamp>
@@ -94,7 +86,7 @@ expression: xml_output
   </annotation>
   <annotation bom-ref="annotation-2">
     <subjects>
-      <subject>component-b</subject>
+      <subject ref="component-b" />
     </subjects>
     <annotator>
       <component type="component type" mime-type="mime type" bom-ref="bom ref">
@@ -187,6 +179,37 @@ expression: xml_output
         </properties>
         <components />
         <evidence>
+          <identity>
+            <field>group</field>
+            <confidence>0.5</confidence>
+            <methods>
+              <method>
+                <technique>technique-1</technique>
+                <confidence>0.8</confidence>
+                <value>identity-value</value>
+              </method>
+            </methods>
+            <tools>
+              <tool ref="tool-ref-1" />
+            </tools>
+          </identity>
+          <occurrences>
+            <occurrence bom-ref="occurrence-1">
+              <location>location-1</location>
+            </occurrence>
+          </occurrences>
+          <callstack>
+            <frames>
+              <frame>
+                <package>package-1</package>
+                <module>module-1</module>
+                <function>function</function>
+                <line>10</line>
+                <column>20</column>
+                <fullFilename>full-filename</fullFilename>
+              </frame>
+            </frames>
+          </callstack>
           <licenses>
             <expression>expression</expression>
           </licenses>
@@ -194,10 +217,6 @@ expression: xml_output
             <text><![CDATA[copyright]]></text>
           </copyright>
         </evidence>
-        <signature>
-          <algorithm>HS512</algorithm>
-          <value>1234567890</value>
-        </signature>
         <modelCard bom-ref="modelcard-1">
           <modelParameters>
             <approach>

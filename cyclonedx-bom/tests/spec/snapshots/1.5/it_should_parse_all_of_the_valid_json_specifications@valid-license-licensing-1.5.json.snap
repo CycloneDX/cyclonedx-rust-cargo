@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 55
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-license-licensing-1.5.json
 ---
@@ -19,6 +18,7 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-license-licensing-1.5.json
       "licenses": [
         {
           "license": {
+            "bom-ref": "acme-license-1",
             "name": "Acme Commercial License",
             "licensing": {
               "altIds": [

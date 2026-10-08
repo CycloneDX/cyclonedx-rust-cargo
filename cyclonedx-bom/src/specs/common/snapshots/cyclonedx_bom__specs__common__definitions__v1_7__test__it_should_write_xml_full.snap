@@ -1,0 +1,108 @@
+---
+source: cyclonedx-bom/src/specs/common/definitions.rs
+expression: write_element_to_string(example_definitions())
+---
+<?xml version="1.0" encoding="utf-8"?>
+<definitions>
+  <standards>
+    <standard bom-ref="standard-1">
+      <name>name</name>
+      <version>1.0.0</version>
+      <description>description</description>
+      <owner>owner</owner>
+      <requirements>
+        <requirement bom-ref="requirement-1">
+          <identifier>v1</identifier>
+          <title>title</title>
+          <text>text</text>
+          <descriptions>
+            <description>first</description>
+            <description>second</description>
+          </descriptions>
+          <openCre>CRE:616-305</openCre>
+          <openCre>CRE:764-507</openCre>
+          <parent>requirement-0</parent>
+          <properties>
+            <property name="name">value</property>
+          </properties>
+          <externalReferences>
+            <reference type="external reference type">
+              <url>url</url>
+              <comment>comment</comment>
+              <hashes>
+                <hash alg="algorithm">hash value</hash>
+              </hashes>
+            </reference>
+          </externalReferences>
+        </requirement>
+      </requirements>
+      <levels>
+        <level bom-ref="level-1">
+          <identifier>Level 1</identifier>
+          <title>title</title>
+          <description>description</description>
+          <requirements>
+            <requirement>requirement-1</requirement>
+          </requirements>
+        </level>
+      </levels>
+      <externalReferences>
+        <reference type="external reference type">
+          <url>url</url>
+          <comment>comment</comment>
+          <hashes>
+            <hash alg="algorithm">hash value</hash>
+          </hashes>
+        </reference>
+      </externalReferences>
+    </standard>
+  </standards>
+  <patents>
+    <patent bom-ref="patent-1">
+      <patentNumber>US1234567890</patentNumber>
+      <applicationNumber>12345</applicationNumber>
+      <jurisdiction>US</jurisdiction>
+      <priorityApplication>
+        <applicationNumber>US1234567890</applicationNumber>
+        <jurisdiction>US</jurisdiction>
+        <filingDate>2021-01-15</filingDate>
+      </priorityApplication>
+      <publicationNumber>US-12345</publicationNumber>
+      <title>title</title>
+      <abstract>abstract</abstract>
+      <filingDate>2021-01-15</filingDate>
+      <grantDate>2022-06-01</grantDate>
+      <patentExpirationDate>2042-01-15</patentExpirationDate>
+      <patentLegalStatus>in-force</patentLegalStatus>
+      <patentAssignee>
+        <organization>
+          <name>name</name>
+          <url>url</url>
+          <contact>
+            <name>name</name>
+            <email>email</email>
+            <phone>phone</phone>
+          </contact>
+        </organization>
+      </patentAssignee>
+      <patentAssignee>
+        <individual>
+          <name>name</name>
+          <email>email</email>
+          <phone>phone</phone>
+        </individual>
+      </patentAssignee>
+    </patent>
+    <patentFamily bom-ref="patent-family-1">
+      <familyId>PF-2023001</familyId>
+      <priorityApplication>
+        <applicationNumber>US1234567890</applicationNumber>
+        <jurisdiction>US</jurisdiction>
+        <filingDate>2021-01-15</filingDate>
+      </priorityApplication>
+      <members>
+        <ref>patent-1</ref>
+      </members>
+    </patentFamily>
+  </patents>
+</definitions>

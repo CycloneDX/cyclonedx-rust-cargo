@@ -1,6 +1,5 @@
 ---
 source: cyclonedx-bom/tests/specification_tests_v1_5.rs
-assertion_line: 54
 expression: bom_output
 input_file: cyclonedx-bom/tests/spec/1.5/valid-metadata-supplier-1.5.json
 ---
@@ -11,12 +10,14 @@ input_file: cyclonedx-bom/tests/spec/1.5/valid-metadata-supplier-1.5.json
   "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
   "metadata": {
     "supplier": {
+      "bom-ref": "supplier-1",
       "name": "Acme, Inc.",
       "url": [
         "https://example.com"
       ],
       "contact": [
         {
+          "bom-ref": "contact-1",
           "name": "Acme Distribution",
           "email": "distribution@example.com"
         }
