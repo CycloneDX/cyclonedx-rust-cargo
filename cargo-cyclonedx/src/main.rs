@@ -192,7 +192,47 @@ fn get_metadata(
 
 #[cfg(test)]
 mod tests {
+    use crate::{cli, generate_sboms};
+    use clap::Parser;
+    use cyclonedx_bom::models::{component::Component, license::Licenses};
     use cyclonedx_bom::prelude::NormalizedString;
+    use std::path::PathBuf;
+
+    fn generate_fixture_package(fixture: &str) -> Component {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures")
+            .join(fixture)
+            .join("Cargo.toml");
+        let path_arg = format!("--manifest-path={}", manifest.display());
+        let args = cli::Args::parse_from(["cyclonedx", &path_arg]);
+
+        let mut sboms = generate_sboms(&args).unwrap();
+        assert_eq!(sboms.len(), 1, "fixture {fixture} must generate one SBOM");
+        sboms
+            .pop()
+            .unwrap()
+            .bom
+            .metadata
+            .unwrap()
+            .component
+            .unwrap()
+    }
+
+    fn assert_fixture_license_is_inherited(fixture: &str, expected: Licenses) {
+        let package = generate_fixture_package(fixture);
+        assert_eq!(package.licenses.as_ref(), Some(&expected));
+
+        let targets = &package.components.as_ref().unwrap().0;
+        assert_eq!(targets.len(), 2);
+        for target in targets {
+            assert_eq!(
+                target.licenses.as_ref(),
+                Some(&expected),
+                "target {:?} did not inherit its package license",
+                target.name,
+            );
+        }
+    }
 
     #[test]
     fn parse_toml_only_normal() {
@@ -216,6 +256,53 @@ mod tests {
             .0
             .iter()
             .all(|f| f.scope == Some(Scope::Required)));
+
+        let targets = &sboms[0]
+            .bom
+            .metadata
+            .as_ref()
+            .unwrap()
+            .component
+            .as_ref()
+            .unwrap()
+            .components
+            .as_ref()
+            .unwrap()
+            .0;
+        assert!(targets.iter().all(|target| target.licenses.is_none()));
+    }
+
+    #[test]
+    fn workspace_license_is_inherited_by_all_cargo_targets() {
+        use cyclonedx_bom::models::license::LicenseChoice;
+
+        assert_fixture_license_is_inherited(
+            "workspace_license",
+            Licenses(vec![LicenseChoice::expression("LicenseRef-Proprietary")]),
+        );
+    }
+
+    #[test]
+    fn package_license_is_inherited_by_all_cargo_targets() {
+        use cyclonedx_bom::models::license::LicenseChoice;
+
+        assert_fixture_license_is_inherited(
+            "package_license",
+            Licenses(vec![LicenseChoice::expression("MIT")]),
+        );
+    }
+
+    #[test]
+    fn package_license_file_is_inherited_by_all_cargo_targets() {
+        use cyclonedx_bom::models::attached_text::AttachedText;
+        use cyclonedx_bom::models::license::{License, LicenseChoice};
+        let mut expected_license = License::named_license("Unknown");
+        expected_license.text = Some(AttachedText::new(None, "Test license text.\n"));
+
+        assert_fixture_license_is_inherited(
+            "package_license_file",
+            Licenses(vec![LicenseChoice::License(expected_license)]),
+        );
     }
 
     #[test]

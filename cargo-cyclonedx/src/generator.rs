@@ -306,6 +306,7 @@ impl SbomGenerator {
                 &package.version.to_string(),
                 Some(bom_ref),
             );
+            subcomponent.licenses.clone_from(&top_component.licenses);
 
             // PURL subpaths are computed relative to the directory with the `Cargo.toml`
             // *for this specific package*, not the workspace root.
