@@ -829,7 +829,7 @@ expression: actual
       "analysis": {
         "state": "not_affected",
         "justification": "code_not_reachable",
-        "responses": [
+        "response": [
           "update"
         ],
         "detail": "detail",
