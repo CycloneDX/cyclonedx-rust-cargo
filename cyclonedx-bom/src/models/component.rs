@@ -19,6 +19,8 @@
 use once_cell::sync::Lazy;
 use ordered_float::OrderedFloat;
 use regex::Regex;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Formatter;
 
 use crate::external_models::normalized_string::validate_normalized_string;
@@ -48,6 +50,7 @@ use super::modelcard::ModelCard;
 use super::signature::Signature;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Component {
     pub component_type: Classification,
     pub mime_type: Option<MimeType>,
@@ -202,6 +205,7 @@ impl Validate for Component {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Components(pub Vec<Component>);
 
 impl Validate for Components {
@@ -234,6 +238,8 @@ pub fn validate_classification(
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 #[repr(u16)]
 pub enum Classification {
@@ -289,6 +295,8 @@ pub fn validate_scope(scope: &Scope) -> Result<(), ValidationError> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum Scope {
     Required,
@@ -325,9 +333,11 @@ pub fn validate_mime_type(mime_type: &MimeType) -> Result<(), ValidationError> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MimeType(pub String);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Swid {
     pub tag_id: String,
     pub name: String,
@@ -364,6 +374,7 @@ pub fn validate_cpe(cpe: &Cpe) -> Result<(), ValidationError> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Cpe(pub(crate) String);
 
 impl Cpe {
@@ -403,6 +414,7 @@ impl std::fmt::Display for Cpe {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ComponentEvidence {
     pub licenses: Option<Licenses>,
     pub copyright: Option<CopyrightTexts>,
@@ -447,6 +459,7 @@ fn validate_identity_count(
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_occurrences
 /// Added in version 1.5
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Occurrences(pub Vec<Occurrence>);
 
 impl Validate for Occurrences {
@@ -460,6 +473,7 @@ impl Validate for Occurrences {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Occurrence {
     pub bom_ref: Option<BomReference>,
     pub location: String,
@@ -497,6 +511,7 @@ impl Validate for Occurrence {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Callstack {
     pub frames: Frames,
 }
@@ -514,6 +529,7 @@ impl Validate for Callstack {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Frames(pub Vec<Frame>);
 
 impl Validate for Frames {
@@ -528,6 +544,7 @@ impl Validate for Frames {
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_callstack
 /// Added in version 1.5
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Frame {
     pub package: Option<NormalizedString>,
     pub module: NormalizedString,
@@ -570,6 +587,7 @@ pub fn validate_confidence(confidence: &ConfidenceScore) -> Result<(), Validatio
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ConfidenceScore(pub OrderedFloat<f32>);
 
 impl ConfidenceScore {
@@ -590,6 +608,8 @@ pub fn validate_identity_field(field: &IdentityField) -> Result<(), ValidationEr
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, strum::Display, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 #[repr(u16)]
 pub enum IdentityField {
@@ -622,6 +642,7 @@ impl IdentityField {
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_identity
 /// Added in version 1.5
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Identity {
     pub field: IdentityField,
     /// Level between 0.0-1.0 (where 1.0 is highest confidence)
@@ -644,9 +665,11 @@ impl Validate for Identity {
 /// For more information see
 /// https://cyclonedx.org/docs/1.5/json/#components_items_evidence_identity_methods
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Methods(pub Vec<Method>);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Method {
     pub technique: String,
     pub confidence: ConfidenceScore,
@@ -654,9 +677,11 @@ pub struct Method {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ToolsReferences(pub Vec<String>);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Pedigree {
     pub ancestors: Option<Components>,
     pub descendants: Option<Components>,
@@ -683,9 +708,11 @@ pub fn validate_copyright(_copyright: &Copyright) -> Result<(), ValidationError>
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Copyright(pub String);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CopyrightTexts(pub Vec<Copyright>);
 
 impl Validate for CopyrightTexts {

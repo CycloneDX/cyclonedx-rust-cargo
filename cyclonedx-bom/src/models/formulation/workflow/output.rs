@@ -4,8 +4,12 @@ use crate::{
     validation::{ValidationContext, ValidationError},
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use super::{resource_reference::ResourceReference, EnvironmentVar};
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Output {
     pub required: RequiredOutputField,
@@ -40,6 +44,7 @@ impl Validate for Output {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RequiredOutputField {
     Resource(ResourceReference),
@@ -47,7 +52,9 @@ pub enum RequiredOutputField {
     Data(Attachment),
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, strum::Display, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum Type {
     Artifact,

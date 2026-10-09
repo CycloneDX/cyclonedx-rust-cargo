@@ -11,6 +11,8 @@ use crate::{
     prelude::{DateTime, Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use self::{
     input::Input, output::Output, resource_reference::ResourceReference, step::Step,
@@ -18,6 +20,7 @@ use self::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Workflow {
     pub bom_ref: BomReference,
     pub uid: String,
@@ -81,6 +84,7 @@ impl Validate for Workflow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Task {
     pub bom_ref: BomReference,
     pub uid: String,
@@ -136,6 +140,8 @@ impl Validate for Task {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, strum::Display)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum TaskType {
     Copy,
@@ -188,6 +194,7 @@ impl Validate for TaskType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum EnvironmentVar {
     Property { name: String, value: String },
     Value(String),

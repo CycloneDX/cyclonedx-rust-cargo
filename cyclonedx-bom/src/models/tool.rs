@@ -19,6 +19,8 @@
 use crate::external_models::normalized_string::{validate_normalized_string, NormalizedString};
 use crate::models::hash::Hashes;
 use crate::validation::{Validate, ValidationContext, ValidationResult};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::bom::SpecVersion;
 use super::component::Components;
@@ -30,6 +32,7 @@ use super::service::Services;
 /// In version 1.5 the type of this property changed to
 /// https://cyclonedx.org/docs/1.5/json/#metadata_tools_oneOf_i0_services .
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Tools {
     /// Legacy https://cyclonedx.org/docs/1.4/json/#metadata_tools
     List(Vec<Tool>),
@@ -72,6 +75,7 @@ impl Validate for Tools {
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_toolType)
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Tool {
     pub vendor: Option<NormalizedString>,
     pub name: Option<NormalizedString>,

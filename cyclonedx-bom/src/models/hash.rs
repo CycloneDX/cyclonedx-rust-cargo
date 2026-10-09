@@ -20,6 +20,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::bom::SpecVersion;
 
@@ -27,6 +29,7 @@ use super::bom::SpecVersion;
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashType)
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Hash {
     pub alg: HashAlgorithm,
     pub content: HashValue,
@@ -42,6 +45,7 @@ impl Validate for Hash {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Hashes(pub Vec<Hash>);
 
 impl Validate for Hashes {
@@ -64,6 +68,8 @@ pub fn validate_hash_algorithm(algorithm: &HashAlgorithm) -> Result<(), Validati
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashAlg)
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, strum::Display)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING-KEBAB-CASE"))]
 #[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
 pub enum HashAlgorithm {
     MD5,
@@ -124,6 +130,7 @@ pub fn validate_hash_value(value: &HashValue) -> Result<(), ValidationError> {
 
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_hashValue)
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct HashValue(pub String);
 
 #[cfg(test)]

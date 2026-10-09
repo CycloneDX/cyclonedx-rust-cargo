@@ -25,6 +25,8 @@ use crate::models::organization::OrganizationalEntity;
 use crate::models::patent::PatentAssertions;
 use crate::models::property::Properties;
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::bom::SpecVersion;
 use super::data_governance::DataGovernance;
@@ -34,6 +36,7 @@ use super::signature::Signature;
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_service)
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Service {
     pub bom_ref: Option<String>,
     pub provider: Option<OrganizationalEntity>,
@@ -127,6 +130,7 @@ impl Validate for Service {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Services(pub Vec<Service>);
 
 impl Validate for Services {
@@ -140,6 +144,7 @@ impl Validate for Services {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Data {
     ServiceData(Vec<ServiceData>),
     Classification(Vec<DataClassification>),
@@ -159,6 +164,7 @@ impl Validate for Data {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ServiceData {
     pub name: Option<NormalizedString>,
     pub description: Option<NormalizedString>,
@@ -196,6 +202,7 @@ pub fn validate_data_flow_type(data_flow_type: &DataFlowType) -> Result<(), Vali
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_dataClassificationType)
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct DataClassification {
     pub flow: DataFlowType,
     pub classification: NormalizedString,
@@ -218,6 +225,8 @@ impl Validate for DataClassification {
 ///
 /// Defined via the [XML schema](https://cyclonedx.org/docs/1.3/xml/#type_dataFlowType)
 #[derive(Clone, Debug, PartialEq, Eq, strum::Display, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum DataFlowType {
     Inbound,

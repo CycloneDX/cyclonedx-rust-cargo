@@ -2,6 +2,10 @@ use crate::{
     models::external_reference::ExternalReference, prelude::Validate, validation::ValidationContext,
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ResourceReference {
     Ref(String),
