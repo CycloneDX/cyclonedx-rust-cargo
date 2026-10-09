@@ -11,7 +11,7 @@ mod v1_3 {
         }, {
             insta::glob!("spec/1.3/valid*.xml", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
-                let bom = Bom::parse_from_xml_v1_3(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
+                let bom = Bom::parse_from_xml_with_version(file, SpecVersion::V1_3).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
                 let validation_result = bom.validate_version(SpecVersion::V1_3);
                 assert!(
@@ -20,7 +20,7 @@ mod v1_3 {
                 );
 
                 let mut output = Vec::new();
-                bom.output_as_xml_v1_3(&mut output)
+                bom.output_as_xml(&mut output, SpecVersion::V1_3)
                     .unwrap_or_else(|_| panic!("Failed to output the file: {path:?}"));
                 let bom_output = String::from_utf8_lossy(&output).to_string();
 
@@ -37,7 +37,7 @@ mod v1_3 {
         }, {
             insta::glob!("spec/1.3/valid*.json", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
-                let bom = Bom::parse_from_json_v1_3(file).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
+                let bom = Bom::parse_from_json_with_version(file, SpecVersion::V1_3).unwrap_or_else(|_| panic!("Failed to parse the document as an BOM: {path:?}"));
 
                 let validation_result = bom.validate_version(SpecVersion::V1_3);
                 assert!(
@@ -46,7 +46,7 @@ mod v1_3 {
                 );
 
                 let mut output = Vec::new();
-                bom.output_as_json_v1_3(&mut output)
+                bom.output_as_json(&mut output, SpecVersion::V1_3)
                     .unwrap_or_else(|_| panic!("Failed to output the file: {path:?}"));
                 let bom_output = String::from_utf8_lossy(&output).to_string();
 
@@ -68,7 +68,7 @@ mod v1_3 {
         }, {
             insta::glob!("spec/1.3/invalid*.xml", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
-                if let Ok(bom) = Bom::parse_from_xml_v1_3(file) {
+                if let Ok(bom) = Bom::parse_from_xml_with_version(file, SpecVersion::V1_3) {
                     let validation_result = bom.validate_version(SpecVersion::V1_3);
                     assert!(
                         validation_result.has_errors(),
@@ -87,7 +87,7 @@ mod v1_3 {
         }, {
             insta::glob!("spec/1.3/invalid*.json", |path| {
                 let file = std::fs::File::open(path).unwrap_or_else(|_| panic!("Failed to read file: {path:?}"));
-                if let Ok(bom) = Bom::parse_from_json_v1_3(file) {
+                if let Ok(bom) = Bom::parse_from_json_with_version(file, SpecVersion::V1_3) {
                     let validation_result = bom.validate_version(SpecVersion::V1_3);
                     assert!(
                         validation_result.has_errors(),

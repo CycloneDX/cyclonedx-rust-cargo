@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Removed the version-specific `Bom` parsing and output methods. Pass a `SpecVersion`
+  as the final argument to `parse_from_json_with_version`, `parse_from_xml_with_version`,
+  `output_as_json`, or `output_as_xml` instead.
+- Added `Bom::parse_json_value_with_version(value, version)` to parse a
+  `serde_json::Value` with an explicit `SpecVersion`, replacing the version-specific
+  JSON value parsers and supporting versions 1.3–1.7. `parse_from_json` and
+  `parse_json_value` continue to detect the version automatically.
+
 ## 0.8.1 - 2025-03-19
 
 - Increased the MSRV to 1.85.0 ([#845])
