@@ -110,11 +110,7 @@ pub struct SbomGenerator {
 /// Contains a map from `bom_ref` of a subcomponent to the kinds of Cargo targets it has,
 /// sourced from `cargo metadata`
 #[derive(Debug, Clone)]
-pub struct TargetKinds(
-    // TODO: refactor it to store Vec<TargetKind> once `cargo_metadata` crate ships enums:
-    // https://github.com/oli-obk/cargo_metadata/pull/258
-    HashMap<String, Vec<String>>,
-);
+pub struct TargetKinds(HashMap<String, Vec<cargo_metadata::TargetKind>>);
 
 impl SbomGenerator {
     pub fn create_sboms(
@@ -167,7 +163,7 @@ impl SbomGenerator {
             let generated = GeneratedSbom {
                 bom,
                 manifest_path,
-                package_name: packages[member].name.clone(),
+                package_name: packages[member].name.to_string(),
                 sbom_config: generator.config,
                 target_kinds,
             };
@@ -274,17 +270,18 @@ impl SbomGenerator {
             #[allow(clippy::if_same_then_else)]
             let cdx_type = if tgt.is_bin() {
                 Classification::Application
-            // sadly no .is_proc_macro() yet
-            } else if tgt.kind.iter().any(|kind| kind == "proc-macro") {
+            } else if tgt.is_proc_macro() {
                 // There isn't a better way to express it with CycloneDX types
                 Classification::Library
-            } else if tgt.kind.iter().any(|kind| kind.contains("lib")) {
+            } else if tgt.kind.iter().any(|kind| kind.to_string().contains("lib")) {
                 Classification::Library
             } else {
+                let kind_strings: Vec<String> =
+                    tgt.kind.iter().map(|kind| kind.to_string()).collect();
                 log::warn!(
                     "Target {} is neither a binary nor a library! Kinds: {}",
                     tgt.name,
-                    tgt.kind.join(", ")
+                    kind_strings.join(", ")
                 );
                 continue;
             };
@@ -900,7 +897,7 @@ impl GeneratedSbom {
         bom: &'a Bom,
         target_kinds: &'a TargetKinds,
         describe: Describe,
-    ) -> impl Iterator<Item = (Bom, Vec<String>)> + 'a {
+    ) -> impl Iterator<Item = (Bom, Vec<cargo_metadata::TargetKind>)> + 'a {
         let meta = bom.metadata.as_ref().unwrap();
         let crate_component = meta.component.as_ref().unwrap();
         let components = crate_component.components.as_ref().unwrap();
@@ -913,10 +910,8 @@ impl GeneratedSbom {
                 match describe {
                     Describe::Binaries => {
                         // only record binary artifacts
-                        // TODO: refactor this to use an enum, coming Soon(tm) to cargo-metadata:
-                        // https://github.com/oli-obk/cargo_metadata/pull/258
-                        target_kind.contains(&"bin".to_owned())
-                            || target_kind.contains(&"cdylib".to_owned())
+                        target_kind.contains(&cargo_metadata::TargetKind::Bin)
+                            || target_kind.contains(&cargo_metadata::TargetKind::CDyLib)
                     }
                     Describe::AllCargoTargets => true, // pass everything through
                     Describe::Crate => unreachable!(),
@@ -948,7 +943,11 @@ impl GeneratedSbom {
             })
     }
 
-    fn filename(&self, binary_name: Option<&str>, target_kind: &[String]) -> String {
+    fn filename(
+        &self,
+        binary_name: Option<&str>,
+        target_kind: &[cargo_metadata::TargetKind],
+    ) -> String {
         let output_options = self.sbom_config.output_options();
         let describe = self.sbom_config.describe.unwrap_or_default();
 
@@ -969,11 +968,13 @@ impl GeneratedSbom {
         }
 
         let target_kind_suffix = if !target_kind.is_empty() {
+            let kind_strings: Vec<String> =
+                target_kind.iter().map(|kind| kind.to_string()).collect();
             debug_assert!(matches!(
                 describe,
                 Describe::Binaries | Describe::AllCargoTargets
             ));
-            format!("_{}", target_kind.join("-"))
+            format!("_{}", kind_strings.join("-"))
         } else {
             "".to_owned()
         };
