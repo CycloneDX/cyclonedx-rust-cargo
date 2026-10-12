@@ -242,6 +242,36 @@ pub(crate) mod base {
         pub(crate) tags: Option<Vec<String>>,
     }
 
+    #[versioned("1.3", "1.4", "1.5")]
+    fn format_authors(authors: &[models::organization::OrganizationalContact]) -> Option<String> {
+        let authors: Vec<String> = authors
+            .iter()
+            .filter_map(|author| {
+                let name = author
+                    .name
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty());
+                let email = author
+                    .email
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty());
+                match (name, email) {
+                    (Some(name), Some(email)) => Some(format!("{name} <{email}>")),
+                    (Some(value), None) | (None, Some(value)) => Some(value.to_owned()),
+                    (None, None) => None,
+                }
+            })
+            .collect();
+
+        if authors.is_empty() {
+            None
+        } else {
+            Some(NormalizedString::new(&authors.join(", ")).into())
+        }
+    }
+
     impl TryFrom<models::component::Component> for Component {
         type Error = BomError;
 
@@ -257,6 +287,12 @@ pub(crate) mod base {
                 mime_type: other.mime_type.map(|m| MimeType(m.0)),
                 bom_ref: other.bom_ref,
                 supplier: convert_optional(other.supplier),
+                #[versioned("1.3", "1.4", "1.5")]
+                author: other
+                    .author
+                    .map(String::from)
+                    .or_else(|| other.authors.as_deref().and_then(format_authors)),
+                #[versioned("1.6", "1.7")]
                 author: other.author.map(|a| a.to_string()),
                 publisher: other.publisher.map(|p| p.to_string()),
                 group: other.group.map(|g| g.to_string()),

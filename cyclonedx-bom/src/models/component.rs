@@ -53,6 +53,9 @@ pub struct Component {
     pub mime_type: Option<MimeType>,
     pub bom_ref: Option<String>,
     pub supplier: Option<OrganizationalEntity>,
+    /// Legacy author text, deprecated in CycloneDX 1.6 in favor of `authors` or `manufacturer`.
+    /// When writing versions 1.3–1.5, an explicitly supplied value (even an empty string)
+    /// takes precedence over the fallback synthesized from `authors`.
     pub author: Option<NormalizedString>,
     pub publisher: Option<NormalizedString>,
     pub group: Option<NormalizedString>,
@@ -81,6 +84,13 @@ pub struct Component {
     /// Added in version 1.6
     pub manufacturer: Option<OrganizationalEntity>,
     /// Added in version 1.6, replaces deprecated `author`
+    ///
+    /// When writing versions 1.3–1.5 with no `author`, usable names and emails are
+    /// joined in order with ", ", formatting each as `Name <email>`, `Name`, or an email.
+    /// Surrounding whitespace is trimmed and the result is normalized. Contacts without
+    /// a nonblank name or email are skipped; if none remain, `author` is omitted.
+    /// Phone numbers and contact references are not included in this lossy fallback.
+    /// Reading and writing versions 1.6 and later preserves the two fields independently.
     pub authors: Option<Vec<OrganizationalContact>>,
     /// Added in version 1.6
     pub omnibor_id: Option<Vec<String>>,
