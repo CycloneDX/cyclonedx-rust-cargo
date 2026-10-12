@@ -250,9 +250,9 @@ impl SbomGenerator {
             .as_ref()
             .map(|s| NormalizedString::new(s));
 
-        // TODO: record in `authors` field rather than `author` when writing v1.6
-        if !package.authors.is_empty() {
-            component.author = Some(NormalizedString::new(&package.authors.join(", ")));
+        let authors = Self::create_authors(package);
+        if !authors.is_empty() {
+            component.authors = Some(authors);
         }
 
         component
@@ -558,46 +558,38 @@ impl SbomGenerator {
     }
 
     fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
-        let mut authors = vec![];
-        let mut invalid_authors = vec![];
-
-        for author in &package.authors {
-            match Self::parse_author(author) {
-                Ok(author) => authors.push(author),
-                Err(e) => invalid_authors.push((author, e)),
-            }
-        }
-
-        invalid_authors
-            .into_iter()
-            .for_each(|(author, error)| log::warn!("Invalid author {}: {:?}", author, error));
-
-        authors
+        package
+            .authors
+            .iter()
+            .filter_map(|author| Self::parse_author(author))
+            .collect()
     }
 
-    fn parse_author(author: &str) -> Result<OrganizationalContact, GeneratorError> {
+    fn parse_author(author: &str) -> Option<OrganizationalContact> {
         static AUTHORS_REGEX: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"^(?P<author>[^<]+)\s*(<(?P<email>[^>]+)>)?$")
+            Regex::new(r"^(?P<author>[^<>]*)<(?P<email>[^<>]+)>$")
                 .expect("Failed to compile regex.")
         });
 
-        match AUTHORS_REGEX.captures(author) {
-            Some(captures) => {
-                let name = captures.name("author").map_or("", |m| m.as_str().trim());
-                let email = captures.name("email").map(|m| m.as_str());
-
-                if let Some(email) = email {
-                    if !email.validate_email() {
-                        return Err(GeneratorError::AuthorParseError(
-                            "Invalid email, does not conform to HTML5 spec".to_string(),
-                        ));
-                    }
-                }
-
-                Ok(OrganizationalContact::new(name, email))
-            }
-            None => Ok(OrganizationalContact::new(author, None)),
+        let author = author.trim();
+        if author.is_empty() {
+            return None;
         }
+
+        if let Some(captures) = AUTHORS_REGEX.captures(author) {
+            let name = captures["author"].trim();
+            let email = captures["email"].trim();
+            if email.validate_email() {
+                let mut contact = OrganizationalContact::new(name, Some(email));
+                if name.is_empty() {
+                    contact.name = None;
+                }
+                return Some(contact);
+            }
+        }
+
+        // Preserve entries that do not contain a valid trailing <email> as names.
+        Some(OrganizationalContact::new(author, None))
     }
 }
 
@@ -1081,41 +1073,89 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_should_parse_author_and_email() {
-        let actual = SbomGenerator::parse_author("First Last <user@domain.tld>")
-            .expect("Failed to parse author");
-        let expected = OrganizationalContact::new("First Last", Some("user@domain.tld"));
-
-        assert_eq!(actual, expected);
-    }
-    #[test]
-    fn it_should_parse_author_only() {
-        let actual = SbomGenerator::parse_author("First Last").expect("Failed to parse author");
-        let expected = OrganizationalContact::new("First Last", None);
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn it_should_fail_to_parse_invalid_email() {
-        let actual = SbomGenerator::parse_author("First Last <userdomain.tld>")
-            .expect_err("Failed to throw error");
-
-        match actual {
-            GeneratorError::AuthorParseError(e) => assert_eq!(
-                e,
-                "Invalid email, does not conform to HTML5 spec".to_string()
+    fn it_should_parse_authors_without_losing_malformed_entries() {
+        let cases = [
+            ("First Last", Some("First Last"), None),
+            ("  First Last  ", Some("First Last"), None),
+            (
+                "First Last <user@domain.tld>",
+                Some("First Last"),
+                Some("user@domain.tld"),
             ),
-            e => panic!("Expected AuthorParse error got: {:?}", e),
+            (
+                " First Last < user@domain.tld > ",
+                Some("First Last"),
+                Some("user@domain.tld"),
+            ),
+            ("<user@domain.tld>", None, Some("user@domain.tld")),
+            (" < user@domain.tld > ", None, Some("user@domain.tld")),
+            ("Example, Inc.", Some("Example, Inc."), None),
+            ("user@domain.tld", Some("user@domain.tld"), None),
+            (
+                "First Last <userdomain.tld>",
+                Some("First Last <userdomain.tld>"),
+                None,
+            ),
+            (
+                "<First Last user@domain.tld>",
+                Some("<First Last user@domain.tld>"),
+                None,
+            ),
+            (
+                "First Last <user@domain.tld",
+                Some("First Last <user@domain.tld"),
+                None,
+            ),
+            (
+                "First Last <user@domain.tld> extra",
+                Some("First Last <user@domain.tld> extra"),
+                None,
+            ),
+            (
+                "First Last <<user@domain.tld>>",
+                Some("First Last <<user@domain.tld>>"),
+                None,
+            ),
+            ("First Last <>", Some("First Last <>"), None),
+            (" First Last < > ", Some("First Last < >"), None),
+            ("First\tLast", Some("First Last"), None),
+            (
+                "First\nLast <user@domain.tld>",
+                Some("First Last"),
+                Some("user@domain.tld"),
+            ),
+        ];
+        for (input, name, email) in cases {
+            let actual = SbomGenerator::parse_author(input).unwrap();
+            assert_eq!(actual.name.as_deref(), name, "{input:?}");
+            assert_eq!(actual.email.as_deref(), email, "{input:?}");
+            assert!(actual.phone.is_none());
+            assert!(actual.bom_ref.is_none());
+        }
+        for input in ["", " ", "\t\r\n"] {
+            assert_eq!(SbomGenerator::parse_author(input), None, "{input:?}");
         }
     }
 
     #[test]
-    fn it_should_parse_author_inside_brackets() {
-        let actual = SbomGenerator::parse_author("<First Last user@domain.tld>")
-            .expect("Failed to parse author");
-        let expected = OrganizationalContact::new("<First Last user@domain.tld>", None);
-
-        assert_eq!(actual, expected);
+    fn it_should_preserve_author_order_and_duplicates() {
+        let mut package: Package =
+            serde_json::from_str(include_str!("../tests/fixtures/root_package.json")).unwrap();
+        package.authors = ["Bob", "", "Alice", "Bob", " "]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        assert_eq!(
+            SbomGenerator::create_authors(&package),
+            vec![
+                OrganizationalContact::new("Bob", None),
+                OrganizationalContact::new("Alice", None),
+                OrganizationalContact::new("Bob", None),
+            ]
+        );
+        package.authors = vec![" ".into(), "".into()];
+        assert!(SbomGenerator::create_authors(&package).is_empty());
+        package.authors.clear();
+        assert!(SbomGenerator::create_authors(&package).is_empty());
     }
 }
