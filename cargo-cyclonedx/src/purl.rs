@@ -11,7 +11,7 @@ pub fn get_purl(
     workspace_root: &Utf8Path,
     subpath: Option<&Utf8Path>,
 ) -> Result<CdxPurl, PackageError> {
-    let mut builder = PurlBuilder::new(PackageType::Cargo, &package.name)
+    let mut builder = PurlBuilder::new(PackageType::Cargo, &package.name.to_string())
         .with_version(package.version.to_string());
 
     if let Some(source) = &package.source {
