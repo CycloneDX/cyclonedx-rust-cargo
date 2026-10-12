@@ -9,8 +9,12 @@ use crate::{
     validation::{ValidationContext, ValidationError},
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use super::{input::Input, output::Output, resource_reference::ResourceReference};
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Trigger {
     pub bom_ref: BomReference,
@@ -62,7 +66,9 @@ impl Validate for Trigger {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, strum::Display, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum Type {
     Manual,
@@ -99,6 +105,7 @@ impl Validate for Type {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Event {
     pub uid: Option<String>,
@@ -129,6 +136,7 @@ impl Validate for Event {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Condition {
     pub description: Option<String>,
