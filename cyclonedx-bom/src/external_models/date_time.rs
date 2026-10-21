@@ -18,6 +18,8 @@
 
 use std::convert::TryFrom;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 
@@ -39,6 +41,7 @@ use crate::validation::ValidationError;
 /// assert_eq!(date_time.to_string(), timestamp);
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct DateTime(pub(crate) String);
 
 pub fn validate_date_time(date_time: &DateTime) -> Result<(), ValidationError> {

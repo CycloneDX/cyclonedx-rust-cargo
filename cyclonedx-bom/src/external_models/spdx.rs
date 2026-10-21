@@ -18,6 +18,8 @@
 
 use std::convert::TryFrom;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use spdx::{Expression, ParseMode};
 use thiserror::Error;
 
@@ -44,6 +46,7 @@ use crate::{
 /// # Ok::<(), SpdxIdentifierError>(())
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SpdxIdentifier(pub(crate) String);
 
 impl SpdxIdentifier {
@@ -118,6 +121,7 @@ pub enum SpdxIdentifierError {
 /// # Ok::<(), SpdxExpressionError>(())
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SpdxExpression {
     pub bom_ref: Option<BomReference>,
     pub(crate) expression: String,

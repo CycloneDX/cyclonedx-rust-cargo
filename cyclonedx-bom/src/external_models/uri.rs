@@ -20,6 +20,8 @@ use std::{convert::TryFrom, str::FromStr};
 
 use fluent_uri::UriRef as Url;
 use purl::{GenericPurl, GenericPurlBuilder};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::validation::ValidationError;
@@ -32,6 +34,7 @@ pub fn validate_purl(purl: &Purl) -> Result<(), ValidationError> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Purl(pub(crate) String);
 
 impl Purl {
@@ -72,6 +75,7 @@ pub fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Uri(pub(crate) String);
 
 impl Uri {
