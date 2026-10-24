@@ -44,7 +44,7 @@ expression: xml_output
         <x-trust-boundary>true</x-trust-boundary>
         <trustZone>trust zone</trustZone>
         <data>
-          <dataflow name="Consumer to Stock Service" name="Traffic to/from consumer to service">
+          <dataflow name="Consumer to Stock Service" description="Traffic to/from consumer to service">
             <classification flow="flow">classification</classification>
             <governance>
               <owners>

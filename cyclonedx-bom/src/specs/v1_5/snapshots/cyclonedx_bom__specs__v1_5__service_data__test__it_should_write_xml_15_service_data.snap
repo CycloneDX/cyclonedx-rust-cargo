@@ -4,7 +4,7 @@ assertion_line: 217
 expression: write_element_to_string(actual)
 ---
 <?xml version="1.0" encoding="utf-8"?>
-<dataflow name="Consumer to Price" name="Consumer to Price description">
+<dataflow name="Consumer to Price" description="Consumer to Price description">
   <classification flow="data flow">bi-directional</classification>
   <governance>
     <owners>

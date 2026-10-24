@@ -179,7 +179,7 @@ impl ToXml for ServiceData {
         }
 
         if let Some(description) = &self.description {
-            start_tag = start_tag.attr(NAME_ATTR, description);
+            start_tag = start_tag.attr(DESCRIPTION_ATTR, description);
         }
 
         writer
@@ -304,5 +304,26 @@ pub(crate) mod test {
             destination: Some(vec!["https://0.0.0.0".to_string()]),
         };
         assert_eq!(actual, expected);
+    }
+
+    fn example_service_data() -> ServiceData {
+        ServiceData {
+            name: Some("Consumer to Stock Service".to_string()),
+            description: Some("Traffic to/from consumer to service".to_string()),
+            classification: DataClassification {
+                flow: "bi-directional".to_string(),
+                classification: "Customer".to_string(),
+            },
+            governance: None,
+            source: None,
+            destination: None,
+        }
+    }
+
+    #[test]
+    fn it_should_round_trip_xml_service_data() {
+        let xml = write_element_to_string(example_service_data());
+        let actual: ServiceData = read_element_from_string(xml);
+        assert_eq!(actual, example_service_data());
     }
 }
