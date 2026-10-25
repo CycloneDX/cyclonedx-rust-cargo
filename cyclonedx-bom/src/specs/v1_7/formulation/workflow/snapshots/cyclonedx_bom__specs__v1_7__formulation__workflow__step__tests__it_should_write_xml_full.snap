@@ -4,6 +4,8 @@ expression: xml_output
 ---
 <?xml version="1.0" encoding="utf-8"?>
 <step>
+  <name>My step</name>
+  <description>Description here</description>
   <commands>
     <command>
       <executed>ls -las</executed>
@@ -12,8 +14,6 @@ expression: xml_output
       </properties>
     </command>
   </commands>
-  <description>Description here</description>
-  <name>My step</name>
   <properties>
     <property name="Foo">Bar</property>
   </properties>
