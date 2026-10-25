@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `serde_json::Value` with an explicit `SpecVersion`, replacing the version-specific
   JSON value parsers and supporting versions 1.3–1.7. `parse_from_json` and
   `parse_json_value` continue to detect the version automatically.
+- Renamed `ExternalReferenceType::CondifiedInfrastructure` to `CodifiedInfrastructure`.
+  It is now written as `codified-infrastructure`, the value in the schema, instead of
+  `condified-infrastructure`.
 
 ## 0.8.1 - 2025-03-19
 
