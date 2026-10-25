@@ -144,6 +144,7 @@ pub enum ExternalReferenceType {
     ComponentAnalysisReport,
     MaturityReport,
     CertificationReport,
+    #[strum(serialize = "codified-infrastructure")]
     CondifiedInfrastructure,
     QualityMetrics,
     Poam,
@@ -280,6 +281,70 @@ mod test {
 
     use super::*;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn it_should_write_external_reference_types_as_read() {
+        // every type in the CycloneDX 1.7 schema
+        for name in [
+            "vcs",
+            "issue-tracker",
+            "website",
+            "advisories",
+            "bom",
+            "mailing-list",
+            "social",
+            "chat",
+            "documentation",
+            "support",
+            "source-distribution",
+            "distribution",
+            "distribution-intake",
+            "license",
+            "build-meta",
+            "build-system",
+            "release-notes",
+            "security-contact",
+            "model-card",
+            "log",
+            "configuration",
+            "evidence",
+            "formulation",
+            "attestation",
+            "threat-model",
+            "adversary-model",
+            "risk-assessment",
+            "vulnerability-assertion",
+            "exploitability-statement",
+            "pentest-report",
+            "static-analysis-report",
+            "dynamic-analysis-report",
+            "runtime-analysis-report",
+            "component-analysis-report",
+            "maturity-report",
+            "certification-report",
+            "codified-infrastructure",
+            "quality-metrics",
+            "poam",
+            "electronic-signature",
+            "digital-signature",
+            "rfc-9116",
+            "patent",
+            "patent-family",
+            "patent-assertion",
+            "citation",
+            "other",
+        ] {
+            let reference_type = ExternalReferenceType::new_unchecked(name);
+            assert!(
+                !matches!(
+                    reference_type,
+                    ExternalReferenceType::UnknownExternalReferenceType(_)
+                ),
+                "{name} is not a known type"
+            );
+            assert_eq!(reference_type.to_string(), name);
+        }
+    }
 
     #[test]
     fn it_should_convert_url_into_uri() {
