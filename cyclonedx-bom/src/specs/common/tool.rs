@@ -126,8 +126,8 @@ pub(crate) mod base {
                     services,
                     components,
                 } => {
-                    services.write_xml_element(writer)?;
                     components.write_xml_element(writer)?;
+                    services.write_xml_element(writer)?;
                 }
             }
 

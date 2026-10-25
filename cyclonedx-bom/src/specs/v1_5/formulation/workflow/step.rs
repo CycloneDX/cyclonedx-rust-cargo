@@ -58,13 +58,13 @@ impl ToXml for Step {
     ) -> Result<(), crate::errors::XmlWriteError> {
         write_start_tag(writer, STEP_TAG)?;
 
-        if let Some(commands) = &self.commands {
-            write_list_tag(writer, COMMANDS_TAG, commands)?;
-        }
+        write_simple_option_tag(writer, NAME_TAG, &self.name)?;
 
         write_simple_option_tag(writer, DESCRIPTION_TAG, &self.description)?;
 
-        write_simple_option_tag(writer, NAME_TAG, &self.name)?;
+        if let Some(commands) = &self.commands {
+            write_list_tag(writer, COMMANDS_TAG, commands)?;
+        }
 
         self.properties.write_xml_element(writer)?;
 

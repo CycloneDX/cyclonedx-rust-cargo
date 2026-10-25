@@ -22,6 +22,10 @@ expression: xml_output
           <ref>component-a</ref>
         </resourceReference>
       </resourceReferences>
+      <taskTypes>
+        <taskType>clone</taskType>
+        <taskType>build</taskType>
+      </taskTypes>
       <trigger bom-ref="trigger-1">
         <uid>trigger-1</uid>
         <type>api</type>
@@ -133,6 +137,8 @@ expression: xml_output
   </trigger>
   <steps>
     <step>
+      <name>My step</name>
+      <description>Description here</description>
       <commands>
         <command>
           <executed>ls -las</executed>
@@ -141,8 +147,6 @@ expression: xml_output
           </properties>
         </command>
       </commands>
-      <description>Description here</description>
-      <name>My step</name>
       <properties>
         <property name="Foo">Bar</property>
       </properties>

@@ -380,6 +380,7 @@ impl ToXml for Task {
         write_simple_option_tag(writer, NAME_TAG, &self.name)?;
         write_simple_option_tag(writer, DESCRIPTION_TAG, &self.description)?;
         self.resource_references.write_xml_element(writer)?;
+        write_list_tag(writer, TASK_TYPES_TAG, &self.task_types)?;
         self.trigger.write_xml_element(writer)?;
         if let Some(steps) = &self.steps {
             write_list_tag(writer, STEPS_TAG, steps)?;
@@ -886,6 +887,13 @@ mod test {
     fn it_should_write_xml_full() {
         let xml_output = write_element_to_string(example_workflow());
         insta::assert_snapshot!(xml_output);
+    }
+
+    #[test]
+    fn it_should_round_trip_xml_full() {
+        let xml_output = write_element_to_string(example_workflow());
+        let actual: Workflow = read_element_from_string(xml_output);
+        pretty_assertions::assert_eq!(actual, example_workflow());
     }
 
     #[test]

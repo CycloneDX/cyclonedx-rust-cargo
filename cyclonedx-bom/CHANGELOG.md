@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It is now written as `codified-infrastructure`, the value in the schema, instead of
   `condified-infrastructure`.
 
+### Fixed
+
+- XML output for formulation tasks now includes the required `taskTypes`, and
+  formulation steps and `tools` with components and services are written in the
+  element order the XSD requires.
+
 ## 0.8.1 - 2025-03-19
 
 - Increased the MSRV to 1.85.0 ([#845])
