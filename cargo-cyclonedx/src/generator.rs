@@ -406,6 +406,34 @@ impl SbomGenerator {
                     e
                 ),
             }
+        } else {
+            if let Some(source) = &package.source {
+                if !source.is_crates_io() {
+                    match source.repr.split_once('+') {
+                        Some(("git", git_path)) => {
+                            let repo_url = git_path
+                                .split_once('#')
+                                .map_or(git_path, |(first, _)| first);
+                            match Uri::try_from(repo_url.to_string()) {
+                                Ok(uri) => references
+                                    .push(ExternalReference::new(ExternalReferenceType::Vcs, uri)),
+                                Err(e) => log::warn!(
+                                    "Package {} has an invalid repository URI ({}): {} ",
+                                    package.name,
+                                    source,
+                                    e
+                                ),
+                            }
+                        }
+                        Some((source, _path)) => log::warn!("Unknown source kind {}", source),
+                        None => {
+                            log::warn!(
+                                "No '+' separator found in source field from `cargo metadata`"
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         if !references.is_empty() {
@@ -1072,6 +1100,8 @@ impl From<std::io::Error> for SbomWriterError {
 mod test {
     use super::*;
 
+    const GIT_PACKAGE_JSON: &str = include_str!("../tests/fixtures/git_package.json");
+
     #[test]
     fn it_should_parse_authors_without_losing_malformed_entries() {
         let cases = [
@@ -1157,5 +1187,73 @@ mod test {
         assert!(SbomGenerator::create_authors(&package).is_empty());
         package.authors.clear();
         assert!(SbomGenerator::create_authors(&package).is_empty());
+    }
+
+    #[test]
+    fn it_should_get_external_references_from_source() {
+        let mut git_package: Package = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
+        git_package.repository = None;
+
+        let actual = SbomGenerator::get_external_references(&git_package)
+            .expect("Failed to parse external reference");
+
+        let mut expected = Vec::new();
+        expected.push(ExternalReference::new(
+            ExternalReferenceType::Vcs,
+            Uri::new("https://github.com/rust-secure-code/cargo-auditable.git"),
+        ));
+
+        assert_eq!(actual, ExternalReferences(expected));
+    }
+
+    #[test]
+    fn it_should_get_external_references_from_source_without_digest() {
+        let mut git_package: Package = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
+        git_package.repository = None;
+        git_package.source = Some(cargo_metadata::Source {
+            repr: "git+https://github.com/rust-secure-code/cargo-auditable.git".to_string(),
+        });
+
+        let actual = SbomGenerator::get_external_references(&git_package)
+            .expect("Failed to parse external reference");
+
+        let mut expected = Vec::new();
+        expected.push(ExternalReference::new(
+            ExternalReferenceType::Vcs,
+            Uri::new("https://github.com/rust-secure-code/cargo-auditable.git"),
+        ));
+
+        assert_eq!(actual, ExternalReferences(expected));
+    }
+
+    #[test]
+    fn it_should_not_get_external_references_from_unidentifiable_source() {
+        let mut git_package: Package = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
+        git_package.repository = None;
+        git_package.source = Some(cargo_metadata::Source {
+            repr: "https://github.com/rust-secure-code/cargo-auditable.git".to_string(),
+        });
+
+        assert_eq!(SbomGenerator::get_external_references(&git_package), None);
+    }
+
+    #[test]
+    fn it_should_not_get_external_references_from_non_uri_source() {
+        let mut git_package: Package = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
+        git_package.repository = None;
+        git_package.source = Some(cargo_metadata::Source {
+            repr: "not a uri".to_string(),
+        });
+
+        assert_eq!(SbomGenerator::get_external_references(&git_package), None);
+    }
+
+    #[test]
+    fn it_should_not_get_external_reference_from_invalid_source_uri() {
+        let mut git_package: Package = serde_json::from_str(GIT_PACKAGE_JSON).unwrap();
+        git_package.repository = None;
+        git_package.source = None;
+
+        assert_eq!(SbomGenerator::get_external_references(&git_package), None);
     }
 }
