@@ -80,6 +80,8 @@ impl FromXml for Properties {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Property {
     pub(crate) name: String,
+    /// The schema does not require a value, read a missing one as empty like the XML reader does
+    #[serde(default)]
     pub(crate) value: String,
 }
 
@@ -178,6 +180,17 @@ pub(crate) mod test {
 "#;
         let actual: Properties = read_element_from_string(input);
         let expected = example_properties();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn it_should_read_json_property_without_value() {
+        let actual: Properties =
+            serde_json::from_str(r#"[{"name": "name"}]"#).expect("Failed to parse JSON");
+        let expected = Properties(vec![Property {
+            name: "name".to_string(),
+            value: String::new(),
+        }]);
         assert_eq!(actual, expected);
     }
 
