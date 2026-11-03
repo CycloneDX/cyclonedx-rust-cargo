@@ -33,6 +33,7 @@ struct CargoArgs {
     offline: bool,
     frozen: bool,
     config: Vec<String>,
+    message_format: bool,
 }
 
 impl CargoArgs {
@@ -46,8 +47,11 @@ impl CargoArgs {
                 "--frozen" => parsed.frozen = true,
                 "--manifest-path" => parsed.manifest_path = args.next().map(PathBuf::from),
                 "--config" => parsed.config.extend(args.next().cloned()),
+                "--message-format" => parsed.message_format = true,
                 other => {
-                    if let Some(path) = other.strip_prefix("--manifest-path=") {
+                    if other.starts_with("--message-format=") {
+                        parsed.message_format = true;
+                    } else if let Some(path) = other.strip_prefix("--manifest-path=") {
                         parsed.manifest_path = Some(PathBuf::from(path));
                     } else if let Some(config) = other.strip_prefix("--config=") {
                         parsed.config.push(config.to_owned());
@@ -60,13 +64,29 @@ impl CargoArgs {
 }
 
 pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String]) -> Result<()> {
-    if args.all_features || args.no_default_features || !args.features.is_empty() {
-        bail!("Features are decided by the build, pass them to `cargo build` after `build`");
+    for (flag, set) in [
+        ("--all-features", args.all_features),
+        ("--no-default-features", args.no_default_features),
+        ("--features", !args.features.is_empty()),
+        ("--target", args.target.is_some()),
+    ] {
+        if set {
+            bail!("Pass `{flag}` after `build`");
+        }
     }
-    if args.target.is_some() {
-        bail!("The target is decided by the build, pass it to `cargo build` after `build`");
+    for (flag, set) in [
+        ("--describe", args.describe.is_some()),
+        ("--override-filename", args.filename_override.is_some()),
+        ("--target-in-filename", args.target_in_filename),
+    ] {
+        if set {
+            bail!("Unsupported with `build`: `{flag}`");
+        }
     }
     let cargo_flags = CargoArgs::parse(cargo_args);
+    if cargo_flags.message_format {
+        bail!("Unsupported with `build`: `--message-format`");
+    }
 
     log::trace!("Running `cargo build` started");
     let artifacts = run_build(args, cargo_args)?;
@@ -201,6 +221,7 @@ mod tests {
                     "net.git-fetch-with-cli=true".to_owned(),
                     "build.jobs=2".to_owned()
                 ],
+                message_format: false,
             }
         );
     }
@@ -210,5 +231,12 @@ mod tests {
         let parsed = parse(&["--frozen", "--", "--offline"]);
         assert!(parsed.frozen);
         assert!(!parsed.offline);
+    }
+
+    #[test]
+    fn detects_message_format() {
+        assert!(parse(&["--message-format", "short"]).message_format);
+        assert!(parse(&["--message-format=json"]).message_format);
+        assert!(!parse(&["--", "--message-format=json"]).message_format);
     }
 }
