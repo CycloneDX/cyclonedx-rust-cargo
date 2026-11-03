@@ -3,6 +3,7 @@ use assert_fs::prelude::*;
 use cyclonedx_bom::models::bom::{Bom, SpecVersion};
 use predicates::prelude::*;
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use std::process::Command;
 
 #[test]
@@ -294,6 +295,124 @@ fn assert_package_authors(component: &Value, version: SpecVersion) {
         );
         assert!(component.get("authors").is_none());
     }
+}
+
+#[test]
+fn build_scopes_dependencies_by_what_was_built() -> Result<(), Box<dyn std::error::Error>> {
+    if !cargo_accepts_sbom_flag() {
+        eprintln!("skipped: `cargo cyclonedx build` needs a nightly cargo");
+        return Ok(());
+    }
+
+    // Without a build script, Cargo does not compile build dependencies
+    let tmp_dir = copy_build_fixture()?;
+
+    let scopes = build_and_read_scopes(&tmp_dir)?;
+    assert!(scopes.is_empty(), "{scopes:?}");
+
+    tmp_dir
+        .child("top_level_crate/build.rs")
+        .write_str("fn main() {}\n")?;
+
+    let scopes = build_and_read_scopes(&tmp_dir)?;
+    assert_eq!(scopes["build_dep"], "excluded");
+    assert_eq!(scopes["runtime_dep_of_build_dep"], "excluded");
+    assert_eq!(scopes["runtime_dep_of_runtime_dep"], "excluded");
+
+    tmp_dir.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn build_rejects_flags_it_cannot_honour() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.arg("cyclonedx")
+        .arg("--features")
+        .arg("foo")
+        .arg("build");
+
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("Pass `--features` after `build`"));
+
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.arg("cyclonedx")
+        .arg("--describe")
+        .arg("crate")
+        .arg("build");
+
+    cmd.assert().failure().stderr(predicate::str::contains(
+        "Unsupported with `build`: `--describe`",
+    ));
+
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.arg("cyclonedx")
+        .arg("build")
+        .arg("--message-format=short");
+
+    cmd.assert().failure().stderr(predicate::str::contains(
+        "Unsupported with `build`: `--message-format`",
+    ));
+
+    Ok(())
+}
+
+fn cargo_accepts_sbom_flag() -> bool {
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    Command::new(cargo)
+        .arg("-Z")
+        .arg("sbom")
+        .arg("version")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
+fn copy_build_fixture() -> Result<assert_fs::TempDir, assert_fs::fixture::FixtureError> {
+    let tmp_dir = assert_fs::TempDir::new()?;
+    tmp_dir.copy_from(
+        "tests/fixtures/build_then_runtime_dep",
+        &["**/Cargo.toml", "**/*.rs", "Cargo.lock"],
+    )?;
+    Ok(tmp_dir)
+}
+
+fn build_and_read_scopes(
+    tmp_dir: &assert_fs::TempDir,
+) -> Result<BTreeMap<String, String>, Box<dyn std::error::Error>> {
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.current_dir(tmp_dir.path())
+        .arg("cyclonedx")
+        .arg("--all")
+        .arg("--format")
+        .arg("json")
+        .arg("build")
+        .arg("-p")
+        .arg("top_level_crate");
+
+    cmd.assert().success();
+
+    let sbom = tmp_dir.child(format!(
+        "target/debug/top_level_crate{}.cdx.json",
+        std::env::consts::EXE_SUFFIX
+    ));
+    let sbom: Value = serde_json::from_slice(&std::fs::read(sbom.path())?)?;
+
+    let components = sbom["components"].as_array().cloned().unwrap_or_default();
+    Ok(components
+        .iter()
+        .map(|component| {
+            (
+                component["name"].as_str().unwrap().to_owned(),
+                component["scope"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect())
 }
 
 fn make_temp_rust_project() -> Result<assert_fs::TempDir, assert_fs::fixture::FixtureError> {
