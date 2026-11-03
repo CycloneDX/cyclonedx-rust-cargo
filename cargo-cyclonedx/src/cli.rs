@@ -108,6 +108,19 @@ Defaults to the host target, as printed by 'rustc -vV'"
     /// Do not include build-time dependencies in the SBOM
     #[clap(long = "no-build-deps")]
     pub no_build_deps: bool,
+
+    #[clap(subcommand)]
+    pub command: Option<Command>,
+}
+
+#[derive(clap::Subcommand, Debug)]
+pub enum Command {
+    /// Build with `cargo build -Z sbom` and generate SBOMs from what was built (requires nightly)
+    Build {
+        /// Arguments passed to `cargo build`
+        #[clap(trailing_var_arg = true, allow_hyphen_values = true)]
+        cargo_args: Vec<String>,
+    },
 }
 
 impl Args {
