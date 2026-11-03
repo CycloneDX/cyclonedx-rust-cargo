@@ -24,6 +24,7 @@ lto = "thin"
 anyhow = "1.0.75"
 cargo-lock = "11.0.1"
 cargo_metadata = "0.23.1"
+cargo-sbom-precursor = { git = "https://github.com/hellerve/cargo-sbom-precursor", rev = "2a12daebad34dd6ab24c3948e41a0cab9e4af6a4" }
 clap = { version = "4.4.11", features = ["derive"] }
 cyclonedx-bom = { version = "0.9.0", path = "../cyclonedx-bom" }
 env_logger = "0.11.0"
