@@ -18,7 +18,6 @@
 
 use std::{convert::TryFrom, str::FromStr};
 
-use fluent_uri::UriRef as Url;
 use purl::{GenericPurl, GenericPurlBuilder};
 use thiserror::Error;
 
@@ -64,8 +63,9 @@ impl AsRef<str> for Purl {
     }
 }
 
-pub fn validate_uri(uri: &Uri) -> Result<(), ValidationError> {
-    if Url::parse(uri.0.as_str()).is_err() {
+pub fn validate_uri(_uri: &Uri) -> Result<(), ValidationError> {
+    #[cfg(feature = "fluent-uri")]
+    if fluent_uri::UriRef::parse(_uri.0.as_str()).is_err() {
         return Err(ValidationError::new("Uri does not conform to RFC 3986"));
     }
     Ok(())
@@ -88,12 +88,13 @@ impl TryFrom<String> for Uri {
     type Error = UriError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        match Url::parse(value.as_str()) {
-            Ok(_) => Ok(Uri(value)),
-            Err(_) => Err(UriError::InvalidUri(
+        #[cfg(feature = "fluent-uri")]
+        if fluent_uri::UriRef::parse(value.as_str()).is_err() {
+            return Err(UriError::InvalidUri(
                 "Uri does not conform to RFC 3986".to_string(),
-            )),
+            ));
         }
+        Ok(Uri(value))
     }
 }
 
