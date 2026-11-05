@@ -28,7 +28,7 @@ use crate::external_models::{
 };
 use crate::models::{
     attached_text::AttachedText,
-    bom::{BomReference, SpecVersion},
+    bom::{validate_bom_ref, BomReference, SpecVersion},
     organization::{OrganizationalContact, OrganizationalEntity},
 };
 use crate::validation::{Validate, ValidationContext, ValidationError, ValidationResult};
@@ -72,6 +72,9 @@ impl Validate for LicenseChoice {
             LicenseChoice::Expression(expression) => {
                 context
                     .add_enum("expression", expression, validate_spdx_expression)
+                    .add_field_option("bom-ref", expression.bom_ref.as_ref(), |bom_ref| {
+                        validate_bom_ref(bom_ref, version)
+                    })
                     .add_field_option(
                         "acknowledgement",
                         expression.acknowledgement.as_ref(),
@@ -146,6 +149,9 @@ impl License {
 impl Validate for License {
     fn validate_version(&self, version: SpecVersion) -> ValidationResult {
         ValidationContext::new()
+            .add_field_option("bom-ref", self.bom_ref.as_ref(), |bom_ref| {
+                validate_bom_ref(bom_ref, version)
+            })
             .add_struct("license_identifier", &self.license_identifier, version)
             .add_field_option(
                 "acknowledgement",
@@ -385,6 +391,24 @@ mod test {
 
     use super::*;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn it_should_validate_license_bom_ref_against_the_spec_version() {
+        let mut license = License::named_license("Apache-2.0");
+        license.bom_ref = Some(BomReference::new("license-1"));
+
+        assert!(license.validate_version(SpecVersion::V1_3).has_errors());
+        assert!(license.validate_version(SpecVersion::V1_4).has_errors());
+        assert!(license.validate_version(SpecVersion::V1_5).passed());
+
+        let mut expression = SpdxExpression::new("MIT OR Apache-2.0");
+        expression.bom_ref = Some(BomReference::new("expression-1"));
+        let choice = LicenseChoice::Expression(expression);
+
+        assert!(choice.validate_version(SpecVersion::V1_3).has_errors());
+        assert!(choice.validate_version(SpecVersion::V1_4).has_errors());
+        assert!(choice.validate_version(SpecVersion::V1_5).passed());
+    }
 
     #[test]
     fn it_should_pass_validation() {

@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - XML output for formulation tasks now includes the required `taskTypes`, and
   formulation steps and `tools` with components and services are written in the
   element order the XSD requires.
+- Validation rejects a `bom-ref` on a license or an SPDX license expression for spec
+  versions 1.3 and 1.4, which do not define one. Such a BOM previously passed
+  `validate_version` and was then written as output that the 1.4 schema rejects.
 
 ## 0.8.1 - 2025-03-19
 
