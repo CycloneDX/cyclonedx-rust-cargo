@@ -242,6 +242,7 @@ dependencies = [
  "assert_cmd",
  "assert_fs",
  "cargo-lock",
+ "cargo-sbom-precursor",
  "cargo_metadata 0.23.1",
  "clap",
  "cyclonedx-bom",
@@ -288,6 +289,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "122ec45a44b270afd1402f351b782c676b173e3c3fb28d86ff7ebfb4d86a4ee4"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "cargo-sbom-precursor"
+version = "0.0.1"
+source = "git+https://github.com/hellerve/cargo-sbom-precursor?rev=2a12daebad34dd6ab24c3948e41a0cab9e4af6a4#2a12daebad34dd6ab24c3948e41a0cab9e4af6a4"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
