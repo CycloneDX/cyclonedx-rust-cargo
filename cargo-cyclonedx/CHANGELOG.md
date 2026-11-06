@@ -5,11 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.5.10 - 2026-11-06
+
+### Added
+
+- Support for `--spec-version 1.6` and `--spec-version 1.7`. ([#872])
+- Author information is now written to the structured `authors` field when
+  generating CycloneDX 1.6 or 1.7. For versions 1.3–1.5 it continues to be
+  written to the legacy `author` field. ([#882])
+
+### Changed
+
+- Updated dependencies: `cargo_metadata` 0.23, `cargo-lock` 11,
+  `validator` 0.20 and `env_logger` 0.11. ([#862], [#881])
+- Increased the MSRV (minimum supported Rust version) to 1.86. ([#881])
 
 ### Fixed
 
- - Cargo target subcomponents now inherit the license of their package, including licenses inherited from the workspace.
+- Cargo target subcomponents now inherit the license of their package,
+  including licenses inherited from the workspace. ([#876])
 
 ## 0.5.9 - 2026-03-19
 
@@ -202,3 +216,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#852]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/852
 [#853]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/853
 [#856]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/853
+[#862]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/862
+[#872]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/872
+[#876]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/876
+[#881]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/881
+[#882]: https://github.com/CycloneDX/cyclonedx-rust-cargo/pull/882
