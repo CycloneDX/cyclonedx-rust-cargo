@@ -20,10 +20,13 @@ use crate::{
     prelude::{Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::bom::SpecVersion;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Attachment {
     pub content: String,
     pub content_type: Option<String>,

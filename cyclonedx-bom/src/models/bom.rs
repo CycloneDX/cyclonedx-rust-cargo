@@ -100,6 +100,7 @@ pub fn validate_bom_ref(
 
 /// A reference to a Bom element
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BomReference(pub String);
 
 impl BomReference {
@@ -112,6 +113,7 @@ impl BomReference {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Bom {
     pub version: u32,
     pub serial_number: Option<UrnUuid>,
@@ -542,6 +544,7 @@ fn validate_vulnerabilities_bom_refs(
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct UrnUuid(pub String);
 
 impl UrnUuid {

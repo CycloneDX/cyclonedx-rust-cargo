@@ -22,6 +22,8 @@ use crate::{
     prelude::{Uri, Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::{
     bom::{BomReference, SpecVersion},
@@ -30,6 +32,7 @@ use super::{
 
 /// Inline Component Data
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ComponentData {
     pub bom_ref: Option<BomReference>,
     /// 'type' field
@@ -63,6 +66,8 @@ fn validate_datatype(datatype: &ComponentDataType) -> Result<(), ValidationError
 
 /// Type of data
 #[derive(Clone, Debug, PartialEq, Eq, strum::Display, strum::EnumString, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum ComponentDataType {
     SourceCode,
@@ -82,6 +87,7 @@ impl From<String> for ComponentDataType {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct DataContents {
     pub attachment: Option<Attachment>,
     pub url: Option<Uri>,
@@ -100,6 +106,7 @@ impl Validate for DataContents {
 
 /// bom-1.5.schema.json #definitions/graphicsCollection
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphicsCollection {
     pub description: Option<String>,
     pub collection: Option<Vec<Graphic>>,
@@ -117,6 +124,7 @@ impl Validate for GraphicsCollection {
 
 /// bom-1.5.schema.json #definitions/graphic
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Graphic {
     pub name: Option<String>,
     pub image: Option<Attachment>,

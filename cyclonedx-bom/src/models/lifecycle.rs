@@ -17,17 +17,22 @@
  */
 
 use crate::prelude::NormalizedString;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Lifecycles(pub Vec<Lifecycle>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Lifecycle {
     Phase(Phase),
     Description(Description),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Phase {
     Design,
     PreBuild,
@@ -73,6 +78,7 @@ impl Phase {
 
 /// A description of a `Lifecycle`.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Description {
     pub name: NormalizedString,
     pub description: Option<NormalizedString>,

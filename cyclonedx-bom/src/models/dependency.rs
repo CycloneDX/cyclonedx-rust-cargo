@@ -16,10 +16,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Dependencies(pub Vec<Dependency>);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Dependency {
     pub dependency_ref: String,
     pub dependencies: Vec<String>,

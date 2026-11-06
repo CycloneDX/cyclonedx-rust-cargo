@@ -4,8 +4,12 @@ use crate::{
     validation::{ValidationContext, ValidationError},
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use super::resource_reference::ResourceReference;
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Workspace {
     pub bom_ref: BomReference,
@@ -39,7 +43,9 @@ impl Validate for Workspace {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, strum::Display)]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum AccessMode {
     ReadOnly,
@@ -72,6 +78,7 @@ pub fn validate_access_mode(access_mode: &AccessMode) -> Result<(), ValidationEr
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Volume {
     pub uid: Option<String>,
@@ -92,7 +99,9 @@ impl Validate for Volume {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, strum::Display)]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 #[strum(serialize_all = "kebab-case")]
 pub enum Mode {
     #[default]
