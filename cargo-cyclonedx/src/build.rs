@@ -98,11 +98,13 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String
 
     // Dependencies get precursor files too, but only the workspace's own artifacts are described
     let mut generated = 0;
-    for artifact in artifacts
-        .iter()
-        .filter(|artifact| metadata.workspace_members.contains(&artifact.package_id))
-    {
+    for artifact in artifacts.iter().filter(|artifact| {
+        metadata.workspace_members.contains(&artifact.package_id) && is_shipped(artifact)
+    }) {
         for filename in &artifact.filenames {
+            if filename.extension() == Some("rlib") {
+                continue;
+            }
             // Only executable and linkable outputs have a precursor, e.g. `.rmeta` files do not
             let precursor_path = cargo_sbom_precursor::path_for_artifact(filename);
             if !precursor_path.is_file() {
@@ -112,8 +114,12 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String
             log::trace!("SBOM generation for {} started", filename);
             let precursor = Precursor::from_path(&precursor_path)
                 .with_context(|| precursor_path.display().to_string())?;
-            let sbom =
-                SbomGenerator::create_sbom_from_precursor(metadata.clone(), &precursor, config)?;
+            let sbom = SbomGenerator::create_sbom_from_precursor(
+                metadata.clone(),
+                &precursor,
+                &artifact.target,
+                config,
+            )?;
             log::trace!("SBOM generation for {} finished", filename);
 
             sbom.write_to(Path::new(&format!("{filename}.cdx.{}", config.format())))?;
@@ -126,6 +132,31 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String
     }
 
     Ok(())
+}
+
+/// Proc-macros, build scripts, tests, benches and examples do not leave `target/`
+fn is_shipped(artifact: &Artifact) -> bool {
+    let target = &artifact.target;
+    !(artifact.profile.test
+        || target.is_proc_macro()
+        || target.is_custom_build()
+        || target.is_test()
+        || target.is_bench()
+        || target.is_example())
+}
+
+/// Whether the cargo running us supports `-Z sbom`, i.e. whether `build` would work
+pub fn sbom_supported() -> bool {
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    Command::new(cargo)
+        .arg("-Z")
+        .arg("sbom")
+        .arg("version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
 }
 
 fn run_build(args: &Args, cargo_args: &[String]) -> Result<Vec<Artifact>> {

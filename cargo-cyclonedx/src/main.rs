@@ -92,6 +92,12 @@ fn main() -> anyhow::Result<()> {
         return build::build_and_generate(&args, &config, cargo_args);
     }
 
+    if build::sbom_supported() {
+        log::warn!(
+            "Generating SBOMs from `cargo metadata` is deprecated, use `cargo cyclonedx build` instead"
+        );
+    }
+
     let boms = generate_sboms(&args)?;
 
     log::trace!("SBOM output started");
