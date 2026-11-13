@@ -32,6 +32,7 @@ use cargo_metadata::Node;
 use cargo_metadata::NodeDep;
 use cargo_metadata::Package;
 use cargo_metadata::PackageId;
+use cargo_metadata::TargetKind;
 
 use cargo_lock::package::Checksum;
 use cargo_lock::Lockfile;
@@ -119,6 +120,7 @@ impl SbomGenerator {
     ) -> Result<Vec<GeneratedSbom>, GeneratorError> {
         log::trace!("Processing the workspace {}", meta.workspace_root);
         let members: Vec<PackageId> = meta.workspace_members;
+        let proc_macros = proc_macro_packages(&meta.packages);
         let packages = index_packages(meta.packages);
         let resolve = index_resolve(meta.resolve.unwrap().nodes);
 
@@ -126,13 +128,13 @@ impl SbomGenerator {
         for member in members.iter() {
             log::trace!("Processing the package {}", member);
 
-            let dep_kinds = index_dep_kinds(member, &resolve);
+            let dep_kinds = index_dep_kinds(member, &resolve, &proc_macros);
 
             let (dependencies, pruned_resolve) =
                 if config.included_dependencies() == IncludedDependencies::AllDependencies {
-                    all_dependencies(member, &packages, &resolve, config)
+                    all_dependencies(member, &packages, &resolve, config, &proc_macros)
                 } else {
-                    top_level_dependencies(member, &packages, &resolve, config)
+                    top_level_dependencies(member, &packages, &resolve, config, &proc_macros)
                 };
 
             let manifest_path = packages[member].manifest_path.clone().into_std_path_buf();
@@ -617,7 +619,11 @@ fn index_resolve(packages: Vec<Node>) -> ResolveMap {
         .collect()
 }
 
-fn index_dep_kinds(root: &PackageId, resolve: &ResolveMap) -> DependencyKindMap {
+fn index_dep_kinds(
+    root: &PackageId,
+    resolve: &ResolveMap,
+    proc_macros: &HashSet<PackageId>,
+) -> DependencyKindMap {
     // cache strongest found dependency kind for every node
     let mut id_to_dep_kind: HashMap<PackageId, PrivateDepKind> = HashMap::new();
     id_to_dep_kind.insert(root.clone(), PrivateDepKind::Runtime);
@@ -651,7 +657,13 @@ fn index_dep_kinds(root: &PackageId, resolve: &ResolveMap) -> DependencyKindMap 
         let node = &resolve[&pkg_id];
         for child_dep in &node.deps {
             for dep_kind in &child_dep.dep_kinds {
-                let current_kind = PrivateDepKind::from(&dep_kind.kind);
+                let mut current_kind = PrivateDepKind::from(&dep_kind.kind);
+                // Proc macros require special handling because `cargo metadata`
+                // reports them as normal dependencies, even though they are only
+                // needed at build time.
+                if proc_macros.contains(&child_dep.pkg) {
+                    current_kind = min(current_kind, PrivateDepKind::Build);
+                }
                 let new_path_node_kind = min(current_kind, path_node_kind);
 
                 let dep_node: DepNode = (child_dep.pkg.clone(), current_kind, new_path_node_kind);
@@ -665,6 +677,26 @@ fn index_dep_kinds(root: &PackageId, resolve: &ResolveMap) -> DependencyKindMap 
     id_to_dep_kind
         .iter()
         .map(|(x, y)| ((*x).clone(), DependencyKind::from(*y)))
+        .collect()
+}
+
+/// Packages whose library target is a proc macro.
+///
+/// `cargo metadata` reports dependencies on these packages as normal dependencies,
+/// but they are only needed at build time.
+fn proc_macro_packages(packages: &[Package]) -> HashSet<PackageId> {
+    packages
+        .iter()
+        .filter_map(|pkg| {
+            // As of Rust 1.88 a single crate cannot be both a proc macro and something else,
+            // so a package with a proc-macro target is only used as a proc macro when
+            // depended upon. Other targets, such as tests or a build script, do not change that.
+            let is_proc_macro = pkg
+                .targets
+                .iter()
+                .any(|target| target.kind.len() == 1 && target.kind[0] == TargetKind::ProcMacro);
+            is_proc_macro.then(|| pkg.id.clone())
+        })
         .collect()
 }
 
@@ -712,11 +744,12 @@ fn top_level_dependencies(
     packages: &PackageMap,
     resolve: &ResolveMap,
     config: &SbomConfig,
+    proc_macros: &HashSet<PackageId>,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding top-level dependencies to SBOM");
 
     // Only include packages that have dependency kinds other than "Development"
-    let root_node = add_filtered_dependencies(&resolve[root], config);
+    let root_node = add_filtered_dependencies(&resolve[root], config, proc_macros);
 
     let mut pkg_result = PackageMap::new();
 
@@ -745,6 +778,7 @@ fn all_dependencies(
     packages: &PackageMap,
     resolve: &ResolveMap,
     config: &SbomConfig,
+    proc_macros: &HashSet<PackageId>,
 ) -> (PackageMap, ResolveMap) {
     log::trace!("Adding all dependencies to SBOM");
 
@@ -765,10 +799,14 @@ fn all_dependencies(
             // If we haven't processed this node yet...
             if !out_resolve.contains_key(&node.id) {
                 // Add the node to the output
-                out_resolve.insert(node.id.to_owned(), add_filtered_dependencies(node, config));
+                out_resolve.insert(
+                    node.id.to_owned(),
+                    add_filtered_dependencies(node, config, proc_macros),
+                );
                 // Queue its dependencies for the next BFS loop iteration
                 next_queue.extend(
-                    filtered_dependencies(&node.deps, config).map(|dep| &resolve[&dep.pkg]),
+                    filtered_dependencies(&node.deps, config, proc_macros)
+                        .map(|dep| &resolve[&dep.pkg]),
                 );
             }
         }
@@ -785,27 +823,40 @@ fn all_dependencies(
     (out_packages, out_resolve)
 }
 
-fn add_filtered_dependencies(node: &Node, config: &SbomConfig) -> Node {
+fn add_filtered_dependencies(
+    node: &Node,
+    config: &SbomConfig,
+    proc_macros: &HashSet<PackageId>,
+) -> Node {
     let mut node = node.clone();
-    node.deps = filtered_dependencies(&node.deps, config).cloned().collect();
+    node.deps = filtered_dependencies(&node.deps, config, proc_macros)
+        .cloned()
+        .collect();
     node.dependencies = node.deps.iter().map(|d| d.pkg.to_owned()).collect();
     node
 }
 
 /// Filters out dependencies only used for development, and not affecting the final binary.
 /// These are specified under `[dev-dependencies]` in Cargo.toml.
+///
+/// With `only_normal_deps`, build-time-only dependencies (including proc macros) are
+/// also dropped.
 fn filtered_dependencies<'a>(
     input: &'a [NodeDep],
     config: &'a SbomConfig,
+    proc_macros: &'a HashSet<PackageId>,
 ) -> impl Iterator<Item = &'a NodeDep> {
     input.iter().filter(|p| {
-        p.dep_kinds.iter().any(|dep| {
-            if let Some(true) = config.only_normal_deps {
-                dep.kind == DependencyKind::Normal
-            } else {
-                dep.kind != DependencyKind::Development
-            }
-        })
+        if let Some(true) = config.only_normal_deps {
+            !proc_macros.contains(&p.pkg)
+                && p.dep_kinds
+                    .iter()
+                    .any(|dep| dep.kind == DependencyKind::Normal)
+        } else {
+            p.dep_kinds
+                .iter()
+                .any(|dep| dep.kind != DependencyKind::Development)
+        }
     })
 }
 

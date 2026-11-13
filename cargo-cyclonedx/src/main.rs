@@ -18,33 +18,33 @@
  */
 
 /**
-* A special acknowledgement Ossi Herrala from SensorFu for providing a
-* starting point in which to develop this plugin. The original project
-* this plugin was derived from is sensorfu/cargo-bom v0.3.1 (MIT licensed)
-* https://github.com/sensorfu/cargo-bom
-*
-* MIT License
-*
-* Copyright (c) 2017-2019 SensorFu Oy
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*/
+ * A special acknowledgement Ossi Herrala from SensorFu for providing a
+ * starting point in which to develop this plugin. The original project
+ * this plugin was derived from is sensorfu/cargo-bom v0.3.1 (MIT licensed)
+ * https://github.com/sensorfu/cargo-bom
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017-2019 SensorFu Oy
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 use cargo_cyclonedx::{
     config::{SbomConfig, Target},
     generator::SbomGenerator,
@@ -333,5 +333,79 @@ mod tests {
         assert!(components.0.iter().all(|c| c.name
             != NormalizedString::new("runtime_dep_of_build_dep")
             || c.scope == Some(Scope::Excluded)));
+    }
+
+    #[test]
+    fn proc_macros_are_excluded_as_build_dependencies() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use cyclonedx_bom::models::component::Scope;
+        use std::collections::HashMap;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/proc_macro_dependency/Cargo.toml");
+
+        let path_arg = format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg.as_str()];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+        let app = sboms
+            .iter()
+            .find(|sbom| sbom.package_name == "app")
+            .expect("fixture must generate an SBOM for the app package");
+        let scopes: HashMap<_, _> = app
+            .bom
+            .components
+            .as_ref()
+            .unwrap()
+            .0
+            .iter()
+            .map(|component| (component.name.to_string(), component.scope.clone()))
+            .collect();
+
+        // `cargo metadata` reports proc macros as normal dependencies.
+        assert_eq!(scopes["derive"], Some(Scope::Excluded));
+        // Dependencies only reachable through a proc macro are also build-time only.
+        assert_eq!(scopes["macro_only_dep"], Some(Scope::Excluded));
+        // A normal dependency of the app stays required even if a proc macro uses it too.
+        assert_eq!(scopes["shared"], Some(Scope::Required));
+    }
+
+    #[test]
+    fn no_build_deps_drops_proc_macros() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use cyclonedx_bom::models::component::Scope;
+        use std::collections::HashSet;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/proc_macro_dependency/Cargo.toml");
+
+        let path_arg = format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg.as_str(), "--no-build-deps"];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+        let app = sboms
+            .iter()
+            .find(|sbom| sbom.package_name == "app")
+            .expect("fixture must generate an SBOM for the app package");
+        let components = &app.bom.components.as_ref().unwrap().0;
+        let names: HashSet<_> = components
+            .iter()
+            .map(|component| component.name.to_string())
+            .collect();
+
+        assert!(components
+            .iter()
+            .all(|component| component.scope == Some(Scope::Required)));
+        assert!(!names.contains("derive"));
+        assert!(!names.contains("macro_only_dep"));
+        assert!(names.contains("shared"));
     }
 }
