@@ -63,8 +63,9 @@ use clap::Parser;
 use env_logger::Builder;
 use log::LevelFilter;
 
+mod build;
 mod cli;
-use cli::{Args, Opts};
+use cli::{Args, Command, Opts};
 
 fn generate_sboms(args: &Args) -> Result<Vec<GeneratedSbom>> {
     let config = resolve_config(args)?;
@@ -85,6 +86,17 @@ fn generate_sboms(args: &Args) -> Result<Vec<GeneratedSbom>> {
 fn main() -> anyhow::Result<()> {
     let Opts::Bom(args) = Opts::parse();
     setup_logging(&args)?;
+
+    if let Some(Command::Build { cargo_args }) = &args.command {
+        let config = resolve_config(&args)?;
+        return build::build_and_generate(&args, &config, cargo_args);
+    }
+
+    if build::sbom_supported() {
+        log::warn!(
+            "Generating SBOMs from `cargo metadata` is deprecated, use `cargo cyclonedx build` instead"
+        );
+    }
 
     let boms = generate_sboms(&args)?;
 

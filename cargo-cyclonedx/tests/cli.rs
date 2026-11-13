@@ -3,6 +3,8 @@ use assert_fs::prelude::*;
 use cyclonedx_bom::models::bom::{Bom, SpecVersion};
 use predicates::prelude::*;
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[test]
@@ -294,6 +296,151 @@ fn assert_package_authors(component: &Value, version: SpecVersion) {
         );
         assert!(component.get("authors").is_none());
     }
+}
+
+#[test]
+fn build_describes_what_was_built() -> Result<(), Box<dyn std::error::Error>> {
+    if !cargo_accepts_sbom_flag() {
+        eprintln!("skipped: `cargo cyclonedx build` needs a nightly cargo");
+        return Ok(());
+    }
+
+    let tmp_dir = copy_build_fixture()?;
+
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.current_dir(tmp_dir.path()).arg("cyclonedx");
+
+    cmd.assert().success().stderr(predicate::str::contains(
+        "use `cargo cyclonedx build` instead",
+    ));
+
+    // Without a build script, Cargo does not compile build dependencies
+    let sbom = build_fixture(&tmp_dir)?;
+    assert_eq!(sbom["components"], json!([]));
+
+    let toplevel_component = &sbom["metadata"]["component"];
+    assert_eq!(toplevel_component["name"], "top_level_crate");
+    assert_eq!(toplevel_component["type"], "application");
+    assert!(toplevel_component.get("components").is_none());
+
+    tmp_dir
+        .child("top_level_crate/build.rs")
+        .write_str("fn main() {}\n")?;
+
+    let sbom = build_fixture(&tmp_dir)?;
+    let scopes: BTreeMap<_, _> = sbom["components"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|component| {
+            (
+                component["name"].as_str().unwrap(),
+                component["scope"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(scopes["build_dep"], "excluded");
+    assert_eq!(scopes["runtime_dep_of_build_dep"], "excluded");
+    assert_eq!(scopes["runtime_dep_of_runtime_dep"], "excluded");
+
+    // Neither the build script nor `build_dep`'s rlib get an SBOM
+    assert_eq!(find_sboms(&tmp_dir.path().join("target")).len(), 1);
+
+    tmp_dir.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn build_rejects_flags_it_cannot_honour() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.arg("cyclonedx")
+        .arg("--features")
+        .arg("foo")
+        .arg("build");
+
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("Pass `--features` after `build`"));
+
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.arg("cyclonedx")
+        .arg("--describe")
+        .arg("crate")
+        .arg("build");
+
+    cmd.assert().failure().stderr(predicate::str::contains(
+        "Unsupported with `build`: `--describe`",
+    ));
+
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.arg("cyclonedx")
+        .arg("build")
+        .arg("--message-format=short");
+
+    cmd.assert().failure().stderr(predicate::str::contains(
+        "Unsupported with `build`: `--message-format`",
+    ));
+
+    Ok(())
+}
+
+fn cargo_accepts_sbom_flag() -> bool {
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    Command::new(cargo)
+        .arg("-Z")
+        .arg("sbom")
+        .arg("version")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
+fn copy_build_fixture() -> Result<assert_fs::TempDir, assert_fs::fixture::FixtureError> {
+    let tmp_dir = assert_fs::TempDir::new()?;
+    tmp_dir.copy_from(
+        "tests/fixtures/build_then_runtime_dep",
+        &["**/Cargo.toml", "**/*.rs", "Cargo.lock"],
+    )?;
+    Ok(tmp_dir)
+}
+
+fn build_fixture(tmp_dir: &assert_fs::TempDir) -> Result<Value, Box<dyn std::error::Error>> {
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.current_dir(tmp_dir.path())
+        .arg("cyclonedx")
+        .arg("--all")
+        .arg("--format")
+        .arg("json")
+        .arg("build")
+        .arg("-p")
+        .arg("top_level_crate");
+
+    cmd.assert().success();
+
+    let sbom = tmp_dir.child(format!(
+        "target/debug/top_level_crate{}.cdx.json",
+        std::env::consts::EXE_SUFFIX
+    ));
+    Ok(serde_json::from_slice(&std::fs::read(sbom.path())?)?)
+}
+
+fn find_sboms(dir: &Path) -> Vec<PathBuf> {
+    let mut sboms = Vec::new();
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            sboms.extend(find_sboms(&path));
+        } else if path.to_string_lossy().ends_with(".cdx.json") {
+            sboms.push(path);
+        }
+    }
+    sboms
 }
 
 fn make_temp_rust_project() -> Result<assert_fs::TempDir, assert_fs::fixture::FixtureError> {
