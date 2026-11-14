@@ -63,7 +63,7 @@ use clap::Parser;
 use env_logger::Builder;
 use log::LevelFilter;
 
-mod build;
+mod build_command;
 mod cli;
 use cli::{Args, Command, Opts};
 
@@ -89,10 +89,10 @@ fn main() -> anyhow::Result<()> {
 
     if let Some(Command::Build { cargo_args }) = &args.command {
         let config = resolve_config(&args)?;
-        return build::build_and_generate(&args, &config, cargo_args);
+        return build_command::build_and_generate(&args, &config, cargo_args);
     }
 
-    if build::sbom_supported() {
+    if build_command::sbom_supported() {
         log::warn!(
             "Generating SBOMs from `cargo metadata` is deprecated, use `cargo cyclonedx build` instead"
         );

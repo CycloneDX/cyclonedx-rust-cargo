@@ -21,9 +21,10 @@ use std::collections::HashSet;
 use crate::config::FilenamePattern;
 use crate::config::PlatformSuffix;
 use crate::config::SbomConfig;
+use crate::config::Target;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
-use crate::precursor::package_graph;
+use crate::precursor::{package_graph, PackageGraph};
 use crate::purl::get_purl;
 
 use cargo_metadata;
@@ -182,67 +183,37 @@ impl SbomGenerator {
     }
 
     pub fn create_sbom_from_precursor(
-        meta: CargoMetadata,
+        meta: &CargoMetadata,
         precursor: &cargo_sbom_precursor::Precursor,
         target: &cargo_metadata::Target,
         config: &SbomConfig,
     ) -> Result<GeneratedSbom, GeneratorError> {
+        log::trace!("Processing the target {}", target.name);
         let mut graph = package_graph(precursor, config.only_normal_deps == Some(true));
         if config.included_dependencies() == IncludedDependencies::TopLevelDependencies {
             graph = graph.top_level();
         }
 
-        let mut packages = index_packages(meta.packages);
-        let packages: PackageMap = graph
-            .kinds
-            .keys()
-            .map(|id| {
-                packages
-                    .remove(id)
-                    .map(|pkg| (id.clone(), pkg))
-                    .ok_or_else(|| GeneratorError::PrecursorPackageMissingError(id.clone()))
-            })
-            .collect::<Result<_, _>>()?;
-
-        let dependencies = Dependencies(
-            graph
-                .edges
-                .iter()
-                .map(|(id, deps)| Dependency {
-                    dependency_ref: id.to_string(),
-                    dependencies: deps.iter().map(|d| d.to_string()).collect(),
-                    provides: Vec::new(),
-                })
-                .collect(),
-        );
-
+        let packages = precursor_packages(&meta.packages, &graph)?;
         let root = &graph.root;
         let manifest_path = packages[root].manifest_path.clone().into_std_path_buf();
 
         let mut config = config.clone();
-        config.target = Some(crate::config::Target::SingleTarget(
-            precursor.target.clone(),
-        ));
+        config.target = Some(Target::SingleTarget(precursor.target.clone()));
 
         let generator = SbomGenerator {
             config,
-            workspace_root: meta.workspace_root,
+            workspace_root: meta.workspace_root.to_owned(),
             crate_hashes: HashMap::new(),
         };
-        let (mut bom, target_kinds) =
-            generator.create_bom(root, &packages, dependencies, &graph.kinds)?;
+        let (mut bom, target_kinds) = generator.create_bom(
+            root,
+            &packages,
+            precursor_dependencies(&graph),
+            &graph.kinds,
+        )?;
 
-        let toplevel_component = bom.metadata.as_ref().unwrap().component.as_ref().unwrap();
-        let target_component = toplevel_component
-            .components
-            .iter()
-            .flat_map(|components| &components.0)
-            .find(|component| {
-                component.name.to_string() == target.name
-                    && target_kinds.0[component.bom_ref.as_ref().unwrap()] == target.kind
-            })
-            .cloned()
-            .ok_or_else(|| GeneratorError::PrecursorTargetMissingError(target.name.clone()))?;
+        let target_component = find_target_component(&bom, &target_kinds, target)?;
         GeneratedSbom::describe_target(&mut bom, &target_component);
 
         Ok(GeneratedSbom {
@@ -821,6 +792,57 @@ fn create_dependencies(resolve: &ResolveMap) -> Dependencies {
         })
         .collect();
     Dependencies(deps)
+}
+
+/// Generates the `Dependencies` field from the package graph of a precursor
+fn precursor_dependencies(graph: &PackageGraph) -> Dependencies {
+    let deps = graph
+        .edges
+        .iter()
+        .map(|(id, dependencies)| Dependency {
+            dependency_ref: id.to_string(),
+            dependencies: dependencies.iter().map(|d| d.to_string()).collect(),
+            provides: Vec::new(),
+        })
+        .collect();
+    Dependencies(deps)
+}
+
+/// Looks up the packages in the package graph of a precursor in `cargo metadata` output
+fn precursor_packages(
+    packages: &[Package],
+    graph: &PackageGraph,
+) -> Result<PackageMap, GeneratorError> {
+    let packages: HashMap<&PackageId, &Package> =
+        packages.iter().map(|pkg| (&pkg.id, pkg)).collect();
+    graph
+        .kinds
+        .keys()
+        .map(|id| match packages.get(id) {
+            Some(pkg) => Ok((id.clone(), (*pkg).clone())),
+            None => Err(GeneratorError::PrecursorPackageMissingError(id.clone())),
+        })
+        .collect()
+}
+
+/// Finds the subcomponent of the toplevel component that describes a Cargo target
+fn find_target_component(
+    bom: &Bom,
+    target_kinds: &TargetKinds,
+    target: &cargo_metadata::Target,
+) -> Result<Component, GeneratorError> {
+    let meta = bom.metadata.as_ref().unwrap();
+    let crate_component = meta.component.as_ref().unwrap();
+    let components = crate_component.components.as_ref().unwrap();
+    components
+        .0
+        .iter()
+        .find(|component| {
+            component.name.to_string() == target.name
+                && target_kinds.0[component.bom_ref.as_ref().unwrap()] == target.kind
+        })
+        .cloned()
+        .ok_or_else(|| GeneratorError::PrecursorTargetMissingError(target.name.clone()))
 }
 
 fn top_level_dependencies(

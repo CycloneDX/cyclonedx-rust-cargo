@@ -344,8 +344,27 @@ fn build_describes_what_was_built() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(scopes["runtime_dep_of_build_dep"], "excluded");
     assert_eq!(scopes["runtime_dep_of_runtime_dep"], "excluded");
 
-    // Neither the build script nor `build_dep`'s rlib get an SBOM
+    // Neither the build script nor `build_dep`'s rlib in `deps/` get an SBOM
     assert_eq!(find_sboms(&tmp_dir.path().join("target")).len(), 1);
+
+    // A library gets an SBOM when it is requested, and `--manifest-path` can be given twice
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.current_dir(tmp_dir.path())
+        .arg("cyclonedx")
+        .arg("--manifest-path")
+        .arg("Cargo.toml")
+        .arg("build")
+        .arg("--manifest-path")
+        .arg("Cargo.toml")
+        .arg("-p")
+        .arg("build_dep");
+
+    cmd.assert().success();
+
+    tmp_dir
+        .child("target/debug/libbuild_dep.rlib.cdx.xml")
+        .assert(predicate::str::contains("<name>build_dep</name>"));
 
     tmp_dir.close()?;
 
@@ -373,8 +392,19 @@ fn build_rejects_flags_it_cannot_honour() -> Result<(), Box<dyn std::error::Erro
         .arg("build");
 
     cmd.assert().failure().stderr(predicate::str::contains(
-        "Unsupported with `build`: `--describe`",
+        "Unsupported with `build`: `--describe crate`",
     ));
+
+    let mut cmd = Command::new(assert_cmd::cargo_bin!());
+
+    cmd.arg("cyclonedx")
+        .arg("build")
+        .arg("--format")
+        .arg("json");
+
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("Pass `--format` before `build`"));
 
     let mut cmd = Command::new(assert_cmd::cargo_bin!());
 

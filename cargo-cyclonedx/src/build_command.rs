@@ -15,12 +15,16 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+use std::ffi::OsString;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use anyhow::{bail, Context, Result};
-use cargo_cyclonedx::{config::SbomConfig, generator::SbomGenerator};
+use cargo_cyclonedx::{
+    config::{Describe, SbomConfig},
+    generator::SbomGenerator,
+};
 use cargo_metadata::{Artifact, Message, Metadata, MetadataCommand};
 use cargo_sbom_precursor::Precursor;
 
@@ -34,36 +38,62 @@ struct CargoArgs {
     frozen: bool,
     config: Vec<String>,
     message_format: bool,
+    cyclonedx_flag: Option<String>,
 }
 
+/// Options of cargo-cyclonedx that `cargo build` does not have
+const CYCLONEDX_FLAGS: &[&str] = &[
+    "--format",
+    "-f",
+    "--describe",
+    "--target-in-filename",
+    "--top-level",
+    "--override-filename",
+    "--license-strict",
+    "--license-accept-named",
+    "--spec-version",
+    "--no-build-deps",
+];
+
 impl CargoArgs {
-    fn parse(args: &[String]) -> CargoArgs {
+    fn parse(args: &[OsString]) -> CargoArgs {
         let mut parsed = CargoArgs::default();
         let mut args = args.iter();
         while let Some(arg) = args.next() {
-            match arg.as_str() {
+            let arg = match arg.to_str() {
+                Some(arg) => arg,
+                None => continue,
+            };
+            // Values are given either as `--flag=value` or as the next argument
+            let (flag, inline_value) = match arg.split_once('=') {
+                Some((flag, value)) => (flag, Some(value)),
+                None => (arg, None),
+            };
+            let mut value = || {
+                inline_value
+                    .map(OsString::from)
+                    .or_else(|| args.next().cloned())
+            };
+            match flag {
                 "--" => break,
                 "--offline" => parsed.offline = true,
                 "--frozen" => parsed.frozen = true,
-                "--manifest-path" => parsed.manifest_path = args.next().map(PathBuf::from),
-                "--config" => parsed.config.extend(args.next().cloned()),
+                "--manifest-path" => parsed.manifest_path = value().map(PathBuf::from),
+                "--config" => parsed
+                    .config
+                    .extend(value().map(|config| config.to_string_lossy().into_owned())),
                 "--message-format" => parsed.message_format = true,
-                other => {
-                    if other.starts_with("--message-format=") {
-                        parsed.message_format = true;
-                    } else if let Some(path) = other.strip_prefix("--manifest-path=") {
-                        parsed.manifest_path = Some(PathBuf::from(path));
-                    } else if let Some(config) = other.strip_prefix("--config=") {
-                        parsed.config.push(config.to_owned());
-                    }
+                flag if CYCLONEDX_FLAGS.contains(&flag) && parsed.cyclonedx_flag.is_none() => {
+                    parsed.cyclonedx_flag = Some(flag.to_owned())
                 }
+                _ => (),
             }
         }
         parsed
     }
 }
 
-pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String]) -> Result<()> {
+pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[OsString]) -> Result<()> {
     for (flag, set) in [
         ("--all-features", args.all_features),
         ("--no-default-features", args.no_default_features),
@@ -75,7 +105,7 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String
         }
     }
     for (flag, set) in [
-        ("--describe", args.describe.is_some()),
+        ("--describe crate", args.describe == Some(Describe::Crate)),
         ("--override-filename", args.filename_override.is_some()),
         ("--target-in-filename", args.target_in_filename),
     ] {
@@ -87,9 +117,12 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String
     if cargo_flags.message_format {
         bail!("Unsupported with `build`: `--message-format`");
     }
+    if let Some(flag) = &cargo_flags.cyclonedx_flag {
+        bail!("Pass `{flag}` before `build`");
+    }
 
     log::trace!("Running `cargo build` started");
-    let artifacts = run_build(args, cargo_args)?;
+    let artifacts = run_build(args, &cargo_flags, cargo_args)?;
     log::trace!("Running `cargo build` finished");
 
     log::trace!("Running `cargo metadata` started");
@@ -99,10 +132,14 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String
     // Dependencies get precursor files too, but only the workspace's own artifacts are described
     let mut generated = 0;
     for artifact in artifacts.iter().filter(|artifact| {
-        metadata.workspace_members.contains(&artifact.package_id) && is_shipped(artifact)
+        metadata.workspace_members.contains(&artifact.package_id) && gets_sbom(artifact)
     }) {
         for filename in &artifact.filenames {
-            if filename.extension() == Some("rlib") {
+            // Cargo only copies the artifacts of the requested packages out of `deps/`
+            if filename.parent().and_then(|dir| dir.file_name()) == Some("deps") {
+                continue;
+            }
+            if args.describe == Some(Describe::Binaries) && filename.extension() == Some("rlib") {
                 continue;
             }
             // Only executable and linkable outputs have a precursor, e.g. `.rmeta` files do not
@@ -115,7 +152,7 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String
             let precursor = Precursor::from_path(&precursor_path)
                 .with_context(|| precursor_path.display().to_string())?;
             let sbom = SbomGenerator::create_sbom_from_precursor(
-                metadata.clone(),
+                &metadata,
                 &precursor,
                 &artifact.target,
                 config,
@@ -134,8 +171,8 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[String
     Ok(())
 }
 
-/// Proc-macros, build scripts, tests, benches and examples do not leave `target/`
-fn is_shipped(artifact: &Artifact) -> bool {
+/// Proc-macros, build scripts, tests, benches and examples get no SBOM
+fn gets_sbom(artifact: &Artifact) -> bool {
     let target = &artifact.target;
     !(artifact.profile.test
         || target.is_proc_macro()
@@ -159,7 +196,11 @@ pub fn sbom_supported() -> bool {
         .unwrap_or(false)
 }
 
-fn run_build(args: &Args, cargo_args: &[String]) -> Result<Vec<Artifact>> {
+fn run_build(
+    args: &Args,
+    cargo_flags: &CargoArgs,
+    cargo_args: &[OsString],
+) -> Result<Vec<Artifact>> {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let mut command = Command::new(cargo);
     command.args([
@@ -168,8 +209,11 @@ fn run_build(args: &Args, cargo_args: &[String]) -> Result<Vec<Artifact>> {
         "sbom",
         "--message-format=json-render-diagnostics",
     ]);
-    if let Some(manifest_path) = &args.manifest_path {
-        command.arg("--manifest-path").arg(manifest_path);
+    // A `--manifest-path` among the Cargo arguments is passed on as is
+    if cargo_flags.manifest_path.is_none() {
+        if let Some(manifest_path) = &args.manifest_path {
+            command.arg("--manifest-path").arg(manifest_path);
+        }
     }
     command.args(cargo_args);
     command.env("CARGO_BUILD_SBOM", "true");
@@ -194,10 +238,10 @@ fn run_build(args: &Args, cargo_args: &[String]) -> Result<Vec<Artifact>> {
 
 fn run_metadata(args: &Args, cargo_flags: &CargoArgs) -> Result<Metadata> {
     let mut cmd = MetadataCommand::new();
-    if let Some(manifest_path) = args
+    if let Some(manifest_path) = cargo_flags
         .manifest_path
         .as_ref()
-        .or(cargo_flags.manifest_path.as_ref())
+        .or(args.manifest_path.as_ref())
     {
         cmd.manifest_path(manifest_path);
     }
@@ -227,7 +271,7 @@ mod tests {
     use super::*;
 
     fn parse(args: &[&str]) -> CargoArgs {
-        CargoArgs::parse(&args.iter().map(|a| a.to_string()).collect::<Vec<_>>())
+        CargoArgs::parse(&args.iter().map(OsString::from).collect::<Vec<_>>())
     }
 
     #[test]
@@ -253,6 +297,7 @@ mod tests {
                     "build.jobs=2".to_owned()
                 ],
                 message_format: false,
+                cyclonedx_flag: None,
             }
         );
     }
@@ -269,5 +314,19 @@ mod tests {
         assert!(parse(&["--message-format", "short"]).message_format);
         assert!(parse(&["--message-format=json"]).message_format);
         assert!(!parse(&["--", "--message-format=json"]).message_format);
+    }
+
+    #[test]
+    fn detects_cyclonedx_flags() {
+        assert_eq!(
+            parse(&["--release", "--format", "json"]).cyclonedx_flag,
+            Some("--format".to_owned())
+        );
+        assert_eq!(
+            parse(&["--spec-version=1.5"]).cyclonedx_flag,
+            Some("--spec-version".to_owned())
+        );
+        assert_eq!(parse(&["--all", "-F", "foo"]).cyclonedx_flag, None);
+        assert_eq!(parse(&["--", "--format", "json"]).cyclonedx_flag, None);
     }
 }
