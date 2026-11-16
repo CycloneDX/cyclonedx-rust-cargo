@@ -9,7 +9,8 @@ readme = "README.md"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
-license.workspace = true
+# https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/864
+license = "Apache-2.0 AND MIT"
 repository.workspace = true
 rust-version.workspace = true
 
