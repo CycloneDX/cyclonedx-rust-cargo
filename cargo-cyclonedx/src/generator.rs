@@ -42,6 +42,7 @@ use cyclonedx_bom::external_models::spdx::SpdxExpression;
 use cyclonedx_bom::external_models::uri::Uri;
 use cyclonedx_bom::models::attached_text::AttachedText;
 use cyclonedx_bom::models::bom::Bom;
+use cyclonedx_bom::models::bom::SpecVersion;
 use cyclonedx_bom::models::component::{Classification, Component, Components, Scope};
 use cyclonedx_bom::models::dependency::{Dependencies, Dependency};
 use cyclonedx_bom::models::external_reference::{
@@ -545,9 +546,7 @@ impl SbomGenerator {
 
         metadata.component = Some(component);
 
-        let tool = Tool::new("CycloneDX", "cargo-cyclonedx", env!("CARGO_PKG_VERSION"));
-
-        metadata.tools = Some(Tools::List(vec![tool]));
+        metadata.tools = Some(self.create_tools());
 
         use crate::config::Target::*;
         let properties = match self.config.target.as_ref().unwrap() {
@@ -557,6 +556,27 @@ impl SbomGenerator {
         metadata.properties = Some(Properties(properties));
 
         Ok((metadata, target_kinds))
+    }
+
+    /// The `metadata.tools` entry describing cargo-cyclonedx itself.
+    ///
+    /// CycloneDX 1.5 deprecated the legacy array of tools in favour of an object
+    /// holding `components` and `services`, so the legacy form is only used for
+    /// the spec versions that have nothing else.
+    fn create_tools(&self) -> Tools {
+        let name = "cargo-cyclonedx";
+        let version = env!("CARGO_PKG_VERSION");
+        let spec_version = self.config.spec_version.unwrap_or(SpecVersion::V1_3);
+        if spec_version >= SpecVersion::V1_5 {
+            let mut component = Component::new(Classification::Application, name, version, None);
+            component.group = Some(NormalizedString::new("CycloneDX"));
+            Tools::Object {
+                services: None,
+                components: Some(Components(vec![component])),
+            }
+        } else {
+            Tools::List(vec![Tool::new("CycloneDX", name, version)])
+        }
     }
 
     fn create_authors(package: &Package) -> Vec<OrganizationalContact> {
@@ -901,9 +921,13 @@ impl GeneratedSbom {
     }
 
     fn write_to_file(bom: Bom, path: &Path, config: &SbomConfig) -> Result<(), SbomWriterError> {
+        use cyclonedx_bom::models::bom::SpecVersion::*;
+        let spec_version = config.spec_version.unwrap_or(V1_3);
+
         // If running in debug mode, validate that the SBOM is self-consistent and well-formed
+        // for the spec version it is written as
         if cfg!(debug_assertions) {
-            let result = bom.validate();
+            let result = bom.validate_version(spec_version);
             if result.has_errors() {
                 panic!(
                     "The generated SBOM failed validation: {:?}",
@@ -911,9 +935,6 @@ impl GeneratedSbom {
                 );
             }
         }
-
-        use cyclonedx_bom::models::bom::SpecVersion::*;
-        let spec_version = config.spec_version.unwrap_or(V1_3);
 
         log::info!("Outputting {}", path.display());
         let file = File::create(path)?;

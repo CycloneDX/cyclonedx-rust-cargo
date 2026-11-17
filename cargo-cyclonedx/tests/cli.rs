@@ -259,6 +259,74 @@ fn emits_package_authors_for_each_spec_version() -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
+#[test]
+fn emits_tools_in_the_form_of_each_spec_version() -> Result<(), Box<dyn std::error::Error>> {
+    let tmp_dir = make_temp_rust_project()?;
+
+    for version in [
+        SpecVersion::V1_3,
+        SpecVersion::V1_4,
+        SpecVersion::V1_5,
+        SpecVersion::V1_6,
+        SpecVersion::V1_7,
+    ] {
+        for format in ["json", "xml"] {
+            Command::new(assert_cmd::cargo_bin!())
+                .current_dir(tmp_dir.path())
+                .env("CARGO_NET_OFFLINE", "true")
+                .args([
+                    "cyclonedx",
+                    "--override-filename=bom",
+                    "--format",
+                    format,
+                    "--spec-version",
+                    &version.to_string(),
+                ])
+                .assert()
+                .success();
+
+            let bytes = std::fs::read(tmp_dir.path().join(format!("bom.{format}")))?;
+            let output: Value = if format == "json" {
+                serde_json::from_slice(&bytes)?
+            } else {
+                let bom = Bom::parse_from_xml_with_version(bytes.as_slice(), version)?;
+                let mut json = Vec::new();
+                bom.output_as_json(&mut json, version)?;
+                serde_json::from_slice(&json)?
+            };
+            let tools = &output["metadata"]["tools"];
+
+            if version >= SpecVersion::V1_5 {
+                // The legacy array of tools is deprecated since 1.5
+                assert_eq!(
+                    tools["components"],
+                    json!([{
+                        "type": "application",
+                        "group": "CycloneDX",
+                        "name": "cargo-cyclonedx",
+                        "version": env!("CARGO_PKG_VERSION"),
+                    }]),
+                    "{format} {version}"
+                );
+                assert!(tools.get("services").is_none(), "{format} {version}");
+            } else {
+                assert_eq!(
+                    tools,
+                    &json!([{
+                        "vendor": "CycloneDX",
+                        "name": "cargo-cyclonedx",
+                        "version": env!("CARGO_PKG_VERSION"),
+                    }]),
+                    "{format} {version}"
+                );
+            }
+        }
+    }
+
+    tmp_dir.close()?;
+    Ok(())
+}
+
 fn expected_package_authors(name: &str) -> (Option<Value>, Option<&'static str>) {
     match name {
         "pkg" => (Some(json!([
