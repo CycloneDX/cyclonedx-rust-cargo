@@ -23,6 +23,8 @@ use crate::{
     },
     validation::{Validate, ValidationContext, ValidationResult},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::bom::{validate_bom_ref, BomReference, SpecVersion};
 
@@ -30,6 +32,7 @@ use super::bom::{validate_bom_ref, BomReference, SpecVersion};
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalContact)
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OrganizationalContact {
     pub bom_ref: Option<BomReference>,
     pub name: Option<NormalizedString>,
@@ -71,6 +74,7 @@ impl Validate for OrganizationalContact {
 ///
 /// Defined via the [CycloneDX XML schema](https://cyclonedx.org/docs/1.3/xml/#type_organizationalEntity)
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OrganizationalEntity {
     pub bom_ref: Option<BomReference>,
     pub name: Option<NormalizedString>,

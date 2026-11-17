@@ -20,6 +20,8 @@ use crate::{
     prelude::{Validate, ValidationResult},
     validation::ValidationContext,
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::{
     bom::SpecVersion,
@@ -27,6 +29,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct DataGovernance {
     pub custodians: Option<Vec<DataGovernanceResponsibleParty>>,
     pub stewards: Option<Vec<DataGovernanceResponsibleParty>>,
@@ -50,6 +53,7 @@ impl Validate for DataGovernance {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum DataGovernanceResponsibleParty {
     Organization(OrganizationalEntity),
     Contact(OrganizationalContact),

@@ -20,6 +20,8 @@ use crate::{
     prelude::{Validate, ValidationResult},
     validation::{ValidationContext, ValidationError},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use super::{
     bom::{BomReference, SpecVersion},
@@ -31,6 +33,7 @@ use super::{
 ///
 /// For more details see: https://cyclonedx.org/docs/1.5/json/#metadata_component_modelCard
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ModelCard {
     pub bom_ref: Option<BomReference>,
     pub model_parameters: Option<ModelParameters>,
@@ -58,6 +61,7 @@ impl Validate for ModelCard {
 ///
 /// For more details see: https://cyclonedx.org/docs/1.5/json/#metadata_component_modelCard_modelParameters
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ModelParameters {
     pub approach: Option<ModelParametersApproach>,
     pub task: Option<String>,
@@ -80,6 +84,7 @@ impl Validate for ModelParameters {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ModelParametersApproach {
     pub approach_type: Option<ApproachType>,
 }
@@ -109,6 +114,7 @@ pub fn validate_approach_type(approach_type: &ApproachType) -> Result<(), Valida
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ApproachType {
     Supervised,
     Unsupervised,
@@ -147,6 +153,7 @@ impl std::fmt::Display for ApproachType {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Datasets(pub Vec<Dataset>);
 
 impl Validate for Datasets {
@@ -161,6 +168,7 @@ impl Validate for Datasets {
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Dataset {
     Component(ComponentData),
     Reference(String),
@@ -176,6 +184,7 @@ impl Validate for Dataset {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Inputs(pub Vec<MLParameter>);
 
 impl Validate for Inputs {
@@ -187,6 +196,7 @@ impl Validate for Inputs {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Outputs(pub Vec<MLParameter>);
 
 impl Validate for Outputs {
@@ -202,6 +212,7 @@ pub fn validate_mlparameter(_parameter: &MLParameter) -> Result<(), ValidationEr
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MLParameter {
     pub format: Option<String>,
 }
@@ -215,6 +226,7 @@ impl MLParameter {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct QuantitativeAnalysis {
     pub performance_metrics: Option<PerformanceMetrics>,
     pub graphics: Option<GraphicsCollection>,
@@ -234,6 +246,7 @@ impl Validate for QuantitativeAnalysis {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PerformanceMetrics(pub Vec<PerformanceMetric>);
 
 impl Validate for PerformanceMetrics {
@@ -245,6 +258,7 @@ impl Validate for PerformanceMetrics {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PerformanceMetric {
     pub metric_type: Option<String>,
     pub value: Option<String>,
@@ -259,6 +273,7 @@ impl Validate for PerformanceMetric {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ConfidenceInterval {
     pub lower_bound: Option<String>,
     pub upper_bound: Option<String>,
@@ -266,6 +281,7 @@ pub struct ConfidenceInterval {
 
 /// TODO: implement struct
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Considerations {}
 
 impl Validate for Considerations {
