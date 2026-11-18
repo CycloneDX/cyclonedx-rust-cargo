@@ -26,6 +26,8 @@ use crate::format::Format;
 use crate::purl::get_purl;
 
 use cargo_metadata;
+use cargo_metadata::DepKindInfo;
+use cargo_metadata::Dependency as CargoDependency;
 use cargo_metadata::DependencyKind;
 use cargo_metadata::Metadata as CargoMetadata;
 use cargo_metadata::Node;
@@ -123,7 +125,17 @@ impl SbomGenerator {
         let members: Vec<PackageId> = meta.workspace_members;
         let proc_macros = proc_macro_packages(&meta.packages);
         let packages = index_packages(meta.packages);
-        let resolve = index_resolve(meta.resolve.unwrap().nodes);
+        let cli_features = config
+            .features
+            .as_ref()
+            .map(|f| f.features.as_slice())
+            .unwrap_or_default();
+        let resolve = prune_unbuilt_edges(
+            index_resolve(meta.resolve.unwrap().nodes),
+            &packages,
+            &members,
+            cli_features,
+        );
 
         let mut result = Vec::with_capacity(members.len());
         for member in members.iter() {
@@ -880,6 +892,154 @@ fn filtered_dependencies<'a>(
     })
 }
 
+/// Removes the resolve edges cargo does not actually build: optional dependencies
+/// that no enabled feature activates.
+///
+/// `cargo metadata` reports those in `resolve.nodes[].deps` whether or not the
+/// resolver enabled them, so they have to be recovered by replaying the feature
+/// resolution recorded alongside them in `resolve.nodes[].features`. See
+/// <https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766>.
+///
+/// `--features dep/feat` on the command line activates `dep` without cargo
+/// recording any feature on the member that names it, so the CLI features are
+/// replayed on every workspace member as well.
+///
+/// Every lookup fails open: an edge that cannot be matched to a manifest entry is
+/// kept, so this can remove false positives but not introduce false negatives.
+fn prune_unbuilt_edges(
+    mut resolve: ResolveMap,
+    packages: &PackageMap,
+    members: &[PackageId],
+    cli_features: &[String],
+) -> ResolveMap {
+    // Cargo accepts several features per `--features` value, comma or space separated.
+    let cli_features: Vec<&str> = cli_features
+        .iter()
+        .flat_map(|f| f.split([',', ' ']))
+        .filter(|f| !f.is_empty())
+        .collect();
+
+    for (parent_id, node) in resolve.iter_mut() {
+        // Without the parent's manifest there is nothing to check against.
+        let Some(parent) = packages.get(parent_id) else {
+            continue;
+        };
+        let mut enabled: Vec<&str> = node.features.iter().map(|f| f.as_str()).collect();
+        if members.contains(parent_id) {
+            enabled.extend(&cli_features);
+        }
+        let activated = activated_dependencies(&parent.features, &enabled);
+
+        node.deps.retain_mut(|edge| {
+            let Some(child) = packages.get(&edge.pkg) else {
+                return true;
+            };
+            edge.dep_kinds
+                .retain(|dep_kind| is_built(parent, child, dep_kind, &activated));
+            !edge.dep_kinds.is_empty()
+        });
+        node.dependencies = node.deps.iter().map(|edge| edge.pkg.clone()).collect();
+    }
+
+    resolve
+}
+
+/// Whether `parent` actually builds `child` as a dependency of the given kind and
+/// platform, or whether it is an optional dependency that no enabled feature
+/// activates.
+///
+/// One resolve edge can be backed by several entries in the parent's manifest -
+/// the same crate can be depended on twice under different renames - so the edge
+/// survives if any entry that could have produced it is non-optional or activated.
+fn is_built(
+    parent: &Package,
+    child: &Package,
+    dep_kind: &DepKindInfo,
+    activated: &HashSet<&str>,
+) -> bool {
+    let candidates: Vec<&CargoDependency> = parent
+        .dependencies
+        .iter()
+        .filter(|dep| {
+            child.name == dep.name && dep.kind == dep_kind.kind && dep.target == dep_kind.target
+        })
+        .collect();
+
+    // An edge with no matching manifest entry at all is not something we
+    // understand, so keep it.
+    if candidates.is_empty() {
+        return true;
+    }
+
+    // Narrow by source, then by version. `[patch]` can defeat either, and
+    // pre-releases defeat the `*` requirement path and git dependencies get, so a
+    // narrowing that would leave nothing to choose from is skipped.
+    let candidates = narrow(candidates, |dep| same_source(dep, child));
+    let candidates = narrow(candidates, |dep| dep.req.matches(&child.version));
+
+    // Feature syntax refers to a renamed dependency by its rename.
+    candidates
+        .iter()
+        .any(|dep| !dep.optional || activated.contains(dep.rename.as_deref().unwrap_or(&dep.name)))
+}
+
+/// Keeps the candidates matching `keep`, unless that would leave none.
+fn narrow(
+    candidates: Vec<&CargoDependency>,
+    keep: impl Fn(&CargoDependency) -> bool,
+) -> Vec<&CargoDependency> {
+    if candidates.iter().any(|dep| keep(dep)) {
+        candidates.into_iter().filter(|dep| keep(dep)).collect()
+    } else {
+        candidates
+    }
+}
+
+/// Whether a manifest entry points at the source `child` was resolved from. Path
+/// dependencies have no source on either side; a resolved git source carries the
+/// commit as a `#sha` suffix the manifest entry lacks.
+fn same_source(dep: &CargoDependency, child: &Package) -> bool {
+    match (&dep.source, &child.source) {
+        (None, None) => true,
+        (Some(wanted), Some(resolved)) => resolved.repr.starts_with(&wanted.repr),
+        _ => false,
+    }
+}
+
+/// Collects the optional dependencies that `enabled` activates, given a package's
+/// `[features]` table as reported by `cargo metadata`.
+///
+/// `dep:foo` and `foo/bar` activate `foo`, the weak `foo?/bar` does not, and
+/// anything else is another feature of this package, expanded recursively.
+/// `enabled` takes the same syntax, since `--features foo/bar` on the command line
+/// can name a dependency directly. Optional dependencies with an implicit feature
+/// of their own arrive normalized as `"foo": ["dep:foo"]`, so they need no special
+/// handling.
+fn activated_dependencies<'a>(
+    features: &'a BTreeMap<String, Vec<String>>,
+    enabled: &[&'a str],
+) -> HashSet<&'a str> {
+    let mut activated = HashSet::new();
+    let mut visited: HashSet<&str> = HashSet::new();
+    let mut queue: Vec<&str> = enabled.to_vec();
+
+    while let Some(entry) = queue.pop() {
+        if let Some(dep) = entry.strip_prefix("dep:") {
+            activated.insert(dep);
+        } else if let Some((dep, _feature_of_dep)) = entry.split_once('/') {
+            if !dep.ends_with('?') {
+                activated.insert(dep);
+            }
+        } else if visited.insert(entry) {
+            if let Some(entries) = features.get(entry) {
+                queue.extend(entries.iter().map(String::as_str));
+            }
+        }
+    }
+
+    activated
+}
+
 /// Contains a generated SBOM and context used in its generation
 ///
 /// * `bom` - Generated SBOM
@@ -1143,6 +1303,7 @@ impl From<std::io::Error> for SbomWriterError {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::collections::BTreeSet;
 
     #[test]
     fn it_should_parse_authors_without_losing_malformed_entries() {
@@ -1229,5 +1390,187 @@ mod test {
         assert!(SbomGenerator::create_authors(&package).is_empty());
         package.authors.clear();
         assert!(SbomGenerator::create_authors(&package).is_empty());
+    }
+
+    fn features(entries: &[(&str, &[&str])]) -> BTreeMap<String, Vec<String>> {
+        entries
+            .iter()
+            .map(|(name, values)| {
+                (
+                    name.to_string(),
+                    values.iter().map(|v| v.to_string()).collect(),
+                )
+            })
+            .collect()
+    }
+
+    fn activated(features: &BTreeMap<String, Vec<String>>, enabled: &[&str]) -> BTreeSet<String> {
+        activated_dependencies(features, enabled)
+            .into_iter()
+            .map(String::from)
+            .collect()
+    }
+
+    fn set(names: &[&str]) -> BTreeSet<String> {
+        names.iter().map(|n| n.to_string()).collect()
+    }
+
+    #[test]
+    fn dep_syntax_activates_an_optional_dependency() {
+        let features = features(&[("json", &["dep:serde_json"])]);
+
+        assert_eq!(activated(&features, &["json"]), set(&["serde_json"]));
+        assert_eq!(activated(&features, &[]), set(&[]));
+    }
+
+    #[test]
+    fn features_are_expanded_transitively() {
+        let features = features(&[
+            ("default", &["std"]),
+            ("std", &["alloc"]),
+            ("alloc", &["dep:allocator"]),
+        ]);
+
+        assert_eq!(activated(&features, &["default"]), set(&["allocator"]));
+    }
+
+    #[test]
+    fn a_feature_of_a_dependency_activates_it_unless_it_is_weak() {
+        let features = features(&[("strong", &["chrono/serde"]), ("weak", &["chrono?/serde"])]);
+
+        assert_eq!(activated(&features, &["strong"]), set(&["chrono"]));
+        assert_eq!(activated(&features, &["weak"]), set(&[]));
+        // A weak reference does not undo a strong one.
+        assert_eq!(activated(&features, &["strong", "weak"]), set(&["chrono"]));
+    }
+
+    #[test]
+    fn cyclic_features_terminate() {
+        let features = features(&[("a", &["b", "dep:x"]), ("b", &["a"])]);
+
+        assert_eq!(activated(&features, &["a"]), set(&["x"]));
+    }
+
+    #[test]
+    fn unknown_features_are_ignored() {
+        assert_eq!(activated(&features(&[]), &["not-a-feature"]), set(&[]));
+    }
+
+    #[test]
+    fn enabled_entries_can_name_a_dependency_directly() {
+        // As `--features chrono/serde` on the command line does.
+        let features = features(&[]);
+
+        assert_eq!(activated(&features, &["chrono/serde"]), set(&["chrono"]));
+        assert_eq!(activated(&features, &["chrono?/serde"]), set(&[]));
+    }
+
+    /// `split_crate` depends on each of `platform_dep` and `dev_only_dep` twice: as
+    /// an optional, never activated `[dependencies]` entry, and as a built entry
+    /// that differs only in target or kind. `cargo metadata` folds both into one
+    /// edge, and only the kind backed by the built entry may survive.
+    #[test]
+    fn prune_matches_entries_by_target_and_kind() {
+        let mut manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        manifest.push("tests/fixtures/optional_deps/Cargo.toml");
+        let meta = cargo_metadata::MetadataCommand::new()
+            .manifest_path(manifest)
+            .exec()
+            .unwrap();
+        let packages = index_packages(meta.packages);
+        let resolve = prune_unbuilt_edges(
+            index_resolve(meta.resolve.unwrap().nodes),
+            &packages,
+            &meta.workspace_members,
+            &[],
+        );
+
+        let split_crate = resolve
+            .iter()
+            .find(|(id, _)| packages[*id].name == "split_crate")
+            .unwrap()
+            .1;
+        let kinds: BTreeMap<&str, Vec<String>> = split_crate
+            .deps
+            .iter()
+            .map(|edge| {
+                let kinds = edge
+                    .dep_kinds
+                    .iter()
+                    .map(|k| {
+                        format!(
+                            "{:?} {:?}",
+                            k.kind,
+                            k.target.as_ref().map(|t| t.to_string())
+                        )
+                    })
+                    .collect();
+                (packages[&edge.pkg].name.as_str(), kinds)
+            })
+            .collect();
+
+        assert_eq!(
+            kinds,
+            BTreeMap::from([
+                ("dev_only_dep", vec!["Development None".to_string()]),
+                (
+                    "platform_dep",
+                    vec![r#"Normal Some("cfg(windows)")"#.to_string()]
+                ),
+            ])
+        );
+    }
+
+    fn manifest_entry(
+        source: &str,
+        req: &str,
+        optional: bool,
+        rename: Option<&str>,
+    ) -> CargoDependency {
+        serde_json::from_value(serde_json::json!({
+            "name": "auditable-extract",
+            "source": source,
+            "req": req,
+            "kind": null,
+            "rename": rename,
+            "optional": optional,
+            "uses_default_features": true,
+            "features": [],
+            "target": null,
+            "registry": null,
+            "path": null,
+        }))
+        .unwrap()
+    }
+
+    /// The same crate depended on from two sources: only the entry whose source
+    /// the child was resolved from decides whether the edge is built.
+    #[test]
+    fn is_built_matches_entries_by_source() {
+        const GIT: &str = "git+https://github.com/rust-secure-code/cargo-auditable.git";
+        const REGISTRY: &str = "registry+https://github.com/rust-lang/crates.io-index";
+        let mut child: Package =
+            serde_json::from_str(include_str!("../tests/fixtures/git_package.json")).unwrap();
+        // A pre-release defeats the `*` requirement a git dependency gets, so the
+        // version alone would point at the registry entry.
+        child.version = "2.0.0-rc.1".parse().unwrap();
+        let mut parent = child.clone();
+        let normal: DepKindInfo =
+            serde_json::from_value(serde_json::json!({"kind": null, "target": null})).unwrap();
+        let nothing_activated = HashSet::new();
+
+        // The git entry is built; an inactive registry entry must not override it.
+        parent.dependencies = vec![
+            manifest_entry(GIT, "*", false, None),
+            manifest_entry(REGISTRY, "=2.0.0-rc.1", true, Some("from_registry")),
+        ];
+        assert!(is_built(&parent, &child, &normal, &nothing_activated));
+
+        // The git entry is inactive; a built registry entry must not keep it alive.
+        parent.dependencies = vec![
+            manifest_entry(GIT, "*", true, None),
+            manifest_entry(REGISTRY, "=2.0.0-rc.1", false, Some("from_registry")),
+        ];
+        assert!(!is_built(&parent, &child, &normal, &nothing_activated));
     }
 }
