@@ -408,4 +408,110 @@ mod tests {
         assert!(!names.contains("macro_only_dep"));
         assert!(names.contains("shared"));
     }
+
+    /// Optional dependencies that no enabled feature activates are reported by
+    /// `cargo metadata` all the same, and must not reach the SBOM.
+    /// See <https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/766>.
+    ///
+    /// Pruning `weak_dep` drops `dep_of_weak` with it, so this also asserts the
+    /// pruned graph leaves no dangling `dependencies` references: the two code
+    /// paths that do the dropping - rewriting a node's own edges and deciding
+    /// what the graph walk visits next - have to agree.
+    #[test]
+    fn parse_toml_with_unactivated_optional_deps() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use std::collections::BTreeSet;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/optional_deps/top_level_crate/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+        let bom = &sboms[0].bom;
+        let components = &bom.components.as_ref().unwrap().0;
+
+        // `plain_dep` is not optional; `enabled_dep` is activated by `dep:`;
+        // `renamed_dep` is activated through its rename, `aliased/some_feature`.
+        // `weak_dep` is only named weakly and `disabled_dep` not at all, so
+        // neither is built - and `dep_of_weak`, reachable only through
+        // `weak_dep`, has to go with it.
+        let names: BTreeSet<String> = components.iter().map(|c| c.name.to_string()).collect();
+        let expected: BTreeSet<String> = ["plain_dep", "enabled_dep", "renamed_dep"]
+            .iter()
+            .map(|n| n.to_string())
+            .collect();
+        assert_eq!(names, expected);
+
+        let mut known: BTreeSet<&str> = components
+            .iter()
+            .filter_map(|c| c.bom_ref.as_deref())
+            .collect();
+        known.insert(
+            bom.metadata
+                .as_ref()
+                .unwrap()
+                .component
+                .as_ref()
+                .unwrap()
+                .bom_ref
+                .as_deref()
+                .unwrap(),
+        );
+
+        for dependency in &bom.dependencies.as_ref().unwrap().0 {
+            assert!(
+                known.contains(dependency.dependency_ref.as_str()),
+                "dangling dependency entry: {}",
+                dependency.dependency_ref
+            );
+            for dependency_ref in &dependency.dependencies {
+                assert!(
+                    known.contains(dependency_ref.as_str()),
+                    "dangling dependency reference: {dependency_ref}"
+                );
+            }
+        }
+    }
+
+    /// `--features weak_dep/some_feature` builds `weak_dep`, but since
+    /// `top_level_crate` names it with `dep:` elsewhere, it has no implicit feature
+    /// and cargo records nothing on `top_level_crate`'s node to say so. The CLI
+    /// features have to be replayed for the edge to survive.
+    #[test]
+    fn parse_toml_with_optional_dep_enabled_from_cli() {
+        use crate::cli;
+        use crate::generate_sboms;
+        use clap::Parser;
+        use std::collections::BTreeSet;
+        use std::path::PathBuf;
+
+        let mut test_cargo_toml = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_cargo_toml.push("tests/fixtures/optional_deps/top_level_crate/Cargo.toml");
+
+        let path_arg = &format!("--manifest-path={}", test_cargo_toml.display());
+        let args = ["cyclonedx", path_arg, "--features=weak_dep/some_feature"];
+        let args_parsed = cli::Args::parse_from(args.iter());
+
+        let sboms = generate_sboms(&args_parsed).unwrap();
+        let components = &sboms[0].bom.components.as_ref().unwrap().0;
+
+        let names: BTreeSet<String> = components.iter().map(|c| c.name.to_string()).collect();
+        let expected: BTreeSet<String> = [
+            "plain_dep",
+            "enabled_dep",
+            "renamed_dep",
+            "weak_dep",
+            "dep_of_weak",
+        ]
+        .iter()
+        .map(|n| n.to_string())
+        .collect();
+        assert_eq!(names, expected);
+    }
 }

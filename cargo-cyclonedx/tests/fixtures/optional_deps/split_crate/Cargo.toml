@@ -1,0 +1,22 @@
+[package]
+name = "split_crate"
+version = "0.1.0"
+edition = "2021"
+
+# Each dependency is optional and only ever named weakly in `[dependencies]`, so
+# that entry is never built, while a second entry for the same crate is.
+[features]
+default = ["turn_on"]
+turn_on = ["platform_dep?/some_feature", "dev_only_dep?/some_feature"]
+
+[dependencies]
+platform_dep = { path = "../platform_dep", optional = true }
+dev_only_dep = { path = "../dev_only_dep", optional = true }
+
+# Built, but only on Windows.
+[target.'cfg(windows)'.dependencies]
+platform_dep = { path = "../platform_dep" }
+
+# Built, but only for tests.
+[dev-dependencies]
+dev_only_dep = { path = "../dev_only_dep" }
