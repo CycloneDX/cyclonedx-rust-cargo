@@ -21,7 +21,6 @@ use std::collections::HashSet;
 use crate::config::FilenamePattern;
 use crate::config::PlatformSuffix;
 use crate::config::SbomConfig;
-use crate::config::Target;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
 use crate::precursor::{package_graph, PackageGraph};
@@ -198,11 +197,8 @@ impl SbomGenerator {
         let root = &graph.root;
         let manifest_path = packages[root].manifest_path.clone().into_std_path_buf();
 
-        let mut config = config.clone();
-        config.target = Some(Target::SingleTarget(precursor.target.clone()));
-
         let generator = SbomGenerator {
-            config,
+            config: config.clone(),
             workspace_root: meta.workspace_root.to_owned(),
             crate_hashes: HashMap::new(),
         };

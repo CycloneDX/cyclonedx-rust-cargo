@@ -21,14 +21,12 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use anyhow::{bail, Context, Result};
-use cargo_cyclonedx::{
-    config::{Describe, SbomConfig},
-    generator::SbomGenerator,
-};
+use cargo_cyclonedx::{config::Describe, generator::SbomGenerator};
 use cargo_metadata::{Artifact, Message, Metadata, MetadataCommand};
 use cargo_sbom_precursor::Precursor;
 
 use crate::cli::Args;
+use crate::resolve_config;
 
 /// The `cargo build` flags that also have to be passed to `cargo metadata`
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -93,7 +91,9 @@ impl CargoArgs {
     }
 }
 
-pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[OsString]) -> Result<()> {
+pub fn build_and_generate(args: &Args, cargo_args: &[OsString]) -> Result<()> {
+    // Check the options before building, since the config is only resolved per artifact after the build
+    args.as_config()?;
     for (flag, set) in [
         ("--all-features", args.all_features),
         ("--no-default-features", args.no_default_features),
@@ -151,11 +151,12 @@ pub fn build_and_generate(args: &Args, config: &SbomConfig, cargo_args: &[OsStri
             log::trace!("SBOM generation for {} started", filename);
             let precursor = Precursor::from_path(&precursor_path)
                 .with_context(|| precursor_path.display().to_string())?;
+            let config = resolve_config(args, Some(precursor.target.clone()))?;
             let sbom = SbomGenerator::create_sbom_from_precursor(
                 &metadata,
                 &precursor,
                 &artifact.target,
-                config,
+                &config,
             )?;
             log::trace!("SBOM generation for {} finished", filename);
 

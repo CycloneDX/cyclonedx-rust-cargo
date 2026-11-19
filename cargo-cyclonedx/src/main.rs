@@ -68,7 +68,7 @@ mod cli;
 use cli::{Args, Command, Opts};
 
 fn generate_sboms(args: &Args) -> Result<Vec<GeneratedSbom>> {
-    let config = resolve_config(args)?;
+    let config = resolve_config(args, None)?;
     let manifest_path = locate_manifest(args)?;
     log::debug!("Found the Cargo.toml file at {}", manifest_path.display());
 
@@ -88,8 +88,7 @@ fn main() -> anyhow::Result<()> {
     setup_logging(&args)?;
 
     if let Some(Command::Build { cargo_args }) = &args.command {
-        let config = resolve_config(&args)?;
-        return build_command::build_and_generate(&args, &config, cargo_args);
+        return build_command::build_and_generate(&args, cargo_args);
     }
 
     if build_command::sbom_supported() {
@@ -129,8 +128,9 @@ fn setup_logging(args: &Args) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Constructs the resolved configuration based on env vars and CLI arguments
-fn resolve_config(args: &Args) -> Result<SbomConfig> {
+/// Constructs the resolved configuration based on env vars and CLI arguments,
+/// and on the target platform if it is already known
+fn resolve_config(args: &Args, target: Option<String>) -> Result<SbomConfig> {
     let env_config = SbomConfig::from_env();
     let cli_config = args.as_config()?;
     // CLI options take precedence over environment variables:
@@ -140,7 +140,9 @@ fn resolve_config(args: &Args) -> Result<SbomConfig> {
     // default to the host platform. This is resolved here only once
     // because calls to rustc can be expensive (hundreds of milliseconds)
     // if it's installed with rustup, because rustup needs to parse a config every time.
-    if merged.target.is_none() {
+    if let Some(target) = target {
+        merged.target = Some(Target::SingleTarget(target));
+    } else if merged.target.is_none() {
         merged.target = Some(Target::SingleTarget(
             cargo_cyclonedx::platform::host_platform(),
         ));
