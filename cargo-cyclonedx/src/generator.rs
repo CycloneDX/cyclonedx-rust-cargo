@@ -23,6 +23,7 @@ use crate::config::PlatformSuffix;
 use crate::config::SbomConfig;
 use crate::config::{IncludedDependencies, ParseMode};
 use crate::format::Format;
+use crate::precursor::{package_graph, PackageGraph};
 use crate::purl::get_purl;
 
 use cargo_metadata;
@@ -77,7 +78,7 @@ type DependencyKindMap = BTreeMap<PackageId, DependencyKind>;
 
 /// The values are ordered from weakest to strongest so that casting to integer would make sense
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
-enum PrivateDepKind {
+pub(crate) enum PrivateDepKind {
     Development,
     Build,
     Runtime,
@@ -160,8 +161,12 @@ impl SbomGenerator {
                 workspace_root: meta.workspace_root.to_owned(),
                 crate_hashes,
             };
-            let (bom, target_kinds) =
-                generator.create_bom(member, &dependencies, &pruned_resolve, &dep_kinds)?;
+            let (bom, target_kinds) = generator.create_bom(
+                member,
+                &dependencies,
+                create_dependencies(&pruned_resolve),
+                &dep_kinds,
+            )?;
 
             let generated = GeneratedSbom {
                 bom,
@@ -177,11 +182,51 @@ impl SbomGenerator {
         Ok(result)
     }
 
+    pub fn create_sbom_from_precursor(
+        meta: &CargoMetadata,
+        precursor: &cargo_sbom_precursor::Precursor,
+        target: &cargo_metadata::Target,
+        config: &SbomConfig,
+    ) -> Result<GeneratedSbom, GeneratorError> {
+        log::trace!("Processing the target {}", target.name);
+        let mut graph = package_graph(precursor, config.only_normal_deps == Some(true));
+        if config.included_dependencies() == IncludedDependencies::TopLevelDependencies {
+            graph = graph.top_level();
+        }
+
+        let packages = precursor_packages(&meta.packages, &graph)?;
+        let root = &graph.root;
+        let manifest_path = packages[root].manifest_path.clone().into_std_path_buf();
+
+        let generator = SbomGenerator {
+            config: config.clone(),
+            workspace_root: meta.workspace_root.to_owned(),
+            crate_hashes: HashMap::new(),
+        };
+        let (mut bom, target_kinds) = generator.create_bom(
+            root,
+            &packages,
+            precursor_dependencies(&graph),
+            &graph.kinds,
+        )?;
+
+        let target_component = find_target_component(&bom, &target_kinds, target)?;
+        GeneratedSbom::describe_target(&mut bom, &target_component);
+
+        Ok(GeneratedSbom {
+            bom,
+            manifest_path,
+            package_name: packages[root].name.to_string(),
+            sbom_config: generator.config,
+            target_kinds,
+        })
+    }
+
     fn create_bom(
         &self,
         package: &PackageId,
         packages: &PackageMap,
-        resolve: &ResolveMap,
+        dependencies: Dependencies,
         dep_kinds: &DependencyKindMap,
     ) -> Result<(Bom, TargetKinds), GeneratorError> {
         let mut bom = Bom::default();
@@ -207,7 +252,7 @@ impl SbomGenerator {
 
         bom.metadata = Some(metadata);
 
-        bom.dependencies = Some(create_dependencies(resolve));
+        bom.dependencies = Some(dependencies);
 
         Ok((bom, target_kinds))
     }
@@ -744,6 +789,12 @@ pub enum GeneratorError {
 
     #[error("Could not parse author string: {}", .0)]
     AuthorParseError(String),
+
+    #[error("Package {0} is in the SBOM precursor but not in `cargo metadata` output")]
+    PrecursorPackageMissingError(PackageId),
+
+    #[error("Target {0} was built but is not in `cargo metadata` output")]
+    PrecursorTargetMissingError(String),
 }
 
 /// Generates the `Dependencies` field in the final SBOM
@@ -757,6 +808,57 @@ fn create_dependencies(resolve: &ResolveMap) -> Dependencies {
         })
         .collect();
     Dependencies(deps)
+}
+
+/// Generates the `Dependencies` field from the package graph of a precursor
+fn precursor_dependencies(graph: &PackageGraph) -> Dependencies {
+    let deps = graph
+        .edges
+        .iter()
+        .map(|(id, dependencies)| Dependency {
+            dependency_ref: id.to_string(),
+            dependencies: dependencies.iter().map(|d| d.to_string()).collect(),
+            provides: Vec::new(),
+        })
+        .collect();
+    Dependencies(deps)
+}
+
+/// Looks up the packages in the package graph of a precursor in `cargo metadata` output
+fn precursor_packages(
+    packages: &[Package],
+    graph: &PackageGraph,
+) -> Result<PackageMap, GeneratorError> {
+    let packages: HashMap<&PackageId, &Package> =
+        packages.iter().map(|pkg| (&pkg.id, pkg)).collect();
+    graph
+        .kinds
+        .keys()
+        .map(|id| match packages.get(id) {
+            Some(pkg) => Ok((id.clone(), (*pkg).clone())),
+            None => Err(GeneratorError::PrecursorPackageMissingError(id.clone())),
+        })
+        .collect()
+}
+
+/// Finds the subcomponent of the toplevel component that describes a Cargo target
+fn find_target_component(
+    bom: &Bom,
+    target_kinds: &TargetKinds,
+    target: &cargo_metadata::Target,
+) -> Result<Component, GeneratorError> {
+    let meta = bom.metadata.as_ref().unwrap();
+    let crate_component = meta.component.as_ref().unwrap();
+    let components = crate_component.components.as_ref().unwrap();
+    components
+        .0
+        .iter()
+        .find(|component| {
+            component.name.to_string() == target.name
+                && target_kinds.0[component.bom_ref.as_ref().unwrap()] == target.kind
+        })
+        .cloned()
+        .ok_or_else(|| GeneratorError::PrecursorTargetMissingError(target.name.clone()))
 }
 
 fn top_level_dependencies(
@@ -920,6 +1022,10 @@ impl GeneratedSbom {
         }
     }
 
+    pub fn write_to(self, path: &Path) -> Result<(), SbomWriterError> {
+        Self::write_to_file(self.bom, path, &self.sbom_config)
+    }
+
     fn write_to_file(bom: Bom, path: &Path, config: &SbomConfig) -> Result<(), SbomWriterError> {
         use cyclonedx_bom::models::bom::SpecVersion::*;
         let spec_version = config.spec_version.unwrap_or(V1_3);
@@ -983,28 +1089,26 @@ impl GeneratedSbom {
             })
             .map(move |component| {
                 let target_kind = &target_kinds.0[component.bom_ref.as_ref().unwrap()];
-                // In the original SBOM the toplevel component describes a crate.
-                // We need to change it to describe a specific binary.
-                // Most properties apply to the entire package and should be kept;
-                // we just need to update the name, type and purl.
                 let mut new_bom = bom.clone();
-                let metadata = new_bom.metadata.as_mut().unwrap();
-                let toplevel_component = metadata.component.as_mut().unwrap();
-                toplevel_component.name = component.name.clone();
-                toplevel_component.component_type = component.component_type.clone();
-                toplevel_component.purl.clone_from(&component.purl);
-
-                // Clear the subcomponents when we are describing only one binary per SBOM.
-                // See https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/763
-                match describe {
-                    Describe::Crate => (),
-                    Describe::Binaries | Describe::AllCargoTargets => {
-                        toplevel_component.components = None
-                    }
-                }
-
+                Self::describe_target(&mut new_bom, component);
                 (new_bom, target_kind.clone())
             })
+    }
+
+    /// In the original SBOM the toplevel component describes a crate.
+    /// This changes it to describe a specific target, given as one of its subcomponents.
+    fn describe_target(bom: &mut Bom, target: &Component) {
+        let metadata = bom.metadata.as_mut().unwrap();
+        let toplevel_component = metadata.component.as_mut().unwrap();
+        // Most properties apply to the entire package and should be kept;
+        // we just need to update the name, type and purl.
+        toplevel_component.name = target.name.clone();
+        toplevel_component.component_type = target.component_type.clone();
+        toplevel_component.purl.clone_from(&target.purl);
+
+        // Clear the subcomponents when we are describing only one binary per SBOM.
+        // See https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/763
+        toplevel_component.components = None;
     }
 
     fn filename(

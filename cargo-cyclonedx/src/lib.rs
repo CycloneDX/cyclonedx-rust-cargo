@@ -38,6 +38,7 @@ pub mod config;
 pub mod format;
 pub mod generator;
 pub mod platform;
+mod precursor;
 pub mod purl;
 
 pub use crate::generator::*;
