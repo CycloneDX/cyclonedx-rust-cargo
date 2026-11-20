@@ -14,9 +14,13 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["fluent-uri"]
+fluent-uri = ["dep:fluent-uri"]
+
 [dependencies]
 base64 = "0.22.1"
-fluent-uri = "0.4.1"
+fluent-uri = { version = "0.4.1", optional = true }
 indexmap = "2.2.2"
 once_cell = "1.18.0"
 ordered-float = { version = "5.0.0", default-features = false }
