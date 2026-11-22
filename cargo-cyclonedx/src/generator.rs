@@ -107,6 +107,7 @@ pub struct SbomGenerator {
     config: SbomConfig,
     workspace_root: Utf8PathBuf,
     crate_hashes: HashMap<cargo_metadata::PackageId, Checksum>,
+    reproducible: bool,
 }
 
 /// Contains a map from `bom_ref` of a subcomponent to the kinds of Cargo targets it has,
@@ -159,6 +160,9 @@ impl SbomGenerator {
                 config: config.clone(),
                 workspace_root: meta.workspace_root.to_owned(),
                 crate_hashes,
+                // TODO: make it part of SBOM config instead in the next semver break
+                // due to https://github.com/PyO3/maturin/issues/3091
+                reproducible: std::env::var("SOURCE_DATE_EPOCH").is_ok(),
             };
             let (bom, target_kinds) =
                 generator.create_bom(member, &dependencies, &pruned_resolve, &dep_kinds)?;
@@ -187,19 +191,21 @@ impl SbomGenerator {
         let mut bom = Bom::default();
 
         // If we're in reproducible build mode, do not include the random serial number
-        // TODO: make it part of SBOM config instead in the next semver break
-        // due to https://github.com/PyO3/maturin/issues/3091
-        if let Ok(_) = std::env::var("SOURCE_DATE_EPOCH") {
+        if self.reproducible {
             bom.serial_number = None;
         }
 
         let root_package = &packages[package];
 
-        let components: Vec<_> = packages
+        let mut components: Vec<_> = packages
             .values()
             .filter(|p| &p.id != package)
             .map(|component| self.create_component(component, root_package, dep_kinds))
             .collect();
+        if self.reproducible {
+            // Cargo's package IDs can sort differently when a checkout moves.
+            components.sort_unstable_by(|a, b| a.bom_ref.cmp(&b.bom_ref));
+        }
 
         bom.components = Some(Components(components));
 
@@ -207,7 +213,7 @@ impl SbomGenerator {
 
         bom.metadata = Some(metadata);
 
-        bom.dependencies = Some(create_dependencies(resolve));
+        bom.dependencies = Some(create_dependencies(resolve, packages, self.reproducible));
 
         Ok((bom, target_kinds))
     }
@@ -221,22 +227,28 @@ impl SbomGenerator {
         let name = package.name.to_owned().trim().to_string();
         let version = package.version.to_string();
 
-        let purl = match get_purl(package, root_package, &self.workspace_root, None) {
-            Ok(purl) => Some(purl),
-            Err(e) => {
-                log::warn!("Package {} has an invalid Purl: {} ", package.name, e);
-                None
-            }
-        };
-
         let mut component = Component::new(
             Classification::Library,
             &name,
             &version,
-            Some(package.id.to_string()),
+            Some(package_ref(package, self.reproducible)),
         );
 
-        component.purl = purl;
+        // For path dependencies outside the workspace, the download URL contains
+        // a machine-specific path. Without that URL, the Cargo PURL would identify
+        // a crates.io package, so omit the PURL in reproducible builds.
+        if !self.reproducible
+            || package.source.is_some()
+            || package.manifest_path.starts_with(&self.workspace_root)
+        {
+            component.purl = match get_purl(package, root_package, &self.workspace_root, None) {
+                Ok(purl) => Some(purl),
+                Err(e) => {
+                    log::warn!("Package {} has an invalid Purl: {} ", package.name, e);
+                    None
+                }
+            };
+        }
         component.scope = match dep_kinds
             .get(&package.id)
             .unwrap_or(&DependencyKind::Normal)
@@ -525,9 +537,6 @@ impl SbomGenerator {
         // If we're in reproducible build mode, use a fixed timestam provided by the environment.
         // This is needed for Linux distributions: https://github.com/CycloneDX/cyclonedx-rust-cargo/issues/850
         // Specification: https://reproducible-builds.org/docs/source-date-epoch/
-        //
-        // TODO: make it part of SBOM config instead in the next semver break
-        // due to https://github.com/PyO3/maturin/issues/3091
         if let Ok(timestamp) = std::env::var("SOURCE_DATE_EPOCH") {
             let timestamp =
                 i64::from_str_radix(&timestamp, 10).expect("Invalid reproducible build timestamp");
@@ -746,16 +755,38 @@ pub enum GeneratorError {
     AuthorParseError(String),
 }
 
+fn package_ref(package: &Package, reproducible: bool) -> String {
+    if reproducible && package.source.is_none() {
+        // We know that value is unique because Cargo requires path dependencies
+        // to have a unique name@version combination.
+        format!("path:{}@{}", package.name, package.version)
+    } else {
+        package.id.to_string()
+    }
+}
+
 /// Generates the `Dependencies` field in the final SBOM
-fn create_dependencies(resolve: &ResolveMap) -> Dependencies {
-    let deps = resolve
+fn create_dependencies(
+    resolve: &ResolveMap,
+    packages: &PackageMap,
+    reproducible: bool,
+) -> Dependencies {
+    let bom_ref = |id| package_ref(&packages[id], reproducible);
+    let mut deps: Vec<_> = resolve
         .values()
         .map(|node| Dependency {
-            dependency_ref: node.id.to_string(),
-            dependencies: node.dependencies.iter().map(|d| d.to_string()).collect(),
+            dependency_ref: bom_ref(&node.id),
+            dependencies: node.dependencies.iter().map(bom_ref).collect(),
             provides: Vec::new(),
         })
         .collect();
+    if reproducible {
+        // Sort by SBOM reference so absolute paths cannot affect the order.
+        deps.sort_unstable_by(|a, b| a.dependency_ref.cmp(&b.dependency_ref));
+        for dep in &mut deps {
+            dep.dependencies.sort_unstable();
+        }
+    }
     Dependencies(deps)
 }
 
