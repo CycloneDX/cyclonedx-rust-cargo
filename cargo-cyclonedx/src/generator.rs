@@ -234,8 +234,9 @@ impl SbomGenerator {
             Some(package_ref(package, self.reproducible)),
         );
 
-        // External path packages require an absolute download URL. An unqualified
-        // Cargo PURL would point to crates.io, so omit it in reproducible builds.
+        // For path dependencies outside the workspace, the download URL contains
+        // a machine-specific path. Without that URL, the Cargo PURL would identify
+        // a crates.io package, so omit the PURL in reproducible builds.
         if !self.reproducible
             || package.source.is_some()
             || package.manifest_path.starts_with(&self.workspace_root)
@@ -756,8 +757,8 @@ pub enum GeneratorError {
 
 fn package_ref(package: &Package, reproducible: bool) -> String {
     if reproducible && package.source.is_none() {
-        // Cargo checks that path packages are unique by name and version
-        // because Cargo.lock does not record their paths.
+        // We know that value is unique because Cargo requires path dependencies
+        // to have a unique name@version combination.
         format!("path:{}@{}", package.name, package.version)
     } else {
         package.id.to_string()
@@ -780,6 +781,7 @@ fn create_dependencies(
         })
         .collect();
     if reproducible {
+        // Sort by SBOM reference so absolute paths cannot affect the order.
         deps.sort_unstable_by(|a, b| a.dependency_ref.cmp(&b.dependency_ref));
         for dep in &mut deps {
             dep.dependencies.sort_unstable();
