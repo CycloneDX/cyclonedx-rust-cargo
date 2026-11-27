@@ -322,17 +322,6 @@ pub(crate) fn inner_text_or_error(
     }
 }
 
-pub(crate) fn inner_text_or_none(
-    element_name: impl AsRef<str>,
-) -> impl FnOnce(xml::reader::XmlEvent) -> Result<Option<String>, XmlReadError> {
-    let element_name = element_name.as_ref().to_owned();
-    |event| match event {
-        reader::XmlEvent::Characters(s) | reader::XmlEvent::CData(s) => Ok(Some(s)),
-        reader::XmlEvent::EndElement { name } if name.to_string() == element_name => Ok(None),
-        unexpected => Err(unexpected_element_error(element_name, unexpected)),
-    }
-}
-
 pub(crate) fn closing_tag_or_error(
     element: &OwnedName,
 ) -> impl FnOnce(xml::reader::XmlEvent) -> Result<(), XmlReadError> {
@@ -458,23 +447,20 @@ pub(crate) fn read_simple_tag<R: Read>(
     element: &OwnedName,
 ) -> Result<String, XmlReadError> {
     let element_display = element.to_string();
-    let content = event_reader
-        .next()
-        .map_err(to_xml_read_error(&element_display))?;
+    let mut content = String::new();
 
-    let content = match content {
-        reader::XmlEvent::EndElement { .. } => String::new(),
-        reader::XmlEvent::Characters(content) | reader::XmlEvent::CData(content) => {
-            event_reader
-                .next()
-                .map_err(to_xml_read_error(&element_display))
-                .and_then(closing_tag_or_error(element))?;
-            content
+    loop {
+        match event_reader
+            .next()
+            .map_err(to_xml_read_error(&element_display))?
+        {
+            reader::XmlEvent::EndElement { name } if &name == element => return Ok(content),
+            reader::XmlEvent::Characters(s) | reader::XmlEvent::CData(s) => {
+                content.push_str(&s);
+            }
+            unexpected => return Err(unexpected_element_error(element, unexpected)),
         }
-        unexpected => return Err(unexpected_element_error(element, unexpected)),
-    };
-
-    Ok(content)
+    }
 }
 
 pub(crate) fn read_optional_tag<R: Read>(
@@ -482,20 +468,45 @@ pub(crate) fn read_optional_tag<R: Read>(
     element: &OwnedName,
 ) -> Result<Option<String>, XmlReadError> {
     let element_display = element.to_string();
-    let content = event_reader
+    let mut content: Option<String> = None;
+
+    loop {
+        match event_reader
+            .next()
+            .map_err(to_xml_read_error(&element_display))?
+        {
+            reader::XmlEvent::EndElement { name } if &name == element => return Ok(content),
+            reader::XmlEvent::Characters(s) | reader::XmlEvent::CData(s) => {
+                content.get_or_insert_with(String::new).push_str(&s);
+            }
+            unexpected => return Err(unexpected_element_error(element, unexpected)),
+        }
+    }
+}
+
+/// Reads a simple String tag that must contain at least one character or CDATA event.
+pub(crate) fn read_non_empty_tag<R: Read>(
+    event_reader: &mut EventReader<R>,
+    element: &OwnedName,
+) -> Result<String, XmlReadError> {
+    let element_display = element.to_string();
+    let mut content = event_reader
         .next()
         .map_err(to_xml_read_error(&element_display))
-        .and_then(inner_text_or_none(&element_display))?;
+        .and_then(inner_text_or_error(&element_display))?;
 
-    // If XML tag has content, read next element
-    if content.is_some() {
-        event_reader
+    loop {
+        match event_reader
             .next()
-            .map_err(to_xml_read_error(&element_display))
-            .and_then(closing_tag_or_error(element))?;
+            .map_err(to_xml_read_error(&element_display))?
+        {
+            reader::XmlEvent::EndElement { name } if &name == element => return Ok(content),
+            reader::XmlEvent::Characters(s) | reader::XmlEvent::CData(s) => {
+                content.push_str(&s);
+            }
+            unexpected => return Err(unexpected_element_error(element, unexpected)),
+        }
     }
-
-    Ok(content)
 }
 
 pub(crate) fn read_u32_tag<R: Read>(
@@ -503,28 +514,16 @@ pub(crate) fn read_u32_tag<R: Read>(
     element: &OwnedName,
 ) -> Result<u32, XmlReadError> {
     let element_display = element.to_string();
-    let content = event_reader
-        .next()
-        .map_err(to_xml_read_error(&element_display))
-        .and_then(inner_text_or_error(&element_display))?;
+    let content = read_non_empty_tag(event_reader, element)?;
 
-    let number = match content.trim().parse::<u32>() {
-        Ok(n) => n,
-        Err(_) => {
-            return Err(XmlReadError::InvalidParseError {
-                value: content,
-                data_type: "u32".to_string(),
-                element: element_display,
-            })
-        }
-    };
-
-    event_reader
-        .next()
-        .map_err(to_xml_read_error(&element_display))
-        .and_then(closing_tag_or_error(element))?;
-
-    Ok(number)
+    match content.trim().parse::<u32>() {
+        Ok(n) => Ok(n),
+        Err(_) => Err(XmlReadError::InvalidParseError {
+            value: content,
+            data_type: "u32".to_string(),
+            element: element_display,
+        }),
+    }
 }
 
 pub(crate) fn read_f32_tag<R: Read>(
@@ -532,28 +531,16 @@ pub(crate) fn read_f32_tag<R: Read>(
     element: &OwnedName,
 ) -> Result<f32, XmlReadError> {
     let element_display = element.to_string();
-    let content = event_reader
-        .next()
-        .map_err(to_xml_read_error(&element_display))
-        .and_then(inner_text_or_error(&element_display))?;
+    let content = read_non_empty_tag(event_reader, element)?;
 
-    let number = match content.trim().parse::<f32>() {
-        Ok(n) => n,
-        Err(_) => {
-            return Err(XmlReadError::InvalidParseError {
-                value: content,
-                data_type: "f32".to_string(),
-                element: element_display,
-            })
-        }
-    };
-
-    event_reader
-        .next()
-        .map_err(to_xml_read_error(&element_display))
-        .and_then(closing_tag_or_error(element))?;
-
-    Ok(number)
+    match content.trim().parse::<f32>() {
+        Ok(n) => Ok(n),
+        Err(_) => Err(XmlReadError::InvalidParseError {
+            value: content,
+            data_type: "f32".to_string(),
+            element: element_display,
+        }),
+    }
 }
 
 pub(crate) fn read_boolean_tag<R: Read>(
@@ -827,5 +814,157 @@ pub(crate) mod test {
         }
 
         // no end document, because it returns an error during the read_lax_validation_tag call
+    }
+
+    fn read_tag_with<'a, T>(
+        input: &'a str,
+        reader_fn: impl FnOnce(&mut EventReader<&'a [u8]>, &OwnedName) -> Result<T, XmlReadError>,
+    ) -> Result<T, XmlReadError> {
+        let mut event_reader = EventReader::new_with_config(input.as_bytes(), parser_config());
+        match event_reader.next().expect("Expected to start the document") {
+            reader::XmlEvent::StartDocument { .. } => (),
+            other => panic!("Expected to start a document, but got {:?}", other),
+        }
+        let result = match event_reader.next().expect("Expected to start an element") {
+            reader::XmlEvent::StartElement { name, .. } => reader_fn(&mut event_reader, &name),
+            other => panic!("Expected to start an element, but got {:?}", other),
+        };
+        if result.is_ok() {
+            match event_reader.next().expect("Expected to end the document") {
+                reader::XmlEvent::EndDocument => (),
+                other => panic!("Expected to end a document, but got {:?}", other),
+            }
+        }
+        result
+    }
+
+    #[test]
+    fn it_should_read_simple_tag_with_adjacent_and_mixed_cdata() {
+        // XML 1.0 section 2.7 encodes literal "]]>" across adjacent CDATA sections.
+        let split_cdata = "<description><![CDATA[foo]]]]><![CDATA[>bar]]></description>";
+        assert_eq!(
+            read_tag_with(split_cdata, read_simple_tag).expect("Should parse adjacent CDATA"),
+            "foo]]>bar"
+        );
+
+        let mixed = "<description>prefix<![CDATA[<raw>]]>suffix</description>";
+        assert_eq!(
+            read_tag_with(mixed, read_simple_tag).expect("Should parse mixed text and CDATA"),
+            "prefix<raw>suffix"
+        );
+
+        let empty = "<description />";
+        assert_eq!(
+            read_tag_with(empty, read_simple_tag).expect("Should parse empty tag"),
+            ""
+        );
+    }
+
+    #[test]
+    fn it_should_read_optional_tag_with_adjacent_and_mixed_cdata() {
+        let split_cdata = "<detail><![CDATA[a]]]]><![CDATA[>b]]></detail>";
+        assert_eq!(
+            read_tag_with(split_cdata, read_optional_tag)
+                .expect("Should parse adjacent CDATA in optional tag"),
+            Some("a]]>b".to_string())
+        );
+
+        let mixed = "<detail>lead<![CDATA[<script>]]>tail</detail>";
+        assert_eq!(
+            read_tag_with(mixed, read_optional_tag)
+                .expect("Should parse mixed text and CDATA in optional tag"),
+            Some("lead<script>tail".to_string())
+        );
+
+        let empty = "<detail />";
+        assert_eq!(
+            read_tag_with(empty, read_optional_tag).expect("Should parse empty optional tag"),
+            None
+        );
+    }
+
+    #[test]
+    fn it_should_read_attached_text_with_adjacent_cdata_and_reject_empty() {
+        use crate::specs::common::attached_text::AttachedText;
+
+        let split_cdata = "<text><![CDATA[part1]]]]><![CDATA[>part2]]></text>";
+        let parsed = read_tag_with(split_cdata, |r, name| {
+            AttachedText::read_xml_element(r, name, &[])
+        })
+        .expect("Should parse adjacent CDATA in attached text");
+        let expected = read_tag_with("<text>part1]]&gt;part2</text>", |r, name| {
+            AttachedText::read_xml_element(r, name, &[])
+        })
+        .expect("Should parse equivalent escaped text");
+        assert_eq!(parsed, expected);
+
+        let empty = "<text />";
+        assert!(matches!(
+            read_tag_with(empty, |r, name| AttachedText::read_xml_element(
+                r,
+                name,
+                &[]
+            )),
+            Err(XmlReadError::UnexpectedElementReadError { .. })
+        ));
+    }
+
+    #[test]
+    fn it_should_parse_bom_xml_with_split_cdata_and_mixed_text() {
+        use crate::models::bom::Bom;
+        use crate::models::license::LicenseChoice;
+        use crate::models::license::LicenseIdentifier;
+        use crate::prelude::SpecVersion;
+
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.5" version="1">
+  <components>
+    <component type="library">
+      <name>demo</name>
+      <version>1.0.0</version>
+      <description><![CDATA[foo]]]]><![CDATA[>bar]]></description>
+      <licenses>
+        <license>
+          <name>MIT<![CDATA[-custom]]></name>
+          <text content-type="text/plain"><![CDATA[license]]]]><![CDATA[>text]]></text>
+        </license>
+      </licenses>
+    </component>
+  </components>
+  <vulnerabilities>
+    <vulnerability>
+      <id>CVE-2026-0001</id>
+      <detail>lead<![CDATA[<raw>]]>tail</detail>
+    </vulnerability>
+  </vulnerabilities>
+</bom>"#;
+
+        let bom = Bom::parse_from_xml_with_version(xml.as_bytes(), SpecVersion::V1_5)
+            .expect("Should parse valid CycloneDX 1.5 XML containing split/mixed CDATA");
+
+        let component = &bom.components.as_ref().expect("components").0[0];
+        assert_eq!(
+            component.description.as_ref().map(|d| d.as_ref()),
+            Some("foo]]>bar")
+        );
+
+        match &component.licenses.as_ref().expect("licenses").0[0] {
+            LicenseChoice::License(license) => {
+                match &license.license_identifier {
+                    LicenseIdentifier::Name(name) => {
+                        assert_eq!(AsRef::<str>::as_ref(name), "MIT-custom")
+                    }
+                    other => panic!("Expected LicenseIdentifier::Name, got {:?}", other),
+                }
+                assert_eq!(
+                    license.text.as_ref().map(|t| t.content.as_str()),
+                    Some("license]]>text")
+                );
+            }
+            other => panic!("Expected LicenseChoice::License, got {:?}", other),
+        }
+
+        let vuln = &bom.vulnerabilities.as_ref().expect("vulnerabilities").0[0];
+        assert_eq!(vuln.detail.as_deref(), Some("lead<raw>tail"));
     }
 }

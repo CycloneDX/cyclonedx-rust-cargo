@@ -38,9 +38,8 @@ pub(crate) mod base {
         },
         utilities::convert_vec,
         xml::{
-            closing_tag_or_error, inner_text_or_error, read_lax_validation_tag, read_simple_tag,
-            to_xml_read_error, to_xml_write_error, unexpected_element_error, FromXml, ToInnerXml,
-            ToXml,
+            read_lax_validation_tag, read_non_empty_tag, read_simple_tag, to_xml_read_error,
+            to_xml_write_error, unexpected_element_error, FromXml, ToInnerXml, ToXml,
         },
     };
     use crate::{specs::common::attached_text::AttachedText, utilities::convert_optional};
@@ -517,32 +516,8 @@ pub(crate) mod base {
             Self: Sized,
         {
             match name.local_name.as_str() {
-                ID_TAG => {
-                    let id = event_reader
-                        .next()
-                        .map_err(to_xml_read_error(ID_TAG))
-                        .and_then(inner_text_or_error(ID_TAG))?;
-
-                    event_reader
-                        .next()
-                        .map_err(to_xml_read_error(ID_TAG))
-                        .and_then(closing_tag_or_error(name))?;
-
-                    Ok(Self::SpdxId(id))
-                }
-                NAME_TAG => {
-                    let license_name = event_reader
-                        .next()
-                        .map_err(to_xml_read_error(NAME_TAG))
-                        .and_then(inner_text_or_error(NAME_TAG))?;
-
-                    event_reader
-                        .next()
-                        .map_err(to_xml_read_error(NAME_TAG))
-                        .and_then(closing_tag_or_error(name))?;
-
-                    Ok(Self::Name(license_name))
-                }
+                ID_TAG => Ok(Self::SpdxId(read_non_empty_tag(event_reader, name)?)),
+                NAME_TAG => Ok(Self::Name(read_non_empty_tag(event_reader, name)?)),
                 other => Err(XmlReadError::UnexpectedElementReadError {
                     error: format!("Got {} instead of \"name\" or \"id\"", other),
                     element: "license identifier".to_string(),
