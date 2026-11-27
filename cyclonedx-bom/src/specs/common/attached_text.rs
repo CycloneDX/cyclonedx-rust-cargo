@@ -19,7 +19,7 @@
 use crate::{
     errors::XmlWriteError,
     external_models::normalized_string::NormalizedString,
-    xml::{closing_tag_or_error, inner_text_or_error, to_xml_read_error, FromXml, ToInnerXml},
+    xml::{read_non_empty_tag, FromXml, ToInnerXml},
 };
 use crate::{models, xml::to_xml_write_error};
 use serde::{Deserialize, Serialize};
@@ -110,15 +110,7 @@ impl FromXml for AttachedText {
             }
         }
 
-        let content = event_reader
-            .next()
-            .map_err(to_xml_read_error(&element_name.local_name))
-            .and_then(inner_text_or_error(&element_name.local_name))?;
-
-        event_reader
-            .next()
-            .map_err(to_xml_read_error(&element_name.local_name))
-            .and_then(closing_tag_or_error(element_name))?;
+        let content = read_non_empty_tag(event_reader, element_name)?;
 
         Ok(Self {
             content_type,
